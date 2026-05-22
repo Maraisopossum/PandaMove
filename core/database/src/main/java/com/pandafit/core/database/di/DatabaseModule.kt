@@ -1,0 +1,103 @@
+package com.pandafit.core.database.di
+
+import android.content.Context
+import androidx.room.Room
+import com.pandafit.core.database.PandaFitDatabase
+import com.pandafit.core.database.catalog.CatalogRepository
+import com.pandafit.core.database.catalog.EquipmentRepository
+import com.pandafit.core.database.dao.ExerciseDao
+import com.pandafit.core.database.dao.InstanceSeanceDao
+import com.pandafit.core.database.dao.SeanceDao
+import com.pandafit.core.database.dao.RunRepeatDao
+import com.pandafit.core.database.dao.RunStepDao
+import com.pandafit.core.database.dao.WorkoutBlockDao
+import com.pandafit.core.database.dao.WorkoutDao
+import com.pandafit.core.database.export.DataExportManager
+import com.pandafit.core.database.export.DataImportManager
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): PandaFitDatabase =
+        Room.databaseBuilder(
+            context,
+            PandaFitDatabase::class.java,
+            PandaFitDatabase.DATABASE_NAME,
+        )
+            .addMigrations(
+                PandaFitDatabase.MIGRATION_3_4,
+                PandaFitDatabase.MIGRATION_4_5,
+                PandaFitDatabase.MIGRATION_5_6,
+                PandaFitDatabase.MIGRATION_6_7,
+                PandaFitDatabase.MIGRATION_7_8,
+                PandaFitDatabase.MIGRATION_8_9,
+                PandaFitDatabase.MIGRATION_9_10,
+                PandaFitDatabase.MIGRATION_10_11,
+                PandaFitDatabase.MIGRATION_11_12,
+                PandaFitDatabase.MIGRATION_12_13,
+            )
+            .build()
+
+    @Provides
+    fun provideWorkoutDao(db: PandaFitDatabase): WorkoutDao = db.workoutDao()
+
+    @Provides
+    fun provideWorkoutBlockDao(db: PandaFitDatabase): WorkoutBlockDao = db.workoutBlockDao()
+
+    @Provides
+    fun provideExerciseDao(db: PandaFitDatabase): ExerciseDao = db.exerciseDao()
+
+    @Provides
+    fun provideSeanceDao(db: PandaFitDatabase): SeanceDao = db.seanceDao()
+
+    @Provides
+    fun provideInstanceSeanceDao(db: PandaFitDatabase): InstanceSeanceDao = db.instanceSeanceDao()
+
+    @Provides
+    fun provideRunStepDao(db: PandaFitDatabase): RunStepDao = db.runStepDao()
+
+    @Provides
+    fun provideRunRepeatDao(db: PandaFitDatabase): RunRepeatDao = db.runRepeatDao()
+
+    @Provides
+    @Singleton
+    fun provideCatalogRepository(exerciseDao: ExerciseDao): CatalogRepository =
+        CatalogRepository(exerciseDao)
+
+    @Provides
+    @Singleton
+    fun provideEquipmentRepository(@ApplicationContext context: Context): EquipmentRepository =
+        EquipmentRepository(context)
+
+    @Provides
+    @Singleton
+    fun provideDataExportManager(
+        @ApplicationContext context: Context,
+        workoutDao: WorkoutDao,
+        repeatDao: RunRepeatDao,
+        stepDao: RunStepDao,
+        seanceDao: SeanceDao,
+        instanceSeanceDao: InstanceSeanceDao,
+        exerciseDao: ExerciseDao,
+    ): DataExportManager = DataExportManager(context, workoutDao, repeatDao, stepDao, seanceDao, instanceSeanceDao, exerciseDao)
+
+    @Provides
+    @Singleton
+    fun provideDataImportManager(
+        workoutDao: WorkoutDao,
+        repeatDao: RunRepeatDao,
+        stepDao: RunStepDao,
+        seanceDao: SeanceDao,
+        instanceSeanceDao: InstanceSeanceDao,
+        exerciseDao: ExerciseDao,
+    ): DataImportManager = DataImportManager(workoutDao, repeatDao, stepDao, seanceDao, instanceSeanceDao, exerciseDao)
+}

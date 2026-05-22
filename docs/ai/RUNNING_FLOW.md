@@ -1,0 +1,82 @@
+# Running — Flux complet
+
+## Entités principales
+| Entité | Table | Rôle |
+|---|---|---|
+| `WorkoutEntity` | `workouts` | Séance running/vélo (template ou planifiée) |
+| `RunRepeatEntity` | `run_repeats` | Groupe de répétitions |
+| `RunStepEntity` | `run_steps` | Étape individuelle (course, récup, échauffement…) |
+
+## Champs critiques WorkoutEntity
+```
+isTemplate: Boolean          → true = séance type, false = planifiée/terminée
+isCompleted: Boolean         → true = résultats saisis
+scheduledDate: LocalDate
+resultDistanceKm: Double?    → saisi à la fin
+resultDurationSec: Int?      → saisi à la fin
+resultPaceAvgMinPerKm: Double?
+resultHrAvg: Int?            → FC moyenne
+resultHrMax: Int?            → FC max (migration v10→v11)
+resultRpe: Int?
+resultNotes: String
+resultElevationM: Int?       → dénivelé réel (migration v10→v11) ← utilisé dans stats
+completedAt: String?
+```
+
+## RunStepEntity — champs importants
+```
+stepType: RunStepType        → ACTIVE | RECOVERY | WARMUP | COOLDOWN
+endType: RunEndType          → DISTANCE | DURATION | OPEN
+endValue: Double
+endUnit: RunEndUnit          → KM | M | MIN | SEC
+targetType: RunTargetType    → PACE | HR | POWER | NONE
+targetMin / targetMax: Double?
+resultsJson: String          → résultats réels encodés JSON
+```
+
+## Flux création séance type
+```
+RunningScreen → FAB → RunningWorkoutDetailScreen (editor)
+RunningDetailViewModel.save() → workoutDao.insert(WorkoutEntity(isTemplate=true))
++ stepDao.insertAll() / repeatDao.insert()
+```
+
+## Flux planification (duplication template → séance planifiée)
+```
+RunningScreen carte template → icône 📅
+AssignMenuDialog → AssignSingleDatePickerDialog / AssignMultiDatePickerDialog / AssignRecurrenceDialog
+RunningListViewModel.assignToDate(id, date)
+  → workoutDao.insert(template.copy(
+      id=0, isTemplate=false, scheduledDate=date, isCompleted=false,
+      resultDistanceKm=null, resultDurationSec=null, resultPaceAvgMinPerKm=null,
+      resultHrAvg=null, resultRpe=null, resultNotes="",
+      resultHrMax=null,        // ⚠ à nullifier explicitement
+      resultElevationM=null,   // ⚠ à nullifier explicitement
+    ))
++ duplication des RunRepeatEntity et RunStepEntity avec nouveaux IDs
+```
+
+## Flux exécution + sauvegarde résultats
+```
+RunningScreen carte planifiée → RunningWorkoutExecuteScreen
+Utilisateur remplit ResultInputCell ("Distance", "Temps", "Allure", "FC moy.", "FC max", "RPE", "Dénivelé")
+RunningExecuteViewModel.finishWorkout()
+  → workoutDao.saveResults(
+      id, distKm, durSec, pace, hr, hrMax, rpe, notes, elevationM, completedAt
+    )
+  → repeatDao.update(repeat.copy(resultsJson = json.encodeToString(reps)))
+  → stepDao.update(step.copy(resultsJson = json.encodeToString(result)))
+→ navController → RunningWorkoutReportScreen
+```
+
+## Rapport (RunningWorkoutReportScreen)
+- Chargé par `RunningReportViewModel` : workout + repeats + steps
+- Sections : résultats globaux (`GlobalResultsCard`) + blocs répétition (lecture seule)
+- `GlobalResultsCard` affiche : Distance / Temps / Allure moy. / FC moy. / FC max / RPE / Dénivelé
+- **Dénivelé** : lu depuis `workout.resultElevationM` (saisi à l'exécution) ← pas calculé depuis distance
+
+## Points sensibles
+- `resultElevationM` saisi dans `RunningWorkoutExecuteScreen` → `RunningExecuteViewModel.updateOverallResult("elevation", it)` → `finishWorkout()` → `saveResults(elevationM = s.resultElevationM.toIntOrNull())`
+- Dans **stats** : `totalElev = completed.sumOf { it.resultElevationM ?: 0 }` — filtre par `scheduled_date` (pas `completed_at`)
+- Fun card "sommet" : `totalElevationM / summit.elevationM * 100` (dénivelé réel, pas distance)
+- `RunningReportViewModel.duplicateForDate()` : toujours inclure `resultHrMax = null, resultElevationM = null` dans le `.copy()`

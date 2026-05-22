@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fond uni correspondant à la couleur de splash.png -->
+    <item>
+        <color android:color="#8B9BAC" />
+    </item>
+    <!-- Image centrée à sa taille density-correcte, sans étirement -->
+    <item android:gravity="center">
+        <bitmap android:src="@drawable/splash" />
+    </item>
+</layer-list>

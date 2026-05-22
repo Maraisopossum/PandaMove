@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DESIGN TOKENS — PandaMove / PandaFit
+    Source : com.pandafit.designsystem.theme.Color.kt
+    Utilisation : themes.xml, splash screen, statut bar, vues XML legacy.
+    Ne pas utiliser directement dans Compose (utiliser les val Kotlin).
+-->
+<resources>
+    <!-- Violet — primaire, renforcement, navigation -->
+    <color name="panda_purple">#7C5CBF</color>
+    <color name="panda_purple_mid">#9B7DD4</color>
+    <color name="panda_purple_light">#EDE8F7</color>
+    <color name="panda_purple_dark">#5A3D9A</color>
+
+    <!-- Vert — running, complétion -->
+    <color name="panda_green">#2E9E6B</color>
+    <color name="panda_green_mid">#4CAF88</color>
+    <color name="panda_green_light">#E6F7F1</color>
+    <color name="panda_green_dark">#1B6B46</color>
+
+    <!-- Rouge — actions critiques, erreurs -->
+    <color name="panda_red">#E53935</color>
+    <color name="panda_red_light">#FFEBEE</color>
+    <color name="panda_red_dark">#B71C1C</color>
+
+    <!-- Orange — supersets, intervalles, calendrier -->
+    <color name="panda_orange">#E65100</color>
+    <color name="panda_orange_light">#FFF3E0</color>
+    <color name="panda_orange_border">#FFCC80</color>
+    <color name="panda_orange_dark">#BF360C</color>
+
+    <!-- Bleu — vélo, informations -->
+    <color name="panda_blue">#1565C0</color>
+    <color name="panda_blue_light">#E3F2FD</color>
+    <color name="panda_blue_dark">#0D47A1</color>
+
+    <!-- Fond & surfaces (mode clair) -->
+    <color name="panda_background">#F4F4F7</color>
+    <color name="panda_surface">#FFFFFF</color>
+    <color name="panda_surface_variant">#F0EFF6</color>
+    <color name="panda_outline">#E0E0E0</color>
+
+    <!-- Texte -->
+    <color name="panda_on_background">#1A1A2E</color>
+    <color name="panda_subtext">#888888</color>
+    <color name="panda_subtext_light">#AAAAAA</color>
+
+    <!-- Navigation / Drawer (kalyptus) -->
+    <color name="panda_sidebar">#1E2218</color>
+    <color name="panda_sidebar_hover">#2A2F1E</color>
+    <color name="kalyptus_green">#969B7F</color>
+    <color name="kalyptus_green_dark">#767B64</color>
+
+    <!-- Dark mode fond -->
+    <color name="panda_background_dark">#0F0F1A</color>
+    <color name="panda_surface_dark">#1A1A2E</color>
+
+    <!-- Splash screen -->
+    <color name="panda_splash_bg">@color/kalyptus_green</color>
+    <color name="panda_splash_icon_bg">@color/panda_background</color>
+
+    <!-- Utilitaires -->
+    <color name="panda_white">#FFFFFF</color>
+    <color name="panda_black">#1A1A2E</color>
+    <color name="transparent">#00000000</color>
+</resources>
