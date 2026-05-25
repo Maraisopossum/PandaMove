@@ -276,7 +276,7 @@ class InstanceExecuteViewModel @Inject constructor(
         val isAlternating = bloc.type == BlocType.SUPERSET || bloc.type == BlocType.CIRCUIT
         if (!isAlternating && !exerciceComplete) {
             // Repos inter-séries pour blocs non-alternés, sans navigation
-            val reposSec = reposOverrideSec ?: bloc.tempsReposInterSec
+            val reposSec = reposOverrideSec ?: exercice.exerciceSeance.tempsReposSec
             if (reposSec > 0) startRestTimer(reposSec)
             return
         }
@@ -286,7 +286,7 @@ class InstanceExecuteViewModel @Inject constructor(
             val nextEx = exInBloc[idxInBloc + 1]
             val nextGlobalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == nextEx.exerciceSeance.id }
             if (nextGlobalIdx >= 0) _uiState.value = state.copy(activeExerciceIndex = nextGlobalIdx)
-            val reposSec = reposOverrideSec ?: bloc.tempsReposInterSec
+            val reposSec = reposOverrideSec ?: if (isAlternating) bloc.tempsReposInterSec else exercice.exerciceSeance.tempsReposSec
             if (reposSec > 0) startRestTimer(reposSec)
             return
         }
@@ -303,12 +303,12 @@ class InstanceExecuteViewModel @Inject constructor(
         if (allBlocSeriesDone) {
             // Bloc terminé → naviguer immédiatement vers bloc/exercice suivant, puis timer de repos
             if (nextGroupIdx < state.exercices.size) {
-                val reposSec = reposOverrideSec ?: bloc.tempsReposFinRoundSec
+                val reposSec = reposOverrideSec ?: if (isAlternating) bloc.tempsReposFinRoundSec else exercice.exerciceSeance.tempsReposSec
                 _uiState.value = state.copy(activeExerciceIndex = nextGroupIdx)
                 if (reposSec > 0) startRestTimer(reposSec)
             }
         } else {
-            // Rounds restants (SUPERSET/CIRCUIT) → retour au premier du bloc
+            // Rounds restants (SUPERSET/CIRCUIT uniquement) → retour au premier du bloc
             val firstEx = exInBloc.first()
             val firstGlobalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == firstEx.exerciceSeance.id }
             if (firstGlobalIdx >= 0) _uiState.value = state.copy(activeExerciceIndex = firstGlobalIdx)
