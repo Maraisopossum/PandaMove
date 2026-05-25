@@ -187,6 +187,7 @@ fun InstanceExecuteScreen(
     var focusedCell by remember { mutableStateOf<CellFocus?>(null) }
     var inputBuffer by remember { mutableStateOf("") }
     var seriesDraft by remember { mutableStateOf<Map<Long, Map<Int, SerieRowDraft>>>(emptyMap()) }
+    var demarrerError by remember { mutableStateOf<String?>(null) }
     var showPencilMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -552,7 +553,27 @@ fun InstanceExecuteScreen(
                             // sans auto-enchaîner le suivant après le timer
                             item {
                                 Button(
-                                    onClick = { viewModel.startExerciceSeul(activeExerciceId!!) },
+                                    onClick = {
+                                        val exId = activeExerciceId!!
+                                        val firstIncomplete = uiState.seriesForExercice(exId).firstOrNull { !it.isCompleted }
+                                        val serieNum = firstIncomplete?.numeroSerie
+                                        val activeCellReps = if (
+                                            focusedCell?.exerciceId == exId &&
+                                            focusedCell?.serieNum == serieNum &&
+                                            focusedCell?.column == SerieColumn.REPS
+                                        ) inputBuffer else null
+                                        val draftReps = serieNum?.let { seriesDraft[exId]?.get(it)?.reps }
+                                        val rawValue = activeCellReps?.takeIf { it.isNotBlank() }
+                                            ?: draftReps?.takeIf { it.isNotBlank() }
+                                            ?: firstIncomplete?.repsRealisees?.toString()
+                                        val effectiveSecs = rawValue?.toIntOrNull()
+                                        if (effectiveSecs == null || effectiveSecs <= 0) {
+                                            demarrerError = "Durée invalide — saisis un nombre de secondes valide"
+                                        } else {
+                                            demarrerError = null
+                                            viewModel.startExerciceSeul(exId, durationOverride = effectiveSecs)
+                                        }
+                                    },
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
@@ -560,6 +581,14 @@ fun InstanceExecuteScreen(
                                     Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text("Démarrer", fontWeight = FontWeight.Bold)
+                                }
+                                demarrerError?.let { msg ->
+                                    Text(
+                                        text = msg,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                                    )
                                 }
                             }
                         }

@@ -368,12 +368,16 @@ class InstanceExecuteViewModel @Inject constructor(
      * Après le timer : auto-valide la série et délègue à navigateToNext() pour le repos/navigation.
      * Chaque exercice doit être démarré manuellement — pas d'auto-démarrage du suivant.
      */
-    fun startExerciceSeul(exerciceId: Long) {
+    fun startExerciceSeul(exerciceId: Long, durationOverride: Int? = null) {
         val state = _uiState.value
         val exercice = state.exercices.find { it.exerciceSeance.id == exerciceId } ?: return
-        val seconds = exercice.exerciceSeance.repsCibles.toIntOrNull() ?: return
-        val globalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == exerciceId }
         val completedCount = state.seriesParExercice[exerciceId]?.count { it.isCompleted } ?: 0
+        val nextIncomplete = state.seriesParExercice[exerciceId]?.firstOrNull { !it.isCompleted }
+        val seconds = durationOverride?.takeIf { it > 0 }
+            ?: nextIncomplete?.repsRealisees?.takeIf { it > 0 }
+            ?: exercice.exerciceSeance.repsCibles.toIntOrNull()
+            ?: return
+        val globalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == exerciceId }
 
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
@@ -381,6 +385,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(countdownSeconds = i, activeExerciceIndex = globalIdx)
                 delay(1000L)
             }
+            _exerciceRemaining.value = seconds
             _uiState.value = _uiState.value.copy(
                 countdownSeconds = 0,
                 activeExerciceIndex = globalIdx,
@@ -394,7 +399,6 @@ class InstanceExecuteViewModel @Inject constructor(
                 ),
             )
             _exerciceStartBeep.tryEmit(Unit)
-            _exerciceRemaining.value = seconds
             exerciceTimerJob?.cancel()
             exerciceTimerJob = launch {
                 while (_exerciceRemaining.value > 0) {
@@ -407,7 +411,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 // Auto-valider la série et laisser la navigation normale gérer la suite
                 val serieNum = (_uiState.value.seriesParExercice[exerciceId]?.count { it.isCompleted } ?: 0) + 1
                 if (serieNum <= exercice.exerciceSeance.nombreSeriesPrevues) {
-                    updateSerie(exerciceId, serieNum, exercice.exerciceSeance.repsCibles.toIntOrNull(), null, null, null)
+                    updateSerie(exerciceId, serieNum, seconds, null, null, null)
                 }
                 _uiState.value = _uiState.value.copy(circuitMode = null)
                 navigateToNext(exerciceId) // repos + navigation selon le type de bloc
@@ -434,9 +438,14 @@ class InstanceExecuteViewModel @Inject constructor(
         exInBloc: List<ExerciceSeanceWithExercise>,
         idxInBloc: Int,
     ) {
-        val seconds = exercice.exerciceSeance.repsCibles.toIntOrNull() ?: return
+        val exerciceId = exercice.exerciceSeance.id
         val state = _uiState.value
-        val completedCount = state.seriesParExercice[exercice.exerciceSeance.id]?.count { it.isCompleted } ?: 0
+        val nextIncomplete = state.seriesParExercice[exerciceId]?.firstOrNull { !it.isCompleted }
+        val seconds = nextIncomplete?.repsRealisees?.takeIf { it > 0 }
+            ?: exercice.exerciceSeance.repsCibles.toIntOrNull()
+            ?: return
+        val completedCount = state.seriesParExercice[exerciceId]?.count { it.isCompleted } ?: 0
+        _exerciceRemaining.value = seconds
         _uiState.value = state.copy(
             activeExerciceIndex = globalIdx,
             circuitMode = CircuitPhase.ExerciceActif(
@@ -448,7 +457,6 @@ class InstanceExecuteViewModel @Inject constructor(
                 totalInBloc = exInBloc.size,
             ),
         )
-        _exerciceRemaining.value = seconds
         exerciceTimerJob?.cancel()
         exerciceTimerJob = viewModelScope.launch {
             while (_exerciceRemaining.value > 0) {
@@ -472,7 +480,9 @@ class InstanceExecuteViewModel @Inject constructor(
         val currentSeries = _uiState.value.seriesParExercice[exerciceId] ?: emptyList()
         val serieNum = currentSeries.count { it.isCompleted } + 1
         if (serieNum <= exercice.exerciceSeance.nombreSeriesPrevues) {
-            val reps = exercice.exerciceSeance.repsCibles.toIntOrNull()
+            val nextIncomplete = currentSeries.firstOrNull { !it.isCompleted }
+            val reps = nextIncomplete?.repsRealisees?.takeIf { it > 0 }
+                ?: exercice.exerciceSeance.repsCibles.toIntOrNull()
             updateSerie(exerciceId, serieNum, reps, null, null, null)
         }
 
