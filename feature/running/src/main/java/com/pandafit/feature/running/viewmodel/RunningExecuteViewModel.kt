@@ -111,7 +111,7 @@ class RunningExecuteViewModel @Inject constructor(
     }
 
     fun updateOverallResult(field: String, value: String) {
-        _uiState.value = when (field) {
+        val newState = when (field) {
             "distanceKm" -> _uiState.value.copy(resultDistanceKm = value)
             "duration"   -> _uiState.value.copy(resultDurationStr = value)
             "pace"       -> _uiState.value.copy(resultPaceStr = value)
@@ -122,6 +122,20 @@ class RunningExecuteViewModel @Inject constructor(
             "notes"      -> _uiState.value.copy(resultNotes = value)
             else         -> _uiState.value
         }
+        if (field == "distanceKm" || field == "duration") {
+            val computed = computePaceStr(newState.resultDistanceKm, newState.resultDurationStr)
+            _uiState.value = if (computed != null) newState.copy(resultPaceStr = computed) else newState
+        } else {
+            _uiState.value = newState
+        }
+    }
+
+    private fun computePaceStr(distanceKm: String, durationStr: String): String? {
+        val dist = distanceKm.replace(",", ".").toDoubleOrNull() ?: return null
+        if (dist <= 0) return null
+        val durSec = parseDurationToSec(durationStr) ?: return null
+        if (durSec <= 0) return null
+        return formatPace(durSec / 60.0 / dist)
     }
 
     fun finishWorkout() {
