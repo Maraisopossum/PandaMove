@@ -7,6 +7,7 @@ import com.pandafit.core.database.catalog.EquipmentRepository
 import com.pandafit.core.database.catalog.MuscleGroup
 import com.pandafit.core.database.catalog.muscleToGroup
 import com.pandafit.core.database.entities.effectivePrimary
+import com.pandafit.core.common.normalizeSearch
 import com.pandafit.core.database.catalog.rawEquipmentToCategory
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.SeanceDao
@@ -270,7 +271,7 @@ class SeanceCreateViewModel @Inject constructor(
     fun filteredPickerExercises(): List<ExerciseEntity> {
         val state = _uiState.value
         return state.availableExercises.filter { ex ->
-            val matchesQuery = state.exercisePickerQuery.isBlank() || ex.name.contains(state.exercisePickerQuery, ignoreCase = true)
+            val matchesQuery = state.exercisePickerQuery.isBlank() || ex.name.normalizeSearch().contains(state.exercisePickerQuery.normalizeSearch())
             val matchesGroup = state.pickerGroupFilter == null ||
                 ex.muscleGroups.any { muscleToGroup(it) == state.pickerGroupFilter }
             val matchesEquip = !state.pickerOnlyAvailable || run {

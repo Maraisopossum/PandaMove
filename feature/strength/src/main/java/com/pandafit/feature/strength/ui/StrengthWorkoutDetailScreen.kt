@@ -1,5 +1,6 @@
 package com.pandafit.feature.strength.ui
 
+import com.pandafit.core.common.normalizeSearch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -368,7 +369,7 @@ private fun ExercisePickerSheet(
     var query by remember { mutableStateOf("") }
     val filtered = remember(query, exercises) {
         if (query.isBlank()) exercises
-        else exercises.filter { it.name.contains(query, ignoreCase = true) }
+        else exercises.filter { it.name.normalizeSearch().contains(query.normalizeSearch()) }
     }
 
     Column(modifier = Modifier.padding(16.dp)) {

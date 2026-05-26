@@ -19,10 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
@@ -36,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +49,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.core.database.catalog.EquipmentCategory
@@ -57,6 +62,7 @@ import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.profile.viewmodel.CreateDialogState
+import com.pandafit.feature.profile.viewmodel.EditDialogState
 import com.pandafit.feature.profile.viewmodel.ExerciseCatalogViewModel
 import com.pandafit.feature.profile.viewmodel.ExerciseListState
 
@@ -68,6 +74,7 @@ fun ExerciseCatalogScreen(
 ) {
     val listState by viewModel.listState.collectAsStateWithLifecycle()
     val dialogState by viewModel.dialogState.collectAsStateWithLifecycle()
+    val editDialogState by viewModel.editDialogState.collectAsStateWithLifecycle()
 
     if (dialogState.visible) {
         CreateExerciseDialog(
@@ -77,6 +84,17 @@ fun ExerciseCatalogScreen(
             onEquipmentToggle = viewModel::toggleNewEquipment,
             onConfirm = viewModel::createCustomExercise,
             onDismiss = viewModel::closeCreate,
+        )
+    }
+
+    if (editDialogState.visible) {
+        EditExerciseDialog(
+            state = editDialogState,
+            onMuscleToggle = viewModel::toggleEditMuscle,
+            onEquipmentToggle = viewModel::toggleEditEquipment,
+            onTypeSelect = viewModel::setEditExerciseType,
+            onConfirm = viewModel::saveEdit,
+            onDismiss = viewModel::closeEdit,
         )
     }
 
@@ -99,6 +117,7 @@ fun ExerciseCatalogScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             ExerciseGroupedList(
                 listState = listState,
+                onEdit = { viewModel.openEdit(it) },
                 onDelete = { viewModel.deleteCustomExercise(it) },
             )
         }
@@ -171,6 +190,7 @@ private fun ExerciseFilters(
 @Composable
 private fun ExerciseGroupedList(
     listState: ExerciseListState,
+    onEdit: (ExerciseEntity) -> Unit,
     onDelete: (ExerciseEntity) -> Unit,
 ) {
     if (listState.exercises.isEmpty()) {
@@ -192,16 +212,15 @@ private fun ExerciseGroupedList(
 
     LazyColumn(contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 80.dp)) {
         if (listState.selectedGroup != null) {
-            // Filtre actif : liste plate, muscles principaux du groupe sélectionné d'abord
             items(listState.exercises, key = { it.id }) { exercise ->
                 ExerciseCatalogRow(
                     exercise = exercise,
+                    onEdit = { onEdit(exercise) },
                     onDelete = if (exercise.isCustom) ({ onDelete(exercise) }) else null,
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 8.dp))
             }
         } else {
-            // Sans filtre : sections par muscle PRINCIPAL uniquement
             val grouped = listState.exercises.groupBy { muscleToGroup(it.effectivePrimary) }
             val presentGroups = MuscleGroup.entries.filter { grouped.containsKey(it) }
             presentGroups.forEach { group ->
@@ -232,6 +251,7 @@ private fun ExerciseGroupedList(
                 items(grouped[group] ?: emptyList(), key = { it.id }) { exercise ->
                     ExerciseCatalogRow(
                         exercise = exercise,
+                        onEdit = { onEdit(exercise) },
                         onDelete = if (exercise.isCustom) ({ onDelete(exercise) }) else null,
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 8.dp))
@@ -266,73 +286,14 @@ private fun CreateExerciseDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text(
-                    "Muscles sollicités (dans l'ordre : principal en premier)",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = PandaSubtext,
+                MusclePickerSection(
+                    selectedMuscles = state.muscles,
+                    onToggle = onMuscleToggle,
                 )
-                if (state.muscles.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(bottom = 2.dp),
-                    ) {
-                        state.muscles.forEachIndexed { index, group ->
-                            FilterChip(
-                                selected = true,
-                                onClick = { onMuscleToggle(group) },
-                                label = {
-                                    Text(
-                                        "${index + 1}. ${group.label}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(group.colorArgb).copy(alpha = 0.2f),
-                                    selectedLabelColor = Color(group.colorArgb),
-                                ),
-                            )
-                        }
-                    }
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    MuscleGroup.entries.filter { it != MuscleGroup.AUTRE && it !in state.muscles }.forEach { group ->
-                        FilterChip(
-                            selected = false,
-                            onClick = { onMuscleToggle(group) },
-                            label = { Text(group.label, style = MaterialTheme.typography.labelSmall) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(group.colorArgb).copy(alpha = 0.2f),
-                                selectedLabelColor = Color(group.colorArgb),
-                            ),
-                        )
-                    }
-                }
-                Text(
-                    "Matériel nécessaire (optionnel)",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = PandaSubtext,
+                EquipmentPickerSection(
+                    selectedEquipment = state.equipment,
+                    onToggle = onEquipmentToggle,
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    EquipmentCategory.entries.forEach { cat ->
-                        FilterChip(
-                            selected = cat in state.equipment,
-                            onClick = { onEquipmentToggle(cat) },
-                            label = {
-                                Text(
-                                    "${cat.emoji} ${cat.label}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            },
-                        )
-                    }
-                }
             }
         },
         confirmButton = {
@@ -344,10 +305,195 @@ private fun CreateExerciseDialog(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EditExerciseDialog(
+    state: EditDialogState,
+    onMuscleToggle: (MuscleGroup) -> Unit,
+    onEquipmentToggle: (EquipmentCategory) -> Unit,
+    onTypeSelect: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val exercise = state.exercise ?: return
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    "Modifier l'exercice",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                // Nom verrouillé — identifiant stable
+                Column {
+                    Text(
+                        "Nom (non modifiable)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PandaSubtext,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        exercise.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+
+                HorizontalDivider()
+
+                // Type d'exercice
+                Column {
+                    Text(
+                        "Type",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PandaSubtext,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("" to "Non défini", "Mono" to "Mono-articulaire", "Pluri" to "Pluri-articulaire").forEach { (value, label) ->
+                            FilterChip(
+                                selected = state.exerciseType == value,
+                                onClick = { onTypeSelect(value) },
+                                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                            )
+                        }
+                    }
+                }
+
+                // Muscles
+                MusclePickerSection(
+                    selectedMuscles = state.muscles,
+                    onToggle = onMuscleToggle,
+                )
+
+                // Équipement
+                EquipmentPickerSection(
+                    selectedEquipment = state.equipment,
+                    onToggle = onEquipmentToggle,
+                )
+
+                // Boutons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Annuler") }
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(onClick = onConfirm) {
+                        Text("Enregistrer", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MusclePickerSection(
+    selectedMuscles: List<MuscleGroup>,
+    onToggle: (MuscleGroup) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "Muscles sollicités (dans l'ordre : principal en premier)",
+            style = MaterialTheme.typography.labelMedium,
+            color = PandaSubtext,
+        )
+        if (selectedMuscles.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(bottom = 2.dp),
+            ) {
+                selectedMuscles.forEachIndexed { index, group ->
+                    FilterChip(
+                        selected = true,
+                        onClick = { onToggle(group) },
+                        label = {
+                            Text(
+                                "${index + 1}. ${group.label}",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(group.colorArgb).copy(alpha = 0.2f),
+                            selectedLabelColor = Color(group.colorArgb),
+                        ),
+                    )
+                }
+            }
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            MuscleGroup.entries.filter { it != MuscleGroup.AUTRE && it !in selectedMuscles }.forEach { group ->
+                FilterChip(
+                    selected = false,
+                    onClick = { onToggle(group) },
+                    label = { Text(group.label, style = MaterialTheme.typography.labelSmall) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(group.colorArgb).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(group.colorArgb),
+                    ),
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EquipmentPickerSection(
+    selectedEquipment: Set<EquipmentCategory>,
+    onToggle: (EquipmentCategory) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "Matériel nécessaire (optionnel)",
+            style = MaterialTheme.typography.labelMedium,
+            color = PandaSubtext,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            EquipmentCategory.entries.forEach { cat ->
+                FilterChip(
+                    selected = cat in selectedEquipment,
+                    onClick = { onToggle(cat) },
+                    label = {
+                        Text(
+                            "${cat.emoji} ${cat.label}",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun ExerciseCatalogRow(
     exercise: ExerciseEntity,
+    onEdit: () -> Unit,
     onDelete: (() -> Unit)?,
 ) {
     val primaryGroup = muscleToGroup(exercise.effectivePrimary)
@@ -372,13 +518,21 @@ private fun ExerciseCatalogRow(
                 )
             }
         }
+        IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
+            Icon(
+                Icons.Default.Edit,
+                "Modifier",
+                tint = PandaSubtext,
+                modifier = Modifier.size(16.dp),
+            )
+        }
         if (onDelete != null) {
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                 Icon(
                     Icons.Default.Delete,
                     "Supprimer",
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }

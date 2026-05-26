@@ -2,6 +2,7 @@ package com.pandafit.feature.profile.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.common.normalizeSearch
 import com.pandafit.core.database.catalog.CatalogRepository
 import com.pandafit.core.database.catalog.EquipmentCategory
 import com.pandafit.core.database.catalog.EquipmentRepository
@@ -39,6 +40,16 @@ data class CreateDialogState(
     val equipment: Set<EquipmentCategory> = emptySet(),
 )
 
+// ===== État du dialogue d'édition =====
+
+data class EditDialogState(
+    val visible: Boolean = false,
+    val exercise: ExerciseEntity? = null,
+    val muscles: List<MuscleGroup> = emptyList(),
+    val equipment: Set<EquipmentCategory> = emptySet(),
+    val exerciseType: String = "",
+)
+
 @HiltViewModel
 class ExerciseCatalogViewModel @Inject constructor(
     private val exerciseDao: ExerciseDao,
@@ -57,6 +68,13 @@ class ExerciseCatalogViewModel @Inject constructor(
     private val _newMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
     private val _newEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
 
+    // ===== Dialogue d'édition =====
+    private val _showEdit = MutableStateFlow(false)
+    private val _editTarget = MutableStateFlow<ExerciseEntity?>(null)
+    private val _editMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
+    private val _editEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
+    private val _editExerciseType = MutableStateFlow("")
+
     // StateFlow 1 : liste filtrée
     val listState: StateFlow<ExerciseListState> = combine(
         exerciseDao.observeAll(),
@@ -68,7 +86,7 @@ class ExerciseCatalogViewModel @Inject constructor(
         val filtered = exercises
             .filter { ex ->
                 val matchesQuery = query.isBlank() ||
-                    ex.name.contains(query, ignoreCase = true)
+                    ex.name.normalizeSearch().contains(query.normalizeSearch())
                 val matchesGroup = group == null ||
                     ex.muscleGroups.any { muscleToGroup(it) == group }
                 val matchesEquipment = !onlyAvailable || run {
@@ -81,10 +99,8 @@ class ExerciseCatalogViewModel @Inject constructor(
             }
             .sortedWith(
                 if (group == null) {
-                    // Sans filtre : trier par groupe principal puis nom
                     compareBy({ muscleToGroup(it.effectivePrimary).ordinal }, { it.name })
                 } else {
-                    // Avec filtre : muscle principal du groupe sélectionné en premier
                     compareBy(
                         { if (muscleToGroup(it.effectivePrimary) == group) 0 else 1 },
                         { it.name },
@@ -100,7 +116,7 @@ class ExerciseCatalogViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ExerciseListState())
 
-    // StateFlow 2 : état du dialogue (combine indépendant)
+    // StateFlow 2 : état du dialogue de création
     val dialogState: StateFlow<CreateDialogState> = combine(
         _showCreate,
         _newName,
@@ -109,6 +125,17 @@ class ExerciseCatalogViewModel @Inject constructor(
     ) { show, name, muscles, equip ->
         CreateDialogState(visible = show, name = name, muscles = muscles, equipment = equip)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CreateDialogState())
+
+    // StateFlow 3 : état du dialogue d'édition
+    val editDialogState: StateFlow<EditDialogState> = combine(
+        _showEdit,
+        _editTarget,
+        _editMuscles,
+        _editEquipment,
+        _editExerciseType,
+    ) { show, target, muscles, equip, type ->
+        EditDialogState(visible = show, exercise = target, muscles = muscles, equipment = equip, exerciseType = type)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EditDialogState())
 
     // ===== Filtres =====
     fun setQuery(q: String) { _query.value = q }
@@ -162,6 +189,56 @@ class ExerciseCatalogViewModel @Inject constructor(
     fun deleteCustomExercise(exercise: ExerciseEntity) {
         if (!exercise.isCustom) return
         viewModelScope.launch { exerciseDao.deleteExercise(exercise) }
+    }
+
+    // ===== Dialogue édition =====
+    fun openEdit(exercise: ExerciseEntity) {
+        _editTarget.value = exercise
+        _editMuscles.value = exercise.muscleGroups.map { raw ->
+            MuscleGroup.entries.find { it.label.equals(raw, ignoreCase = true) }
+                ?: muscleToGroup(raw)
+        }.distinct()
+        _editEquipment.value = exercise.equipment.mapNotNull { raw ->
+            EquipmentCategory.entries.find { it.label.equals(raw, ignoreCase = true) }
+                ?: rawEquipmentToCategory(raw)
+        }.toSet()
+        _editExerciseType.value = exercise.exerciseType
+        _showEdit.value = true
+    }
+
+    fun closeEdit() { _showEdit.value = false }
+
+    fun toggleEditMuscle(g: MuscleGroup) {
+        val current = _editMuscles.value.toMutableList()
+        if (g in current) current.remove(g) else current.add(g)
+        _editMuscles.value = current
+    }
+
+    fun toggleEditEquipment(cat: EquipmentCategory) {
+        val current = _editEquipment.value.toMutableSet()
+        if (cat in current) current.remove(cat) else current.add(cat)
+        _editEquipment.value = current
+    }
+
+    fun setEditExerciseType(type: String) { _editExerciseType.value = type }
+
+    fun saveEdit() {
+        val target = _editTarget.value ?: return
+        val muscles = _editMuscles.value
+        val primaryGroup = muscles.firstOrNull()
+        viewModelScope.launch {
+            exerciseDao.updateExercise(
+                target.copy(
+                    muscleGroups = muscles.map { it.label },
+                    musclePrimary = primaryGroup?.label ?: "",
+                    category = primaryGroup?.toExerciseCategory()
+                        ?: com.pandafit.core.database.entities.ExerciseCategory.OTHER,
+                    equipment = _editEquipment.value.map { it.label },
+                    exerciseType = _editExerciseType.value,
+                )
+            )
+            _showEdit.value = false
+        }
     }
 }
 

@@ -42,9 +42,7 @@ class CatalogRepository @Inject constructor(
                     exerciseDao.updateExercise(
                         exercise.copy(
                             equipment = catalog.equipment,
-                            exerciseType = catalog.type,
-                            muscleGroups = catalog.muscles,
-                            musclePrimary = catalog.muscles.firstOrNull() ?: exercise.musclePrimary,
+                            exerciseType = exercise.exerciseType.ifBlank { catalog.type },
                         )
                     )
                 }
