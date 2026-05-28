@@ -1,15 +1,18 @@
-# Room Schema — Version condensée (v11)
+# Room Schema — Version condensée (v13)
 
 ## Tables principales
 
 ### `seances` → `SeanceEntity`
 ```
-id PK | nom | seance_category (STRENGTH|WARMUP) | groupes_musculaires | duree_estimee_min | notes | created_at | updated_at
+id PK | nom | seance_category (STRENGTH|WARMUP_GENERAL|WARMUP_MOBILITY|WARMUP_ACTIVATION|STRENGTH_ONESHOT)
+     | groupes_musculaires | duree_estimee_min | notes | created_at | updated_at
 ```
 
 ### `blocs_seance` → `BlocSeanceEntity`
 ```
-id PK | seance_id FK | nom | type (ECHAUFFEMENT|SUPERSET|CIRCUIT|RECUPERATION) | position | duree_min | description | temps_repos_inter_sec | temps_repos_fin_round_sec
+id PK | seance_id FK | nom | type (ECHAUFFEMENT|SUPERSET|CIRCUIT|RECUPERATION) | position
+     | duree_min | description | temps_repos_inter_sec | temps_repos_fin_round_sec
+     | instance_seance_id FK(NULL)   ← NULL = bloc template, non-null = copie liée à une instance (v13)
 ```
 
 ### `exercices_seance` → `ExerciceSeanceEntity`
@@ -17,6 +20,7 @@ id PK | seance_id FK | nom | type (ECHAUFFEMENT|SUPERSET|CIRCUIT|RECUPERATION) |
 id PK | seance_id FK | exercise_id FK | bloc_id FK(NULL) | superset_groupe | position
 | nombre_series_prevues | reps_cibles | reps_type (REPS|DURATION) ← clé tonnage
 | charge_cible | tempo | temps_repos_sec | consigne_cle | equipement | avertissement
+| instance_seance_id FK(NULL)   ← NULL = exercice template, non-null = copie liée à une instance (v13)
 ```
 
 ### `instances_seance` → `InstanceSeanceEntity`
@@ -55,8 +59,9 @@ id PK | workout_id FK | position | repeat_count | results_json
 ### `run_steps` → `RunStepEntity`
 ```
 id PK | workout_id FK | repeat_id FK(NULL) | position | step_type | end_type | end_value | end_unit
-| note | target_type | target_min | target_max | results_json
+| note | target_type | target_min | target_max | results_json*
 ```
+★ `results_json` ajouté en migration v11→v12 (validation des étapes libres)
 
 ## Relations Room
 | Parent | Enfant | Type | Contrainte |
@@ -65,6 +70,15 @@ id PK | workout_id FK | repeat_id FK(NULL) | position | step_type | end_type | e
 | `ExerciceSeanceWithExercise` | `exercise: ExerciseEntity` | @Relation 1:1 | `parentColumn="exercise_id"` |
 | `InstanceWithSeries` | `series: List<SerieRealiseeEntity>` | @Relation | filtre par `exerciceSeanceId` |
 | `WorkoutWithBlocks` | `blocks: List<WorkoutBlockEntity>` | @Relation | |
+
+## Isolation template / instance (v13)
+```
+Template : blocs et exercices avec instance_seance_id IS NULL
+Instance : au début de l'exécution, InstanceExecuteViewModel copie les blocs/exercices
+           avec instance_seance_id = instanceId (copie indépendante)
+Queries : SeanceDao.getTemplateBlocsForSeance()  → WHERE instance_seance_id IS NULL
+          SeanceDao.getInstanceBlocs(instanceId) → WHERE instance_seance_id = :instanceId
+```
 
 ## Clés de mapping importantes
 ```kotlin
@@ -77,3 +91,5 @@ ExerciceMapping(id, exerciseId, repsType)  // getExerciceMappingsForSeances()
 | Migration | Changement |
 |---|---|
 | v10 → v11 | `ALTER TABLE workouts ADD COLUMN result_hr_max INTEGER` + `result_elevation_m INTEGER` |
+| v11 → v12 | `ALTER TABLE run_steps ADD COLUMN results_json TEXT NOT NULL DEFAULT ''` |
+| v12 → v13 | `ALTER TABLE blocs_seance ADD COLUMN instance_seance_id INTEGER` + idem sur `exercices_seance` + index |

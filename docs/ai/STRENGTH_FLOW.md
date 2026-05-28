@@ -1,9 +1,18 @@
 # Renforcement — Flux complet
 
+## SeanceCategory
+```kotlin
+enum class SeanceCategory {
+    STRENGTH,
+    WARMUP_GENERAL, WARMUP_MOBILITY, WARMUP_ACTIVATION,
+    STRENGTH_ONESHOT,  // pas de template — la SeanceEntity est supprimée avec l'instance
+}
+```
+
 ## Entités principales
 | Entité | Table | Rôle |
 |---|---|---|
-| `SeanceEntity` | `seances` | Template séance (type STRENGTH ou WARMUP) |
+| `SeanceEntity` | `seances` | Template séance (STRENGTH / WARMUP_* / STRENGTH_ONESHOT) |
 | `BlocSeanceEntity` | `blocs_seance` | Bloc d'exercices (SUPERSET, CIRCUIT…) |
 | `ExerciceSeanceEntity` | `exercices_seance` | Exercice dans une séance avec paramètres cibles |
 | `InstanceSeanceEntity` | `instances_seance` | Session planifiée ou terminée |
@@ -78,13 +87,26 @@ AssignMenuDialog.onDismiss = { showAssignMenu = false }  // ⚠ NE PAS nullifier
 → SeanceListViewModel.assignRecurring(id, start, intervalDays, occurrences) → repeat inserts
 ```
 
+## Isolation template / instance (v13) — point critique
+```
+Au chargement de InstanceExecuteViewModel :
+  1. Lit le template (SeanceFull) via seanceId
+  2. Si blocs du template n'ont pas encore instanceSeanceId → les COPIER avec instanceSeanceId = instanceId
+     → seanceDao.insertBloc(bloc.copy(id=0, instanceSeanceId=instanceId))
+  3. Idem pour exercices (avec remapping blocId → nouveau blocId)
+  4. Exécution lit ensuite les blocs/exercices WHERE instance_seance_id = instanceId (copie isolée)
+  ⚠ Cette copie ne se fait qu'une fois (guard : filter { instanceSeanceId == null } avant copie)
+  ⚠ SeanceCreateViewModel filtre aussi par instanceSeanceId pour l'édition d'une instance
+```
+
 ## Flux exécution instance
 ```
 SeanceListScreen → carte "planifiée" → InstanceExecuteScreen
 InstanceExecuteViewModel.load()
   → instanceSeanceDao.getWithSeries(instanceId)
   → seanceDao.getSeanceFull(seanceId)
-  → buildOrderedExercises(seanceFull)   // trie par bloc.position puis exercice.position
+  → copie blocs/exercices avec instanceSeanceId (si pas encore fait — isolation v13)
+  → buildOrderedExercises() sur la copie instance
   → chargement historique pour pré-remplissage
 
 Saisie série → saveSerie()

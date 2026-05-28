@@ -56,10 +56,20 @@ RunningListViewModel.assignToDate(id, date)
 + duplication des RunRepeatEntity et RunStepEntity avec nouveaux IDs
 ```
 
+## Calcul allure live
+```kotlin
+// RunningExecuteViewModel.updateOverallResult(field, value)
+// Quand "distance" ou "duration" change → computePaceStr() recalcule automatiquement l'allure
+private fun computePaceStr(distanceKm: String, durationStr: String): String?
+// → parse dist (Double) + dur (MM:SS ou HH:MM:SS) → pace = durSec / 60 / distKm (min/km)
+// → résultat injecté dans resultPaceStr du UiState (champ allure pré-rempli)
+```
+
 ## Flux exécution + sauvegarde résultats
 ```
 RunningScreen carte planifiée → RunningWorkoutExecuteScreen
 Utilisateur remplit ResultInputCell ("Distance", "Temps", "Allure", "FC moy.", "FC max", "RPE", "Dénivelé")
+→ Allure auto-calculée dès que Distance + Temps sont renseignés
 RunningExecuteViewModel.finishWorkout()
   → workoutDao.saveResults(
       id, distKm, durSec, pace, hr, hrMax, rpe, notes, elevationM, completedAt

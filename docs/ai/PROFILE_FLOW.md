@@ -45,8 +45,12 @@ Liste de catégories d'équipement disponibles
 ExerciseCatalogViewModel
   → exerciseDao.observeAll() : Flow<List<ExerciseEntity>>
   → filtres : groupe musculaire, équipement, custom/catalogue
-Exercices custom : isCustom=true → exportés, éditables
-Exercices catalogue : isCustom=false → non éditables, non exportés
+  → recherche : ex.name.normalizeSearch().contains(query.normalizeSearch())
+      (normalizeSearch() dans core/common → supprime accents, lowercase)
+Exercices custom (isCustom=true) : exportés + éditables via _showEdit / saveEdit()
+Exercices catalogue (isCustom=false) : non éditables, non exportés
+Édition : ExerciseCatalogViewModel.openEdit(exercise) → _showEdit = true
+          saveEdit() → exerciseDao.update(entity) ; closeEdit() → _showEdit = false
 ```
 
 ## Navigation depuis Profil

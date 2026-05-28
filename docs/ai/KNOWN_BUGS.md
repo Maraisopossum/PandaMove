@@ -1,6 +1,6 @@
 # Bugs connus et pièges
 
-## ✅ RÉSOLUS (cette session)
+## ✅ RÉSOLUS
 
 ### Bug affectation séance type — assignTargetId nullifié trop tôt
 - **Symptôme** : clic icône 📅 → dialog apparaît → choix date → rien ne se passe

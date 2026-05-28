@@ -1,73 +1,55 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Build & Run
+## Build
 
 ```bash
-# Build debug APK
-./gradlew assembleDebug
-
-# Run tests
-./gradlew test
-
-# Run on device
-./gradlew installDebug
-
-# Single module build
-./gradlew :feature:strength:assembleDebug
+./gradlew assembleDebug                        # APK debug
+./gradlew test                                 # Tests unitaires
+./gradlew installDebug                         # Déploiement device
+./gradlew :feature:strength:assembleDebug      # Module seul
 ```
 
-## Module Architecture
+## Stack
+Kotlin 2.0 • Compose + Material3 • Hilt • Room v11 • Navigation Compose • DataStore  
+minSdk 31 / targetSdk 35
 
-Multi-module Android project (Kotlin + Jetpack Compose + Hilt + Room):
-
+## Modules
 ```
-app/                    — NavHost, MainActivity, ActiveSessionViewModel
+app/             → NavHost, DI wiring, AppDrawerNav
 core/
-  common/               — Result types, utilities
-  database/             — Room DB (PandaFitDatabase), DAOs, entities, relations, ActiveSessionManager singleton
-  designsystem/         — PandaFitTheme, PandaCard, PandaButton, SportIconBadge, color tokens
+  database/      → Room, DAOs, entités, migrations (v11), ActiveSessionManager
+  designsystem/  → PandaCard, PandaTopBar, AssignSessionDialogs, thème
+  common/        → utilitaires partagés
 feature/
-  home/                 — Dashboard with upcoming sessions and active-session resume banner
-  running/              — Running workouts (list, detail, execute)
-  cycling/              — Cycling workouts (list, detail)
-  strength/             — Strength training: SeanceListScreen, SeanceCreateScreen, SeanceDetailScreen, InstanceExecuteScreen
-  calendar/             — Calendar view of all scheduled workouts
-  stats/                — Statistics with Vico charts
-  profile/              — User name, dark mode (DataStore), JSON export
-  timer/                — Standalone workout timer (COUNTDOWN, HIIT, TABATA, EMOM, AMRAP, FOR_TIME)
+  home | running | cycling | strength | warmup | calendar | stats | profile | timer
 ```
 
-## Key Architecture Decisions
+## Pattern
+MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room  
+`collectAsStateWithLifecycle()` uniquement — jamais de logique dans les Composables
 
-**Navigation**: Jetpack Navigation Compose with bottom bar (8 destinations). Execute screens hide the bottom bar.
+## Règles
+- Commentaires en **français**
+- Pas de logique dans les Composables (déléguer au ViewModel)
+- Timer autonome (`feature/timer`) ≠ timer renforcement — scopes séparés
+- Unité temps : secondes (`Int`) en base, ms (`Long`) en runtime
+- Navigation : `AppDrawerNav` (Drawer) — pas de BottomNav
+- Dialogs custom : `Dialog(usePlatformDefaultWidth=false)` + `Surface(RoundedCornerShape(28.dp))`
 
-**Strength training data model**:
-- `SeanceEntity` = template (séance type)
-- `BlocSeanceEntity` = exercise group (ECHAUFFEMENT, SUPERSET, CIRCUIT, RECUPERATION) with global `position` for ordering
-- `ExerciceSeanceEntity` = exercise in a session; `position` field = global order among libre + bloc items
-- `InstanceSeanceEntity` = scheduled occurrence of a template
-- `SerieRealiseeEntity` = actual set recorded during execution (CASCADE-deleted if its ExerciceSeanceEntity is deleted)
+## Fichiers sensibles (ne jamais modifier)
+- `google-services.json`
+- `app/keystore/`
+- `gradle/libs.versions.toml` (sauf ajout de dépendance explicite)
 
-**Exercise ordering**: `ExerciceSeanceEntity.position` and `BlocSeanceEntity.position` share the same global counter, allowing libre exercises and blocs to be interleaved. `InstanceExecuteViewModel.buildOrderedExercises()` merges them by position.
+## Docs de référence
+- `docs/ai/ARCHITECTURE.md` — patterns MVVM, Hilt, Room, Navigation
+- `docs/ai/PROJECT_CONTEXT_MIN.md` — contexte minimal + flux critiques
+- `docs/ai/AI_INDEX.md` — index fichiers par feature
+- `docs/ai/ROOM_SCHEMA_MIN.md` — schéma Room
+- `docs/ai/UI_CONVENTIONS.md` — conventions Compose
 
-**Saving edits**: `SeanceCreateViewModel.updateExistingSeanceContent()` does UPDATE in-place for entities with existing IDs to avoid CASCADE-deleting historical series. Only truly removed exercises are deleted.
-
-**Active session persistence**: `ActiveSessionManager` (Hilt `@Singleton` in `core:database`) holds the session timer and ID. The `InstanceExecuteViewModel` registers with it on load; the NavHost shows a persistent banner.
-
-**Dark mode**: `ProfileViewModel.isDarkMode: StateFlow<Boolean>` (DataStore-backed) is injected in `MainActivity.setContent {}` and passed to `PandaFitTheme(darkTheme = ...)`.
-
-## Database
-
-Room with type converters for `LocalDate`/`LocalDateTime` and `List<String>`. Migration strategy: add schema in `core/database/schemas/`. Current DB version: check `PandaFitDatabase`.
-
-**Important**: `SerieRealiseeEntity` has `onDelete = CASCADE` on `exerciceSeanceId` FK. Deleting an `ExerciceSeanceEntity` destroys all historical series for that exercise.
-
-## Tech Stack
-
-- Kotlin 2.0.0, Compose BOM 2024.06.00, Material3 1.2.1
-- Hilt 2.51.1 (DI), Room 2.6.1, KSP 2.0.0
-- DataStore Preferences (user settings), WorkManager (seeding)
-- Vico 1.15.0 (charts), Coil 2.6.0 (images)
-- Min SDK 31 (Android 12)
+## État
+✅ Fonctionne : home, running, cycling, strength, warmup, calendar, stats, profile, timer  
+🔄 En cours : —  
+❌ Bugs connus : `docs/ai/KNOWN_BUGS.md`  
+🖼 Images manquantes : timer, stats, profil — voir `docs/ai/HOME_BANNER_IMAGES.md`

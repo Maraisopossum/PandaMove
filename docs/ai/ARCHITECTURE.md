@@ -34,11 +34,12 @@ class FooViewModel @Inject constructor(
 - `StatsPreferencesModule` : fournit le DataStore stats avec `@StatsDataStore`
 
 ## Room
-- Version actuelle : **11** (8 migrations de v3 à v11)
+- Version actuelle : **13** (migrations v3→13 dans `PandaFitDatabase.kt`)
 - Migrations dans `PandaFitDatabase.kt` (ne pas oublier `addMigrations(...)` dans `.build()`)
 - `@Relation` sans `ORDER BY` → toujours re-trier en Kotlin après récupération
 - `TypeConverters` pour `LocalDate`, `LocalDateTime`, enums
 - Jamais d'appel DAO sur le thread principal → `Dispatchers.IO` ou `suspend` dans coroutine
+- **Isolation template/instance (v13)** : `blocs_seance` et `exercices_seance` ont un champ `instance_seance_id` nullable. `NULL` = appartient au template ; non-null = copie liée à une instance. Toujours filtrer par `instance_seance_id IS NULL` pour lire un template.
 
 ## Navigation Compose
 ```
