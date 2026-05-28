@@ -22,7 +22,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,20 +36,17 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditCalendar
@@ -59,8 +56,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,7 +66,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -182,8 +176,8 @@ fun TimerScreen(
             TimerPhase.IDLE -> {
                 if (page == TimerPage.RUNNING) {
                     page = when (mode) {
-                        TimerMode.STOPWATCH -> TimerPage.RUNNING  // reste sur place, prêt à démarrer
-                        TimerMode.COUNTDOWN -> TimerPage.CONFIG   // retour config pour rechoisir durée
+                        TimerMode.STOPWATCH,
+                        TimerMode.COUNTDOWN -> TimerPage.RUNNING  // reste sur place, prêt à démarrer / relancer
                         else                -> TimerPage.HOME     // HIIT : retour accueil
                     }
                 }
@@ -244,8 +238,6 @@ fun TimerScreen(
                     onStart = { viewModel.start() },
                     onSavePreset = { viewModel.saveCountdownPreset(uiState.config.countdownSeconds) },
                     onDeletePreset = viewModel::deleteCountdownPreset,
-                    onTogglePresetDeleteMode = viewModel::togglePresetDeleteMode,
-                    onExitPresetDeleteMode = viewModel::exitPresetDeleteMode,
                 )
                 TimerPage.RUNNING -> ActiveTimerView(
                     uiState = uiState,
@@ -323,7 +315,6 @@ private fun TimerModePillButton(label: String, color: Color, onClick: () -> Unit
 // Config
 // ══════════════════════════════════════════════════════════════════════════════
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TimerConfigView(
     uiState: TimerUiState,
@@ -332,8 +323,6 @@ private fun TimerConfigView(
     onStart: () -> Unit,
     onSavePreset: () -> Unit,
     onDeletePreset: (Int) -> Unit,
-    onTogglePresetDeleteMode: () -> Unit,
-    onExitPresetDeleteMode: () -> Unit,
 ) {
     val config = uiState.config
     val color = modeColor(config.mode)
@@ -384,12 +373,9 @@ private fun TimerConfigView(
                     config = config,
                     color = color,
                     countdownPresets = uiState.countdownPresets,
-                    isPresetDeleteMode = uiState.isPresetDeleteMode,
                     onChange = onConfigChange,
                     onSavePreset = onSavePreset,
                     onDeletePreset = onDeletePreset,
-                    onTogglePresetDeleteMode = onTogglePresetDeleteMode,
-                    onExitPresetDeleteMode = onExitPresetDeleteMode,
                 )
                 Spacer(Modifier.height(16.dp))
             }
@@ -427,18 +413,14 @@ private fun TimerConfigView(
 
 // ── Décompte simple — WheelPicker + Presets ──────────────────────────────────
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SimpleCountdownConfigContent(
     config: TimerConfig,
     color: Color,
     countdownPresets: List<Int>,
-    isPresetDeleteMode: Boolean,
     onChange: (TimerConfig) -> Unit,
     onSavePreset: () -> Unit,
     onDeletePreset: (Int) -> Unit,
-    onTogglePresetDeleteMode: () -> Unit,
-    onExitPresetDeleteMode: () -> Unit,
 ) {
     val minutes = config.countdownSeconds / 60
     val seconds = config.countdownSeconds % 60
@@ -446,8 +428,7 @@ private fun SimpleCountdownConfigContent(
     Text("Durée du décompte", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     Spacer(Modifier.height(24.dp))
 
-    // Wheel picker minutes | secondes
-    WheelTimePicker(
+    CountdownTimePicker(
         minutes = minutes,
         seconds = seconds,
         color = color,
@@ -458,211 +439,188 @@ private fun SimpleCountdownConfigContent(
     Spacer(Modifier.height(24.dp))
 
     // Presets
-    if (countdownPresets.isNotEmpty() || !isPresetDeleteMode) {
+    if (countdownPresets.isNotEmpty()) {
         CountdownPresetRow(
             presets = countdownPresets,
             currentSeconds = config.countdownSeconds,
-            isDeleteMode = isPresetDeleteMode,
             color = color,
-            onPresetClick = { secs ->
-                onExitPresetDeleteMode()
-                onChange(config.copy(countdownSeconds = secs))
-            },
+            onPresetClick = { secs -> onChange(config.copy(countdownSeconds = secs)) },
             onDeletePreset = onDeletePreset,
-            onSavePreset = onSavePreset,
-            onToggleDeleteMode = onTogglePresetDeleteMode,
         )
-        Spacer(Modifier.height(8.dp))
-        if (isPresetDeleteMode) {
-            TextButton(onClick = onExitPresetDeleteMode, modifier = Modifier.fillMaxWidth()) {
-                Text("Terminer", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(12.dp))
+    }
+
+    // Bouton +Enregistrer sous les presets
+    if (countdownPresets.size < 5) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(50))
+                .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(50))
+                .clickable(onClick = onSavePreset)
+                .padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp), tint = color)
+                Text("Enregistrer", style = MaterialTheme.typography.labelMedium, color = color)
             }
         }
     }
 }
 
-// ── WheelTimePicker ───────────────────────────────────────────────────────────
+// ── CountdownTimePicker — boutons +/− sans scroll, sans état asynchrone ──────
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun WheelTimePicker(
+private fun CountdownTimePicker(
     minutes: Int,
     seconds: Int,
     color: Color,
     onTimeChange: (minutes: Int, seconds: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val itemHeight = 56.dp
-    val visibleItems = 5
-
-    Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        TimeWheel(
-            items = (0..99).toList(),
-            selected = minutes,
-            color = color,
-            itemHeight = itemHeight,
-            visibleItems = visibleItems,
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TimeUnitPicker(
+            value = minutes,
             label = "min",
-            onSelect = { onTimeChange(it, seconds) },
-        )
-        Text(":", style = MaterialTheme.typography.displayMedium.copy(fontSize = 48.sp), fontWeight = FontWeight.Thin, color = color.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 4.dp))
-        TimeWheel(
-            items = (0..59).toList(),
-            selected = seconds,
             color = color,
-            itemHeight = itemHeight,
-            visibleItems = visibleItems,
+            onIncrement = { onTimeChange((minutes + 1).coerceAtMost(99), seconds) },
+            onDecrement = { onTimeChange((minutes - 1).coerceAtLeast(0), seconds) },
+        )
+        Text(
+            ":",
+            style = MaterialTheme.typography.displayMedium.copy(fontSize = 48.sp),
+            fontWeight = FontWeight.Thin,
+            color = color.copy(alpha = 0.5f),
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        TimeUnitPicker(
+            value = seconds,
             label = "sec",
-            onSelect = { onTimeChange(minutes, it) },
+            color = color,
+            onIncrement = {
+                if (seconds >= 59) onTimeChange((minutes + 1).coerceAtMost(99), 0)
+                else onTimeChange(minutes, seconds + 1)
+            },
+            onDecrement = {
+                if (seconds == 0 && minutes > 0) onTimeChange(minutes - 1, 59)
+                else onTimeChange(minutes, (seconds - 1).coerceAtLeast(0))
+            },
         )
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TimeWheel(
-    items: List<Int>,
-    selected: Int,
-    color: Color,
-    itemHeight: Dp,
-    visibleItems: Int,
+private fun TimeUnitPicker(
+    value: Int,
     label: String,
-    onSelect: (Int) -> Unit,
+    color: Color,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit,
 ) {
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = (selected - visibleItems / 2).coerceAtLeast(0)
-    )
-
-    val centeredIndex by remember {
-        derivedStateOf { (listState.firstVisibleItemIndex + visibleItems / 2).coerceIn(items.indices) }
-    }
-
-    var isUserScrolling by remember { mutableStateOf(false) }
-
-    // Sync externe (ex: clic sur preset)
-    LaunchedEffect(selected) {
-        val target = (selected - visibleItems / 2).coerceAtLeast(0)
-        if (abs(listState.firstVisibleItemIndex - target) > 1) {
-            listState.animateScrollToItem(target)
-        }
-    }
-
-    // Snap manuel + émission de la sélection à la fin du scroll utilisateur
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (listState.isScrollInProgress) {
-            isUserScrolling = true
-        } else if (isUserScrolling) {
-            isUserScrolling = false
-            val ci = centeredIndex
-            listState.animateScrollToItem((ci - visibleItems / 2).coerceAtLeast(0))
-            onSelect(items[ci])
-        }
-    }
-
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(contentAlignment = Alignment.Center) {
-            // Fond de la zone de sélection
-            Box(
-                modifier = Modifier
-                    .width(96.dp)
-                    .height(itemHeight)
-                    .background(color.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                    .border(1.5.dp, color.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-            )
-            LazyColumn(
-                state = listState,
-                contentPadding = PaddingValues(vertical = itemHeight * (visibleItems / 2)),
-                modifier = Modifier.width(96.dp).height(itemHeight * visibleItems),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                itemsIndexed(items, key = { _, v -> v }) { index, value ->
-                    val dist = abs(index - centeredIndex)
-                    val isCenter = dist == 0
-                    val alpha = when (dist) { 0 -> 1f; 1 -> 0.38f; else -> 0.10f }
-                    val fontSize = when (dist) { 0 -> 40.sp; 1 -> 26.sp; else -> 18.sp }
-                    Text(
-                        value.toString().padStart(2, '0'),
-                        fontSize = fontSize,
-                        fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
-                        color = color.copy(alpha = alpha),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.width(96.dp).height(itemHeight).wrapContentHeight(),
-                    )
-                }
-            }
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.12f))
+                .clickable(onClick = onIncrement),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.Add, null, tint = color, modifier = Modifier.size(22.dp))
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .width(88.dp)
+                .height(72.dp)
+                .background(color.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+                .border(1.5.dp, color.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                value.toString().padStart(2, '0'),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                textAlign = TextAlign.Center,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.12f))
+                .clickable(onClick = onDecrement),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.Remove, null, tint = color, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(6.dp))
         Text(label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f))
     }
 }
 
 // ── Presets countdown ─────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CountdownPresetRow(
     presets: List<Int>,
     currentSeconds: Int,
-    isDeleteMode: Boolean,
     color: Color,
     onPresetClick: (Int) -> Unit,
     onDeletePreset: (Int) -> Unit,
-    onSavePreset: () -> Unit,
-    onToggleDeleteMode: () -> Unit,
 ) {
+    var pendingDelete by remember { mutableStateOf<Int?>(null) }
+
+    pendingDelete?.let { secs ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Supprimer ce preset ?") },
+            text = { Text(formatMmSs(secs), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
+            confirmButton = {
+                TextButton(onClick = { onDeletePreset(secs); pendingDelete = null }) {
+                    Text("Supprimer", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Annuler") }
+            },
+        )
+    }
+
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 2.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         items(presets, key = { it }) { secs ->
-            Box {
-                FilterChip(
-                    selected = secs == currentSeconds && !isDeleteMode,
-                    onClick = { if (!isDeleteMode) onPresetClick(secs) },
-                    label = { Text(formatMmSs(secs), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = color.copy(alpha = 0.18f),
-                        selectedLabelColor = color,
-                    ),
-                    modifier = Modifier.pointerInput(isDeleteMode) {
-                        detectTapGestures(
-                            onLongPress = { onToggleDeleteMode() },
-                            onTap = { if (!isDeleteMode) onPresetClick(secs) },
-                        )
-                    },
+            val isSelected = secs == currentSeconds
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (isSelected) color.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, if (isSelected) color else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(50))
+                    .combinedClickable(
+                        onClick = { onPresetClick(secs) },
+                        onLongClick = { pendingDelete = secs },
+                    )
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    formatMmSs(secs),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isSelected) color else MaterialTheme.colorScheme.onSurface,
                 )
-                if (isDeleteMode) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .align(Alignment.TopEnd)
-                            .clip(CircleShape)
-                            .background(Color(0xFFE53935))
-                            .clickable { onDeletePreset(secs) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("−", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, lineHeight = 14.sp)
-                    }
-                }
-            }
-        }
-        // Bouton enregistrer preset
-        if (!isDeleteMode && presets.size < 5) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(50))
-                        .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(50))
-                        .clickable(onClick = onSavePreset)
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp), tint = color)
-                        Text("Enregistrer", style = MaterialTheme.typography.labelMedium, color = color)
-                    }
-                }
             }
         }
     }
@@ -937,11 +895,11 @@ private fun CountdownActiveContent(
     val rawProgress = if (uiState.targetMs > 0L) remainingMs.toFloat() / uiState.targetMs.toFloat() else 1f
     val animProgress by animateFloatAsState(rawProgress.coerceIn(0f, 1f), animationSpec = tween(150), label = "cd_progress")
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TimerActiveTopBar(onBack = onBack, modifier = Modifier.fillMaxWidth())
-
+    // Box : le bouton retour flotte en overlay — le contenu occupe tout l'écran
+    // et est centré verticalement par rapport à la pleine hauteur, pas sous la barre.
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.weight(1f).padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -967,11 +925,18 @@ private fun CountdownActiveContent(
                 ) { Text("Recommencer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White) }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    ControlButton(60.dp, MaterialTheme.colorScheme.surfaceVariant, onClick = onReset) { Icon(Icons.Default.Refresh, "Reset", modifier = Modifier.size(28.dp)) }
-                    ControlButton(92.dp, CountdownColor, onClick = if (uiState.isRunning) onPause else onResume) { Icon(if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(46.dp)) }
+                    ControlButton(60.dp, MaterialTheme.colorScheme.surfaceVariant, onClick = onReset) {
+                        Icon(Icons.Default.Refresh, "Réinitialiser", modifier = Modifier.size(28.dp))
+                    }
+                    ControlButton(92.dp, CountdownColor, onClick = if (uiState.isRunning) onPause else onResume) {
+                        Icon(if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(46.dp))
+                    }
                 }
             }
         }
+
+        // Bouton retour en overlay — n'influence pas le centrage du contenu
+        TimerActiveTopBar(onBack = onBack, modifier = Modifier.align(Alignment.TopStart).fillMaxWidth())
     }
 }
 

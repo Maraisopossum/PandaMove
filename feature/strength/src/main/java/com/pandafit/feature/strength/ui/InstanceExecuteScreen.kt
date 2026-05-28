@@ -268,7 +268,7 @@ fun InstanceExecuteScreen(
             val draft = seriesDraft[cell.exerciceId]?.get(cell.serieNum)
             inputBuffer = when (nextCol) {
                 SerieColumn.REPS -> draft?.reps ?: serie?.repsRealisees?.toString() ?: ""
-                SerieColumn.KG -> draft?.kg ?: serie?.chargeLabel ?: ""
+                SerieColumn.KG -> draft?.kg ?: serie?.chargeLabel?.replace(" kg", "")?.trim() ?: ""
                 SerieColumn.REPOS -> draft?.repos ?: run {
                     val sec = uiState.exercices.find { it.exerciceSeance.id == cell.exerciceId }
                         ?.exerciceSeance?.tempsReposSec ?: 0
@@ -627,7 +627,7 @@ fun InstanceExecuteScreen(
                                     val d = seriesDraft[activeExerciceId]?.get(serie.numeroSerie)
                                     inputBuffer = when (col) {
                                         SerieColumn.REPS -> d?.reps ?: serie.repsRealisees?.toString() ?: ""
-                                        SerieColumn.KG -> d?.kg ?: serie.chargeLabel ?: ""
+                                        SerieColumn.KG -> d?.kg ?: serie.chargeLabel?.replace(" kg", "")?.trim() ?: ""
                                         SerieColumn.REPOS -> d?.repos ?: run {
                                             val sec = activeExercice.exerciceSeance.tempsReposSec
                                             if (sec > 0) sec.toString() else ""

@@ -667,12 +667,28 @@ class InstanceExecuteViewModel @Inject constructor(
                 isPreFilled = last != null,
             ),
         )
+        // Incrémenter nombreSeriesPrevues en mémoire immédiatement (évite race condition sur appels rapides)
+        val exerciceSeance = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId }?.exerciceSeance
+        val updatedExercices = state.exercices.map { ex ->
+            if (ex.exerciceSeance.id == exerciceSeanceId && exerciceSeance != null)
+                ex.copy(exerciceSeance = ex.exerciceSeance.copy(nombreSeriesPrevues = exerciceSeance.nombreSeriesPrevues + 1))
+            else ex
+        }
         _uiState.value = state.copy(
+            exercices = updatedExercices,
             seriesParExercice = state.seriesParExercice.toMutableMap().apply {
                 put(exerciceSeanceId, seriesExercice)
             },
             isDirty = true,
         )
+        // Persister en Room pour que "Modifier exercices" et un éventuel reload() reflètent le bon nombre
+        if (exerciceSeance != null) {
+            viewModelScope.launch {
+                seanceDao.updateExerciceSeance(
+                    exerciceSeance.copy(nombreSeriesPrevues = exerciceSeance.nombreSeriesPrevues + 1)
+                )
+            }
+        }
     }
 
     fun removeSerie(exerciceSeanceId: Long) {
@@ -680,8 +696,11 @@ class InstanceExecuteViewModel @Inject constructor(
         val seriesExercice = state.seriesParExercice[exerciceSeanceId]?.toMutableList()
         if (seriesExercice.isNullOrEmpty()) return
         val toRemove = seriesExercice.last()
-        if (toRemove.id != 0L) {
-            viewModelScope.launch {
+        val exerciceSeance = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId }?.exerciceSeance
+
+        viewModelScope.launch {
+            // Supprimer de la table series_realisees si déjà persistée
+            if (toRemove.id != 0L) {
                 instanceSeanceDao.deleteSerie(
                     SerieRealiseeEntity(
                         id = toRemove.id,
@@ -696,9 +715,25 @@ class InstanceExecuteViewModel @Inject constructor(
                     ),
                 )
             }
+            // Décrémenter nombreSeriesPrevues pour que "Modifier exercices" et reload() voient le bon nombre
+            if (exerciceSeance != null && exerciceSeance.nombreSeriesPrevues > 1) {
+                seanceDao.updateExerciceSeance(
+                    exerciceSeance.copy(nombreSeriesPrevues = exerciceSeance.nombreSeriesPrevues - 1)
+                )
+            }
         }
+
         seriesExercice.remove(toRemove)
+
+        // Mettre à jour exercices en mémoire immédiatement (évite race condition sur suppressions rapides)
+        val updatedExercices = state.exercices.map { ex ->
+            if (ex.exerciceSeance.id == exerciceSeanceId && exerciceSeance != null && exerciceSeance.nombreSeriesPrevues > 1)
+                ex.copy(exerciceSeance = ex.exerciceSeance.copy(nombreSeriesPrevues = exerciceSeance.nombreSeriesPrevues - 1))
+            else ex
+        }
+
         _uiState.value = state.copy(
+            exercices = updatedExercices,
             seriesParExercice = state.seriesParExercice.toMutableMap().apply {
                 put(exerciceSeanceId, seriesExercice)
             },
