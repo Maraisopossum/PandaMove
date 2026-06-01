@@ -91,5 +91,4 @@ data class TimerUiState(
     val isFinished: Boolean = false,
     // Presets countdown personnalisés (persistés)
     val countdownPresets: List<Int> = listOf(60, 300, 600),
-    val isPresetDeleteMode: Boolean = false,
 )

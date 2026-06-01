@@ -78,7 +78,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -94,8 +93,6 @@ import com.pandafit.feature.timer.model.TimerMode
 import com.pandafit.feature.timer.model.TimerPhase
 import com.pandafit.feature.timer.model.TimerUiState
 import com.pandafit.feature.timer.viewmodel.TimerViewModel
-import kotlin.math.abs
-
 // ── Couleurs ──────────────────────────────────────────────────────────────────
 private val StopwatchColor = Color(0xFF00BCD4)
 private val CountdownColor = Color(0xFFEF5350)
@@ -195,7 +192,6 @@ fun TimerScreen(
     // BackHandler global
     BackHandler(enabled = page != TimerPage.HOME) {
         val mode = uiState.config.mode
-        viewModel.exitPresetDeleteMode()
         when {
             page == TimerPage.RUNNING -> {
                 if (uiState.phase != TimerPhase.IDLE && uiState.phase != TimerPhase.DONE) viewModel.pause()
@@ -224,7 +220,6 @@ fun TimerScreen(
             when (currentPage) {
                 TimerPage.HOME -> TimerHomeView(
                     onSelectMode = { mode ->
-                        viewModel.exitPresetDeleteMode()
                         when (mode) {
                             TimerMode.STOPWATCH -> { viewModel.selectMode(mode); page = TimerPage.RUNNING }
                             else -> { viewModel.updateConfig(uiState.config.copy(mode = mode)); page = TimerPage.CONFIG }
@@ -234,7 +229,7 @@ fun TimerScreen(
                 TimerPage.CONFIG -> TimerConfigView(
                     uiState = uiState,
                     onConfigChange = viewModel::updateConfig,
-                    onBack = { viewModel.exitPresetDeleteMode(); page = TimerPage.HOME },
+                    onBack = { page = TimerPage.HOME },
                     onStart = { viewModel.start() },
                     onSavePreset = { viewModel.saveCountdownPreset(uiState.config.countdownSeconds) },
                     onDeletePreset = viewModel::deleteCountdownPreset,
@@ -362,14 +357,12 @@ private fun TimerConfigView(
             }
         }
 
-        // COUNTDOWN : pas de verticalScroll car il contient un LazyColumn (wheel picker)
-        // Compose interdit l'imbrication LazyColumn dans verticalScroll dans la même direction.
-        if (config.mode == TimerMode.COUNTDOWN) {
-            Column(modifier = Modifier.weight(1f).padding(horizontal = 24.dp)) {
-                Spacer(Modifier.height(16.dp))
-                Text(modeTitle(config.mode), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                Spacer(Modifier.height(28.dp))
-                SimpleCountdownConfigContent(
+        Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
+            Spacer(Modifier.height(16.dp))
+            Text(modeTitle(config.mode), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+            Spacer(Modifier.height(28.dp))
+            when (config.mode) {
+                TimerMode.COUNTDOWN -> SimpleCountdownConfigContent(
                     config = config,
                     color = color,
                     countdownPresets = uiState.countdownPresets,
@@ -377,20 +370,13 @@ private fun TimerConfigView(
                     onSavePreset = onSavePreset,
                     onDeletePreset = onDeletePreset,
                 )
-                Spacer(Modifier.height(16.dp))
+                TimerMode.TABATA   -> TabataConfigContent(config, color, onConfigChange)
+                TimerMode.EMOM     -> EmomConfigContent(config, color, onConfigChange)
+                TimerMode.AMRAP    -> AmrapConfigContent(config, color, onConfigChange)
+                TimerMode.FOR_TIME -> ForTimeConfigContent(config, color, onConfigChange)
+                else               -> AmrapConfigContent(config, color, onConfigChange)
             }
-        } else {
-            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
-                Spacer(Modifier.height(16.dp))
-                Text(modeTitle(config.mode), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                Spacer(Modifier.height(28.dp))
-                when (config.mode) {
-                    TimerMode.TABATA   -> TabataConfigContent(config, color, onConfigChange)
-                    TimerMode.EMOM     -> EmomConfigContent(config, color, onConfigChange)
-                    TimerMode.AMRAP    -> AmrapConfigContent(config, color, onConfigChange)
-                    TimerMode.FOR_TIME -> ForTimeConfigContent(config, color, onConfigChange)
-                    else               -> AmrapConfigContent(config, color, onConfigChange)
-                }
+            if (config.mode != TimerMode.COUNTDOWN) {
                 Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { showNotesDialog = true }.padding(vertical = 8.dp),
@@ -401,8 +387,8 @@ private fun TimerConfigView(
                     Spacer(Modifier.width(6.dp))
                     Text("Ajoute des notes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Spacer(Modifier.height(16.dp))
             }
+            Spacer(Modifier.height(16.dp))
         }
 
         Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
@@ -411,7 +397,7 @@ private fun TimerConfigView(
     }
 }
 
-// ── Décompte simple — WheelPicker + Presets ──────────────────────────────────
+// ── Décompte simple — Picker +/− + Presets ───────────────────────────────────
 
 @Composable
 private fun SimpleCountdownConfigContent(

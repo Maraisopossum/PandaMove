@@ -139,6 +139,11 @@ class InstanceExecuteViewModel @Inject constructor(
                 val existingSeries = instanceWithSeries.series.filter { it.exerciceSeanceId == exerciceId }
                 val dbMap = existingSeries.associateBy { it.numeroSerie }
 
+                // Dernière série complétée de cette instance → charge de secours pour le pré-remplissage
+                val lastCompletedCharge = existingSeries
+                    .filter { it.isCompleted && it.chargeLabel != null }
+                    .maxByOrNull { it.numeroSerie }
+
                 val historiqueEx = previousByExercice[exerciceId]
                 val templateReps = ex.exerciceSeance.repsCibles.toIntOrNull()
                     ?: ex.exerciceSeance.repsCibles.split("-").firstOrNull()?.trim()?.toIntOrNull()
@@ -164,8 +169,8 @@ class InstanceExecuteViewModel @Inject constructor(
                         SerieRealiseeState(
                             numeroSerie = num,
                             repsRealisees = histo?.repsRealisees ?: templateReps,
-                            chargeKg = histo?.chargeKg ?: templateChargeKg,
-                            chargeLabel = histo?.chargeLabel ?: templateChargeLabel,
+                            chargeKg = histo?.chargeKg ?: lastCompletedCharge?.chargeKg ?: templateChargeKg,
+                            chargeLabel = histo?.chargeLabel ?: lastCompletedCharge?.chargeLabel ?: templateChargeLabel,
                             rpe = null, isCompleted = false, isPreFilled = true,
                         )
                     }
@@ -409,9 +414,11 @@ class InstanceExecuteViewModel @Inject constructor(
                 }
                 _exerciceEndBeep.tryEmit(Unit)
                 // Auto-valider la série et laisser la navigation normale gérer la suite
-                val serieNum = (_uiState.value.seriesParExercice[exerciceId]?.count { it.isCompleted } ?: 0) + 1
+                val currentSeriesSeul = _uiState.value.seriesParExercice[exerciceId] ?: emptyList()
+                val serieNum = currentSeriesSeul.count { it.isCompleted } + 1
+                val nextIncompleteSeul = currentSeriesSeul.firstOrNull { !it.isCompleted }
                 if (serieNum <= exercice.exerciceSeance.nombreSeriesPrevues) {
-                    updateSerie(exerciceId, serieNum, seconds, null, null, null)
+                    updateSerie(exerciceId, serieNum, seconds, nextIncompleteSeul?.chargeLabel, nextIncompleteSeul?.chargeKg, null)
                 }
                 _uiState.value = _uiState.value.copy(circuitMode = null)
                 navigateToNext(exerciceId) // repos + navigation selon le type de bloc
@@ -483,7 +490,7 @@ class InstanceExecuteViewModel @Inject constructor(
             val nextIncomplete = currentSeries.firstOrNull { !it.isCompleted }
             val reps = nextIncomplete?.repsRealisees?.takeIf { it > 0 }
                 ?: exercice.exerciceSeance.repsCibles.toIntOrNull()
-            updateSerie(exerciceId, serieNum, reps, null, null, null)
+            updateSerie(exerciceId, serieNum, reps, nextIncomplete?.chargeLabel, nextIncomplete?.chargeKg, null)
         }
 
         val isLastInBloc = idxInBloc == exInBloc.size - 1
@@ -574,6 +581,16 @@ class InstanceExecuteViewModel @Inject constructor(
             isPreFilled = false,
         )
         if (index >= 0) seriesExercice[index] = updated else seriesExercice.add(updated)
+
+        // Propager la charge aux séries suivantes non-complétées (évite le "poids disparaît")
+        if (chargeLabel != null) {
+            for (i in seriesExercice.indices) {
+                val s = seriesExercice[i]
+                if (s.numeroSerie > numeroSerie && !s.isCompleted) {
+                    seriesExercice[i] = s.copy(chargeLabel = chargeLabel, chargeKg = chargeKg, isPreFilled = true)
+                }
+            }
+        }
 
         val newMap = state.seriesParExercice.toMutableMap()
         newMap[exerciceSeanceId] = seriesExercice.sortedBy { it.numeroSerie }

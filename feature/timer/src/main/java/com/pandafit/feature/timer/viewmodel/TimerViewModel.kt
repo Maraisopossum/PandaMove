@@ -9,6 +9,7 @@ import com.pandafit.feature.timer.model.TimerConfig
 import com.pandafit.feature.timer.model.TimerMode
 import com.pandafit.feature.timer.model.TimerPhase
 import com.pandafit.feature.timer.model.TimerUiState
+import com.pandafit.feature.timer.service.TimerForegroundService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -52,9 +53,20 @@ class TimerViewModel @Inject constructor(
     private var accumulatedMs: Long = 0L
     private var lastCountdownBeepSec: Long = Long.MAX_VALUE  // anti-doublon bip
 
+    /** Dernière seconde notifiée — évite de flooder NotificationManager à 10 Hz. */
+    private var lastNotifSec: Long = -1L
+
     enum class BeepType { SHORT, COUNTDOWN_BEEP, GONG, PHASE_CHANGE }
 
-    init { loadPresets() }
+    init {
+        loadPresets()
+        TimerForegroundService.createChannel(context)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        TimerForegroundService.stop(context)
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // Presets countdown (persistance SharedPreferences)
@@ -77,16 +89,8 @@ class TimerViewModel @Inject constructor(
 
     fun deleteCountdownPreset(seconds: Int) {
         val updated = _uiState.value.countdownPresets.filter { it != seconds }
-        _uiState.value = _uiState.value.copy(countdownPresets = updated, isPresetDeleteMode = false)
+        _uiState.value = _uiState.value.copy(countdownPresets = updated)
         prefs.edit().putString("countdown_presets", updated.joinToString(",")).apply()
-    }
-
-    fun togglePresetDeleteMode() {
-        _uiState.value = _uiState.value.copy(isPresetDeleteMode = !_uiState.value.isPresetDeleteMode)
-    }
-
-    fun exitPresetDeleteMode() {
-        _uiState.value = _uiState.value.copy(isPresetDeleteMode = false)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -119,6 +123,7 @@ class TimerViewModel @Inject constructor(
         if (state.isRunning) return
         accumulatedMs = 0L
         anchorMs = SystemClock.elapsedRealtime()
+        lastNotifSec = -1L
         _uiState.value = state.copy(
             config = state.config.copy(mode = TimerMode.STOPWATCH),
             isRunning = true,
@@ -126,6 +131,7 @@ class TimerViewModel @Inject constructor(
             elapsedMs = 0L,
             isFinished = false,
         )
+        pushNotif(forceStart = true)
         startPreciseTick()
     }
 
@@ -155,6 +161,7 @@ class TimerViewModel @Inject constructor(
         accumulatedMs = 0L
         anchorMs = SystemClock.elapsedRealtime()
         lastCountdownBeepSec = Long.MAX_VALUE
+        lastNotifSec = -1L
         _uiState.value = state.copy(
             config = state.config.copy(mode = TimerMode.COUNTDOWN),
             isRunning = true,
@@ -164,6 +171,7 @@ class TimerViewModel @Inject constructor(
             isFinished = false,
         )
         _beepEvent.tryEmit(BeepType.PHASE_CHANGE)
+        pushNotif(forceStart = true)
         startPreciseTick()
     }
 
@@ -178,6 +186,8 @@ class TimerViewModel @Inject constructor(
         }
         timerJob?.cancel()
         _uiState.value = _uiState.value.copy(isRunning = false)
+        lastNotifSec = -1L   // force le refresh pour afficher "En pause"
+        pushNotif()
     }
 
     /**
@@ -197,10 +207,14 @@ class TimerViewModel @Inject constructor(
             anchorMs = SystemClock.elapsedRealtime()
             val newPhase = if (state.phase == TimerPhase.IDLE) TimerPhase.WORK else state.phase
             _uiState.value = state.copy(isRunning = true, phase = newPhase)
+            lastNotifSec = -1L
+            pushNotif(forceStart = true)
             startPreciseTick()
         } else {
             // HIIT modes
             _uiState.value = state.copy(isRunning = true)
+            lastNotifSec = -1L
+            pushNotif(forceStart = true)
             startTick()
         }
     }
@@ -210,6 +224,7 @@ class TimerViewModel @Inject constructor(
         anchorMs = 0L
         accumulatedMs = 0L
         lastCountdownBeepSec = Long.MAX_VALUE
+        lastNotifSec = -1L
         val mode = _uiState.value.config.mode
         if (mode == TimerMode.STOPWATCH || mode == TimerMode.COUNTDOWN) {
             _uiState.value = _uiState.value.copy(
@@ -229,6 +244,7 @@ class TimerViewModel @Inject constructor(
                 showConfig = true,
             )
         }
+        TimerForegroundService.stop(context)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -280,6 +296,8 @@ class TimerViewModel @Inject constructor(
             showConfig = false,
         )
         _beepEvent.tryEmit(BeepType.PHASE_CHANGE)
+        lastNotifSec = -1L
+        pushNotif(forceStart = true)
         startTick()
     }
 
@@ -304,6 +322,7 @@ class TimerViewModel @Inject constructor(
         when (s.config.mode) {
             TimerMode.STOPWATCH -> {
                 _uiState.value = s.copy(elapsedMs = elapsed)
+                pushNotif()
             }
             TimerMode.COUNTDOWN -> {
                 if (s.isFinished) return
@@ -325,8 +344,11 @@ class TimerViewModel @Inject constructor(
                     )
                     _beepEvent.tryEmit(BeepType.GONG)
                     _finishEvent.tryEmit(Unit)
+                    lastNotifSec = -1L
+                    pushNotif()  // affiche "Terminé !" — le service reste actif jusqu'au reset()
                 } else {
                     _uiState.value = s.copy(elapsedMs = elapsed)
+                    pushNotif()
                 }
             }
             else -> {}
@@ -358,6 +380,7 @@ class TimerViewModel @Inject constructor(
 
         if (newSecondsLeft > 0) {
             _uiState.value = s.copy(secondsLeft = newSecondsLeft, totalElapsed = newElapsed)
+            pushNotif()
             return
         }
 
@@ -385,6 +408,7 @@ class TimerViewModel @Inject constructor(
             TimerPhase.COOLDOWN -> {
                 _uiState.value = s.copy(phase = TimerPhase.DONE, isRunning = false, secondsLeft = 0, totalElapsed = newElapsed)
                 timerJob?.cancel()
+                TimerForegroundService.stop(context)
             }
             else -> {}
         }
@@ -404,6 +428,7 @@ class TimerViewModel @Inject constructor(
             } else {
                 _uiState.value = s.copy(phase = TimerPhase.DONE, isRunning = false, secondsLeft = 0, totalElapsed = elapsed)
                 timerJob?.cancel()
+                TimerForegroundService.stop(context)
             }
         } else {
             _uiState.value = s.copy(
@@ -425,5 +450,65 @@ class TimerViewModel @Inject constructor(
         TimerPhase.WARMUP   -> config.warmupSeconds
         TimerPhase.COOLDOWN -> config.cooldownSeconds
         else -> 0
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Notification foreground — mise à jour 1×/seconde max
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Calcule le contenu (titre, sous-titre) de la notification selon l'état courant. */
+    private fun buildNotifContent(): Pair<String, String> {
+        val s = _uiState.value
+        val pauseSuffix = if (!s.isRunning) " • En pause" else ""
+        return when (s.config.mode) {
+            TimerMode.STOPWATCH -> {
+                val sec = s.elapsedMs / 1000
+                Pair(fmtSec(sec), "Chronomètre$pauseSuffix")
+            }
+            TimerMode.COUNTDOWN -> {
+                if (s.isFinished) return Pair("00:00", "Minuteur • Terminé !")
+                val rem = (s.targetMs - s.elapsedMs).coerceAtLeast(0L) / 1000
+                Pair(fmtSec(rem), "Minuteur$pauseSuffix")
+            }
+            else -> {
+                val phaseLabel = when (s.phase) {
+                    TimerPhase.WORK     -> "Travail"
+                    TimerPhase.REST     -> "Repos"
+                    TimerPhase.WARMUP   -> "Échauffement"
+                    TimerPhase.COOLDOWN -> "Récupération"
+                    TimerPhase.DONE     -> "Terminé !"
+                    else                -> ""
+                }
+                val roundLabel = when (s.config.mode) {
+                    TimerMode.AMRAP, TimerMode.FOR_TIME -> phaseLabel
+                    else -> "Tour ${s.currentRound}/${s.config.rounds} • $phaseLabel"
+                }
+                Pair(fmtSec(s.secondsLeft.toLong()), "$roundLabel$pauseSuffix")
+            }
+        }
+    }
+
+    /**
+     * Démarre le service (premier appel) ou met à jour la notification, limité à 1×/s.
+     * [forceStart] = true pour le premier appel (startForeground obligatoire).
+     */
+    private fun pushNotif(forceStart: Boolean = false) {
+        val s = _uiState.value
+        val currentSec = when (s.config.mode) {
+            TimerMode.STOPWATCH -> s.elapsedMs / 1000
+            TimerMode.COUNTDOWN -> (s.targetMs - s.elapsedMs).coerceAtLeast(0L) / 1000
+            else                -> s.secondsLeft.toLong()
+        }
+        if (!forceStart && currentSec == lastNotifSec) return
+        lastNotifSec = currentSec
+        val (time, label) = buildNotifContent()
+        if (forceStart) TimerForegroundService.start(context, time, label)
+        else            TimerForegroundService.update(context, time, label)
+    }
+
+    private fun fmtSec(totalSec: Long): String {
+        val m = totalSec / 60
+        val s = totalSec % 60
+        return "${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
     }
 }

@@ -624,15 +624,11 @@ fun InstanceExecuteScreen(
                             onCellTap = { col ->
                                 if (!serie.isCompleted) {
                                     focusedCell?.let { applyBuffer(it, inputBuffer) }
-                                    val d = seriesDraft[activeExerciceId]?.get(serie.numeroSerie)
+                                    // Toujours vider pour que l'utilisateur puisse saisir directement
+                                    // (la valeur existante reste dans seriesDraft et sera utilisée si on ne tape rien)
                                     inputBuffer = when (col) {
-                                        SerieColumn.REPS -> d?.reps ?: serie.repsRealisees?.toString() ?: ""
-                                        SerieColumn.KG -> d?.kg ?: serie.chargeLabel?.replace(" kg", "")?.trim() ?: ""
-                                        SerieColumn.REPOS -> d?.repos ?: run {
-                                            val sec = activeExercice.exerciceSeance.tempsReposSec
-                                            if (sec > 0) sec.toString() else ""
-                                        }
-                                        SerieColumn.RPE -> d?.rpe ?: ""
+                                        SerieColumn.RPE -> seriesDraft[activeExerciceId]?.get(serie.numeroSerie)?.rpe ?: ""
+                                        else -> ""
                                     }
                                     keyboardController?.hide()
                                     focusedCell = CellFocus(activeExerciceId, serie.numeroSerie, col)
@@ -1123,8 +1119,16 @@ private fun SerieRow(
         val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell.serieNum == num && focusedCell.column == col
         if (isFocused) return inputBuffer to false
         return when (col) {
-            SerieColumn.REPS -> draft.reps.ifBlank { null }?.let { it to false } ?: ((serie.repsRealisees?.toString() ?: "") to serie.isPreFilled)
-            SerieColumn.KG -> draft.kg.ifBlank { null }?.let { it to false } ?: ((serie.chargeLabel ?: "") to serie.isPreFilled)
+            SerieColumn.REPS -> {
+                val isDuration = exercice.exerciceSeance.repsType == RepsType.DURATION
+                draft.reps.ifBlank { null }?.let { raw ->
+                    (if (isDuration && raw.isNotBlank()) "${raw}s" else raw) to false
+                } ?: run {
+                    val raw = serie.repsRealisees?.toString() ?: ""
+                    (if (isDuration && raw.isNotBlank()) "${raw}s" else raw) to serie.isPreFilled
+                }
+            }
+            SerieColumn.KG -> draft.kg.ifBlank { null }?.let { it to false } ?: ((serie.chargeLabel?.replace(" kg", "")?.trim() ?: "") to serie.isPreFilled)
             SerieColumn.REPOS -> draft.repos.ifBlank { null }?.let { "${it}s" to false } ?: run {
                 // Superset : dernier exercice du round → repos de fin de round ; sinon repos inter
                 val sec = when {
