@@ -67,9 +67,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -977,15 +981,46 @@ private fun HorizontalExerciseNav(
         if (currentItems.isNotEmpty()) add(ExGroup(currentBloc, currentItems))
     }
 
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    var containerWidth by remember { mutableStateOf(0) }
+    // Position x (dans le contenu scrollable) du conteneur de chaque groupe
+    val groupStartXs = remember { mutableStateMapOf<Int, Int>() }
+    // Position x (dans le contenu scrollable) de chaque badge libre (index global → x)
+    val itemStartXs = remember { mutableStateMapOf<Int, Int>() }
+
+    val activeGroupIdx = remember(activeIndex) {
+        groups.indexOfFirst { g -> g.items.any { it.first == activeIndex } }
+    }
+    val isActiveInBloc = groups.getOrNull(activeGroupIdx)?.bloc != null
+
+    // Déclenche le scroll quand l'exercice actif ou la taille du conteneur change
+    LaunchedEffect(activeIndex, containerWidth) {
+        if (containerWidth <= 0) return@LaunchedEffect
+        val paddingPx = with(density) { 16.dp.roundToPx() }
+        val badgeHalfPx = with(density) { 32.dp.roundToPx() } // 64.dp / 2
+
+        if (isActiveInBloc) {
+            // Caler le début du bloc sur le bord gauche (avec le padding normal)
+            val x = groupStartXs[activeGroupIdx] ?: return@LaunchedEffect
+            scrollState.animateScrollTo((x - paddingPx).coerceAtLeast(0))
+        } else {
+            // Centrer l'exercice libre
+            val x = itemStartXs[activeIndex] ?: return@LaunchedEffect
+            scrollState.animateScrollTo((x + badgeHalfPx - containerWidth / 2).coerceAtLeast(0))
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
+            .onGloballyPositioned { containerWidth = it.size.width }
+            .horizontalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        groups.forEach { group ->
+        groups.forEachIndexed { groupIdx, group ->
             val isSuperset = group.bloc?.type == BlocType.SUPERSET || group.bloc?.type == BlocType.CIRCUIT
             val isEchauffement = group.bloc?.type == BlocType.ECHAUFFEMENT
                 || group.bloc?.type == BlocType.ACTIVATION
@@ -993,9 +1028,12 @@ private fun HorizontalExerciseNav(
             val color = group.bloc?.let { blocColor(it.type) }
 
             if ((isSuperset && group.items.size > 1) || isEchauffement) {
-                // ── Groupe avec encadrement (superset, circuit, échauffement) ──
+                // ── Groupe avec encadrement : mesure la position du conteneur ──
                 Box(
                     modifier = Modifier
+                        .onGloballyPositioned { coords ->
+                            groupStartXs[groupIdx] = coords.positionInParent().x.toInt()
+                        }
                         .border(2.dp, color ?: SupersetBorderColor, RoundedCornerShape(12.dp))
                         .padding(horizontal = 6.dp, vertical = 4.dp),
                 ) {
@@ -1011,13 +1049,19 @@ private fun HorizontalExerciseNav(
                     }
                 }
             } else {
-                // ── Exercices libres ──
-                group.items.forEach { (globalIdx, ex) ->
+                // ── Exercices libres : mesure chaque badge individuellement ──
+                group.items.forEachIndexed { idxInGroup, (globalIdx, ex) ->
                     ExerciceNavBadge(
                         ex = ex,
                         isActive = globalIdx == activeIndex,
                         accentColor = color,
                         onClick = { onSelect(globalIdx) },
+                        modifier = Modifier.onGloballyPositioned { coords ->
+                            val x = coords.positionInParent().x.toInt()
+                            itemStartXs[globalIdx] = x
+                            // Premier badge du groupe = référence pour snap-to-left (ex. superset 1 item)
+                            if (idxInGroup == 0) groupStartXs[groupIdx] = x
+                        },
                     )
                 }
             }
@@ -1031,11 +1075,12 @@ private fun ExerciceNavBadge(
     isActive: Boolean,
     accentColor: Color?,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val color = accentColor ?: MaterialTheme.colorScheme.primary
     val label = ex.exercise.muscleGroups.firstOrNull()?.split(" ", "-")?.firstOrNull()?.take(4)?.uppercase()
         ?: ex.exercise.name.take(3).uppercase()
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(64.dp).clickable(onClick = onClick)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.width(64.dp).clickable(onClick = onClick)) {
         Box(modifier = Modifier.size(44.dp).background(if (isActive) color else color.copy(alpha = 0.10f), CircleShape), contentAlignment = Alignment.Center) {
             Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isActive) Color.White else color)
         }
