@@ -305,13 +305,15 @@ fun InstanceReportScreen(
             groups.forEach { group ->
                 val isSuperset = group.bloc?.type == BlocType.SUPERSET || group.bloc?.type == BlocType.CIRCUIT
                 val isEchauffement = group.bloc?.type == BlocType.ECHAUFFEMENT
+                    || group.bloc?.type == BlocType.ACTIVATION
+                    || group.bloc?.type == BlocType.RECUPERATION
                 val groupAccentColor = when {
-                    isEchauffement -> Color(0xFFFF8F00)
+                    isEchauffement && group.bloc != null -> blocColor(group.bloc.type)
                     isSuperset -> PandaOrange
                     else -> Color.Transparent
                 }
                 val groupBgColor = when {
-                    isEchauffement -> Color(0xFFFFF3E0)
+                    isEchauffement && group.bloc != null -> blocColor(group.bloc.type).copy(alpha = 0.08f)
                     isSuperset -> PandaOrangeLight
                     else -> Color.Transparent
                 }
@@ -566,13 +568,15 @@ internal fun ReportPrintContent(
         groups.forEach { group ->
             val isSuperset = group.bloc?.type == BlocType.SUPERSET || group.bloc?.type == BlocType.CIRCUIT
             val isEchauffement = group.bloc?.type == BlocType.ECHAUFFEMENT
+                || group.bloc?.type == BlocType.ACTIVATION
+                || group.bloc?.type == BlocType.RECUPERATION
             val groupAccentColor = when {
-                isEchauffement -> Color(0xFFFF8F00)
+                isEchauffement && group.bloc != null -> blocColor(group.bloc.type)
                 isSuperset -> PandaOrange
                 else -> Color.Transparent
             }
             val groupBgColor = when {
-                isEchauffement -> Color(0xFFFFF3E0)
+                isEchauffement && group.bloc != null -> blocColor(group.bloc.type).copy(alpha = 0.08f)
                 isSuperset -> PandaOrangeLight
                 else -> Color.Transparent
             }

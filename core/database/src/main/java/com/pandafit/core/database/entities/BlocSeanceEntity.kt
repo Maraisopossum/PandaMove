@@ -49,4 +49,4 @@ data class BlocSeanceEntity(
     val instanceSeanceId: Long? = null,
 )
 
-enum class BlocType { ECHAUFFEMENT, SUPERSET, CIRCUIT, RECUPERATION }
+enum class BlocType { ECHAUFFEMENT, ACTIVATION, SUPERSET, CIRCUIT, RECUPERATION }

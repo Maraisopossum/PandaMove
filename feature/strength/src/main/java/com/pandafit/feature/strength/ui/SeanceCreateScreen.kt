@@ -455,7 +455,7 @@ private fun ExerciceCard(
     onMoveUp: () -> Unit = {},
     onMoveDown: () -> Unit = {},
 ) {
-    val showRepos = blocType == null || blocType == BlocType.ECHAUFFEMENT || blocType == BlocType.RECUPERATION
+    val showRepos = blocType == null || blocType == BlocType.ECHAUFFEMENT || blocType == BlocType.ACTIVATION || blocType == BlocType.RECUPERATION
     // Pour les circuits, le nombre de séries est centralisé dans l'en-tête du bloc — on le masque ici
     val showSeries = blocType != BlocType.CIRCUIT
 
@@ -859,6 +859,7 @@ private fun ExercicePickerSheet(
 
 fun blocColor(type: BlocType) = when (type) {
     BlocType.ECHAUFFEMENT -> Color(0xFFFF8F00)
+    BlocType.ACTIVATION -> Color(0xFF5E35B1)
     BlocType.SUPERSET -> Color(0xFFE65100)
     BlocType.CIRCUIT -> Color(0xFF00838F)
     BlocType.RECUPERATION -> Color(0xFF2E7D32)

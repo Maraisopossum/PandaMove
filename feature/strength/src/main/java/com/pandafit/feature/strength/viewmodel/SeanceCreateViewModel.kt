@@ -548,6 +548,7 @@ private fun toEntity(seanceId: Long, blocId: Long?, position: Int, d: ExerciceDr
 
 fun BlocType.defaultName() = when (this) {
     BlocType.ECHAUFFEMENT -> "Échauffement"
+    BlocType.ACTIVATION -> "Activation"
     BlocType.SUPERSET -> "Superset"
     BlocType.CIRCUIT -> "Circuit"
     BlocType.RECUPERATION -> "Récupération"

@@ -988,6 +988,8 @@ private fun HorizontalExerciseNav(
         groups.forEach { group ->
             val isSuperset = group.bloc?.type == BlocType.SUPERSET || group.bloc?.type == BlocType.CIRCUIT
             val isEchauffement = group.bloc?.type == BlocType.ECHAUFFEMENT
+                || group.bloc?.type == BlocType.ACTIVATION
+                || group.bloc?.type == BlocType.RECUPERATION
             val color = group.bloc?.let { blocColor(it.type) }
 
             if ((isSuperset && group.items.size > 1) || isEchauffement) {
