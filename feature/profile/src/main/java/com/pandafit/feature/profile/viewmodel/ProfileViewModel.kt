@@ -48,6 +48,10 @@ class ProfileViewModel @Inject constructor(
     private val _isDarkMode = MutableStateFlow(false)
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
+    /** Passe à true dès que le premier emit DataStore est reçu. */
+    private val _isReady = MutableStateFlow(false)
+    val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
+
     init {
         viewModelScope.launch {
             combine(
@@ -67,6 +71,7 @@ class ProfileViewModel @Inject constructor(
                 .collect { state ->
                     _uiState.value = state
                     _isDarkMode.value = state.isDarkMode
+                    _isReady.value = true
                 }
         }
     }
