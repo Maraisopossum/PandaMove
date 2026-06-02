@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Règles de sauvegarde Android 11 et inférieur (fullBackupContent).
+    On exclut la base Room et ses fichiers journaux WAL/SHM.
+-->
+<full-backup-content>
+    <exclude domain="database" path="pandafit.db" />
+    <exclude domain="database" path="pandafit.db-shm" />
+    <exclude domain="database" path="pandafit.db-wal" />
+</full-backup-content>

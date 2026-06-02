@@ -4,7 +4,9 @@
 
     <application
         android:name=".PandaFitApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/backup_rules"
+        android:fullBackupContent="@xml/full_backup_content"
         android:icon="@mipmap/ic_launcher"
         android:label="PandaMove"
         android:roundIcon="@mipmap/ic_launcher_round"

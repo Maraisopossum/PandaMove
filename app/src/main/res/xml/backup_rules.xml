@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Règles de sauvegarde Android 12+ (dataExtractionRules).
+    On exclut la base Room et ses fichiers journaux WAL/SHM pour éviter
+    toute restauration d'une base corrompue ou désynchronisée.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="pandafit.db" />
+        <exclude domain="database" path="pandafit.db-shm" />
+        <exclude domain="database" path="pandafit.db-wal" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="pandafit.db" />
+        <exclude domain="database" path="pandafit.db-shm" />
+        <exclude domain="database" path="pandafit.db-wal" />
+    </device-transfer>
+</data-extraction-rules>
