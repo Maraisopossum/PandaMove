@@ -34,10 +34,20 @@ object GarminTcxExporter {
     private const val GARMIN_PACKAGE = "com.garmin.android.apps.connectmobile"
 
     fun exportAndShare(context: Context, workout: WorkoutEntity, blocks: List<WorkoutBlockEntity>) {
+        // Nettoyer les anciens exports TCX pour ne pas saturer le cacheDir
+        context.cacheDir
+            .listFiles { f -> f.extension == "tcx" }
+            ?.forEach { it.delete() }
+
         val tcx = buildTcx(workout, blocks)
         val fileName = "${workout.name.replace("[^a-zA-Z0-9_]".toRegex(), "_")}.tcx"
         val file = File(context.cacheDir, fileName)
-        file.writeText(tcx, Charsets.UTF_8)
+        try {
+            file.writeText(tcx, Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
         val garminInstalled = try {

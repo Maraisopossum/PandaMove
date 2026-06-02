@@ -34,6 +34,11 @@ class DataExportManager @Inject constructor(
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
     suspend fun export(): File = withContext(Dispatchers.IO) {
+        // Nettoyer les précédents exports JSON pour ne pas saturer le cacheDir
+        context.cacheDir
+            .listFiles { f -> f.name.startsWith("pandamove_export_") && f.extension == "json" }
+            ?.forEach { it.delete() }
+
         // ── 1. Séances renforcement (templates) ──
         val seances = seanceDao.observeAll().first()
         val strengthTemplates = seances.mapNotNull { seance ->
@@ -177,7 +182,12 @@ class DataExportManager @Inject constructor(
         val jsonStr = json.encodeToString(export)
         val fileName = "pandamove_export_${LocalDate.now()}.json"
         val file = File(context.cacheDir, fileName)
-        file.writeText(jsonStr, Charsets.UTF_8)
+        try {
+            file.writeText(jsonStr, Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
         file
     }
 
