@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.app.Activity
@@ -40,6 +42,9 @@ import android.widget.FrameLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -184,6 +189,24 @@ fun InstanceReportScreen(
                 }
             }
         })
+    }
+
+    var showFinishDialog by remember { mutableStateOf(false) }
+
+    if (showFinishDialog) {
+        AlertDialog(
+            onDismissRequest = { showFinishDialog = false },
+            title = { Text("Terminer la séance ?", fontWeight = FontWeight.Bold) },
+            text = { Text("Les résultats seront sauvegardés et la séance marquée comme terminée.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.finishInstance(); showFinishDialog = false; onFinish() }) {
+                    Text("Terminer", color = PandaGreen, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFinishDialog = false }) { Text("Annuler") }
+            },
+        )
     }
 
     Scaffold(
@@ -399,7 +422,7 @@ fun InstanceReportScreen(
             item {
                 Spacer(Modifier.height(16.dp))
                 Button(
-                    onClick = { viewModel.finishInstance(); onFinish() },
+                    onClick = { showFinishDialog = true },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PandaGreen),
