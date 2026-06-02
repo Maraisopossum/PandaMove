@@ -265,10 +265,10 @@ class StatsViewModel @Inject constructor(
 
         val longestKm = withDist.maxOfOrNull { it.resultDistanceKm!! } ?: 0.0
 
-        // Pace progression week by week
+        // Distance + allure progression week by week
         val weekFields = WeekFields.of(Locale.FRENCH)
         val weeklyPaces = completed
-            .filter { (it.resultPaceAvgMinPerKm ?: 0.0) > 0.0 }
+            .filter { (it.resultDistanceKm ?: 0.0) > 0.0 }
             .groupBy { w ->
                 val d = w.scheduledDate
                 "${d.get(weekFields.weekBasedYear())}-${d.get(weekFields.weekOfWeekBasedYear())}"
@@ -279,7 +279,9 @@ class StatsViewModel @Inject constructor(
             .map { (_, ws) ->
                 val date = ws.first().scheduledDate
                 val label = "S${date.get(weekFields.weekOfWeekBasedYear())}"
-                WeeklyPace(label, ws.mapNotNull { it.resultPaceAvgMinPerKm }.average())
+                val weekDist = ws.mapNotNull { it.resultDistanceKm }.sum()
+                val avgPace = ws.mapNotNull { it.resultPaceAvgMinPerKm }.let { if (it.isEmpty()) 0.0 else it.average() }
+                WeeklyPace(label, avgPace, weekDist)
             }
 
         return RunningDetailStats(

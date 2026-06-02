@@ -73,6 +73,7 @@ data class RunningDetailStats(
 data class WeeklyPace(
     val weekLabel: String,
     val avgPaceMinPerKm: Double,
+    val weeklyDistanceKm: Double = 0.0,
 )
 
 // ── Volume quotidien ──────────────────────────────────────────────────────────

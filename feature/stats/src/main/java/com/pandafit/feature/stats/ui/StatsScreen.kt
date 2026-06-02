@@ -354,13 +354,13 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, config
             FunRunningCard(detail.totalDistanceKm, detail.totalElevationM, config)
         }
 
-        // Progression allure par semaine
+        // Distance par semaine
         if (detail.weeklyPaces.size >= 2) {
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Allure par semaine", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Text("Distance par semaine", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
                     Spacer(Modifier.height(8.dp))
-                    WeeklyPaceChart(detail.weeklyPaces)
+                    WeeklyDistanceChart(detail.weeklyPaces)
                 }
             }
         }
@@ -395,23 +395,22 @@ private fun FunRunningCard(distanceKm: Double, totalElevationM: Int, config: Sta
 }
 
 @Composable
-private fun WeeklyPaceChart(weeklyPaces: List<WeeklyPace>) {
-    val maxPace = weeklyPaces.maxOf { it.avgPaceMinPerKm }.coerceAtLeast(0.01)
-    val minPace = weeklyPaces.minOf { it.avgPaceMinPerKm }.coerceAtLeast(0.01)
+private fun WeeklyDistanceChart(weeklyPaces: List<WeeklyPace>) {
+    val maxDist = weeklyPaces.maxOf { it.weeklyDistanceKm }.coerceAtLeast(0.01)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
         weeklyPaces.forEach { wp ->
-            // Lower pace = better → invert bar height
-            val normalized = if (maxPace == minPace) 0.7f
-            else ((maxPace - wp.avgPaceMinPerKm) / (maxPace - minPace) * 0.6 + 0.2).toFloat()
+            val normalized = ((wp.weeklyDistanceKm / maxDist) * 0.8 + 0.2).toFloat().coerceIn(0.2f, 1f)
+            val distLabel = if (wp.weeklyDistanceKm >= 10) "${"%.0f".format(wp.weeklyDistanceKm)} km"
+                            else "${"%.1f".format(wp.weeklyDistanceKm)} km"
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(formatPace(wp.avgPaceMinPerKm), style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = PandaSubtext, maxLines = 1)
+                Text(distLabel, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = PandaSubtext, maxLines = 1)
                 Spacer(Modifier.height(2.dp))
                 Box(
                     modifier = Modifier
