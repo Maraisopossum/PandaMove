@@ -3,6 +3,7 @@ package com.pandafit.core.database.export
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.RunRepeatDao
@@ -23,7 +24,7 @@ import javax.inject.Singleton
 
 @Singleton
 class DataExportManager @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val workoutDao: WorkoutDao,
     private val repeatDao: RunRepeatDao,
     private val stepDao: RunStepDao,
@@ -191,7 +192,7 @@ class DataExportManager @Inject constructor(
         file
     }
 
-    fun shareFile(file: File) {
+    fun buildShareIntent(file: File): Intent {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "application/json"
@@ -199,10 +200,6 @@ class DataExportManager @Inject constructor(
             putExtra(Intent.EXTRA_SUBJECT, "PandaMove — Export de mes données")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        // FLAG_ACTIVITY_NEW_TASK doit être sur l'intent chooser, pas sur l'intent fils
-        val chooser = Intent.createChooser(send, "Partager l'export PandaMove").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(chooser)
+        return Intent.createChooser(send, "Partager l'export PandaMove")
     }
 }

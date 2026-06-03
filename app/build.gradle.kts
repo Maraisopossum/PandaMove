@@ -41,12 +41,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        freeCompilerArgs.addAll(
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
             "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
@@ -65,9 +64,6 @@ android {
 }
 
 dependencies {
-    // Core library desugaring for java.time on API < 26 (on cible 31+ mais bonne pratique)
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-
     // Modules
     implementation(project(":core:common"))
     implementation(project(":core:database"))
