@@ -34,9 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.core.database.entities.WorkoutEntity
-import com.pandafit.designsystem.components.PandaButton
+import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaEmptyState
+import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
@@ -68,11 +69,12 @@ fun StrengthScreen(
     ) { innerPadding ->
         when {
             uiState.isLoading -> PandaLoadingIndicator()
+            uiState.error != null -> PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             uiState.workouts.isEmpty() -> PandaEmptyState(
                 title = "Aucune séance de renforcement",
                 description = "Crée ta première séance musculaire.",
                 icon = Icons.Default.FitnessCenter,
-                action = { PandaButton("Créer une séance", onNavigateToCreate, containerColor = PandaPurple) },
+                action = { AppButton(label = "Créer une séance", onClick = onNavigateToCreate) },
                 modifier = Modifier.padding(innerPadding),
             )
             else -> LazyColumn(

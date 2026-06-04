@@ -131,6 +131,7 @@ fun InstanceExecuteScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditInstance: (seanceId: Long, instanceId: Long) -> Unit = { _, _ -> },
     onNavigateToReport: () -> Unit = {},
+    soundOverrideSilent: Boolean = false,
     viewModel: InstanceExecuteViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -155,10 +156,11 @@ fun InstanceExecuteScreen(
     }
 
     // ── Sons countdown (repos + exercice circuit + exercice seul) ────────────
-    val toneRest = remember { ToneGenerator(AudioManager.STREAM_MUSIC, 80) }
-    val toneExercice = remember { ToneGenerator(AudioManager.STREAM_MUSIC, 90) }
-    val toneExerciceEnd = remember { ToneGenerator(AudioManager.STREAM_MUSIC, 100) }
-    DisposableEffect(Unit) { onDispose { toneRest.release(); toneExercice.release(); toneExerciceEnd.release() } }
+    val audioStream = if (soundOverrideSilent) AudioManager.STREAM_ALARM else AudioManager.STREAM_MUSIC
+    val toneRest = remember(audioStream) { ToneGenerator(audioStream, 80) }
+    val toneExercice = remember(audioStream) { ToneGenerator(audioStream, 90) }
+    val toneExerciceEnd = remember(audioStream) { ToneGenerator(audioStream, 100) }
+    DisposableEffect(audioStream) { onDispose { toneRest.release(); toneExercice.release(); toneExerciceEnd.release() } }
 
     // Beep repos — bip simple discret
     LaunchedEffect(Unit) {

@@ -3,8 +3,6 @@ package com.pandafit.core.database.di
 import android.content.Context
 import androidx.room.Room
 import com.pandafit.core.database.PandaFitDatabase
-import com.pandafit.core.database.catalog.CatalogRepository
-import com.pandafit.core.database.catalog.EquipmentRepository
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.SeanceDao
@@ -12,8 +10,6 @@ import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutBlockDao
 import com.pandafit.core.database.dao.WorkoutDao
-import com.pandafit.core.database.export.DataExportManager
-import com.pandafit.core.database.export.DataImportManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -68,36 +64,4 @@ object DatabaseModule {
     @Provides
     fun provideRunRepeatDao(db: PandaFitDatabase): RunRepeatDao = db.runRepeatDao()
 
-    @Provides
-    @Singleton
-    fun provideCatalogRepository(exerciseDao: ExerciseDao): CatalogRepository =
-        CatalogRepository(exerciseDao)
-
-    @Provides
-    @Singleton
-    fun provideEquipmentRepository(@ApplicationContext context: Context): EquipmentRepository =
-        EquipmentRepository(context)
-
-    @Provides
-    @Singleton
-    fun provideDataExportManager(
-        @ApplicationContext context: Context,
-        workoutDao: WorkoutDao,
-        repeatDao: RunRepeatDao,
-        stepDao: RunStepDao,
-        seanceDao: SeanceDao,
-        instanceSeanceDao: InstanceSeanceDao,
-        exerciseDao: ExerciseDao,
-    ): DataExportManager = DataExportManager(context, workoutDao, repeatDao, stepDao, seanceDao, instanceSeanceDao, exerciseDao)
-
-    @Provides
-    @Singleton
-    fun provideDataImportManager(
-        workoutDao: WorkoutDao,
-        repeatDao: RunRepeatDao,
-        stepDao: RunStepDao,
-        seanceDao: SeanceDao,
-        instanceSeanceDao: InstanceSeanceDao,
-        exerciseDao: ExerciseDao,
-    ): DataImportManager = DataImportManager(workoutDao, repeatDao, stepDao, seanceDao, instanceSeanceDao, exerciseDao)
 }

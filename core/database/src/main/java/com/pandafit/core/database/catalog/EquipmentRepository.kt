@@ -5,22 +5,41 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import javax.inject.Qualifier
 import javax.inject.Singleton
 
-private val Context.equipmentDataStore: DataStore<Preferences> by preferencesDataStore(name = "equipment_prefs")
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class EquipmentDataStore
+
+@Module
+@InstallIn(SingletonComponent::class)
+object EquipmentDataStoreModule {
+    @Provides
+    @Singleton
+    @EquipmentDataStore
+    fun provideDataStore(@ApplicationContext ctx: Context): DataStore<Preferences> =
+        androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+            produceFile = { ctx.preferencesDataStoreFile("equipment_prefs") }
+        )
+}
 
 private val KEY_EQUIPMENT = stringSetPreferencesKey("selected_equipment")
 
 @Singleton
 class EquipmentRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @EquipmentDataStore private val dataStore: DataStore<Preferences>,
 ) {
-    val selectedEquipment: Flow<Set<EquipmentCategory>> = context.equipmentDataStore.data.map { prefs ->
+    val selectedEquipment: Flow<Set<EquipmentCategory>> = dataStore.data.map { prefs ->
         prefs[KEY_EQUIPMENT]
             ?.mapNotNull { name -> EquipmentCategory.entries.find { it.name == name } }
             ?.toSet()
@@ -28,7 +47,7 @@ class EquipmentRepository @Inject constructor(
     }
 
     suspend fun setEquipment(categories: Set<EquipmentCategory>) {
-        context.equipmentDataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             prefs[KEY_EQUIPMENT] = categories.map { it.name }.toSet()
         }
     }

@@ -22,7 +22,6 @@ data class SportStats(
     val totalDistanceKm: Double? = null,
     val averageDurationMinutes: Double = 0.0,
     val completionRate: Float = 0f,
-    val trend: StatsTrend = StatsTrend.STABLE,
 )
 
 // ── Détail Renforcement ───────────────────────────────────────────────────────
@@ -86,5 +85,3 @@ data class DayVolume(
 ) {
     val totalMinutes: Float get() = runningMinutes + cyclingMinutes + strengthMinutes
 }
-
-enum class StatsTrend { UP, DOWN, STABLE }

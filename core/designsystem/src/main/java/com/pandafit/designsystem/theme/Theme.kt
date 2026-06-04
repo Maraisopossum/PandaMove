@@ -1,17 +1,10 @@
 package com.pandafit.designsystem.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SCHÉMAS DE COULEURS M3
@@ -56,37 +49,6 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant         = PandaOutlineVariant,
 )
 
-private val DarkColorScheme = darkColorScheme(
-    primary                = PandaPurpleMid,
-    onPrimary              = PandaPurpleDark,
-    primaryContainer       = PandaPurpleDark,
-    onPrimaryContainer     = PandaPurpleContainer,
-
-    secondary              = PandaGreenMid,
-    onSecondary            = PandaGreenDark,
-    secondaryContainer     = PandaGreenDark,
-    onSecondaryContainer   = PandaGreenContainer,
-
-    tertiary               = PandaBlue,
-    onTertiary             = PandaBlueDark,
-    tertiaryContainer      = PandaBlueDark,
-    onTertiaryContainer    = PandaBlueContainer,
-
-    error                  = PandaRed,
-    onError                = PandaWhite,
-    errorContainer         = PandaRedDark,
-    onErrorContainer       = PandaRedLight,
-
-    background             = PandaBackgroundDark,
-    onBackground           = PandaOnBackgroundDark,
-    surface                = PandaSurfaceDark,
-    onSurface              = PandaOnSurfaceDark,
-    surfaceVariant         = PandaSurfaceVariantDark,
-    onSurfaceVariant       = PandaSubtextLight,
-    outline                = Color(0xFF3A3A4A),
-    outlineVariant         = Color(0xFF2E2E40),
-)
-
 // ══════════════════════════════════════════════════════════════════════════════
 // COULEURS ÉTENDUES — par sport/section
 // Accessibles via MaterialTheme.extendedColors.strength.primary etc.
@@ -123,24 +85,13 @@ val LocalPandaFitExtendedColors = staticCompositionLocalOf { defaultExtendedColo
 
 @Composable
 fun PandaFitTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else      -> LightColorScheme
-    }
-
     CompositionLocalProvider(
         LocalPandaFitExtendedColors provides defaultExtendedColors,
     ) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = LightColorScheme,
             typography  = PandaFitTypography,
             content     = content,
         )

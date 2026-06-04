@@ -3,7 +3,6 @@ package com.pandafit.core.database.seeder
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.entities.ExerciseCategory
 import com.pandafit.core.database.entities.ExerciseEntity
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,8 +16,7 @@ class ExerciseSeeder @Inject constructor(
     private val exerciseDao: ExerciseDao,
 ) {
     suspend fun seedIfEmpty() {
-        val existing = exerciseDao.observeAll().first()
-        if (existing.isNotEmpty()) return
+        if (exerciseDao.countCatalogExercises() > 0) return
         exerciseDao.insertExercise(*EXERCISES.toTypedArray())
     }
 

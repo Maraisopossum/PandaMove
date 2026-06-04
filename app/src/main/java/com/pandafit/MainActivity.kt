@@ -14,8 +14,6 @@ import com.pandafit.designsystem.theme.PandaFitTheme
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
 import com.pandafit.navigation.PandaFitNavHost
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -30,9 +28,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val isDarkMode by profileViewModel.isDarkMode.collectAsStateWithLifecycle()
-
-            PandaFitTheme(darkTheme = isDarkMode) {
+            PandaFitTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

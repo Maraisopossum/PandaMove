@@ -65,8 +65,9 @@ import com.pandafit.designsystem.components.AssignMenuDialog
 import com.pandafit.designsystem.components.AssignMultiDatePickerDialog
 import com.pandafit.designsystem.components.AssignRecurrenceDialog
 import com.pandafit.designsystem.components.AssignSingleDatePickerDialog
-import com.pandafit.designsystem.components.PandaButton
+import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaEmptyState
+import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
@@ -319,11 +320,12 @@ fun SeanceListScreen(
     ) { innerPadding ->
         when {
             uiState.isLoading -> PandaLoadingIndicator()
+            uiState.error != null -> PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             uiState.seances.isEmpty() && uiState.instances.isEmpty() -> PandaEmptyState(
                 title = "Aucune séance",
                 description = "Crée ta première séance de renforcement.",
                 icon = Icons.Default.FitnessCenter,
-                action = { PandaButton("Créer une séance", onNavigateToCreate, containerColor = PandaPurple) },
+                action = { AppButton(label = "Créer une séance", onClick = onNavigateToCreate) },
                 modifier = Modifier.padding(innerPadding),
             )
             else -> {

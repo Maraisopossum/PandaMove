@@ -121,6 +121,7 @@ private enum class TimerPage { HOME, CONFIG, RUNNING }
 @Composable
 fun TimerScreen(
     onOpenDrawer: () -> Unit = {},
+    soundOverrideSilent: Boolean = false,
     viewModel: TimerViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -143,7 +144,8 @@ fun TimerScreen(
                     else                                   -> ToneGenerator.TONE_PROP_BEEP2
                 }
                 val duration = if (type == TimerViewModel.BeepType.GONG) 1500 else 200
-                val tg = ToneGenerator(AudioManager.STREAM_ALARM, vol)
+                val stream = if (soundOverrideSilent) AudioManager.STREAM_ALARM else AudioManager.STREAM_MUSIC
+                val tg = ToneGenerator(stream, vol)
                 tg.startTone(tone, duration)
                 Handler(Looper.getMainLooper()).postDelayed({ tg.release() }, duration + 100L)
             } catch (_: Exception) {}

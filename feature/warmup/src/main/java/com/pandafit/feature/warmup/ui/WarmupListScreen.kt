@@ -35,7 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.core.database.entities.SeanceCategory
 import com.pandafit.core.database.entities.SeanceEntity
-import com.pandafit.designsystem.components.PandaButton
+import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
@@ -104,10 +104,10 @@ fun WarmupListScreen(
                         description = "Crée ton premier échauffement type.",
                         icon = Icons.Default.SelfImprovement,
                         action = {
-                            PandaButton(
-                                "Créer",
+                            AppButton(
+                                label = "Créer",
                                 onClick = { onNavigateToCreate(uiState.selectedCategory.name) },
-                                containerColor = PandaOrange,
+                                color = PandaOrange,
                             )
                         },
                     )

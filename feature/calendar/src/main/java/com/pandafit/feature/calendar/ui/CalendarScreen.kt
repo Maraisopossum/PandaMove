@@ -63,6 +63,7 @@ import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.AssignSingleDatePickerDialog
 import com.pandafit.designsystem.components.PandaCard
+import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaFilterChip
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportDot
@@ -197,6 +198,10 @@ fun CalendarScreen(
 //        },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
+        if (uiState.error != null) {
+            PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
+            return@Scaffold
+        }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentPadding = PaddingValues(bottom = 80.dp),

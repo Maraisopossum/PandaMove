@@ -34,6 +34,7 @@ import com.pandafit.designsystem.components.AssignMultiDatePickerDialog
 import com.pandafit.designsystem.components.AssignRecurrenceDialog
 import com.pandafit.designsystem.components.AssignSingleDatePickerDialog
 import com.pandafit.designsystem.components.PandaEmptyState
+import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
@@ -212,6 +213,8 @@ fun RunningScreen(
         AnimatedContent(uiState.isLoading, label = "running_content") { isLoading ->
             if (isLoading) {
                 PandaLoadingIndicator()
+            } else if (uiState.error != null) {
+                PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             } else if (isEmpty) {
                 PandaEmptyState(
                     title = "Aucune séance de running",

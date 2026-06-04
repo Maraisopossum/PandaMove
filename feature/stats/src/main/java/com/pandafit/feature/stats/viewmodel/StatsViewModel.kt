@@ -15,7 +15,6 @@ import com.pandafit.feature.stats.model.RunningDetailStats
 import com.pandafit.feature.stats.model.SportStats
 import com.pandafit.feature.stats.model.StatsConfig
 import com.pandafit.feature.stats.model.StatsPeriod
-import com.pandafit.feature.stats.model.StatsTrend
 import com.pandafit.feature.stats.model.StatsUiState
 import com.pandafit.feature.stats.model.StrengthDetailStats
 import com.pandafit.feature.stats.model.WeeklyPace
@@ -84,7 +83,6 @@ class StatsViewModel @Inject constructor(
                         averageDurationMinutes = if (completed.isEmpty()) 0.0 else
                             completed.sumOf { it.resultDurationSec?.let { s -> s / 60.0 } ?: (it.durationMinutes?.toDouble() ?: 0.0) } / completed.size,
                         completionRate = if (filtered.isEmpty()) 0f else completed.size.toFloat() / filtered.size,
-                        trend = StatsTrend.STABLE,
                     )
                 }
 
@@ -107,7 +105,6 @@ class StatsViewModel @Inject constructor(
                         totalDurationMinutes = totalDurMin,
                         averageDurationMinutes = if (completed == 0) 0.0 else totalDurMin.toDouble() / completed,
                         completionRate = if (plannedCount == 0) 0f else completed.toFloat() / plannedCount,
-                        trend = StatsTrend.STABLE,
                     )
                 }
 

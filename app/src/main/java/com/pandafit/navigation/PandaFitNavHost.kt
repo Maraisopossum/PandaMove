@@ -2,8 +2,6 @@ package com.pandafit.navigation
 
 import android.media.AudioManager
 import android.media.ToneGenerator
-import android.os.Handler
-import android.os.Looper
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -29,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -102,22 +101,25 @@ fun PandaFitNavHost() {
     }
 
     // Sons depuis le manager singleton → fonctionnent partout dans l'app
-    LaunchedEffect(Unit) {
-        activeSessionVM.restFinishedEvent.collect {
-            try {
-                val tg = ToneGenerator(AudioManager.STREAM_ALARM, ToneGenerator.MAX_VOLUME)
-                tg.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1500)
-                Handler(Looper.getMainLooper()).postDelayed({ tg.release() }, 2000)
-            } catch (_: Exception) {}
+    // Instances partagées — recréées uniquement si le stream change (paramètre "Sons en mode discret")
+    val audioStream = if (profileState.soundOverrideSilent) AudioManager.STREAM_ALARM else AudioManager.STREAM_MUSIC
+    val toneFinRest = remember(audioStream) { ToneGenerator(audioStream, ToneGenerator.MAX_VOLUME) }
+    val toneBeep    = remember(audioStream) { ToneGenerator(audioStream, (ToneGenerator.MAX_VOLUME * 0.6).toInt()) }
+    DisposableEffect(audioStream) {
+        onDispose {
+            runCatching { toneFinRest.release() }
+            runCatching { toneBeep.release() }
         }
     }
-    LaunchedEffect(Unit) {
+
+    LaunchedEffect(audioStream) {
+        activeSessionVM.restFinishedEvent.collect {
+            runCatching { toneFinRest.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1500) }
+        }
+    }
+    LaunchedEffect(audioStream) {
         activeSessionVM.restCountdownBeep.collect {
-            try {
-                val tg = ToneGenerator(AudioManager.STREAM_ALARM, (ToneGenerator.MAX_VOLUME * 0.6).toInt())
-                tg.startTone(ToneGenerator.TONE_PROP_BEEP, 120)
-                Handler(Looper.getMainLooper()).postDelayed({ tg.release() }, 200)
-            } catch (_: Exception) {}
+            runCatching { toneBeep.startTone(ToneGenerator.TONE_PROP_BEEP, 120) }
         }
     }
 
@@ -334,6 +336,7 @@ fun PandaFitNavHost() {
                         navController.navigate(StrengthRoutes.seanceInstanceEdit(seanceId, instanceId))
                     },
                     onNavigateToReport = { navController.navigate(StrengthRoutes.instanceReport(id)) },
+                    soundOverrideSilent = profileState.soundOverrideSilent,
                 )
             }
             composable(StrengthRoutes.SEANCE_INSTANCE_EDIT) { backStack ->
@@ -419,7 +422,10 @@ fun PandaFitNavHost() {
             }
 
             composable(PandaFitDestination.Timer.route) {
-                TimerScreen(onOpenDrawer = { scope.launch { drawerState.open() } })
+                TimerScreen(
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    soundOverrideSilent = profileState.soundOverrideSilent,
+                )
             }
             composable(PandaFitDestination.Stats.route) {
                 StatsScreen(onOpenDrawer = { scope.launch { drawerState.open() } })

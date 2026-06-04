@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Male
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SportsMartialArts
 import androidx.compose.material3.AlertDialog
@@ -36,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -75,6 +78,13 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showRenameDialog by remember { mutableStateOf(false) }
+
+    // Lancement du partage depuis le ViewModel (séparation UI / logique)
+    LaunchedEffect(Unit) {
+        viewModel.shareIntent.collect { intent ->
+            context.startActivity(intent)
+        }
+    }
 
     // Auto-clear SUCCESS_EXPORT after 3 seconds
     LaunchedEffect(uiState.exportImportStatus) {
@@ -256,6 +266,22 @@ fun ProfileScreen(
             }
 
             item {
+                Text("Sons", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+                PandaCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(4.dp)) {
+                        SettingsToggleRow(
+                            icon = Icons.Default.NotificationsActive,
+                            title = "Sons en mode discret",
+                            subtitle = "Les bips de timer sonnent même si le téléphone est en silencieux",
+                            checked = uiState.soundOverrideSilent,
+                            onCheckedChange = { viewModel.setSoundOverrideSilent(it) },
+                        )
+                    }
+                }
+            }
+
+            item {
                 Text("Données", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 PandaCard(modifier = Modifier.fillMaxWidth()) {
@@ -367,5 +393,35 @@ private fun SettingsActionRow(icon: ImageVector, title: String, subtitle: String
             Text(title, style = MaterialTheme.typography.bodyMedium)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
         }
+    }
+}
+
+@Composable
+private fun SettingsToggleRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = PandaGreen, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+        }
+        Spacer(Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(checkedThumbColor = PandaGreen, checkedTrackColor = PandaGreen.copy(alpha = 0.4f)),
+        )
     }
 }

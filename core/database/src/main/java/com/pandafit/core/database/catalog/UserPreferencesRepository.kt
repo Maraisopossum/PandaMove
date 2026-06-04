@@ -6,44 +6,63 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import javax.inject.Qualifier
 import javax.inject.Singleton
 
-private val Context.pandaPrefsDataStore: DataStore<Preferences> by preferencesDataStore(name = "pandamove_prefs")
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class PandaPrefsDataStore
 
-private val KEY_USERNAME  = stringPreferencesKey("user_name")
-private val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
-private val KEY_GENDER    = stringPreferencesKey("gender")
+@Module
+@InstallIn(SingletonComponent::class)
+object UserPreferencesDataStoreModule {
+    @Provides
+    @Singleton
+    @PandaPrefsDataStore
+    fun provideDataStore(@ApplicationContext ctx: Context): DataStore<Preferences> =
+        androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+            produceFile = { ctx.preferencesDataStoreFile("pandamove_prefs") }
+        )
+}
+
+private val KEY_USERNAME              = stringPreferencesKey("user_name")
+private val KEY_GENDER                = stringPreferencesKey("gender")
+private val KEY_SOUND_OVERRIDE_SILENT = booleanPreferencesKey("sound_override_silent")
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @PandaPrefsDataStore private val dataStore: DataStore<Preferences>,
 ) {
-    val userNameFlow: Flow<String> = context.pandaPrefsDataStore.data.map { prefs ->
+    val userNameFlow: Flow<String> = dataStore.data.map { prefs ->
         prefs[KEY_USERNAME] ?: ""
     }
 
-    val isDarkModeFlow: Flow<Boolean> = context.pandaPrefsDataStore.data.map { prefs ->
-        prefs[KEY_DARK_MODE] ?: false
-    }
-
-    val genderFlow: Flow<String> = context.pandaPrefsDataStore.data.map { prefs ->
+    val genderFlow: Flow<String> = dataStore.data.map { prefs ->
         prefs[KEY_GENDER] ?: "MALE"
     }
 
-    suspend fun setUserName(name: String) {
-        context.pandaPrefsDataStore.edit { it[KEY_USERNAME] = name }
+    val soundOverrideSilentFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_SOUND_OVERRIDE_SILENT] ?: false
     }
 
-    suspend fun setDarkMode(enabled: Boolean) {
-        context.pandaPrefsDataStore.edit { it[KEY_DARK_MODE] = enabled }
+    suspend fun setUserName(name: String) {
+        dataStore.edit { it[KEY_USERNAME] = name }
     }
 
     suspend fun setGender(gender: String) {
-        context.pandaPrefsDataStore.edit { it[KEY_GENDER] = gender }
+        dataStore.edit { it[KEY_GENDER] = gender }
+    }
+
+    suspend fun setSoundOverrideSilent(enabled: Boolean) {
+        dataStore.edit { it[KEY_SOUND_OVERRIDE_SILENT] = enabled }
     }
 }

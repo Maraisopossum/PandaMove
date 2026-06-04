@@ -171,6 +171,7 @@ fun CyclingScreen(
     ) { innerPadding ->
         when {
             uiState.isLoading -> PandaLoadingIndicator()
+            uiState.error != null -> PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             isEmpty -> PandaEmptyState(
                 title = "Aucune séance de vélo",
                 description = "Crée ta première sortie à vélo avec le bouton +",

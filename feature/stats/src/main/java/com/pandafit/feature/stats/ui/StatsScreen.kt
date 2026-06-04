@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.designsystem.components.PandaCard
+import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaFilterChip
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
@@ -82,6 +83,7 @@ fun StatsScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         if (uiState.isLoading) { PandaLoadingIndicator(); return@Scaffold }
+        if (uiState.error != null) { PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding)); return@Scaffold }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
