@@ -30,6 +30,7 @@ data class RunningDetailUiState(
     val isTemplate: Boolean = true,
     val name: String = "",
     val scheduledDate: LocalDate = LocalDate.now(),
+    val withStroller: Boolean = false,
     val items: List<RunItemDraft> = listOf(
         RunItemDraft.Step(stepType = RunStepType.WARMUP,   endType = RunEndType.DURATION, endValue = "900",  endUnit = RunEndUnit.SECONDS),
         RunItemDraft.Step(stepType = RunStepType.RECOVERY, endType = RunEndType.DURATION, endValue = "600",  endUnit = RunEndUnit.SECONDS),

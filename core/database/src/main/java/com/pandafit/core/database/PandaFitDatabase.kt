@@ -45,7 +45,7 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         RunStepEntity::class,
         GpsTrackPointEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -183,6 +183,13 @@ abstract class PandaFitDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE exercices_seance ADD COLUMN instance_seance_id INTEGER")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_blocs_seance_instance ON blocs_seance(instance_seance_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_exercices_seance_instance ON exercices_seance(instance_seance_id)")
+            }
+        }
+
+        // v14 → v15 : ajout du flag "avec la poussette" sur les workouts running
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE workouts ADD COLUMN with_stroller INTEGER NOT NULL DEFAULT 0")
             }
         }
 

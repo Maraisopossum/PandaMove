@@ -323,6 +323,7 @@ class DataImportManager @Inject constructor(
                         resultHrAvg = w.resultHrAvg, resultHrMax = w.resultHrMax,
                         resultRpe = w.resultRpe, resultNotes = w.resultNotes,
                         resultElevationM = w.resultElevationM,
+                        withStroller = w.withStroller ?: false,
                     )
                 )
                 if (workoutResult == -1L) { skipped++; continue }

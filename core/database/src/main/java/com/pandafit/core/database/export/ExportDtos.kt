@@ -164,6 +164,8 @@ data class WorkoutDto(
     val resultRpe: Int? = null,
     val resultNotes: String = "",
     val resultElevationM: Int? = null,
+    // null dans les exports antérieurs → false par défaut à l'import
+    val withStroller: Boolean? = false,
 )
 
 @Serializable

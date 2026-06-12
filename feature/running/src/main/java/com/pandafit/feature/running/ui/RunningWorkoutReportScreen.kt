@@ -1,6 +1,7 @@
 package com.pandafit.feature.running.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -173,6 +174,26 @@ fun RunningWorkoutReportScreen(
                     Text("NOTE DE SÉANCE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
                     Spacer(Modifier.height(4.dp))
                     Text(workout!!.resultNotes, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
+                }
+            }
+
+            // Checkbox poussette
+            item {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.updateWithStroller(!uiState.withStroller) }
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = uiState.withStroller,
+                        onCheckedChange = viewModel::updateWithStroller,
+                        colors = CheckboxDefaults.colors(checkedColor = PandaGreen),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Avec la poussette 🚼", style = MaterialTheme.typography.bodyMedium)
                 }
             }
 

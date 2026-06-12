@@ -351,6 +351,38 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, config
             }
         }
 
+        // Stats poussette — visible uniquement si au moins une séance poussette dans la période
+        if (detail.strollerSessions > 0) {
+            PandaCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "Avec la poussette 🚼",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PandaSubtext,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatItem(
+                            "Séances",
+                            "${detail.strollerSessions}",
+                            Modifier.weight(1f),
+                        )
+                        StatItem(
+                            "Distance",
+                            "${"%.1f".format(detail.strollerDistanceKm)} km",
+                            Modifier.weight(1f),
+                        )
+                        StatItem(
+                            "Du total",
+                            "${(detail.strollerDistancePct * 100).toInt()}%",
+                            Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+
         // Fun stats distance
         if (detail.totalDistanceKm >= 0.4) {
             FunRunningCard(detail.totalDistanceKm, detail.totalElevationM, config)

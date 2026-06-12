@@ -118,6 +118,25 @@ fun RunningWorkoutDetailScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = PandaSubtext,
                 )
+                // Checkbox poussette — uniquement pour les séances planifiées (pas les templates)
+                if (!uiState.isTemplate) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.updateWithStroller(!uiState.withStroller) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = uiState.withStroller,
+                            onCheckedChange = viewModel::updateWithStroller,
+                            colors = CheckboxDefaults.colors(checkedColor = PandaPurple),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Avec la poussette 🚼", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
                 Spacer(Modifier.height(16.dp))
             }
 

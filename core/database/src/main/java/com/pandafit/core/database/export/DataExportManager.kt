@@ -156,6 +156,7 @@ class DataExportManager @Inject constructor(
                     resultHrAvg = w.resultHrAvg, resultHrMax = w.resultHrMax,
                     resultRpe = w.resultRpe, resultNotes = w.resultNotes,
                     resultElevationM = w.resultElevationM,
+                    withStroller = w.withStroller,
                 ),
                 repeats = repeats.map { r ->
                     RunRepeatDto(

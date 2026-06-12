@@ -281,6 +281,11 @@ class StatsViewModel @Inject constructor(
                 WeeklyPace(label, avgPace, weekDist)
             }
 
+        // Stats poussette
+        val strollerRuns = completed.filter { it.withStroller }
+        val strollerDist = strollerRuns.mapNotNull { it.resultDistanceKm }.sum()
+        val strollerPct  = if (totalDist > 0.0) (strollerDist / totalDist).toFloat() else 0f
+
         return RunningDetailStats(
             completedSessions = completed.size,
             totalDistanceKm = totalDist,
@@ -292,6 +297,9 @@ class StatsViewModel @Inject constructor(
             totalElevationM = totalElev,
             longestSessionKm = longestKm,
             weeklyPaces = weeklyPaces,
+            strollerSessions = strollerRuns.size,
+            strollerDistanceKm = strollerDist,
+            strollerDistancePct = strollerPct,
         )
     }
 }

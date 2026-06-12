@@ -29,6 +29,7 @@ data class RunningReportUiState(
     val repeatResults: Map<Long, List<IntervalRepResult>> = emptyMap(), // key = repeat.id
     // Tracé GPS simplifié (lat, lon) — vide si non disponible
     val gpsPoints: List<Pair<Double, Double>> = emptyList(),
+    val withStroller: Boolean = false,
 )
 
 sealed class RunReportItem {
@@ -100,7 +101,16 @@ class RunningReportViewModel @Inject constructor(
                 items         = items,
                 repeatResults = repeatResults,
                 gpsPoints     = gpsPoints,
+                withStroller  = workout.withStroller,
             )
+        }
+    }
+
+    fun updateWithStroller(v: Boolean) {
+        _uiState.value = _uiState.value.copy(withStroller = v)
+        viewModelScope.launch {
+            val w = _uiState.value.workout ?: return@launch
+            workoutDao.update(w.copy(withStroller = v, updatedAt = LocalDateTime.now()))
         }
     }
 

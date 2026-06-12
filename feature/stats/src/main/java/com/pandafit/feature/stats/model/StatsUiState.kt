@@ -67,6 +67,10 @@ data class RunningDetailStats(
     val totalElevationM: Int = 0,
     val longestSessionKm: Double = 0.0,
     val weeklyPaces: List<WeeklyPace> = emptyList(),
+    // Stats poussette
+    val strollerSessions: Int = 0,
+    val strollerDistanceKm: Double = 0.0,
+    val strollerDistancePct: Float = 0f,
 )
 
 data class WeeklyPace(

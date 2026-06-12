@@ -76,6 +76,7 @@ class RunningDetailViewModel @Inject constructor(
                 isTemplate = workout.isTemplate,
                 name = workout.name,
                 scheduledDate = workout.scheduledDate,
+                withStroller = workout.withStroller,
                 items = items,
             )
         }
@@ -85,6 +86,7 @@ class RunningDetailViewModel @Inject constructor(
     fun setAsPlanned() { _uiState.value = _uiState.value.copy(isTemplate = false) }
 
     fun updateName(name: String) { _uiState.value = _uiState.value.copy(name = name, error = null) }
+    fun updateWithStroller(v: Boolean) { _uiState.value = _uiState.value.copy(withStroller = v) }
 
     fun addStep() {
         val items = _uiState.value.items.toMutableList()
@@ -193,6 +195,7 @@ class RunningDetailViewModel @Inject constructor(
                 name = state.name.trim(),
                 isTemplate = state.isTemplate,
                 scheduledDate = state.scheduledDate,
+                withStroller = state.withStroller,
                 createdAt = now,
                 updatedAt = now,
             )

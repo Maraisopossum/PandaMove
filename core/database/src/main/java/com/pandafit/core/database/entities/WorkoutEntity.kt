@@ -81,6 +81,9 @@ data class WorkoutEntity(
 
     @ColumnInfo(name = "result_elevation_m")
     val resultElevationM: Int? = null,
+
+    @ColumnInfo(name = "with_stroller")
+    val withStroller: Boolean = false,
 )
 
 enum class WorkoutType {
