@@ -33,12 +33,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -201,6 +204,7 @@ fun InstanceExecuteScreen(
     var showExitDialog by remember { mutableStateOf(false) }
     var showReturnDialog by remember { mutableStateOf(false) }
     var showManualTimer by remember { mutableStateOf(false) }
+    var showPlateCalculator by remember { mutableStateOf(false) }
 
     // ── Empêcher la mise en veille pendant la séance (7.3) ─────────────────────
     val view = LocalView.current
@@ -416,6 +420,15 @@ fun InstanceExecuteScreen(
     val activeExercice = exercices.getOrNull(activeIndex)
     val activeExerciceId = activeExercice?.exerciceSeance?.id
     val activeBloc = activeExercice?.exerciceSeance?.blocId?.let { bid -> uiState.blocs.find { it.id == bid } }
+
+    // Poids pré-rempli pour le calculateur : prochaine série incomplète, ou cible du template
+    val calculatorInitialKg: Float? = run {
+        val id = activeExerciceId ?: return@run null
+        val nextIncomplete = uiState.seriesForExercice(id).firstOrNull { !it.isCompleted }
+        nextIncomplete?.chargeKg
+            ?: nextIncomplete?.chargeLabel?.replace(" kg", "")?.trim()?.toFloatOrNull()
+            ?: activeExercice?.exerciceSeance?.chargeCible?.replace(" kg", "")?.trim()?.toFloatOrNull()
+    }
 
     // Dernier exercice du bloc en cours → doit afficher tempsReposFinRoundSec
     val isLastInBloc = run {
@@ -701,6 +714,24 @@ fun InstanceExecuteScreen(
                 }
             }
 
+            // ── FAB Calculateur de disques ────────────────────────────────
+            AnimatedVisibility(
+                visible = focusedCell == null && uiState.circuitMode == null && uiState.countdownSeconds == 0,
+                enter = slideInVertically { it },
+                exit = slideOutVertically { it },
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 16.dp, bottom = 16.dp),
+            ) {
+                FloatingActionButton(
+                    onClick = { showPlateCalculator = true },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(Icons.Default.FitnessCenter, "Calculateur de disques", tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
+                }
+            }
+
             // ── Overlay décompte 3-2-1 ───────────────────────────────────────
             if (uiState.countdownSeconds > 0) {
                 CountdownOverlay(
@@ -730,6 +761,14 @@ fun InstanceExecuteScreen(
             onStop = { viewModel.stopRestTimer() },
             onAdjust = { delta -> viewModel.adjustRestTimer(delta) },
             onDismiss = { showManualTimer = false },
+        )
+    }
+
+    // ── Calculateur de disques (bottom sheet) ────────────────────────────────
+    if (showPlateCalculator) {
+        PlateCalculatorSheet(
+            initialTargetKg = calculatorInitialKg,
+            onDismiss = { showPlateCalculator = false },
         )
     }
 }
@@ -1411,6 +1450,263 @@ private fun CircuitOverlay(
                 Icon(Icons.Default.Stop, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Arrêter le circuit")
+            }
+        }
+    }
+}
+
+// ===== Calculateur de disques =====
+
+private enum class PlateEquipment { BARRE, HALTERE }
+
+private val STANDARD_PLATE_VALUES = listOf(20f, 15f, 10f, 5f, 2.5f, 2f, 1.25f, 1f, 0.75f, 0.5f)
+
+/**
+ * Calcule les disques à mettre de chaque côté pour atteindre [targetKg] avec une tige de [barKg].
+ * Retourne null si le résultat est impossible, emptyList() si la tige seule suffit.
+ */
+private fun calculatePlatesPerSide(targetKg: Float, barKg: Float): List<Pair<Float, Int>>? {
+    val perSide = (targetKg - barKg) / 2f
+    if (perSide < -0.001f) return null // Cible inférieure à la tige
+    if (perSide < 0.001f) return emptyList()
+    var remaining = perSide
+    val result = mutableListOf<Pair<Float, Int>>()
+    for (plate in STANDARD_PLATE_VALUES) {
+        val count = kotlin.math.floor((remaining / plate + 0.001f).toDouble()).toInt()
+        if (count > 0) {
+            result.add(plate to count)
+            remaining -= plate * count
+        }
+    }
+    return if (remaining > 0.05f) null else result
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlateCalculatorSheet(
+    initialTargetKg: Float?,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var equipment by remember { mutableStateOf(PlateEquipment.BARRE) }
+    var barInput by remember(equipment) {
+        mutableStateOf(if (equipment == PlateEquipment.BARRE) "20" else "2")
+    }
+    var targetInput by remember(initialTargetKg) {
+        mutableStateOf(initialTargetKg?.let { if (it == it.toLong().toFloat()) it.toInt().toString() else it.toString() } ?: "")
+    }
+
+    val barKg = barInput.replace(",", ".").toFloatOrNull() ?: 0f
+    val targetKg = targetInput.replace(",", ".").toFloatOrNull()
+    val plates = if (targetKg != null && barKg > 0f) calculatePlatesPerSide(targetKg, barKg) else null
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                "🏋️ Calculateur de disques",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(20.dp))
+
+            // ── Toggle Barre / Haltère ──
+            Row(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                PlateEquipment.entries.forEach { eq ->
+                    val selected = equipment == eq
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                RoundedCornerShape(8.dp),
+                            )
+                            .clickable {
+                                equipment = eq
+                                barInput = if (eq == PlateEquipment.BARRE) "20" else "2"
+                            }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (eq == PlateEquipment.BARRE) "Barre" else "Haltère",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── Inputs ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = barInput,
+                    onValueChange = { barInput = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
+                    label = { Text(if (equipment == PlateEquipment.BARRE) "Tige (kg)" else "Haltère vide (kg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedTextField(
+                    value = targetInput,
+                    onValueChange = { targetInput = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
+                    label = { Text("Poids total (kg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // ── Résultat ──
+            when {
+                targetKg == null || targetInput.isBlank() -> {
+                    Text(
+                        "Saisissez un poids cible",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = PandaSubtext,
+                    )
+                }
+                barKg <= 0f -> {
+                    Text(
+                        "Poids de tige invalide",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                plates == null -> {
+                    Text(
+                        "Impossible avec les disques standards",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                else -> {
+                    PlateResultDisplay(
+                        plates = plates,
+                        barKg = barKg,
+                        targetKg = targetKg,
+                        isHaltere = equipment == PlateEquipment.HALTERE,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(28.dp))
+        }
+    }
+}
+
+@Composable
+private fun PlateResultDisplay(
+    plates: List<Pair<Float, Int>>,
+    barKg: Float,
+    targetKg: Float,
+    isHaltere: Boolean,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val sideLabel = if (isHaltere) "par haltère" else "par côté"
+        Text(
+            "Disques $sideLabel",
+            style = MaterialTheme.typography.labelMedium,
+            color = PandaSubtext,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+        if (plates.isEmpty()) {
+            Text(
+                "Aucun disque — ${if (isHaltere) "haltère" else "tige"} seul${if (isHaltere) "" else "e"} suffit",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
+        } else {
+            // Affichage en grille horizontale
+            val plateStr = plates.joinToString("  +  ") { (kg, count) ->
+                val kgLabel = if (kg == kg.toLong().toFloat()) "${kg.toInt()}" else "$kg"
+                if (count == 1) "$kgLabel kg" else "$count × $kgLabel kg"
+            }
+            Text(
+                plateStr,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        // Détail : tige + disques × 2
+        val perSideKg = plates.sumOf { (kg, count) -> kg.toDouble() * count }.toFloat()
+        val totalPlatesKg = perSideKg * if (isHaltere) 1 else 2
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    if (isHaltere) "Haltère" else "Tige",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                )
+                Text(
+                    "${if (barKg == barKg.toLong().toFloat()) barKg.toInt().toString() else barKg.toString()} kg",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            if (plates.isNotEmpty()) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "Disques",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PandaSubtext,
+                    )
+                    Text(
+                        "${if (totalPlatesKg == totalPlatesKg.toLong().toFloat()) totalPlatesKg.toInt().toString() else totalPlatesKg.toString()} kg",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "Total",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                )
+                Text(
+                    "${if (targetKg == targetKg.toLong().toFloat()) targetKg.toInt().toString() else targetKg.toString()} kg",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
