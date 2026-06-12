@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Male
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SportsMartialArts
 import androidx.compose.material3.AlertDialog
@@ -72,6 +73,7 @@ fun ProfileScreen(
     onNavigateToEquipment: () -> Unit = {},
     onNavigateToExerciseCatalog: () -> Unit = {},
     onNavigateToStatsConfig: () -> Unit = {},
+    onNavigateToTcxImport: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
@@ -316,6 +318,13 @@ fun ProfileScreen(
                                     importLauncher.launch("application/json")
                                 }
                             },
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        SettingsActionRow(
+                            icon = Icons.Default.Route,
+                            title = "Importer depuis Garmin (.tcx)",
+                            subtitle = "Importe tracé GPS, splits et fréquence cardiaque",
+                            onClick = onNavigateToTcxImport,
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(

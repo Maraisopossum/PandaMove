@@ -3,6 +3,7 @@ package com.pandafit.feature.cycling.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.WorkoutBlockDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.BlockType
@@ -24,6 +25,7 @@ class CyclingDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val workoutDao: WorkoutDao,
     private val blockDao: WorkoutBlockDao,
+    private val gpsDao: GpsTrackPointDao,
 ) : ViewModel() {
 
     private val workoutId: Long? = savedStateHandle.get<String>("workoutId")?.toLongOrNull()
@@ -37,10 +39,14 @@ class CyclingDetailViewModel @Inject constructor(
     private fun loadWorkout(id: Long) {
         viewModelScope.launch {
             val withBlocks = workoutDao.getWithBlocksById(id) ?: return@launch
+            val gpsPoints = gpsDao.getByWorkout(id)
+                .sortedBy { it.pointIndex }
+                .map { Pair(it.latitude, it.longitude) }
             _uiState.value = CyclingDetailUiState(
                 isLoading = false,
                 isNew = false,
                 isTemplate = withBlocks.workout.isTemplate,
+                isCompleted = withBlocks.workout.isCompleted,
                 name = withBlocks.workout.name,
                 scheduledDate = withBlocks.workout.scheduledDate,
                 notes = withBlocks.workout.notes,
@@ -54,6 +60,7 @@ class CyclingDetailViewModel @Inject constructor(
                         recoveryMinutes = b.recoveryMinutes, repetitions = b.repetitions, notes = b.notes,
                     )
                 },
+                gpsPoints = gpsPoints,
             )
         }
     }

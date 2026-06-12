@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pandafit.core.database.converters.DateConverters
 import com.pandafit.core.database.converters.ListConverters
 import com.pandafit.core.database.dao.ExerciseDao
+import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
@@ -18,6 +19,7 @@ import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.ExerciceSeanceEntity
 import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.core.database.entities.ExerciseSetEntity
+import com.pandafit.core.database.entities.GpsTrackPointEntity
 import com.pandafit.core.database.entities.InstanceSeanceEntity
 import com.pandafit.core.database.entities.RunRepeatEntity
 import com.pandafit.core.database.entities.RunStepEntity
@@ -41,8 +43,9 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         SerieRealiseeEntity::class,
         RunRepeatEntity::class,
         RunStepEntity::class,
+        GpsTrackPointEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -55,6 +58,7 @@ abstract class PandaFitDatabase : RoomDatabase() {
     abstract fun instanceSeanceDao(): InstanceSeanceDao
     abstract fun runStepDao(): RunStepDao
     abstract fun runRepeatDao(): RunRepeatDao
+    abstract fun gpsTrackPointDao(): GpsTrackPointDao
 
     companion object {
         const val DATABASE_NAME = "pandafit.db"
@@ -179,6 +183,24 @@ abstract class PandaFitDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE exercices_seance ADD COLUMN instance_seance_id INTEGER")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_blocs_seance_instance ON blocs_seance(instance_seance_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_exercices_seance_instance ON exercices_seance(instance_seance_id)")
+            }
+        }
+
+        // v13 → v14 : ajout de la table gps_track_points pour les tracés importés depuis TCX
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `gps_track_points` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `workout_id` INTEGER NOT NULL,
+                        `point_index` INTEGER NOT NULL,
+                        `latitude` REAL NOT NULL,
+                        `longitude` REAL NOT NULL,
+                        `altitude_m` REAL,
+                        FOREIGN KEY(`workout_id`) REFERENCES `workouts`(`id`) ON DELETE CASCADE
+                    )"""
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_gps_track_points_workout_id` ON `gps_track_points` (`workout_id`)")
             }
         }
     }

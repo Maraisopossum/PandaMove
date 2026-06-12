@@ -110,6 +110,9 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
 
+    // OSMDroid (carte GPS — init dans PandaFitApp)
+    implementation(libs.osmdroid)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.junit.android)

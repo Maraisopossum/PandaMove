@@ -3,14 +3,15 @@ package com.pandafit.core.database.export
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
-import dagger.hilt.android.qualifiers.ApplicationContext
 import com.pandafit.core.database.dao.ExerciseDao
+import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.WorkoutType
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -31,59 +32,74 @@ class DataExportManager @Inject constructor(
     private val seanceDao: SeanceDao,
     private val instanceSeanceDao: InstanceSeanceDao,
     private val exerciseDao: ExerciseDao,
+    private val gpsDao: GpsTrackPointDao,
 ) {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
-    suspend fun export(): File = withContext(Dispatchers.IO) {
-        // Nettoyer les précédents exports JSON pour ne pas saturer le cacheDir
+    /**
+     * Génère un fichier JSON v3.0 dans le cacheDir et le retourne.
+     * [options] permet de ne sélectionner qu'une partie des données.
+     * Par défaut, toutes les données sont exportées.
+     */
+    suspend fun export(options: ExportOptions = ExportOptions.ALL): File = withContext(Dispatchers.IO) {
+        // Nettoyage des précédents exports pour ne pas saturer le cacheDir
         context.cacheDir
             .listFiles { f -> f.name.startsWith("pandamove_export_") && f.extension == "json" }
             ?.forEach { it.delete() }
 
-        // ── 1. Séances renforcement (templates) ──
-        val seances = seanceDao.observeAll().first()
-        val strengthTemplates = seances.mapNotNull { seance ->
-            val full = seanceDao.getSeanceFull(seance.id) ?: return@mapNotNull null
-            StrengthTemplateDto(
-                seance = SeanceDto(
-                    id = full.seance.id,
-                    nom = full.seance.nom,
-                    groupesMusculaires = full.seance.groupesMusculaires,
-                    dureeEstimeeMin = full.seance.dureeEstimeeMin,
-                    notes = full.seance.notes,
-                    seanceCategory = full.seance.seanceCategory.name,
-                    createdAt = full.seance.createdAt.toString(),
-                    updatedAt = full.seance.updatedAt.toString(),
-                ),
-                blocs = full.blocs.map { b ->
-                    BlocDto(
-                        id = b.id, seanceId = b.seanceId, nom = b.nom,
-                        type = b.type.name, position = b.position, dureeMin = b.dureeMin,
-                        description = b.description,
-                        tempsReposInterSec = b.tempsReposInterSec,
-                        tempsReposFinRoundSec = b.tempsReposFinRoundSec,
-                    )
-                },
-                exercices = full.exercices.map { ex ->
-                    val e = ex.exerciceSeance
-                    ExerciceDto(
-                        id = e.id, seanceId = e.seanceId, exerciceId = e.exerciceId,
-                        blocId = e.blocId, supersetGroupe = e.supersetGroupe,
-                        position = e.position, nombreSeriesPrevues = e.nombreSeriesPrevues,
-                        repsCibles = e.repsCibles, chargeCible = e.chargeCible,
-                        tempo = e.tempo, repsType = e.repsType.name,
-                        tempsReposSec = e.tempsReposSec, consigneCle = e.consigneCle,
-                        equipement = e.equipement, avertissement = e.avertissement,
-                    )
-                },
-            )
-        }
+        // ── 1. Templates renforcement ──────────────────────────────────────────
+        val strengthTemplates = if (options.strengthTemplates) {
+            seanceDao.observeAll().first().mapNotNull { seance ->
+                val full = seanceDao.getSeanceFull(seance.id) ?: return@mapNotNull null
+                StrengthTemplateDto(
+                    seance = SeanceDto(
+                        id = full.seance.id,
+                        nom = full.seance.nom,
+                        groupesMusculaires = full.seance.groupesMusculaires,
+                        dureeEstimeeMin = full.seance.dureeEstimeeMin,
+                        notes = full.seance.notes,
+                        seanceCategory = full.seance.seanceCategory.name,
+                        createdAt = full.seance.createdAt.toString(),
+                        updatedAt = full.seance.updatedAt.toString(),
+                    ),
+                    blocs = full.blocs.map { b ->
+                        BlocDto(
+                            id = b.id, seanceId = b.seanceId, nom = b.nom,
+                            type = b.type.name, position = b.position, dureeMin = b.dureeMin,
+                            description = b.description,
+                            tempsReposInterSec = b.tempsReposInterSec,
+                            tempsReposFinRoundSec = b.tempsReposFinRoundSec,
+                        )
+                    },
+                    exercices = full.exercices.map { ex ->
+                        val e = ex.exerciceSeance
+                        ExerciceDto(
+                            id = e.id, seanceId = e.seanceId, exerciceId = e.exerciceId,
+                            blocId = e.blocId, supersetGroupe = e.supersetGroupe,
+                            position = e.position, nombreSeriesPrevues = e.nombreSeriesPrevues,
+                            repsCibles = e.repsCibles, chargeCible = e.chargeCible,
+                            tempo = e.tempo, repsType = e.repsType.name,
+                            tempsReposSec = e.tempsReposSec, consigneCle = e.consigneCle,
+                            equipement = e.equipement, avertissement = e.avertissement,
+                        )
+                    },
+                )
+            }
+        } else emptyList()
 
-        // ── 2. Sessions réalisées ──
+        // ── 2. Sessions renforcement (complètes + planifiées) ──────────────────
         val allInstances = instanceSeanceDao.observeAll().first()
-        val strengthSessions = allInstances.mapNotNull { inst ->
-            val withSeries = instanceSeanceDao.getWithSeries(inst.id) ?: return@mapNotNull null
-            StrengthSessionDto(
+
+        val completedStrengthSessions = mutableListOf<StrengthSessionDto>()
+        val plannedStrengthSessions = mutableListOf<StrengthSessionDto>()
+
+        for (inst in allInstances) {
+            val include = (inst.isCompleted && options.strengthCompleted) ||
+                    (!inst.isCompleted && options.strengthPlanned)
+            if (!include) continue
+
+            val withSeries = instanceSeanceDao.getWithSeries(inst.id) ?: continue
+            val dto = StrengthSessionDto(
                 instance = InstanceDto(
                     id = inst.id, seanceId = inst.seanceId,
                     date = inst.date.toString(), notes = inst.notes,
@@ -102,23 +118,37 @@ class DataExportManager @Inject constructor(
                     )
                 },
             )
+            if (inst.isCompleted) completedStrengthSessions.add(dto)
+            else plannedStrengthSessions.add(dto)
         }
 
-        // ── 3. Workouts running / vélo ──
+        val strengthSessions = StrengthSessionsDto(
+            completed = completedStrengthSessions,
+            planned = plannedStrengthSessions,
+        )
+
+        // ── 3. Workouts running / vélo ─────────────────────────────────────────
         val allWorkouts = workoutDao.observeAll().first()
             .filter { it.workoutType == WorkoutType.RUNNING || it.workoutType == WorkoutType.CYCLING }
-        val runWorkouts = allWorkouts.map { w ->
+
+        suspend fun buildRunWorkoutDto(w: com.pandafit.core.database.entities.WorkoutEntity): RunWorkoutDto {
             val repeats = repeatDao.getByWorkout(w.id)
             val steps = stepDao.getByWorkout(w.id)
-            RunWorkoutDto(
+            val gps = gpsDao.getByWorkout(w.id).sortedBy { it.pointIndex }.map { p ->
+                GpsPointDto(index = p.pointIndex, lat = p.latitude, lon = p.longitude, alt = p.altitudeM)
+            }
+            return RunWorkoutDto(
                 workout = WorkoutDto(
                     id = w.id, workoutType = w.workoutType.name, name = w.name,
                     notes = w.notes, objective = w.objective,
                     scheduledDate = w.scheduledDate.toString(),
                     createdAt = w.createdAt.toString(), updatedAt = w.updatedAt.toString(),
-                    isCompleted = w.isCompleted, completedAt = w.completedAt?.toString(),
+                    // Entité non-nullable → toujours true/false, jamais null en v3.0
+                    isCompleted = w.isCompleted,
+                    completedAt = w.completedAt?.toString(),
                     durationMinutes = w.durationMinutes, tags = w.tags,
-                    colorHex = w.colorHex, isTemplate = w.isTemplate,
+                    colorHex = w.colorHex,
+                    isTemplate = w.isTemplate,
                     cycleLabel = w.cycleLabel,
                     resultDistanceKm = w.resultDistanceKm,
                     resultDurationSec = w.resultDurationSec,
@@ -145,39 +175,63 @@ class DataExportManager @Inject constructor(
                         resultsJson = s.resultsJson,
                     )
                 },
+                gpsPoints = gps,
             )
         }
 
-        // ── 4. Exercices custom (isCustom = true) ──
-        val customExercises = exerciseDao.observeAll().first()
-            .filter { it.isCustom }
-            .map { e ->
-                CustomExerciseDto(
-                    id = e.id, name = e.name, description = e.description,
-                    category = e.category.name, muscleGroups = e.muscleGroups,
-                    exerciseType = e.exerciseType, equipment = e.equipment,
-                    musclePrimary = e.musclePrimary,
-                )
-            }
+        val runningWorkouts = allWorkouts.filter { it.workoutType == WorkoutType.RUNNING }
+        val cyclingWorkouts = allWorkouts.filter { it.workoutType == WorkoutType.CYCLING }
 
-        // ── 5. Stats snapshot ──
-        val completedInstances = allInstances.count { it.isCompleted }
-        val completedRuns = allWorkouts.count { it.isCompleted }
-        val totalDist = allWorkouts.filter { it.isCompleted }.sumOf { it.resultDistanceKm ?: 0.0 }
-        val stats = StatsSnapshotDto(
-            computedAt = LocalDateTime.now().toString(),
-            totalStrengthSessions = completedInstances,
-            totalRunSessions = completedRuns,
-            totalDistanceKm = totalDist,
+        val runTemplates = if (options.runningTemplates)
+            runningWorkouts.filter { it.isTemplate }.map { buildRunWorkoutDto(it) }
+        else emptyList()
+
+        val runSessions = RunSessionsDto(
+            completed = if (options.runningCompleted)
+                runningWorkouts.filter { !it.isTemplate && it.isCompleted }.map { buildRunWorkoutDto(it) }
+            else emptyList(),
+            planned = if (options.runningPlanned)
+                runningWorkouts.filter { !it.isTemplate && !it.isCompleted }.map { buildRunWorkoutDto(it) }
+            else emptyList(),
         )
 
+        val cyclingTemplates = if (options.cyclingTemplates)
+            cyclingWorkouts.filter { it.isTemplate }.map { buildRunWorkoutDto(it) }
+        else emptyList()
+
+        val cyclingSessions = RunSessionsDto(
+            completed = if (options.cyclingCompleted)
+                cyclingWorkouts.filter { !it.isTemplate && it.isCompleted }.map { buildRunWorkoutDto(it) }
+            else emptyList(),
+            planned = if (options.cyclingPlanned)
+                cyclingWorkouts.filter { !it.isTemplate && !it.isCompleted }.map { buildRunWorkoutDto(it) }
+            else emptyList(),
+        )
+
+        // ── 4. Exercices personnalisés (isCustom = true) ───────────────────────
+        val customExercises = if (options.customExercises) {
+            exerciseDao.observeAll().first()
+                .filter { it.isCustom }
+                .map { e ->
+                    CustomExerciseDto(
+                        id = e.id, name = e.name, description = e.description,
+                        category = e.category.name, muscleGroups = e.muscleGroups,
+                        exerciseType = e.exerciseType, equipment = e.equipment,
+                        musclePrimary = e.musclePrimary,
+                    )
+                }
+        } else emptyList()
+
+        // ── Assemblage ────────────────────────────────────────────────────────
         val export = PandaMoveExport(
             exportDate = LocalDateTime.now().toString(),
             strengthTemplates = strengthTemplates,
             strengthSessions = strengthSessions,
-            runWorkouts = runWorkouts,
+            runTemplates = runTemplates,
+            runSessions = runSessions,
+            cyclingTemplates = cyclingTemplates,
+            cyclingSessions = cyclingSessions,
             customExercises = customExercises,
-            statistics = stats,
         )
 
         val jsonStr = json.encodeToString(export)

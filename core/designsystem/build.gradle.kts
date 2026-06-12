@@ -39,4 +39,6 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.coil.compose)
     implementation(libs.core.ktx)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.osmdroid)
 }

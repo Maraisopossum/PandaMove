@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.pandafit.core.database.PandaFitDatabase
 import com.pandafit.core.database.dao.ExerciseDao
+import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.dao.RunRepeatDao
@@ -40,6 +41,7 @@ object DatabaseModule {
                 PandaFitDatabase.MIGRATION_10_11,
                 PandaFitDatabase.MIGRATION_11_12,
                 PandaFitDatabase.MIGRATION_12_13,
+                PandaFitDatabase.MIGRATION_13_14,
             )
             .build()
 
@@ -63,5 +65,8 @@ object DatabaseModule {
 
     @Provides
     fun provideRunRepeatDao(db: PandaFitDatabase): RunRepeatDao = db.runRepeatDao()
+
+    @Provides
+    fun provideGpsTrackPointDao(db: PandaFitDatabase): GpsTrackPointDao = db.gpsTrackPointDao()
 
 }

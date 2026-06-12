@@ -73,6 +73,9 @@ fun CyclingScreen(
 
     if (showReschedulePicker) {
         AssignSingleDatePickerDialog(
+            title = "Changer la date",
+            confirmLabel = "Valider",
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showReschedulePicker = false; rescheduleTargetId = null },
             onConfirm = { date ->
                 rescheduleTargetId?.let { id -> viewModel.rescheduleWorkout(id, date) }

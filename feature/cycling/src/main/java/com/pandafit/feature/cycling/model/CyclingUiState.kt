@@ -18,6 +18,7 @@ data class CyclingDetailUiState(
     val isSaving: Boolean = false,
     val isNew: Boolean = true,
     val isTemplate: Boolean = true,
+    val isCompleted: Boolean = false,
     val name: String = "",
     val scheduledDate: LocalDate = LocalDate.now(),
     val notes: String = "",
@@ -29,6 +30,8 @@ data class CyclingDetailUiState(
     ),
     val savedWorkoutId: Long? = null,
     val error: String? = null,
+    /** Tracé GPS (lat, lon) — vide si non disponible. */
+    val gpsPoints: List<Pair<Double, Double>> = emptyList(),
 )
 
 data class CyclingBlockDraft(

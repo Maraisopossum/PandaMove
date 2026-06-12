@@ -14,6 +14,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +27,7 @@ import com.pandafit.core.database.entities.RunRepeatEntity
 import com.pandafit.core.database.entities.RunStepEntity
 import com.pandafit.core.database.entities.RunStepType
 import com.pandafit.core.database.entities.RunTargetType
+import com.pandafit.designsystem.components.GpsTrackMapCard
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
@@ -115,6 +117,20 @@ fun RunningWorkoutReportScreen(
             if (isCompleted && workout != null) {
                 item {
                     GlobalResultsCard(workout = workout, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                }
+            }
+
+            // ── Tracé GPS (si disponible) ──
+            if (uiState.gpsPoints.size >= 2) {
+                item {
+                    GpsTrackMapCard(
+                        points = uiState.gpsPoints,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clip(MaterialTheme.shapes.medium),
+                    )
                 }
             }
 
@@ -255,7 +271,7 @@ private fun formatPaceDisplay(d: Double): String {
 private fun RepeatReadBlock(
     repeat: RunRepeatEntity,
     steps: List<RunStepEntity>,
-    repResults: List<com.pandafit.feature.running.model.IntervalRepResult>?,
+    repResults: List<com.pandafit.core.database.model.IntervalRepResult>?,
     modifier: Modifier = Modifier,
 ) {
     val targetStep = steps.firstOrNull { it.stepType == RunStepType.RUNNING } ?: steps.firstOrNull()

@@ -36,4 +36,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.bundles.lifecycle)
     implementation(libs.bundles.coroutines)
+
+    // OSMDroid (carte GPS du tracé TCX)
+    implementation(libs.osmdroid)
 }

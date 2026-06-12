@@ -33,7 +33,7 @@ import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
-import com.pandafit.feature.running.model.IntervalRepResult
+import com.pandafit.core.database.model.IntervalRepResult
 import com.pandafit.feature.running.model.RunRepeatExecution
 import com.pandafit.feature.running.viewmodel.RunningExecuteViewModel
 import java.time.format.DateTimeFormatter

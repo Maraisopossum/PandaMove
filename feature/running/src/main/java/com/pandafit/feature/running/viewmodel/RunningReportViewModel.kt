@@ -3,13 +3,14 @@ package com.pandafit.feature.running.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.RunRepeatEntity
 import com.pandafit.core.database.entities.RunStepEntity
 import com.pandafit.core.database.entities.WorkoutEntity
-import com.pandafit.feature.running.model.IntervalRepResult
+import com.pandafit.core.database.model.IntervalRepResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,8 @@ data class RunningReportUiState(
     val items: List<RunReportItem> = emptyList(),
     // Résultats chargés (séances terminées)
     val repeatResults: Map<Long, List<IntervalRepResult>> = emptyMap(), // key = repeat.id
+    // Tracé GPS simplifié (lat, lon) — vide si non disponible
+    val gpsPoints: List<Pair<Double, Double>> = emptyList(),
 )
 
 sealed class RunReportItem {
@@ -46,6 +49,7 @@ class RunningReportViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val stepDao: RunStepDao,
     private val repeatDao: RunRepeatDao,
+    private val gpsDao: GpsTrackPointDao,
 ) : ViewModel() {
 
     val workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
@@ -86,7 +90,17 @@ class RunningReportViewModel @Inject constructor(
                 }
             } else emptyMap()
 
-            _uiState.value = RunningReportUiState(isLoading = false, workout = workout, items = items, repeatResults = repeatResults)
+            val gpsPoints = gpsDao.getByWorkout(workoutId)
+                .sortedBy { it.pointIndex }
+                .map { Pair(it.latitude, it.longitude) }
+
+            _uiState.value = RunningReportUiState(
+                isLoading     = false,
+                workout       = workout,
+                items         = items,
+                repeatResults = repeatResults,
+                gpsPoints     = gpsPoints,
+            )
         }
     }
 

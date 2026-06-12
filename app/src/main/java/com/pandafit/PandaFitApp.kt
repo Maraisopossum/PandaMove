@@ -24,6 +24,8 @@ class PandaFitApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // OSMDroid : User-Agent requis pour les tuiles OpenStreetMap
+        org.osmdroid.config.Configuration.getInstance().userAgentValue = packageName
         applicationScope.launch {
             exerciseSeeder.seedIfEmpty()
         }

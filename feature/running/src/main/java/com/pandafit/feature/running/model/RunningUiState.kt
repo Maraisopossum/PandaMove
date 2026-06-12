@@ -1,6 +1,7 @@
 package com.pandafit.feature.running.model
 
 import kotlinx.serialization.Serializable
+import com.pandafit.core.database.model.IntervalRepResult
 import com.pandafit.core.database.entities.RunEndType
 import com.pandafit.core.database.entities.RunEndUnit
 import com.pandafit.core.database.entities.RunRepeatEntity
@@ -97,14 +98,6 @@ data class RunRepeatExecution(
     val reps: List<IntervalRepResult>,
 )
 
-@Serializable
-data class IntervalRepResult(
-    val repNumber: Int,
-    val timeStr: String = "",
-    val actualIntensity: String = "", // allure réelle, FC réelle, cadence — selon targetType
-    val rpeStr: String = "",
-    val done: Boolean = false,
-)
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 

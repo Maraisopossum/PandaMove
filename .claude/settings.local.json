@@ -107,7 +107,8 @@
       "Bash(xargs grep -l \"object RunningRoutes\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; $env:PATH = \"$env:JAVA_HOME\\\\bin;$env:PATH\"; Set-Location \"C:\\\\Users\\\\benoi\\\\Documents\\\\PandaFit\"; .\\\\gradlew.bat --stop 2>&1; .\\\\gradlew.bat installDebug 2>&1)"
     ]
   }
 }

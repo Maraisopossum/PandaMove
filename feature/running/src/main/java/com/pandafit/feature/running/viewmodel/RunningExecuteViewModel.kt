@@ -9,7 +9,7 @@ import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.RunStepType
 import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
-import com.pandafit.feature.running.model.IntervalRepResult
+import com.pandafit.core.database.model.IntervalRepResult
 import com.pandafit.feature.running.model.RunRepeatExecution
 import com.pandafit.feature.running.model.RunningExecuteUiState
 import com.pandafit.feature.running.model.formatPace

@@ -52,4 +52,7 @@ dependencies {
     implementation(libs.bundles.coroutines)
     implementation(libs.reorderable)
     implementation(libs.kotlinx.serialization.json)
+
+    // OSMDroid (carte GPS du tracé TCX)
+    implementation(libs.osmdroid)
 }

@@ -2,20 +2,40 @@ package com.pandafit.core.database.export
 
 import kotlinx.serialization.Serializable
 
-// ── Export racine ──────────────────────────────────────────────────────────────
+// ── Racine v3.0 ───────────────────────────────────────────────────────────────
+//
+// Changements depuis v2.0 :
+//  • strengthSessions : List → StrengthSessionsDto { completed, planned }
+//  • runWorkouts (liste plate) → runTemplates + runSessions + cyclingTemplates + cyclingSessions
+//  • statistics (snapshot) supprimé — non utile à l'import
+//  • WorkoutDto.isCompleted / isTemplate : Boolean? (nullable) pour lire
+//    les anciens exports v2.0 où ces champs pouvaient être null.
+//    L'export v3.0 écrit toujours true/false (jamais null).
 
 @Serializable
 data class PandaMoveExport(
-    val version: String = "2.0",
+    val version: String = "3.0",
     val exportDate: String,
+    // ── Renforcement
     val strengthTemplates: List<StrengthTemplateDto> = emptyList(),
-    val strengthSessions: List<StrengthSessionDto> = emptyList(),
-    val runWorkouts: List<RunWorkoutDto> = emptyList(),
+    val strengthSessions: StrengthSessionsDto = StrengthSessionsDto(),
+    // ── Running
+    val runTemplates: List<RunWorkoutDto> = emptyList(),
+    val runSessions: RunSessionsDto = RunSessionsDto(),
+    // ── Cyclisme
+    val cyclingTemplates: List<RunWorkoutDto> = emptyList(),
+    val cyclingSessions: RunSessionsDto = RunSessionsDto(),
+    // ── Exercices personnalisés
     val customExercises: List<CustomExerciseDto> = emptyList(),
-    val statistics: StatsSnapshotDto = StatsSnapshotDto(),
 )
 
 // ── Renforcement ───────────────────────────────────────────────────────────────
+
+@Serializable
+data class StrengthSessionsDto(
+    val completed: List<StrengthSessionDto> = emptyList(),
+    val planned: List<StrengthSessionDto> = emptyList(),
+)
 
 @Serializable
 data class StrengthTemplateDto(
@@ -103,10 +123,18 @@ data class SerieDto(
 // ── Running / Vélo ─────────────────────────────────────────────────────────────
 
 @Serializable
+data class RunSessionsDto(
+    val completed: List<RunWorkoutDto> = emptyList(),
+    val planned: List<RunWorkoutDto> = emptyList(),
+)
+
+@Serializable
 data class RunWorkoutDto(
     val workout: WorkoutDto,
     val repeats: List<RunRepeatDto> = emptyList(),
     val steps: List<RunStepDto> = emptyList(),
+    /** Tracé GPS simplifié (Douglas-Peucker déjà appliqué). Absent dans les exports antérieurs → defaut emptyList(). */
+    val gpsPoints: List<GpsPointDto> = emptyList(),
 )
 
 @Serializable
@@ -119,12 +147,14 @@ data class WorkoutDto(
     val scheduledDate: String,
     val createdAt: String = "",
     val updatedAt: String = "",
-    val isCompleted: Boolean = false,
+    // Boolean? — nullable pour lire les exports v2.0 où ces champs étaient null.
+    // En v3.0, le DataExportManager écrit toujours true/false (entité non-nullable).
+    val isCompleted: Boolean? = false,
     val completedAt: String? = null,
     val durationMinutes: Int? = null,
     val tags: List<String> = emptyList(),
     val colorHex: String = "",
-    val isTemplate: Boolean = false,
+    val isTemplate: Boolean? = false,
     val cycleLabel: String = "",
     val resultDistanceKm: Double? = null,
     val resultDurationSec: Int? = null,
@@ -162,7 +192,17 @@ data class RunStepDto(
     val resultsJson: String = "",
 )
 
-// ── Exercices custom ──────────────────────────────────────────────────────────
+@Serializable
+data class GpsPointDto(
+    /** Position dans le tracé (0-based). */
+    val index: Int,
+    val lat: Double,
+    val lon: Double,
+    /** Altitude en mètres (null si non disponible). */
+    val alt: Double? = null,
+)
+
+// ── Exercices personnalisés ───────────────────────────────────────────────────
 
 @Serializable
 data class CustomExerciseDto(
@@ -174,15 +214,4 @@ data class CustomExerciseDto(
     val exerciseType: String = "",
     val equipment: List<String> = emptyList(),
     val musclePrimary: String = "",
-)
-
-// ── Stats snapshot ────────────────────────────────────────────────────────────
-
-@Serializable
-data class StatsSnapshotDto(
-    val computedAt: String = "",
-    val totalStrengthSessions: Int = 0,
-    val totalRunSessions: Int = 0,
-    val totalDistanceKm: Double = 0.0,
-    val totalTonnageKg: Double = 0.0,
 )

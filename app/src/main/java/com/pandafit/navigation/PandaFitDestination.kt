@@ -166,4 +166,5 @@ object CyclingRoutes {
 
 object ProfileRoutes {
     const val STATS_CONFIG = "profile/stats-config"
+    const val TCX_IMPORT   = "profile/tcx-import"
 }
