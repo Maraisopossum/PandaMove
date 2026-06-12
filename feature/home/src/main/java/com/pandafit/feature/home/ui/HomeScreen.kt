@@ -59,6 +59,7 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToWorkout: (type: String, id: Long) -> Unit,
     onNavigateToInstance: ((Long) -> Unit)? = null,
+    onNavigateToInstanceReport: ((Long) -> Unit)? = null,
     onOpenDrawer: () -> Unit = {},
     activeInstanceId: Long? = null,
     activeSeanceName: String? = null,
@@ -80,6 +81,7 @@ fun HomeScreen(
         onNavigateToProfile = onNavigateToProfile,
         onNavigateToWorkout = onNavigateToWorkout,
         onNavigateToInstance = onNavigateToInstance ?: {},
+        onNavigateToInstanceReport = onNavigateToInstanceReport ?: {},
         onOpenDrawer = onOpenDrawer,
         onReorderSection = viewModel::reorderByTag,
         activeInstanceId = activeInstanceId,
@@ -102,6 +104,7 @@ private fun HomeContent(
     onNavigateToProfile: () -> Unit,
     onNavigateToWorkout: (String, Long) -> Unit,
     onNavigateToInstance: (Long) -> Unit,
+    onNavigateToInstanceReport: (Long) -> Unit,
     onOpenDrawer: () -> Unit,
     onReorderSection: (fromTag: String, toTag: String) -> Unit,
     activeInstanceId: Long? = null,
@@ -187,7 +190,10 @@ private fun HomeContent(
                         dateStr = formatDate(instance.date),
                         accentColor = PandaPurple,
                         isCompleted = instance.isCompleted,
-                        onClick = { onNavigateToInstance(instance.id) },
+                        onClick = {
+                            if (instance.isCompleted) onNavigateToInstanceReport(instance.id)
+                            else onNavigateToInstance(instance.id)
+                        },
                     )
                 }
                 items(uiState.upcomingWorkouts, key = { "w_${it.id}" }) { workout ->

@@ -211,6 +211,7 @@ fun PandaFitNavHost() {
                         }
                     },
                     onNavigateToInstance = { id -> navController.navigate(StrengthRoutes.instanceExecute(id)) },
+                    onNavigateToInstanceReport = { id -> navController.navigate(StrengthRoutes.instanceReport(id)) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                     activeInstanceId = if (!isOnExecuteScreen) activeInstanceId else null,
                     activeSeanceName = activeSeanceName,
