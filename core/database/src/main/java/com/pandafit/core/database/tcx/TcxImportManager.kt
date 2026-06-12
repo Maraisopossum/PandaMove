@@ -73,6 +73,7 @@ class TcxImportManager @Inject constructor(
         date: LocalDate = activity.startTimeAsDate(),
         type: WorkoutType = activity.workoutType,
         name: String = activity.defaultName(),
+        withStroller: Boolean = false,
     ): TcxImportResult = withContext(Dispatchers.IO) {
 
         val now = LocalDateTime.now()
@@ -93,6 +94,7 @@ class TcxImportManager @Inject constructor(
                 resultHrAvg         = activity.avgHrBpm,
                 resultHrMax         = activity.maxHrBpm,
                 resultElevationM    = activity.elevationGainM,
+                withStroller        = withStroller,
             )
         )
 
@@ -115,6 +117,7 @@ class TcxImportManager @Inject constructor(
         activity: TcxParsedActivity,
         workoutId: Long,
         type: WorkoutType? = null,
+        withStroller: Boolean = false,
     ): TcxImportResult = withContext(Dispatchers.IO) {
 
         val completedAt = activity.startTimeAsDateTime() ?: LocalDateTime.now()
@@ -139,6 +142,11 @@ class TcxImportManager @Inject constructor(
 
         // Inject lap splits into the first repeat found (or create one if none)
         val lapsCount = insertOrUpdateLapSplits(workoutId, activity.laps)
+
+        // Mise à jour withStroller sur l'entité après saveResults
+        workoutDao.getById(workoutId)?.let { existing ->
+            workoutDao.update(existing.copy(withStroller = withStroller, updatedAt = LocalDateTime.now()))
+        }
 
         TcxImportResult(workoutId, lapsCount, gpsCount, isNewWorkout = false)
     }

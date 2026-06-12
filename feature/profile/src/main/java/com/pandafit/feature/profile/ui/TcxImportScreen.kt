@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -117,6 +119,7 @@ fun TcxImportScreen(
                     onUpdateType          = viewModel::updateType,
                     onUpdateMode          = viewModel::updateMode,
                     onUpdateTargetWorkout = viewModel::updateTargetWorkout,
+                    onUpdateWithStroller  = viewModel::updateWithStroller,
                     onConfirm             = viewModel::confirm,
                     onPickAnother         = { viewModel.reset(); fileLauncher.launch("*/*") },
                 )
@@ -212,6 +215,7 @@ private fun PreviewContent(
     onUpdateType: (WorkoutType) -> Unit,
     onUpdateMode: (TcxImportMode) -> Unit,
     onUpdateTargetWorkout: (Long?) -> Unit,
+    onUpdateWithStroller: (Boolean) -> Unit,
     onConfirm: () -> Unit,
     onPickAnother: () -> Unit,
 ) {
@@ -335,6 +339,27 @@ private fun PreviewContent(
                     singleLine    = true,
                     modifier      = Modifier.fillMaxWidth(),
                 )
+            }
+        }
+
+        // ── Avec la poussette (RUNNING uniquement) ────────────────────────
+        if (preview.workoutType == WorkoutType.RUNNING) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onUpdateWithStroller(!preview.withStroller) }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = preview.withStroller,
+                        onCheckedChange = onUpdateWithStroller,
+                        colors = CheckboxDefaults.colors(checkedColor = KalyptusGreen),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Avec la poussette 🚼", style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
 

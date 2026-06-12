@@ -1087,11 +1087,10 @@ private fun ExerciceNavBadge(
             Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isActive) Color.White else color)
         }
         Spacer(Modifier.height(2.dp))
-        Text(ex.exercise.name, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = if (isActive) color else PandaSubtext, fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-        if (isActive) {
-            Spacer(Modifier.height(2.dp))
-            Box(modifier = Modifier.width(20.dp).height(2.dp).background(color, RoundedCornerShape(1.dp)))
-        }
+        Text(ex.exercise.name, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = if (isActive) color else PandaSubtext, fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        // Toujours réserver l'espace de l'indicateur pour que tous les badges aient la même hauteur
+        Spacer(Modifier.height(2.dp))
+        Box(modifier = Modifier.width(20.dp).height(2.dp).background(if (isActive) color else Color.Transparent, RoundedCornerShape(1.dp)))
     }
 }
 

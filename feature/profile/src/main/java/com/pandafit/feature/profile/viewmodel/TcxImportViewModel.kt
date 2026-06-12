@@ -36,6 +36,7 @@ sealed class TcxImportStep {
         val targetWorkoutId: Long?,
         /** Séances planifiées du type détecté — pour le picker EXISTING. */
         val plannedWorkouts: List<WorkoutEntity>,
+        val withStroller: Boolean = false,
     ) : TcxImportStep()
     object Importing : TcxImportStep()
     data class Done(val result: TcxImportResult) : TcxImportStep()
@@ -97,6 +98,7 @@ class TcxImportViewModel @Inject constructor(
         it.copy(mode = mode, targetWorkoutId = null)
     }
     fun updateTargetWorkout(workoutId: Long?) = updatePreview { it.copy(targetWorkoutId = workoutId) }
+    fun updateWithStroller(v: Boolean) = updatePreview { it.copy(withStroller = v) }
 
     private inline fun updatePreview(transform: (TcxImportStep.Preview) -> TcxImportStep.Preview) {
         val current = _step.value as? TcxImportStep.Preview ?: return
@@ -113,16 +115,18 @@ class TcxImportViewModel @Inject constructor(
                 val result = when {
                     preview.mode == TcxImportMode.EXISTING && preview.targetWorkoutId != null ->
                         tcxImportManager.importIntoExisting(
-                            activity   = preview.activity,
-                            workoutId  = preview.targetWorkoutId,
-                            type       = preview.workoutType,
+                            activity      = preview.activity,
+                            workoutId     = preview.targetWorkoutId,
+                            type          = preview.workoutType,
+                            withStroller  = preview.withStroller,
                         )
                     else ->
                         tcxImportManager.importAsNew(
-                            activity = preview.activity,
-                            date     = preview.date,
-                            type     = preview.workoutType,
-                            name     = preview.name,
+                            activity      = preview.activity,
+                            date          = preview.date,
+                            type          = preview.workoutType,
+                            name          = preview.name,
+                            withStroller  = preview.withStroller,
                         )
                 }
                 _step.value = TcxImportStep.Done(result)

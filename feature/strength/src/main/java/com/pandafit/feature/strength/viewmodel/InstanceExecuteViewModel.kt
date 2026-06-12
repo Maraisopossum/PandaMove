@@ -305,8 +305,10 @@ class InstanceExecuteViewModel @Inject constructor(
         val lastBlocGlobalIdx = state.exercices.indexOfLast { it.exerciceSeance.blocId == blocId }
         val nextGroupIdx = lastBlocGlobalIdx + 1
 
-        if (allBlocSeriesDone) {
+        if (allBlocSeriesDone || !isAlternating) {
             // Bloc terminé → naviguer immédiatement vers bloc/exercice suivant, puis timer de repos
+            // Pour les blocs non-alternants (ACTIVATION, ECHAUFFEMENT, RECUPERATION), on avance
+            // toujours dès que le dernier exercice est terminé, même si des séries ont été ignorées.
             if (nextGroupIdx < state.exercices.size) {
                 val reposSec = reposOverrideSec ?: if (isAlternating) bloc.tempsReposFinRoundSec else exercice.exerciceSeance.tempsReposSec
                 _uiState.value = state.copy(activeExerciceIndex = nextGroupIdx)
