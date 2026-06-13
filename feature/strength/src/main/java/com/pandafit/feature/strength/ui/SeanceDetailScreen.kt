@@ -233,7 +233,13 @@ private fun ExerciceTableReadRow(ex: ExerciceSeanceWithExercise, bloc: BlocSeanc
             if (e.equipement.isNotBlank()) Text(e.equipement, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
             if (e.avertissement.isNotBlank()) Text("⚠️ ${e.avertissement}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
         }
-        Text(e.nombreSeriesPrevues.toString(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.6f), fontWeight = FontWeight.SemiBold, color = PandaPurple)
+        Text(
+            if (e.isBilateral) "${e.nombreSeriesPrevues}×G+D" else e.nombreSeriesPrevues.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(0.6f),
+            fontWeight = FontWeight.SemiBold,
+            color = PandaPurple,
+        )
         Text(formatRepsDisplay(e.repsCibles, e.repsType), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.9f))
         Text(e.chargeCible.ifBlank { "—" }, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.1f))
         Text(if (!hideExerciceRepos && e.tempsReposSec > 0) formatRest(e.tempsReposSec) else "—", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.8f), color = PandaPurple)

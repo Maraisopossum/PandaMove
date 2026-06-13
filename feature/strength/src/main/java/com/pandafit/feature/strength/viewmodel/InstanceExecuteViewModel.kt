@@ -150,28 +150,39 @@ class InstanceExecuteViewModel @Inject constructor(
                 val templateChargeLabel = parseChargeLabel(ex.exerciceSeance.chargeCible)
                 val templateChargeKg = parseChargeKg(templateChargeLabel)
 
-                val baseNums = (1..ex.exerciceSeance.nombreSeriesPrevues).toList()
+                val isBilateral = ex.exerciceSeance.isBilateral
+                val slotsPerRound = if (isBilateral) 2 else 1
+                val baseNums = (1..ex.exerciceSeance.nombreSeriesPrevues * slotsPerRound).toList()
                 val extraNums = existingSeries.map { it.numeroSerie }
-                    .filter { it > ex.exerciceSeance.nombreSeriesPrevues }
+                    .filter { it > ex.exerciceSeance.nombreSeriesPrevues * slotsPerRound }
                 val allNums = (baseNums + extraNums).distinct().sorted()
 
                 seriesParExercice[exerciceId] = allNums.map { num ->
                     val db = dbMap[num]
+                    // Pour les bilatéraux : slot impair = "G", pair = "D"
+                    val side = if (isBilateral) (if (num % 2 == 1) "G" else "D") else ""
                     if (db != null) {
                         SerieRealiseeState(
                             id = db.id, numeroSerie = db.numeroSerie,
                             repsRealisees = db.repsRealisees, chargeKg = db.chargeKg,
                             chargeLabel = db.chargeLabel, rpe = db.rpe,
                             isCompleted = db.isCompleted, isPreFilled = false,
+                            notes = db.notes.ifBlank { side },
                         )
                     } else {
-                        val histo = historiqueEx?.find { it.numeroSerie == num }
+                        // Pour l'historique bilateral, on cherche la série du même côté
+                        val histoNum = if (isBilateral) ((num + 1) / 2) else num
+                        val histo = historiqueEx?.find { h ->
+                            if (isBilateral) h.numeroSerie == histoNum && h.notes == side
+                            else h.numeroSerie == num
+                        } ?: if (isBilateral) historiqueEx?.find { it.numeroSerie == histoNum } else null
                         SerieRealiseeState(
                             numeroSerie = num,
                             repsRealisees = histo?.repsRealisees ?: templateReps,
                             chargeKg = histo?.chargeKg ?: lastCompletedCharge?.chargeKg ?: templateChargeKg,
                             chargeLabel = histo?.chargeLabel ?: lastCompletedCharge?.chargeLabel ?: templateChargeLabel,
                             rpe = null, isCompleted = false, isPreFilled = true,
+                            notes = side,
                         )
                     }
                 }
@@ -248,7 +259,8 @@ class InstanceExecuteViewModel @Inject constructor(
         val exercice = state.exercices.find { it.exerciceSeance.id == exerciceId } ?: return
         val blocId = exercice.exerciceSeance.blocId
         val series = state.seriesParExercice[exerciceId] ?: emptyList()
-        val exerciceComplete = series.size >= exercice.exerciceSeance.nombreSeriesPrevues
+        val bilateralMultiplier = if (exercice.exerciceSeance.isBilateral) 2 else 1
+        val exerciceComplete = series.size >= exercice.exerciceSeance.nombreSeriesPrevues * bilateralMultiplier
                 && series.all { it.isCompleted }
 
         // ── Exercice libre (pas dans un bloc) ────────────────────────────────
@@ -256,7 +268,10 @@ class InstanceExecuteViewModel @Inject constructor(
             val reposSec = reposOverrideSec ?: exercice.exerciceSeance.tempsReposSec
             if (!exerciceComplete) {
                 // Repos inter-séries uniquement, pas de navigation
-                if (reposSec > 0) startRestTimer(reposSec)
+                // Bilatéral : pas de repos entre G et D du même round
+                val lastCompleted = series.lastOrNull { it.isCompleted }
+                val skipRest = exercice.exerciceSeance.isBilateral && lastCompleted?.notes == "G"
+                if (!skipRest && reposSec > 0) startRestTimer(reposSec)
                 return
             }
             // Toutes les séries terminées → naviguer immédiatement, puis timer de repos
@@ -281,8 +296,11 @@ class InstanceExecuteViewModel @Inject constructor(
         val isAlternating = bloc.type == BlocType.SUPERSET || bloc.type == BlocType.CIRCUIT
         if (!isAlternating && !exerciceComplete) {
             // Repos inter-séries pour blocs non-alternés, sans navigation
+            // Bilatéral : pas de repos entre G et D du même round
             val reposSec = reposOverrideSec ?: exercice.exerciceSeance.tempsReposSec
-            if (reposSec > 0) startRestTimer(reposSec)
+            val lastCompleted = series.lastOrNull { it.isCompleted }
+            val skipRest = exercice.exerciceSeance.isBilateral && lastCompleted?.notes == "G"
+            if (!skipRest && reposSec > 0) startRestTimer(reposSec)
             return
         }
 
@@ -299,7 +317,8 @@ class InstanceExecuteViewModel @Inject constructor(
         // ── Dernier exercice du bloc ──────────────────────────────────────────
         val allBlocSeriesDone = exInBloc.all { ex ->
             val s = state.seriesParExercice[ex.exerciceSeance.id] ?: emptyList()
-            s.size >= ex.exerciceSeance.nombreSeriesPrevues && s.all { it.isCompleted }
+            val mult = if (ex.exerciceSeance.isBilateral) 2 else 1
+            s.size >= ex.exerciceSeance.nombreSeriesPrevues * mult && s.all { it.isCompleted }
         }
 
         val lastBlocGlobalIdx = state.exercices.indexOfLast { it.exerciceSeance.blocId == blocId }
@@ -385,6 +404,10 @@ class InstanceExecuteViewModel @Inject constructor(
             ?: exercice.exerciceSeance.repsCibles.toIntOrNull()
             ?: return
         val globalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == exerciceId }
+        val isBilateral = exercice.exerciceSeance.isBilateral
+        // Pour bilatéral : numéro de round = completedCount/2 + 1 ; côté = G si slot impair, D si pair
+        val roundNumber = if (isBilateral) (completedCount / 2) + 1 else completedCount + 1
+        val sideLabel = if (isBilateral) (if (completedCount % 2 == 0) "G" else "D") else ""
 
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
@@ -399,10 +422,11 @@ class InstanceExecuteViewModel @Inject constructor(
                 circuitMode = CircuitPhase.ExerciceActif(
                     exerciceId = exerciceId,
                     exerciceName = exercice.exercise.name,
-                    numeroSerie = completedCount + 1,
+                    numeroSerie = roundNumber,
                     totalSeries = exercice.exerciceSeance.nombreSeriesPrevues,
                     positionInBloc = 1,
                     totalInBloc = 1,
+                    sideLabel = sideLabel,
                 ),
             )
             _exerciceStartBeep.tryEmit(Unit)
@@ -419,7 +443,8 @@ class InstanceExecuteViewModel @Inject constructor(
                 val currentSeriesSeul = _uiState.value.seriesParExercice[exerciceId] ?: emptyList()
                 val serieNum = currentSeriesSeul.count { it.isCompleted } + 1
                 val nextIncompleteSeul = currentSeriesSeul.firstOrNull { !it.isCompleted }
-                if (serieNum <= exercice.exerciceSeance.nombreSeriesPrevues) {
+                val bilateralMult = if (exercice.exerciceSeance.isBilateral) 2 else 1
+                if (serieNum <= exercice.exerciceSeance.nombreSeriesPrevues * bilateralMult) {
                     updateSerie(exerciceId, serieNum, seconds, nextIncompleteSeul?.chargeLabel, nextIncompleteSeul?.chargeKg, null)
                 }
                 _uiState.value = _uiState.value.copy(circuitMode = null)
@@ -572,8 +597,9 @@ class InstanceExecuteViewModel @Inject constructor(
         val state = _uiState.value
         val seriesExercice = state.seriesParExercice[exerciceSeanceId]?.toMutableList() ?: mutableListOf()
         val index = seriesExercice.indexOfFirst { it.numeroSerie == numeroSerie }
+        val existing = if (index >= 0) seriesExercice[index] else null
         val updated = SerieRealiseeState(
-            id = if (index >= 0) seriesExercice[index].id else 0,
+            id = existing?.id ?: 0,
             numeroSerie = numeroSerie,
             repsRealisees = reps,
             chargeKg = chargeKg,
@@ -581,6 +607,7 @@ class InstanceExecuteViewModel @Inject constructor(
             rpe = rpe,
             isCompleted = true,
             isPreFilled = false,
+            notes = existing?.notes ?: "",
         )
         if (index >= 0) seriesExercice[index] = updated else seriesExercice.add(updated)
 
@@ -599,7 +626,8 @@ class InstanceExecuteViewModel @Inject constructor(
 
         val allDone = state.exercices.all { ex ->
             val series = newMap[ex.exerciceSeance.id] ?: emptyList()
-            series.size >= ex.exerciceSeance.nombreSeriesPrevues && series.all { it.isCompleted }
+            val mult = if (ex.exerciceSeance.isBilateral) 2 else 1
+            series.size >= ex.exerciceSeance.nombreSeriesPrevues * mult && series.all { it.isCompleted }
         }
 
         _uiState.value = state.copy(seriesParExercice = newMap, isCompleted = allDone, isDirty = true)
@@ -636,6 +664,7 @@ class InstanceExecuteViewModel @Inject constructor(
                         chargeLabel = serie.chargeLabel,
                         rpe = serie.rpe,
                         isCompleted = false,
+                        notes = serie.notes,
                     ),
                 )
             }
@@ -654,6 +683,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 chargeLabel = serie.chargeLabel,
                 rpe = serie.rpe,
                 isCompleted = serie.isCompleted,
+                notes = serie.notes,
             )
             if (serie.id == 0L) {
                 val newId = instanceSeanceDao.insertSerie(entity)
@@ -672,22 +702,36 @@ class InstanceExecuteViewModel @Inject constructor(
 
     fun addSerie(exerciceSeanceId: Long) {
         val state = _uiState.value
-        val seriesExercice = state.seriesParExercice[exerciceSeanceId]?.toMutableList() ?: mutableListOf()
-        val nextNum = (seriesExercice.maxOfOrNull { it.numeroSerie } ?: 0) + 1
-        val last = seriesExercice.lastOrNull()
-        seriesExercice.add(
-            SerieRealiseeState(
-                numeroSerie = nextNum,
-                repsRealisees = last?.repsRealisees,
-                chargeKg = last?.chargeKg,
-                chargeLabel = last?.chargeLabel,
-                rpe = null,
-                isCompleted = false,
-                isPreFilled = last != null,
-            ),
-        )
-        // Incrémenter nombreSeriesPrevues en mémoire immédiatement (évite race condition sur appels rapides)
         val exerciceSeance = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId }?.exerciceSeance
+        val isBilateral = exerciceSeance?.isBilateral == true
+        val seriesExercice = state.seriesParExercice[exerciceSeanceId]?.toMutableList() ?: mutableListOf()
+        val lastNum = seriesExercice.maxOfOrNull { it.numeroSerie } ?: 0
+        val last = seriesExercice.lastOrNull()
+
+        if (isBilateral) {
+            // Ajouter un round complet G+D
+            seriesExercice.add(SerieRealiseeState(
+                numeroSerie = lastNum + 1,
+                repsRealisees = last?.repsRealisees, chargeKg = last?.chargeKg,
+                chargeLabel = last?.chargeLabel, rpe = null, isCompleted = false,
+                isPreFilled = last != null, notes = "G",
+            ))
+            seriesExercice.add(SerieRealiseeState(
+                numeroSerie = lastNum + 2,
+                repsRealisees = last?.repsRealisees, chargeKg = last?.chargeKg,
+                chargeLabel = last?.chargeLabel, rpe = null, isCompleted = false,
+                isPreFilled = last != null, notes = "D",
+            ))
+        } else {
+            seriesExercice.add(SerieRealiseeState(
+                numeroSerie = lastNum + 1,
+                repsRealisees = last?.repsRealisees, chargeKg = last?.chargeKg,
+                chargeLabel = last?.chargeLabel, rpe = null, isCompleted = false,
+                isPreFilled = last != null,
+            ))
+        }
+
+        // Incrémenter nombreSeriesPrevues (1 round = 1 incrément, même pour le bilatéral)
         val updatedExercices = state.exercices.map { ex ->
             if (ex.exerciceSeance.id == exerciceSeanceId && exerciceSeance != null)
                 ex.copy(exerciceSeance = ex.exerciceSeance.copy(nombreSeriesPrevues = exerciceSeance.nombreSeriesPrevues + 1))
@@ -700,7 +744,6 @@ class InstanceExecuteViewModel @Inject constructor(
             },
             isDirty = true,
         )
-        // Persister en Room pour que "Modifier exercices" et un éventuel reload() reflètent le bon nombre
         if (exerciceSeance != null) {
             viewModelScope.launch {
                 seanceDao.updateExerciceSeance(
@@ -714,27 +757,28 @@ class InstanceExecuteViewModel @Inject constructor(
         val state = _uiState.value
         val seriesExercice = state.seriesParExercice[exerciceSeanceId]?.toMutableList()
         if (seriesExercice.isNullOrEmpty()) return
-        val toRemove = seriesExercice.last()
         val exerciceSeance = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId }?.exerciceSeance
+        val isBilateral = exerciceSeance?.isBilateral == true
+
+        // Pour le bilatéral : supprimer le dernier round complet (2 slots), sinon le dernier slot
+        val toDelete = if (isBilateral && seriesExercice.size >= 2) {
+            listOf(seriesExercice[seriesExercice.size - 1], seriesExercice[seriesExercice.size - 2])
+        } else {
+            listOf(seriesExercice.last())
+        }
 
         viewModelScope.launch {
-            // Supprimer de la table series_realisees si déjà persistée
-            if (toRemove.id != 0L) {
-                instanceSeanceDao.deleteSerie(
-                    SerieRealiseeEntity(
-                        id = toRemove.id,
-                        instanceSeanceId = instanceId,
-                        exerciceSeanceId = exerciceSeanceId,
-                        numeroSerie = toRemove.numeroSerie,
-                        repsRealisees = toRemove.repsRealisees,
-                        chargeKg = toRemove.chargeKg,
-                        chargeLabel = toRemove.chargeLabel,
-                        rpe = toRemove.rpe,
-                        isCompleted = toRemove.isCompleted,
-                    ),
-                )
+            toDelete.forEach { serie ->
+                if (serie.id != 0L) {
+                    instanceSeanceDao.deleteSerie(SerieRealiseeEntity(
+                        id = serie.id, instanceSeanceId = instanceId,
+                        exerciceSeanceId = exerciceSeanceId, numeroSerie = serie.numeroSerie,
+                        repsRealisees = serie.repsRealisees, chargeKg = serie.chargeKg,
+                        chargeLabel = serie.chargeLabel, rpe = serie.rpe,
+                        isCompleted = serie.isCompleted, notes = serie.notes,
+                    ))
+                }
             }
-            // Décrémenter nombreSeriesPrevues pour que "Modifier exercices" et reload() voient le bon nombre
             if (exerciceSeance != null && exerciceSeance.nombreSeriesPrevues > 1) {
                 seanceDao.updateExerciceSeance(
                     exerciceSeance.copy(nombreSeriesPrevues = exerciceSeance.nombreSeriesPrevues - 1)
@@ -742,9 +786,8 @@ class InstanceExecuteViewModel @Inject constructor(
             }
         }
 
-        seriesExercice.remove(toRemove)
+        toDelete.forEach { seriesExercice.remove(it) }
 
-        // Mettre à jour exercices en mémoire immédiatement (évite race condition sur suppressions rapides)
         val updatedExercices = state.exercices.map { ex ->
             if (ex.exerciceSeance.id == exerciceSeanceId && exerciceSeance != null && exerciceSeance.nombreSeriesPrevues > 1)
                 ex.copy(exerciceSeance = ex.exerciceSeance.copy(nombreSeriesPrevues = exerciceSeance.nombreSeriesPrevues - 1))

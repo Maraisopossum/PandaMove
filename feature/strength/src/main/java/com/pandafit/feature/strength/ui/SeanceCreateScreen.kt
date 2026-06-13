@@ -623,6 +623,23 @@ private fun ExerciceFields(
             modifier = Modifier.weight(1f), singleLine = true, textStyle = MaterialTheme.typography.bodySmall,
         )
     }
+
+    // Bilatéral — disponible pour REPS et DURATION, hors Circuit
+    if (!isCircuit && (exercice.repsType == RepsType.REPS || exercice.repsType == RepsType.DURATION)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Checkbox(
+                checked = exercice.isBilateral,
+                onCheckedChange = { onUpdate(exercice.copy(isBilateral = it)) },
+            )
+            Column {
+                Text("Bilatéral (G + D)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text("À chaque round : côté G, puis côté D", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+            }
+        }
+    }
 }
 
 // ===== WarmupPickerSheet =====

@@ -623,6 +623,22 @@ fun InstanceExecuteScreen(
                         )
                     }
                     item {
+                        val isBilateral = activeExercice?.exerciceSeance?.isBilateral == true
+                        if (isBilateral) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    "🔄 Bilatéral — alternance G puis D à chaque round",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PandaSubtext,
+                                )
+                            }
+                        }
                         SeriesTableHeader(
                             repsLabel = if (activeExercice?.exerciceSeance?.repsType == RepsType.DURATION) "Temps" else "Reps",
                         )
@@ -1123,7 +1139,11 @@ private fun ExerciceNavBadge(
         ?: ex.exercise.name.take(3).uppercase()
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.width(64.dp).clickable(onClick = onClick)) {
         Box(modifier = Modifier.size(44.dp).background(if (isActive) color else color.copy(alpha = 0.10f), CircleShape), contentAlignment = Alignment.Center) {
-            Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isActive) Color.White else color)
+            if (ex.exerciceSeance.isBilateral) {
+                Text("🔄", style = MaterialTheme.typography.labelSmall)
+            } else {
+                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isActive) Color.White else color)
+            }
         }
         Spacer(Modifier.height(2.dp))
         Text(ex.exercise.name, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = if (isActive) color else PandaSubtext, fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
@@ -1229,12 +1249,19 @@ private fun SerieRow(
         }
     }
 
+    // Pour les exercices bilatéraux : afficher "1G"/"1D" au lieu de "1"/"2"
+    val serieLabel = if (serie.notes.isNotBlank()) {
+        "${(num + 1) / 2}${serie.notes}"
+    } else {
+        "$num"
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp).alpha(if (isCompleted) 0.45f else 1f),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("$num", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color.Red, modifier = Modifier.width(24.dp))
+        Text(serieLabel, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color.Red, modifier = Modifier.width(24.dp))
         val weights = mapOf(SerieColumn.REPS to 1f, SerieColumn.KG to 1.2f, SerieColumn.REPOS to 1f, SerieColumn.RPE to 0.8f)
         SerieColumn.entries.forEach { col ->
             val (value, isGrayed) = cellContent(col)
@@ -1378,7 +1405,7 @@ private fun CircuitOverlay(
             when (phase) {
                 is CircuitPhase.ExerciceActif -> {
                     Text(
-                        "SÉRIE ${phase.numeroSerie} / ${phase.totalSeries}",
+                        "SÉRIE ${phase.numeroSerie}${phase.sideLabel} / ${phase.totalSeries}",
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White.copy(alpha = 0.65f),
                         fontWeight = FontWeight.Bold,

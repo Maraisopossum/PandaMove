@@ -180,6 +180,7 @@ fun SeanceListScreen(
 
     if (showSingleDatePicker) {
         AssignSingleDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showSingleDatePicker = false; assignTargetId = null },
             onConfirm = { date ->
                 assignTargetId?.let { id -> viewModel.assignToDate(id, date) }
@@ -191,6 +192,7 @@ fun SeanceListScreen(
 
     if (showMultiDateDialog) {
         AssignMultiDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showMultiDateDialog = false; assignTargetId = null },
             onConfirm = { dates ->
                 assignTargetId?.let { id -> viewModel.assignToDates(id, dates) }
@@ -214,6 +216,7 @@ fun SeanceListScreen(
     // Picker reschedule instance strength
     if (showReschedulePicker) {
         AssignSingleDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showReschedulePicker = false; rescheduleTargetId = null },
             onConfirm = { date ->
                 rescheduleTargetId?.let { id -> viewModel.rescheduleInstance(id, date) }

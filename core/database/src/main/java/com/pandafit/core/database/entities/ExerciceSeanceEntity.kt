@@ -79,4 +79,8 @@ data class ExerciceSeanceEntity(
     // Non-null uniquement pour les copies d'instance (null = exercice du template)
     @ColumnInfo(name = "instance_seance_id")
     val instanceSeanceId: Long? = null,
+
+    // Exercice bilatéral (ex. gainage latéral) : G puis D enchaînés à chaque round
+    @ColumnInfo(name = "is_bilateral")
+    val isBilateral: Boolean = false,
 )

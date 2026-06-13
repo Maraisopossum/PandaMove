@@ -498,15 +498,17 @@ private fun ReportSerieRow(serie: SerieRealiseeState, isEvenRow: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val serieLabel = if (serie.notes.isNotBlank()) "${(serie.numeroSerie + 1) / 2}${serie.notes}" else "${serie.numeroSerie}"
+        val serieLongLabel = if (serie.notes.isNotBlank()) "Série ${(serie.numeroSerie + 1) / 2} ${serie.notes}" else "Série ${serie.numeroSerie}"
         Text(
-            "${serie.numeroSerie}",
+            serieLabel,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
             color = if (strikethrough) PandaSubtext.copy(alpha = 0.4f) else Color(0xFFE53935),
             modifier = Modifier.width(20.dp),
         )
         Text(
-            "Série ${serie.numeroSerie}",
+            serieLongLabel,
             style = MaterialTheme.typography.bodySmall,
             color = PandaSubtext.copy(alpha = if (strikethrough) 0.4f else 0.7f),
             textDecoration = if (strikethrough) TextDecoration.LineThrough else TextDecoration.None,
@@ -895,9 +897,11 @@ private fun generateHtmlReport(
                     if (d == 0) "$i" else "$i.$d"
                 } ?: "—"
                 val kgStr = escHtml(serie.chargeLabel ?: serie.chargeKg?.let { "$it kg" } ?: "PDC")
+                val htmlSerieLabel = if (serie.notes.isNotBlank()) "${(serie.numeroSerie + 1) / 2}${serie.notes}" else "${serie.numeroSerie}"
+                val htmlSerieLongLabel = if (serie.notes.isNotBlank()) "Série ${(serie.numeroSerie + 1) / 2} ${serie.notes}" else "Série ${serie.numeroSerie}"
                 sb.append("""<div class="serie$cls">""")
-                sb.append("""<span class="col-num">${serie.numeroSerie}</span>""")
-                sb.append("""<span class="col-label">Série ${serie.numeroSerie}</span>""")
+                sb.append("""<span class="col-num">$htmlSerieLabel</span>""")
+                sb.append("""<span class="col-label">$htmlSerieLongLabel</span>""")
                 sb.append("""<span class="col-reps">${serie.repsRealisees ?: "—"}</span>""")
                 sb.append("""<span class="col-kg">$kgStr</span>""")
                 sb.append("""<span class="col-rpe">$rpeStr</span>""")

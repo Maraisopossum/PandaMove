@@ -111,6 +111,8 @@ data class ExerciceDraft(
     val consigneCle: String = "",
     val equipement: String = "",
     val avertissement: String = "",
+    // Exercice bilatéral : G et D alternent à chaque round (S1G+S1D, S2G+S2D…)
+    val isBilateral: Boolean = false,
 )
 
 // ===== Détail (lecture seule) =====
@@ -139,10 +141,11 @@ sealed class CircuitPhase {
     data class ExerciceActif(
         val exerciceId: Long,
         val exerciceName: String,
-        val numeroSerie: Int,       // série courante (1-based)
-        val totalSeries: Int,       // nombre de séries prévues
+        val numeroSerie: Int,       // numéro de round (1-based), pas de slot
+        val totalSeries: Int,       // nombre de rounds prévus
         val positionInBloc: Int,    // position dans le circuit (1-based)
         val totalInBloc: Int,       // nombre d'exercices dans le circuit
+        val sideLabel: String = "", // "G", "D" pour bilatéral ; "" sinon
     ) : CircuitPhase()
 
     /** Repos entre deux exercices ou entre deux rounds. */
@@ -176,7 +179,8 @@ data class InstanceExecuteUiState(
     fun isExerciceComplete(exerciceId: Long): Boolean {
         val exercice = exercices.find { it.exerciceSeance.id == exerciceId } ?: return false
         val series = seriesParExercice[exerciceId] ?: return false
-        return series.size >= exercice.exerciceSeance.nombreSeriesPrevues && series.all { it.isCompleted }
+        val expected = exercice.exerciceSeance.nombreSeriesPrevues * if (exercice.exerciceSeance.isBilateral) 2 else 1
+        return series.size >= expected && series.all { it.isCompleted }
     }
 
     fun summaryForExercice(exerciceId: Long): String {
@@ -204,6 +208,8 @@ data class SerieRealiseeState(
     val rpe: Float? = null,
     val isCompleted: Boolean = false,
     val isPreFilled: Boolean = false,
+    // "G" ou "D" pour les exercices bilatéraux, "" sinon
+    val notes: String = "",
 )
 
 // ===== Helpers d'affichage =====

@@ -86,6 +86,7 @@ class SeanceCreateViewModel @Inject constructor(
                 consigneCle = e.exerciceSeance.consigneCle,
                 equipement = e.exerciceSeance.equipement,
                 avertissement = e.exerciceSeance.avertissement,
+                isBilateral = e.exerciceSeance.isBilateral,
             )
 
             // Reconstruire la liste unifiée en ordre global (position)
@@ -544,6 +545,7 @@ private fun toEntity(seanceId: Long, blocId: Long?, position: Int, d: ExerciceDr
         equipement = d.equipement,
         avertissement = d.avertissement,
         instanceSeanceId = instanceSeanceId,
+        isBilateral = d.isBilateral,
     )
 
 fun BlocType.defaultName() = when (this) {
