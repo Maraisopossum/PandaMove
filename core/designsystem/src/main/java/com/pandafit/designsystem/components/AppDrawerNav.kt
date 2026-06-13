@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DirectionsBike
@@ -66,6 +67,7 @@ val defaultDrawerItems = listOf(
     DrawerNavItem("running",   "Running",       Icons.Default.DirectionsRun),
     DrawerNavItem("cycling",   "Vélo",          Icons.Default.DirectionsBike),
     DrawerNavItem("strength",  "Renforcement",  Icons.Default.FitnessCenter),
+    DrawerNavItem("breathing", "Respiration",   Icons.Default.Air),
     // DrawerNavItem("warmup",    "Échauffement",  Icons.Default.SelfImprovement),  // TODO: masqué temporairement
     DrawerNavItem("timer",     "Minuteur",      Icons.Default.Timer),
     DrawerNavItem("calendar",  "Calendrier",    Icons.Default.CalendarMonth),

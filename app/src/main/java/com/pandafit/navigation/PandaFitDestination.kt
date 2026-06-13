@@ -1,6 +1,7 @@
 package com.pandafit.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
@@ -89,6 +90,13 @@ sealed class PandaFitDestination(
         selectedIcon = Icons.Filled.SelfImprovement,
         unselectedIcon = Icons.Filled.SelfImprovement,
     )
+
+    data object Breathing : PandaFitDestination(
+        route = "breathing",
+        label = "Respiration",
+        selectedIcon = Icons.Filled.Air,
+        unselectedIcon = Icons.Filled.Air,
+    )
 }
 
 val TOP_LEVEL_DESTINATIONS = listOf(
@@ -155,16 +163,30 @@ object WarmupRoutes {
 }
 
 object CyclingRoutes {
-    const val LIST = "cycling"
-    const val CREATE = "cycling/create"
+    const val LIST          = "cycling"
+    const val CREATE        = "cycling/create"
     /** Crée directement une séance planifiée (isTemplate=false, isPlanned=true dans le VM). */
     const val CREATE_PLANNED = "cycling/create/planned"
-    const val DETAIL = "cycling/{workoutId}"
+    const val DETAIL        = "cycling/{workoutId}/edit"    // formulaire édition
+    const val REPORT        = "cycling/{workoutId}"         // rapport lecture seule
+    const val EXECUTE       = "cycling/{workoutId}/execute" // saisie des résultats
 
-    fun detail(id: Long) = "cycling/$id"
+    fun detail(id: Long)  = "cycling/$id/edit"
+    fun report(id: Long)  = "cycling/$id"
+    fun execute(id: Long) = "cycling/$id/execute"
 }
 
 object ProfileRoutes {
     const val STATS_CONFIG = "profile/stats-config"
     const val TCX_IMPORT   = "profile/tcx-import"
+}
+
+object BreathingRoutes {
+    const val SELECT        = "breathing"
+    const val SESSION       = "breathing/session/{methodId}/{cycles}"
+    const val CREATE_CUSTOM = "breathing/custom/create"
+    const val EDIT_CUSTOM   = "breathing/custom/{customId}/edit"
+
+    fun session(methodId: String, cycles: Int) = "breathing/session/$methodId/$cycles"
+    fun editCustom(customId: Long) = "breathing/custom/$customId/edit"
 }

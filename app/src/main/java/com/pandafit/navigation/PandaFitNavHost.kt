@@ -53,6 +53,8 @@ import kotlinx.coroutines.launch
 import com.pandafit.feature.calendar.ui.CalendarScreen
 import com.pandafit.feature.cycling.ui.CyclingScreen
 import com.pandafit.feature.cycling.ui.CyclingWorkoutDetailScreen
+import com.pandafit.feature.cycling.ui.CyclingWorkoutReportScreen
+import com.pandafit.feature.cycling.ui.CyclingWorkoutExecuteScreen
 import com.pandafit.feature.home.ui.HomeScreen
 import com.pandafit.feature.profile.ui.EquipmentScreen
 import com.pandafit.feature.profile.ui.ExerciseCatalogScreen
@@ -71,6 +73,9 @@ import com.pandafit.core.database.entities.SeanceCategory
 import com.pandafit.feature.strength.ui.SeanceCreateScreen
 import com.pandafit.feature.strength.ui.SeanceDetailScreen
 import com.pandafit.feature.strength.ui.SeanceListScreen
+import com.pandafit.feature.breathing.ui.BreathingMethodCreateScreen
+import com.pandafit.feature.breathing.ui.BreathingMethodSelectionScreen
+import com.pandafit.feature.breathing.ui.BreathingSessionScreen
 import com.pandafit.feature.warmup.ui.WarmupListScreen
 import com.pandafit.viewmodel.ActiveSessionViewModel
 
@@ -203,10 +208,12 @@ fun PandaFitNavHost() {
                     onNavigateToTimer = { navController.navigate(PandaFitDestination.Timer.route) },
                     onNavigateToStats = { navController.navigate(PandaFitDestination.Stats.route) },
                     onNavigateToProfile = { navController.navigate(PandaFitDestination.Profile.route) },
-                    onNavigateToWorkout = { type, id ->
+                    onNavigateToWorkout = { type, id, isCompleted ->
                         when (type) {
-                            "running" -> navController.navigate(RunningRoutes.detail(id))
-                            "cycling" -> navController.navigate(CyclingRoutes.detail(id))
+                            "running" -> if (isCompleted) navController.navigate(RunningRoutes.detail(id))
+                                         else navController.navigate(RunningRoutes.execute(id))
+                            "cycling" -> if (isCompleted) navController.navigate(CyclingRoutes.report(id))
+                                         else navController.navigate(CyclingRoutes.execute(id))
                             "strength" -> navController.navigate(StrengthRoutes.seanceDetail(id))
                         }
                     },
@@ -266,13 +273,23 @@ fun PandaFitNavHost() {
             }
             composable(RunningRoutes.EXECUTE) { backStack ->
                 val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
-                RunningWorkoutExecuteScreen(workoutId = id, onNavigateBack = { navController.popBackStack() })
+                RunningWorkoutExecuteScreen(
+                    workoutId = id,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToReport = { wId ->
+                        navController.navigate(RunningRoutes.detail(wId)) {
+                            popUpTo(RunningRoutes.EXECUTE) { inclusive = true }
+                        }
+                    },
+                )
             }
 
             // Cycling
             composable(PandaFitDestination.Cycling.route) {
                 CyclingScreen(
                     onNavigateToDetail        = { id -> navController.navigate(CyclingRoutes.detail(id)) },
+                    onNavigateToReport        = { id -> navController.navigate(CyclingRoutes.report(id)) },
+                    onNavigateToExecute       = { id -> navController.navigate(CyclingRoutes.execute(id)) },
                     onNavigateToCreate        = { navController.navigate(CyclingRoutes.CREATE) },
                     onNavigateToCreatePlanned = { navController.navigate(CyclingRoutes.CREATE_PLANNED) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
@@ -285,9 +302,33 @@ fun PandaFitNavHost() {
             composable(CyclingRoutes.CREATE_PLANNED) {
                 CyclingWorkoutDetailScreen(workoutId = null, isPlanned = true, onNavigateBack = { navController.popBackStack() })
             }
+            // Édition d'un workout vélo existant (template ou planned)
             composable(CyclingRoutes.DETAIL) { backStack ->
                 val id = backStack.arguments?.getString("workoutId")?.toLongOrNull()
                 CyclingWorkoutDetailScreen(workoutId = id, onNavigateBack = { navController.popBackStack() })
+            }
+            // Rapport lecture seule (planned + completed)
+            composable(CyclingRoutes.REPORT) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                CyclingWorkoutReportScreen(
+                    workoutId         = id,
+                    onNavigateBack    = { navController.popBackStack() },
+                    onNavigateToEdit  = { wId -> navController.navigate(CyclingRoutes.detail(wId)) },
+                    onNavigateToExecute = { wId -> navController.navigate(CyclingRoutes.execute(wId)) },
+                )
+            }
+            // Saisie des résultats cycling
+            composable(CyclingRoutes.EXECUTE) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                CyclingWorkoutExecuteScreen(
+                    workoutId = id,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToReport = { wId ->
+                        navController.navigate(CyclingRoutes.report(wId)) {
+                            popUpTo(CyclingRoutes.EXECUTE) { inclusive = true }
+                        }
+                    },
+                )
             }
 
             // Strength
@@ -409,14 +450,17 @@ fun PandaFitNavHost() {
             // Calendar
             composable(PandaFitDestination.Calendar.route) {
                 CalendarScreen(
-                    onNavigateToWorkout = { type, id ->
+                    onNavigateToWorkout = { type, id, isCompleted ->
                         when (type) {
-                            "running" -> navController.navigate(RunningRoutes.detail(id))
-                            "cycling" -> navController.navigate(CyclingRoutes.detail(id))
+                            "running" -> if (isCompleted) navController.navigate(RunningRoutes.detail(id))
+                                         else navController.navigate(RunningRoutes.execute(id))
+                            "cycling" -> if (isCompleted) navController.navigate(CyclingRoutes.report(id))
+                                         else navController.navigate(CyclingRoutes.execute(id))
                             "strength" -> navController.navigate(StrengthRoutes.seanceDetail(id))
                         }
                     },
                     onNavigateToInstance = { id -> navController.navigate(StrengthRoutes.instanceExecute(id)) },
+                    onNavigateToInstanceReport = { id -> navController.navigate(StrengthRoutes.instanceReport(id)) },
                     onNavigateToCreateRunning = { navController.navigate(RunningRoutes.CREATE) },
                     onNavigateToCreateCycling = { navController.navigate(CyclingRoutes.CREATE) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
@@ -452,6 +496,40 @@ fun PandaFitNavHost() {
             }
             composable(ProfileRoutes.TCX_IMPORT) {
                 TcxImportScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            // Breathing
+            composable(BreathingRoutes.SELECT) {
+                BreathingMethodSelectionScreen(
+                    onMethodSelected = { methodId, cycles ->
+                        navController.navigate(BreathingRoutes.session(methodId, cycles))
+                    },
+                    onCreateCustomMethod = { navController.navigate(BreathingRoutes.CREATE_CUSTOM) },
+                    onEditCustomMethod   = { customId -> navController.navigate(BreathingRoutes.editCustom(customId)) },
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                )
+            }
+            composable(BreathingRoutes.SESSION) { backStack ->
+                val methodId = backStack.arguments?.getString("methodId") ?: return@composable
+                val cycles   = backStack.arguments?.getString("cycles")?.toIntOrNull() ?: 1
+                BreathingSessionScreen(
+                    methodId       = methodId,
+                    cycles         = cycles,
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
+            composable(BreathingRoutes.CREATE_CUSTOM) {
+                BreathingMethodCreateScreen(
+                    customId       = null,
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
+            composable(BreathingRoutes.EDIT_CUSTOM) { backStack ->
+                val customId = backStack.arguments?.getString("customId")?.toLongOrNull()
+                BreathingMethodCreateScreen(
+                    customId       = customId,
+                    onNavigateBack = { navController.popBackStack() },
+                )
             }
         }
         }

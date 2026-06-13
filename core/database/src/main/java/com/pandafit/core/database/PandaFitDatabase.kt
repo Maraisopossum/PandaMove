@@ -7,6 +7,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pandafit.core.database.converters.DateConverters
 import com.pandafit.core.database.converters.ListConverters
+import com.pandafit.core.database.dao.BreathingSessionDao
+import com.pandafit.core.database.dao.CustomBreathingMethodDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
@@ -16,6 +18,8 @@ import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.dao.WorkoutBlockDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.BlocSeanceEntity
+import com.pandafit.core.database.entities.BreathingSessionEntity
+import com.pandafit.core.database.entities.CustomBreathingMethodEntity
 import com.pandafit.core.database.entities.ExerciceSeanceEntity
 import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.core.database.entities.ExerciseSetEntity
@@ -44,8 +48,10 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         RunRepeatEntity::class,
         RunStepEntity::class,
         GpsTrackPointEntity::class,
+        BreathingSessionEntity::class,
+        CustomBreathingMethodEntity::class,
     ],
-    version = 15,
+    version = 19,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -59,6 +65,8 @@ abstract class PandaFitDatabase : RoomDatabase() {
     abstract fun runStepDao(): RunStepDao
     abstract fun runRepeatDao(): RunRepeatDao
     abstract fun gpsTrackPointDao(): GpsTrackPointDao
+    abstract fun breathingSessionDao(): BreathingSessionDao
+    abstract fun customBreathingMethodDao(): CustomBreathingMethodDao
 
     companion object {
         const val DATABASE_NAME = "pandafit.db"
@@ -190,6 +198,57 @@ abstract class PandaFitDatabase : RoomDatabase() {
         val MIGRATION_14_15 = object : Migration(14, 15) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE workouts ADD COLUMN with_stroller INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v17 → v18 : ajout des champs résultats cycling (vitesse, cadence, calories)
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE workouts ADD COLUMN result_speed_avg_kmh REAL")
+                db.execSQL("ALTER TABLE workouts ADD COLUMN result_speed_max_kmh REAL")
+                db.execSQL("ALTER TABLE workouts ADD COLUMN result_cadence_avg_rpm INTEGER")
+                db.execSQL("ALTER TABLE workouts ADD COLUMN result_calories INTEGER")
+            }
+        }
+
+        // v18 → v19 : ajout du flag is_bilateral sur exercices_seance
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN is_bilateral INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v16 → v17 : ajout de la table custom_breathing_method
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `custom_breathing_method` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `emoji` TEXT NOT NULL,
+                        `inhale_seconds` INTEGER NOT NULL,
+                        `hold_in_seconds` INTEGER NOT NULL DEFAULT 0,
+                        `exhale_seconds` INTEGER NOT NULL,
+                        `hold_out_seconds` INTEGER NOT NULL DEFAULT 0,
+                        `default_cycles` INTEGER NOT NULL
+                    )"""
+                )
+            }
+        }
+
+        // v15 → v16 : ajout de la table breathing_session pour le module respiration
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `breathing_session` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `method_id` TEXT NOT NULL,
+                        `method_name` TEXT NOT NULL,
+                        `cycles_completed` INTEGER NOT NULL,
+                        `duration_seconds` INTEGER NOT NULL,
+                        `session_date` TEXT NOT NULL
+                    )"""
+                )
             }
         }
 

@@ -27,6 +27,7 @@ material = "1.12.0"
 vico-compose = "1.15.0"
 reorderable = "2.4.0"
 osmdroid = "6.1.20"
+lottie = "6.4.0"
 
 [libraries]
 # Kotlin
@@ -91,6 +92,7 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico-compose" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
+lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico-compose" }
 vico-core = { group = "com.patrykandpatrick.vico", name = "core", version.ref = "vico-compose" }
 

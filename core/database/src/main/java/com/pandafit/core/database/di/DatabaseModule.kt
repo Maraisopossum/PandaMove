@@ -3,6 +3,8 @@ package com.pandafit.core.database.di
 import android.content.Context
 import androidx.room.Room
 import com.pandafit.core.database.PandaFitDatabase
+import com.pandafit.core.database.dao.BreathingSessionDao
+import com.pandafit.core.database.dao.CustomBreathingMethodDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
@@ -43,6 +45,10 @@ object DatabaseModule {
                 PandaFitDatabase.MIGRATION_12_13,
                 PandaFitDatabase.MIGRATION_13_14,
                 PandaFitDatabase.MIGRATION_14_15,
+                PandaFitDatabase.MIGRATION_15_16,
+                PandaFitDatabase.MIGRATION_16_17,
+                PandaFitDatabase.MIGRATION_17_18,
+                PandaFitDatabase.MIGRATION_18_19,
             )
             .build()
 
@@ -69,5 +75,11 @@ object DatabaseModule {
 
     @Provides
     fun provideGpsTrackPointDao(db: PandaFitDatabase): GpsTrackPointDao = db.gpsTrackPointDao()
+
+    @Provides
+    fun provideBreathingSessionDao(db: PandaFitDatabase): BreathingSessionDao = db.breathingSessionDao()
+
+    @Provides
+    fun provideCustomBreathingMethodDao(db: PandaFitDatabase): CustomBreathingMethodDao = db.customBreathingMethodDao()
 
 }
