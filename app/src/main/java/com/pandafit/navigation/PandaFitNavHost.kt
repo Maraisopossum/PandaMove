@@ -208,6 +208,7 @@ fun PandaFitNavHost() {
                     onNavigateToTimer = { navController.navigate(PandaFitDestination.Timer.route) },
                     onNavigateToStats = { navController.navigate(PandaFitDestination.Stats.route) },
                     onNavigateToProfile = { navController.navigate(PandaFitDestination.Profile.route) },
+                    onNavigateToBreathing = { navController.navigate(BreathingRoutes.SELECT) },
                     onNavigateToWorkout = { type, id, isCompleted ->
                         when (type) {
                             "running" -> if (isCompleted) navController.navigate(RunningRoutes.detail(id))
