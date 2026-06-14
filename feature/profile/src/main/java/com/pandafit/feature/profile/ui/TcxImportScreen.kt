@@ -220,15 +220,22 @@ private fun PreviewContent(
     onPickAnother: () -> Unit,
 ) {
     val a = preview.activity
+    val isCycling = preview.workoutType == WorkoutType.CYCLING
 
     // Computed global stats for display
     val distKm   = a.totalDistanceM / 1000.0
     val durMin   = a.totalDurationSec.toInt() / 60
     val durSec   = a.totalDurationSec.toInt() % 60
-    val paceStr  = if (a.totalDistanceM > 1) {
-        val paceMinKm = (a.totalDurationSec / 60.0) / (a.totalDistanceM / 1000.0)
-        val pm = paceMinKm.toInt(); val ps = ((paceMinKm - pm) * 60).toInt()
-        "$pm:${ps.toString().padStart(2, '0')}/km"
+    val speedOrPaceLabel = if (isCycling) "Vitesse moy." else "Allure moy."
+    val speedOrPaceStr = if (a.totalDistanceM > 1) {
+        if (isCycling) {
+            val speedKmh = (a.totalDistanceM / 1000.0) / (a.totalDurationSec / 3600.0)
+            "%.1f km/h".format(speedKmh)
+        } else {
+            val paceMinKm = (a.totalDurationSec / 60.0) / (a.totalDistanceM / 1000.0)
+            val pm = paceMinKm.toInt(); val ps = ((paceMinKm - pm) * 60).toInt()
+            "$pm:${ps.toString().padStart(2, '0')}/km"
+        }
     } else "—"
 
     LazyColumn(
@@ -245,7 +252,7 @@ private fun PreviewContent(
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     StatRow("Distance", "%.2f km".format(distKm))
                     StatRow("Durée", "%d:%02d".format(durMin, durSec))
-                    StatRow("Allure moy.", paceStr)
+                    StatRow(speedOrPaceLabel, speedOrPaceStr)
                     if (a.avgHrBpm != null) StatRow("FC moy.", "${a.avgHrBpm} bpm")
                     if (a.maxHrBpm != null) StatRow("FC max", "${a.maxHrBpm} bpm")
                     if (a.elevationGainM != null) StatRow("Dénivelé +", "${a.elevationGainM} m")

@@ -44,6 +44,8 @@ private const val MAX_COMPLETED_VISIBLE = 5
 @Composable
 fun CyclingScreen(
     onNavigateToDetail: (Long) -> Unit,
+    onNavigateToReport: (Long) -> Unit = onNavigateToDetail,
+    onNavigateToExecute: (Long) -> Unit = onNavigateToReport,
     onNavigateToCreate: () -> Unit,
     onNavigateToCreatePlanned: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
@@ -95,6 +97,7 @@ fun CyclingScreen(
     }
     if (showSingleDatePicker) {
         AssignSingleDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showSingleDatePicker = false; assignTarget = null },
             onConfirm = { date ->
                 assignTarget?.id?.let { id -> viewModel.assignToDate(id, date) }
@@ -105,6 +108,7 @@ fun CyclingScreen(
     }
     if (showMultiDateDialog) {
         AssignMultiDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showMultiDateDialog = false; assignTarget = null },
             onConfirm = { dates -> assignTarget?.id?.let { viewModel.assignToDates(it, dates) }; showMultiDateDialog = false; assignTarget = null },
         )
@@ -216,7 +220,7 @@ fun CyclingScreen(
                                 onReschedule = if (!isSelectionMode) {
                                     { rescheduleTargetId = w.id; showReschedulePicker = true }
                                 } else null,
-                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToDetail(w.id) },
+                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToExecute(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
                         }
@@ -230,7 +234,7 @@ fun CyclingScreen(
                                 alpha = 0.75f,
                                 isSelected = w.id in selectedIds,
                                 isSelectionMode = isSelectionMode,
-                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToDetail(w.id) },
+                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToReport(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
                         }

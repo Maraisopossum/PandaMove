@@ -52,13 +52,14 @@ private val RedColor      = Color(0xFFE53935)
 fun RunningWorkoutExecuteScreen(
     workoutId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToReport: (Long) -> Unit = { onNavigateBack() },
     viewModel: RunningExecuteViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showFinishDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isCompleted) {
-        if (uiState.isCompleted) onNavigateBack()
+        if (uiState.isCompleted) onNavigateToReport(workoutId)
     }
 
     if (showFinishDialog) {
@@ -133,7 +134,7 @@ fun RunningWorkoutExecuteScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ResultInputCell("Distance (km)", uiState.resultDistanceKm, { viewModel.updateOverallResult("distanceKm", it) }, KeyboardType.Decimal, Modifier.weight(1f))
                         ResultInputCell("Temps (mm:ss)", uiState.resultDurationStr, { viewModel.updateOverallResult("duration", it) }, KeyboardType.Text, Modifier.weight(1f))
-                        ResultInputCell("Allure (/km)", uiState.resultPaceStr, { viewModel.updateOverallResult("pace", it) }, KeyboardType.Text, Modifier.weight(1f))
+                        ReadOnlyCell("Allure (/km)", uiState.resultPaceStr, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -144,7 +145,8 @@ fun RunningWorkoutExecuteScreen(
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ResultInputCell("Dénivelé (m)", uiState.resultElevationM, { viewModel.updateOverallResult("elevation", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        Spacer(Modifier.weight(2f))
+                        ResultInputCell("Calories (kcal)", uiState.resultCalories, { viewModel.updateOverallResult("calories", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell("Cadence (ppm)", uiState.resultCadenceAvgPpm, { viewModel.updateOverallResult("cadence", it) }, KeyboardType.Number, Modifier.weight(1f))
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -424,6 +426,29 @@ private fun ResultInputCell(label: String, value: String, onValueChange: (String
                     inner()
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun ReadOnlyCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Color(0xFFEAEAEA), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, textAlign = TextAlign.Center)
+        Text(
+            text = if (value.isEmpty()) "auto" else value,
+            style = TextStyle(
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (value.isEmpty()) PandaSubtext else DarkColor,
+                textAlign = TextAlign.Center,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
         )
     }
 }

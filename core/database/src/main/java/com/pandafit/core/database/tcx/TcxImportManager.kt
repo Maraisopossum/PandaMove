@@ -79,27 +79,35 @@ class TcxImportManager @Inject constructor(
         val now = LocalDateTime.now()
         val completedAt = activity.startTimeAsDateTime() ?: now
 
+        val distKm = round(activity.totalDistanceM / 1000.0 * 100) / 100.0
+        val durSec = activity.totalDurationSec.toInt()
+        val isCycling = type == WorkoutType.CYCLING
+
         val workoutId = workoutDao.insert(
             WorkoutEntity(
-                workoutType         = type,
-                name                = name,
-                scheduledDate       = date,
-                isCompleted         = true,
-                completedAt         = completedAt,
-                createdAt           = now,
-                updatedAt           = now,
-                resultDistanceKm    = round(activity.totalDistanceM / 1000.0 * 100) / 100.0,
-                resultDurationSec   = activity.totalDurationSec.toInt(),
-                resultPaceAvgMinPerKm = activity.avgPaceMinPerKm(),
-                resultHrAvg         = activity.avgHrBpm,
-                resultHrMax         = activity.maxHrBpm,
-                resultElevationM    = activity.elevationGainM,
-                withStroller        = withStroller,
+                workoutType           = type,
+                name                  = name,
+                scheduledDate         = date,
+                isCompleted           = true,
+                completedAt           = completedAt,
+                createdAt             = now,
+                updatedAt             = now,
+                resultDistanceKm      = distKm,
+                resultDurationSec     = durSec,
+                resultPaceAvgMinPerKm = if (!isCycling) activity.avgPaceMinPerKm() else null,
+                resultHrAvg           = activity.avgHrBpm,
+                resultHrMax           = activity.maxHrBpm,
+                resultElevationM      = activity.elevationGainM,
+                resultSpeedAvgKmh     = if (isCycling) activity.avgSpeedKmh() else null,
+                resultSpeedMaxKmh     = if (isCycling) activity.maxSpeedMs?.let { it * 3.6 } else null,
+                resultCadenceAvgRpm   = activity.avgCadenceRpm,
+                resultCalories        = activity.totalCalories.takeIf { it > 0 },
+                withStroller          = withStroller,
             )
         )
 
         val gpsCount = insertGpsTrack(workoutId, activity.rawTrackPoints)
-        val lapsCount = insertLapSplits(workoutId, activity.laps)
+        val lapsCount = insertLapSplits(workoutId, activity.laps, isCycling)
 
         TcxImportResult(workoutId, lapsCount, gpsCount, isNewWorkout = true)
     }
@@ -122,26 +130,52 @@ class TcxImportManager @Inject constructor(
 
         val completedAt = activity.startTimeAsDateTime() ?: LocalDateTime.now()
 
-        // Update global results
-        workoutDao.saveResults(
-            id          = workoutId,
-            distKm      = round(activity.totalDistanceM / 1000.0 * 100) / 100.0,
-            durSec      = activity.totalDurationSec.toInt(),
-            pace        = activity.avgPaceMinPerKm(),
-            hr          = activity.avgHrBpm,
-            hrMax       = activity.maxHrBpm,
-            rpe         = null,
-            notes       = "",
-            elevationM  = activity.elevationGainM,
-            completedAt = completedAt.toString(),
-        )
+        // Déterminer le type de la séance pour choisir le bon schéma de résultats
+        val existingWorkout = workoutDao.getById(workoutId)
+        val effectiveType = type ?: existingWorkout?.workoutType
+        val isCycling = effectiveType == WorkoutType.CYCLING
+        val distKm = round(activity.totalDistanceM / 1000.0 * 100) / 100.0
+        val durSec = activity.totalDurationSec.toInt()
+
+        if (isCycling) {
+            workoutDao.saveCyclingResults(
+                id          = workoutId,
+                distKm      = distKm,
+                durSec      = durSec,
+                speedAvg    = activity.avgSpeedKmh(),
+                speedMax    = activity.maxSpeedMs?.let { it * 3.6 },
+                hr          = activity.avgHrBpm,
+                hrMax       = activity.maxHrBpm,
+                cadence     = activity.avgCadenceRpm,
+                elevationM  = activity.elevationGainM,
+                calories    = activity.totalCalories.takeIf { it > 0 },
+                rpe         = null,
+                notes       = "",
+                completedAt = completedAt.toString(),
+            )
+        } else {
+            workoutDao.saveResults(
+                id          = workoutId,
+                distKm      = distKm,
+                durSec      = durSec,
+                pace        = activity.avgPaceMinPerKm(),
+                hr          = activity.avgHrBpm,
+                hrMax       = activity.maxHrBpm,
+                rpe         = null,
+                notes       = "",
+                elevationM  = activity.elevationGainM,
+                cadence     = activity.avgCadenceRpm,
+                calories    = activity.totalCalories.takeIf { it > 0 },
+                completedAt = completedAt.toString(),
+            )
+        }
 
         // Delete old GPS track and insert new one
         gpsDao.deleteByWorkout(workoutId)
         val gpsCount = insertGpsTrack(workoutId, activity.rawTrackPoints)
 
         // Inject lap splits into the first repeat found (or create one if none)
-        val lapsCount = insertOrUpdateLapSplits(workoutId, activity.laps)
+        val lapsCount = insertOrUpdateLapSplits(workoutId, activity.laps, isCycling)
 
         // Mise à jour withStroller sur l'entité après saveResults
         workoutDao.getById(workoutId)?.let { existing ->
@@ -171,9 +205,9 @@ class TcxImportManager @Inject constructor(
 
     // ── Lap splits as a RunRepeatEntity with IntervalRepResults ───────────────
 
-    private suspend fun insertLapSplits(workoutId: Long, laps: List<TcxLap>): Int {
+    private suspend fun insertLapSplits(workoutId: Long, laps: List<TcxLap>, isCycling: Boolean = false): Int {
         if (laps.isEmpty()) return 0
-        val results = laps.mapIndexed { i, lap -> lap.toIntervalRepResult(i) }
+        val results = laps.mapIndexed { i, lap -> lap.toIntervalRepResult(i, isCycling) }
         val repeatId = repeatDao.insert(
             RunRepeatEntity(
                 workoutId   = workoutId,
@@ -183,12 +217,13 @@ class TcxImportManager @Inject constructor(
             )
         )
         // Create one RunStepEntity per lap so the UI can display it as structured steps
+        val stepType = if (isCycling) RunStepType.OTHER else RunStepType.RUNNING
         stepDao.insertAll(laps.mapIndexed { i, lap ->
             RunStepEntity(
                 workoutId  = workoutId,
                 repeatId   = repeatId,
                 position   = i,
-                stepType   = RunStepType.RUNNING,
+                stepType   = stepType,
                 endType    = RunEndType.DISTANCE,
                 endValue   = lap.distanceM.toInt().coerceAtLeast(1),
                 endUnit    = RunEndUnit.METERS,
@@ -202,16 +237,15 @@ class TcxImportManager @Inject constructor(
      * Pour une séance programmée : met à jour le premier repeat trouvé avec les splits TCX.
      * Si aucun repeat n'existe, en crée un.
      */
-    private suspend fun insertOrUpdateLapSplits(workoutId: Long, laps: List<TcxLap>): Int {
+    private suspend fun insertOrUpdateLapSplits(workoutId: Long, laps: List<TcxLap>, isCycling: Boolean = false): Int {
         if (laps.isEmpty()) return 0
-        val results = laps.mapIndexed { i, lap -> lap.toIntervalRepResult(i) }
+        val results = laps.mapIndexed { i, lap -> lap.toIntervalRepResult(i, isCycling) }
         val existingRepeats = repeatDao.getByWorkout(workoutId)
         if (existingRepeats.isNotEmpty()) {
-            // Update first repeat's resultsJson with lap splits
             val rep = existingRepeats.first()
             repeatDao.update(rep.copy(resultsJson = json.encodeToString(results)))
         } else {
-            insertLapSplits(workoutId, laps)
+            insertLapSplits(workoutId, laps, isCycling)
         }
         return laps.size
     }
@@ -288,6 +322,12 @@ private fun TcxParsedActivity.avgPaceMinPerKm(): Double? {
     return (totalDurationSec / 60.0) / (totalDistanceM / 1000.0)
 }
 
+private fun TcxParsedActivity.avgSpeedKmh(): Double? {
+    if (totalDistanceM < 1.0 || totalDurationSec <= 0.0) return null
+    val kmh = (totalDistanceM / 1000.0) / (totalDurationSec / 3600.0)
+    return (kmh * 10).toLong() / 10.0 // arrondi à 1 décimale
+}
+
 fun TcxParsedActivity.defaultName(): String {
     val date = startTimeAsDate()
     return when (workoutType) {
@@ -297,12 +337,20 @@ fun TcxParsedActivity.defaultName(): String {
     }
 }
 
-private fun TcxLap.toIntervalRepResult(index: Int): IntervalRepResult {
-    val paceMinKm = if (distanceM > 1.0) (durationSec / 60.0) / (distanceM / 1000.0) else null
+private fun TcxLap.toIntervalRepResult(index: Int, isCycling: Boolean = false): IntervalRepResult {
+    val intensity = if (isCycling) {
+        if (distanceM > 1.0 && durationSec > 0.0) {
+            val speedKmh = (distanceM / 1000.0) / (durationSec / 3600.0)
+            "%.1f km/h".format(speedKmh)
+        } else ""
+    } else {
+        val paceMinKm = if (distanceM > 1.0) (durationSec / 60.0) / (distanceM / 1000.0) else null
+        if (paceMinKm != null) formatPaceMinKm(paceMinKm) else ""
+    }
     return IntervalRepResult(
         repNumber       = index + 1,
         timeStr         = formatDurationSec(durationSec.toInt()),
-        actualIntensity = if (paceMinKm != null) formatPaceMinKm(paceMinKm) else "",
+        actualIntensity = intensity,
         rpeStr          = "",
         done            = true,
         hrAvg           = avgHrBpm,

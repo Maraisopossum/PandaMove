@@ -84,6 +84,19 @@ data class WorkoutEntity(
 
     @ColumnInfo(name = "with_stroller")
     val withStroller: Boolean = false,
+
+    // ── Résultats spécifiques cyclisme ────────────────────────────────────────
+    @ColumnInfo(name = "result_speed_avg_kmh")
+    val resultSpeedAvgKmh: Double? = null,
+
+    @ColumnInfo(name = "result_speed_max_kmh")
+    val resultSpeedMaxKmh: Double? = null,
+
+    @ColumnInfo(name = "result_cadence_avg_rpm")
+    val resultCadenceAvgRpm: Int? = null,
+
+    @ColumnInfo(name = "result_calories")
+    val resultCalories: Int? = null,
 )
 
 enum class WorkoutType {

@@ -22,5 +22,7 @@ data class WeeklySummary(
     val runningCount: Int = 0,
     val cyclingCount: Int = 0,
     val strengthCount: Int = 0,
+    val breathingCount: Int = 0,
+    val breathingDurationMinutes: Int = 0,
     val breakdown: Map<WorkoutType, Int> = emptyMap(),
 )

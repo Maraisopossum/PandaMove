@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -51,7 +52,10 @@ import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaOrange
 import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.stats.model.BreathingDetailStats
+import com.pandafit.feature.stats.model.CyclingDetailStats
 import com.pandafit.feature.stats.model.ExerciseProgression
+import com.pandafit.feature.stats.model.MethodStat
 import com.pandafit.feature.stats.model.MuscleGroupStat
 import com.pandafit.feature.stats.model.RunningDetailStats
 import com.pandafit.feature.stats.model.SportStats
@@ -59,8 +63,11 @@ import com.pandafit.feature.stats.model.StatsConfig
 import com.pandafit.feature.stats.model.StatsPeriod
 import com.pandafit.feature.stats.model.StatsUiState
 import com.pandafit.feature.stats.model.StrengthDetailStats
+import com.pandafit.feature.stats.model.WeeklyBreathingCount
 import com.pandafit.feature.stats.model.WeeklyPace
 import com.pandafit.feature.stats.viewmodel.StatsViewModel
+
+private val BreathingTeal = Color(0xFF00897B)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,7 +144,18 @@ fun StatsScreen(
                     color = PandaBlue,
                 )
                 Spacer(Modifier.height(8.dp))
-                SimpleSportCard(uiState.cyclingStats, PandaBlue)
+                CyclingSection(uiState.cyclingStats, uiState.cyclingDetail, uiState.statsConfig)
+            }
+
+            // Respiration
+            item {
+                SectionHeader(
+                    title = "Respiration",
+                    icon  = Icons.Default.Air,
+                    color = BreathingTeal,
+                )
+                Spacer(Modifier.height(8.dp))
+                BreathingSection(uiState.breathingDetail)
             }
         }
     }
@@ -348,6 +366,14 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, config
                         else Spacer(Modifier.weight(1f))
                     }
                 }
+                if (detail.avgCadencePpm > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatItem("Cadence moy.", "${detail.avgCadencePpm} ppm", Modifier.weight(1f))
+                        Spacer(Modifier.weight(1f))
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
             }
         }
 
@@ -460,19 +486,264 @@ private fun WeeklyDistanceChart(weeklyPaces: List<WeeklyPace>) {
     }
 }
 
-// ── Vélo (simple) ──────────────────────────────────────────────────────────────
+// ── Vélo ───────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SimpleSportCard(stats: SportStats, color: Color) {
+private fun CyclingSection(stats: SportStats, detail: CyclingDetailStats, config: StatsConfig) {
     if (stats.totalSessions == 0) { EmptyCard(); return }
-    PandaCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatItem("Séances", "${stats.completedSessions}/${stats.totalSessions}", Modifier.weight(1f))
-                StatItem("Durée totale", formatDuration(stats.totalDurationMinutes), Modifier.weight(1f))
-                StatItem("Durée moy.", formatDuration(stats.averageDurationMinutes.toInt()), Modifier.weight(1f))
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PandaCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Ligne 1 : séances / distance / durée
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatItem("Séances", "${stats.completedSessions}/${stats.totalSessions}", Modifier.weight(1f))
+                    StatItem(
+                        "Distance",
+                        if (detail.totalDistanceKm > 0) "${"%.1f".format(detail.totalDistanceKm)} km" else "—",
+                        Modifier.weight(1f),
+                    )
+                    StatItem("Durée", formatSeconds(detail.totalDurationSec), Modifier.weight(1f))
+                }
+                // Ligne 2 : vitesse moy / meilleure / + longue
+                if (detail.avgSpeedKmh > 0 || detail.longestSessionKm > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatItem(
+                            "Vit. moy.",
+                            if (detail.avgSpeedKmh > 0) "${"%.1f".format(detail.avgSpeedKmh)} km/h" else "—",
+                            Modifier.weight(1f),
+                        )
+                        StatItem(
+                            "Meilleure",
+                            if (detail.bestSpeedKmh > 0) "${"%.1f".format(detail.bestSpeedKmh)} km/h" else "—",
+                            Modifier.weight(1f),
+                        )
+                        StatItem(
+                            "+ longue",
+                            if (detail.longestSessionKm > 0) "${"%.1f".format(detail.longestSessionKm)} km" else "—",
+                            Modifier.weight(1f),
+                        )
+                    }
+                }
+                // Ligne 3 : FC moy. / FC max / Dénivelé+
+                if (detail.avgHrBpm > 0 || detail.maxHrBpm > 0 || detail.totalElevationM > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (detail.avgHrBpm > 0) StatItem("FC moy.", "${detail.avgHrBpm} bpm", Modifier.weight(1f))
+                        else Spacer(Modifier.weight(1f))
+                        if (detail.maxHrBpm > 0) StatItem("FC max", "${detail.maxHrBpm} bpm", Modifier.weight(1f))
+                        else Spacer(Modifier.weight(1f))
+                        if (detail.totalElevationM > 0) StatItem("Dénivelé +", "${detail.totalElevationM} m", Modifier.weight(1f))
+                        else Spacer(Modifier.weight(1f))
+                    }
+                }
+                // Ligne 4 : Cadence (si renseignée)
+                if (detail.avgCadenceRpm > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatItem("Cadence moy.", "${detail.avgCadenceRpm} rpm", Modifier.weight(1f))
+                        Spacer(Modifier.weight(1f))
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
             }
-            CompletionBar(stats.completionRate, color)
+        }
+
+        // Fun stats distance vélo
+        if (detail.totalDistanceKm >= 0.1) {
+            FunCyclingCard(detail.totalDistanceKm, detail.totalElevationM, config)
+        }
+
+        // Distance par semaine
+        if (detail.weeklyDistances.isNotEmpty()) {
+            PandaCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Distance par semaine", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Spacer(Modifier.height(8.dp))
+                    WeeklyCyclingDistanceChart(detail.weeklyDistances)
+                }
+            }
+        }
+
+        CompletionBar(stats.completionRate, PandaBlue)
+    }
+}
+
+@Composable
+private fun FunCyclingCard(distanceKm: Double, totalElevationM: Int, config: StatsConfig) {
+    val dist1  = config.cycDist1
+    val dist2  = config.cycDist2
+    val summit = config.cycSummit
+
+    val pct1 = distanceKm / dist1.km * 100
+    val pct2 = distanceKm / dist2.km * 100
+    val pctSummit = if (summit.elevationM > 0 && totalElevationM > 0)
+        totalElevationM.toDouble() / summit.elevationM * 100 else 0.0
+
+    PandaCard(modifier = Modifier.fillMaxWidth(), containerColor = PandaBlue.copy(alpha = 0.06f), elevation = 0.dp) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text("🚴  Ta distance en équivalents", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaBlue)
+            Spacer(Modifier.height(10.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FunItem(dist1.emoji, "${"%.2f".format(pct1)}%", dist1.label, Modifier.weight(1f))
+                FunItem(dist2.emoji, "${"%.4f".format(pct2)}%", dist2.label, Modifier.weight(1f))
+                if (pctSummit > 0.0) {
+                    FunItem(summit.emoji, "${"%.1f".format(pctSummit)}%", summit.label, Modifier.weight(1f))
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyCyclingDistanceChart(weeklyDistances: List<WeeklyPace>) {
+    val maxDist = weeklyDistances.maxOf { it.weeklyDistanceKm }.coerceAtLeast(0.01)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        weeklyDistances.forEach { wp ->
+            val normalized = ((wp.weeklyDistanceKm / maxDist) * 0.8 + 0.2).toFloat().coerceIn(0.2f, 1f)
+            val distLabel = if (wp.weeklyDistanceKm >= 10) "${"%.0f".format(wp.weeklyDistanceKm)} km"
+                            else "${"%.1f".format(wp.weeklyDistanceKm)} km"
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(distLabel, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = PandaSubtext, maxLines = 1)
+                Spacer(Modifier.height(2.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height((normalized * 60).dp)
+                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                        .background(PandaBlue),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(wp.weekLabel, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = PandaSubtext)
+            }
+        }
+    }
+}
+
+// ── Respiration ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun BreathingSection(detail: BreathingDetailStats) {
+    if (detail.totalSessions == 0) { EmptyCard(); return }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Chiffres clés
+        PandaCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatItem("Séances", detail.totalSessions.toString(), Modifier.weight(1f))
+                    StatItem("Durée totale", formatSeconds(detail.totalDurationSeconds), Modifier.weight(1f))
+                    StatItem("Durée moy.", formatSeconds(detail.avgDurationSeconds), Modifier.weight(1f))
+                }
+                if (detail.favoriteMethod != null) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🏆 Méthode favorite", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            detail.favoriteMethod,
+                            style      = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Répartition par méthode
+        if (detail.methodBreakdown.size >= 2) {
+            PandaCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Répartition par méthode", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Spacer(Modifier.height(8.dp))
+                    detail.methodBreakdown.forEach { stat ->
+                        BreathingMethodBar(stat)
+                        Spacer(Modifier.height(6.dp))
+                    }
+                }
+            }
+        }
+
+        // Tendance hebdomadaire
+        val hasVariation = detail.weeklySessionCounts.any { it.count > 0 }
+        if (detail.weeklySessionCounts.size >= 2 && hasVariation) {
+            PandaCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Sessions par semaine", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Spacer(Modifier.height(8.dp))
+                    WeeklyBreathingChart(detail.weeklySessionCounts)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BreathingMethodBar(stat: MethodStat) {
+    Column {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(stat.methodName, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 1)
+            Text(
+                "${(stat.percentage * 100).toInt()}% · ${stat.sessionCount} séance${if (stat.sessionCount > 1) "s" else ""}",
+                style = MaterialTheme.typography.labelSmall,
+                color = PandaSubtext,
+            )
+        }
+        Spacer(Modifier.height(3.dp))
+        Box(
+            modifier = Modifier.fillMaxWidth().height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(BreathingTeal.copy(alpha = 0.12f)),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(stat.percentage).height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(BreathingTeal),
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyBreathingChart(weeks: List<WeeklyBreathingCount>) {
+    val maxCount = weeks.maxOf { it.count }.coerceAtLeast(1)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        weeks.forEach { w ->
+            val normalized = if (w.count == 0) 0.05f else ((w.count.toFloat() / maxCount) * 0.8f + 0.2f).coerceIn(0.05f, 1f)
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    if (w.count > 0) "${w.count}" else "",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                    color = PandaSubtext,
+                )
+                Spacer(Modifier.height(2.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height((normalized * 60).dp)
+                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                        .background(if (w.count > 0) BreathingTeal else BreathingTeal.copy(alpha = 0.15f)),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(w.weekLabel, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = PandaSubtext)
+            }
         }
     }
 }

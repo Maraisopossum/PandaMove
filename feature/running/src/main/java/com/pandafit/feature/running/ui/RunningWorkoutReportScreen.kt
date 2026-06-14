@@ -249,13 +249,13 @@ private fun GlobalResultsCard(
                     ResultCell("FC max",   workout.resultHrMax?.let { "$it bpm" } ?: "—", Modifier.weight(1f))
                     ResultCell("RPE",      workout.resultRpe?.toString() ?: "—", Modifier.weight(1f))
                 }
-                if (workout.resultElevationM != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ResultCell("Dénivelé +", workout.resultElevationM.let { "$it m" }, Modifier.weight(1f))
-                        Spacer(Modifier.weight(1f))
-                        Spacer(Modifier.weight(1f))
-                    }
+            }
+            if (workout.resultElevationM != null || workout.resultCalories != null || workout.resultCadenceAvgRpm != null) {
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ResultCell("Dénivelé +", workout.resultElevationM?.let { "$it m" } ?: "—", Modifier.weight(1f))
+                    ResultCell("Calories",   workout.resultCalories?.let { "$it kcal" } ?: "—", Modifier.weight(1f))
+                    ResultCell("Cadence",    workout.resultCadenceAvgRpm?.let { "$it ppm" } ?: "—", Modifier.weight(1f))
                 }
             }
         }

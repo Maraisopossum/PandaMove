@@ -42,6 +42,9 @@ object StatsPreferencesKeys {
     val STR_WEIGHT_2 = intPreferencesKey("str_weight_2")
     val STR_WEIGHT_3 = intPreferencesKey("str_weight_3")
     val STR_MONUMENT = intPreferencesKey("str_monument")
+    val CYC_DIST_1   = intPreferencesKey("cyc_dist_1")
+    val CYC_DIST_2   = intPreferencesKey("cyc_dist_2")
+    val CYC_SUMMIT   = intPreferencesKey("cyc_summit")
 }
 
 @Singleton
@@ -57,6 +60,9 @@ class StatsPreferences @Inject constructor(
             strWeight2Idx  = prefs[StatsPreferencesKeys.STR_WEIGHT_2] ?: 2,
             strWeight3Idx  = prefs[StatsPreferencesKeys.STR_WEIGHT_3] ?: 4,
             strMonumentIdx = prefs[StatsPreferencesKeys.STR_MONUMENT] ?: 0,
+            cycDist1Idx    = prefs[StatsPreferencesKeys.CYC_DIST_1]   ?: 2,
+            cycDist2Idx    = prefs[StatsPreferencesKeys.CYC_DIST_2]   ?: 5,
+            cycSummitIdx   = prefs[StatsPreferencesKeys.CYC_SUMMIT]   ?: 0,
         )
     }
 

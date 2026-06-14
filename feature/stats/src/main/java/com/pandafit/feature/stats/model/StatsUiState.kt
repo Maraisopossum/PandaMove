@@ -11,6 +11,8 @@ data class StatsUiState(
     val weeklyVolume: List<DayVolume> = emptyList(),
     val strengthDetail: StrengthDetailStats = StrengthDetailStats(),
     val runningDetail: RunningDetailStats = RunningDetailStats(),
+    val cyclingDetail: CyclingDetailStats = CyclingDetailStats(),
+    val breathingDetail: BreathingDetailStats = BreathingDetailStats(),
     val statsConfig: StatsConfig = StatsConfig(),
     val error: String? = null,
 )
@@ -54,6 +56,22 @@ data class MuscleGroupStat(
     val percentage: Float,
 )
 
+// ── Détail Cyclisme ───────────────────────────────────────────────────────────
+
+data class CyclingDetailStats(
+    val completedSessions: Int = 0,
+    val totalDistanceKm: Double = 0.0,
+    val totalDurationSec: Int = 0,
+    val avgSpeedKmh: Double = 0.0,
+    val bestSpeedKmh: Double = 0.0,
+    val avgHrBpm: Int = 0,
+    val maxHrBpm: Int = 0,
+    val totalElevationM: Int = 0,
+    val avgCadenceRpm: Int = 0,
+    val longestSessionKm: Double = 0.0,
+    val weeklyDistances: List<WeeklyPace> = emptyList(),
+)
+
 // ── Détail Running ────────────────────────────────────────────────────────────
 
 data class RunningDetailStats(
@@ -65,6 +83,7 @@ data class RunningDetailStats(
     val avgHrBpm: Int = 0,
     val maxHrBpm: Int = 0,
     val totalElevationM: Int = 0,
+    val avgCadencePpm: Int = 0,
     val longestSessionKm: Double = 0.0,
     val weeklyPaces: List<WeeklyPace> = emptyList(),
     // Stats poussette
@@ -77,6 +96,28 @@ data class WeeklyPace(
     val weekLabel: String,
     val avgPaceMinPerKm: Double,
     val weeklyDistanceKm: Double = 0.0,
+)
+
+// ── Détail Respiration ────────────────────────────────────────────────────────
+
+data class BreathingDetailStats(
+    val totalSessions: Int = 0,
+    val totalDurationSeconds: Int = 0,
+    val avgDurationSeconds: Int = 0,
+    val favoriteMethod: String? = null,
+    val methodBreakdown: List<MethodStat> = emptyList(),
+    val weeklySessionCounts: List<WeeklyBreathingCount> = emptyList(),
+)
+
+data class MethodStat(
+    val methodName: String,
+    val sessionCount: Int,
+    val percentage: Float,
+)
+
+data class WeeklyBreathingCount(
+    val weekLabel: String,
+    val count: Int,
 )
 
 // ── Volume quotidien ──────────────────────────────────────────────────────────

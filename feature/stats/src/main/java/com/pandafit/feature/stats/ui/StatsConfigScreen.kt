@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaFilterChip
 import com.pandafit.designsystem.components.PandaTopBar
+import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
@@ -116,6 +117,72 @@ fun StatsConfigScreen(
                                         selected = config.runSummitIdx == idx,
                                         onSelectedChange = { if (it) viewModel.setRunSummit(idx) },
                                         selectedColor = PandaGreen,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    "Vélo",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(8.dp))
+                PandaCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        ChipSection(
+                            title = "Distance 1",
+                            subtitle = "Référence principale de distance",
+                            color = PandaBlue,
+                        ) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                DISTANCE_PRESETS.forEachIndexed { idx, preset ->
+                                    PandaFilterChip(
+                                        label = "${preset.emoji} ${preset.label}",
+                                        selected = config.cycDist1Idx == idx,
+                                        onSelectedChange = { if (it) viewModel.setCycDist1(idx) },
+                                        selectedColor = PandaBlue,
+                                    )
+                                }
+                            }
+                        }
+
+                        ChipSection(
+                            title = "Distance 2",
+                            subtitle = "Référence secondaire de distance",
+                            color = PandaBlue,
+                        ) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                DISTANCE_PRESETS.forEachIndexed { idx, preset ->
+                                    PandaFilterChip(
+                                        label = "${preset.emoji} ${preset.label}",
+                                        selected = config.cycDist2Idx == idx,
+                                        onSelectedChange = { if (it) viewModel.setCycDist2(idx) },
+                                        selectedColor = PandaBlue,
+                                    )
+                                }
+                            }
+                        }
+
+                        ChipSection(
+                            title = "Sommet",
+                            subtitle = "Calculé avec le dénivelé réel de tes séances vélo",
+                            color = PandaBlue,
+                        ) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                SUMMIT_PRESETS.forEachIndexed { idx, preset ->
+                                    PandaFilterChip(
+                                        label = "${preset.emoji} ${preset.label} (${preset.elevationM} m)",
+                                        selected = config.cycSummitIdx == idx,
+                                        onSelectedChange = { if (it) viewModel.setCycSummit(idx) },
+                                        selectedColor = PandaBlue,
                                     )
                                 }
                             }

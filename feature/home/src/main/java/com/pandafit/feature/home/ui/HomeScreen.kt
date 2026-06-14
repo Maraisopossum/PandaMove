@@ -57,7 +57,7 @@ fun HomeScreen(
     onNavigateToTimer: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToWorkout: (type: String, id: Long) -> Unit,
+    onNavigateToWorkout: (type: String, id: Long, isCompleted: Boolean) -> Unit,
     onNavigateToInstance: ((Long) -> Unit)? = null,
     onNavigateToInstanceReport: ((Long) -> Unit)? = null,
     onOpenDrawer: () -> Unit = {},
@@ -102,7 +102,7 @@ private fun HomeContent(
     onNavigateToTimer: () -> Unit,
     onNavigateToStats: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToWorkout: (String, Long) -> Unit,
+    onNavigateToWorkout: (String, Long, Boolean) -> Unit,
     onNavigateToInstance: (Long) -> Unit,
     onNavigateToInstanceReport: (Long) -> Unit,
     onOpenDrawer: () -> Unit,
@@ -215,6 +215,7 @@ private fun HomeContent(
                                     WorkoutType.STRENGTH -> "strength"
                                 },
                                 workout.id,
+                                workout.isCompleted,
                             )
                         },
                     )

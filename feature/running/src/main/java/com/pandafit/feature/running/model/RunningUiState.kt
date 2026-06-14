@@ -77,6 +77,8 @@ data class RunningExecuteUiState(
     val resultHrMax: String = "",
     val resultElevationM: String = "",
     val resultRpe: String = "",
+    val resultCalories: String = "",
+    val resultCadenceAvgPpm: String = "",
     val resultNotes: String = "",
 )
 

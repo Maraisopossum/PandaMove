@@ -102,11 +102,26 @@ interface WorkoutDao {
     @Query("""UPDATE workouts SET result_distance_km = :distKm, result_duration_sec = :durSec,
         result_pace_avg_min_per_km = :pace, result_hr_avg = :hr, result_hr_max = :hrMax,
         result_rpe = :rpe, result_notes = :notes, result_elevation_m = :elevationM,
+        result_cadence_avg_rpm = :cadence, result_calories = :calories,
         is_completed = 1, completed_at = :completedAt WHERE id = :id""")
     suspend fun saveResults(
         id: Long, distKm: Double?, durSec: Int?, pace: Double?,
         hr: Int?, hrMax: Int?, rpe: Int?, notes: String,
-        elevationM: Int?, completedAt: String?,
+        elevationM: Int?, cadence: Int?, calories: Int?, completedAt: String?,
+    )
+
+    @Query("""UPDATE workouts SET result_distance_km = :distKm, result_duration_sec = :durSec,
+        result_speed_avg_kmh = :speedAvg, result_speed_max_kmh = :speedMax,
+        result_hr_avg = :hr, result_hr_max = :hrMax, result_cadence_avg_rpm = :cadence,
+        result_elevation_m = :elevationM, result_calories = :calories,
+        result_rpe = :rpe, result_notes = :notes,
+        is_completed = 1, completed_at = :completedAt WHERE id = :id""")
+    suspend fun saveCyclingResults(
+        id: Long, distKm: Double?, durSec: Int?,
+        speedAvg: Double?, speedMax: Double?,
+        hr: Int?, hrMax: Int?, cadence: Int?,
+        elevationM: Int?, calories: Int?,
+        rpe: Int?, notes: String, completedAt: String?,
     )
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

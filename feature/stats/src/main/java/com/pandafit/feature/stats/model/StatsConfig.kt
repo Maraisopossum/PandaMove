@@ -45,6 +45,9 @@ data class StatsConfig(
     val strWeight2Idx: Int = 2,  // défaut Éléphant
     val strWeight3Idx: Int = 4,  // défaut Voiture
     val strMonumentIdx: Int = 0, // défaut Tour Eiffel
+    val cycDist1Idx: Int = 2,    // défaut Paris→BXL (315 km)
+    val cycDist2Idx: Int = 5,    // défaut Tour du Monde (40075 km)
+    val cycSummitIdx: Int = 0,   // défaut Mont Blanc
 ) {
     val runDist1 get() = DISTANCE_PRESETS[runDist1Idx.coerceIn(DISTANCE_PRESETS.indices)]
     val runDist2 get() = DISTANCE_PRESETS[runDist2Idx.coerceIn(DISTANCE_PRESETS.indices)]
@@ -53,4 +56,7 @@ data class StatsConfig(
     val strWeight2 get() = WEIGHT_PRESETS[strWeight2Idx.coerceIn(WEIGHT_PRESETS.indices)]
     val strWeight3 get() = WEIGHT_PRESETS[strWeight3Idx.coerceIn(WEIGHT_PRESETS.indices)]
     val strMonument get() = MONUMENT_PRESETS[strMonumentIdx.coerceIn(MONUMENT_PRESETS.indices)]
+    val cycDist1 get() = DISTANCE_PRESETS[cycDist1Idx.coerceIn(DISTANCE_PRESETS.indices)]
+    val cycDist2 get() = DISTANCE_PRESETS[cycDist2Idx.coerceIn(DISTANCE_PRESETS.indices)]
+    val cycSummit get() = SUMMIT_PRESETS[cycSummitIdx.coerceIn(SUMMIT_PRESETS.indices)]
 }

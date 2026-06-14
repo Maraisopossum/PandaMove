@@ -3,6 +3,7 @@ package com.pandafit.feature.home.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.catalog.UserPreferencesRepository
+import com.pandafit.core.database.dao.BreathingSessionDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.dao.WorkoutDao
@@ -28,6 +29,7 @@ class HomeViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val instanceSeanceDao: InstanceSeanceDao,
     private val seanceDao: SeanceDao,
+    private val breathingSessionDao: BreathingSessionDao,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -78,7 +80,8 @@ class HomeViewModel @Inject constructor(
                 workoutDao.observeByDateRange(weekStart, weekEnd),
                 instanceSeanceDao.observeAll(),
                 seanceDao.observeAll(),
-            ) { todayWorkouts, weekWorkouts, allInstances, seances ->
+                breathingSessionDao.observeByDateRange(weekStart, weekEnd),
+            ) { todayWorkouts, weekWorkouts, allInstances, seances, breathingSessions ->
                 val seancesById = seances.associateBy { it.id }
 
                 val upcomingInstances = allInstances
@@ -91,17 +94,22 @@ class HomeViewModel @Inject constructor(
                 }
 
                 val completedWorkouts = weekWorkouts.filter { it.isCompleted && !it.isTemplate }
+                val breathingCount = breathingSessions.size
+                val breathingDurationMinutes = breathingSessions.sumOf { it.durationSeconds } / 60
+
                 val summary = WeeklySummary(
-                    totalSessions = completedWorkouts.size + weekStrengthDone,
+                    totalSessions = completedWorkouts.size + weekStrengthDone + breathingCount,
                     totalDurationMinutes = completedWorkouts.sumOf {
                         it.resultDurationSec?.let { s -> s / 60 } ?: (it.durationMinutes ?: 0)
-                    },
+                    } + breathingDurationMinutes,
                     runningDistanceKm = completedWorkouts
                         .filter { it.workoutType == WorkoutType.RUNNING }
                         .sumOf { it.resultDistanceKm ?: 0.0 },
                     runningCount = completedWorkouts.count { it.workoutType == WorkoutType.RUNNING },
                     cyclingCount = completedWorkouts.count { it.workoutType == WorkoutType.CYCLING },
                     strengthCount = completedWorkouts.count { it.workoutType == WorkoutType.STRENGTH } + weekStrengthDone,
+                    breathingCount = breathingCount,
+                    breathingDurationMinutes = breathingDurationMinutes,
                     breakdown = completedWorkouts.groupingBy { it.workoutType }.eachCount(),
                 )
                 _uiState.value.copy(

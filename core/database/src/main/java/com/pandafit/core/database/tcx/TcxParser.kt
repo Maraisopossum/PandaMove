@@ -42,6 +42,8 @@ private class TcxSaxHandler : DefaultHandler() {
     private var lapCalories = 0
     private var lapAvgHr: Int? = null
     private var lapMaxHr: Int? = null
+    private var lapMaxSpeedMs: Double? = null
+    private var lapCadence: Int? = null
     private var inLapAvgHr = false
     private var inLapMaxHr = false
 
@@ -53,10 +55,13 @@ private class TcxSaxHandler : DefaultHandler() {
     private var inTpHr = false
     private var inPosition = false
 
-    // ── Aggregated HR across laps (for global avg/max fallback) ──────────────
+    // ── Aggregated HR/speed/cadence across laps ───────────────────────────────
     private var totalAvgHrSum = 0.0
     private var lapCountWithHr = 0
     private var globalMaxHr: Int? = null
+    private var globalMaxSpeedMs: Double? = null
+    private var totalCadenceSum = 0
+    private var lapCountWithCadence = 0
 
     // ── Global totals from Lap elements ──────────────────────────────────────
     private var totalDistanceM = 0.0
@@ -66,7 +71,7 @@ private class TcxSaxHandler : DefaultHandler() {
     // ── SAX events ────────────────────────────────────────────────────────────
 
     override fun startElement(uri: String?, localName: String?, qName: String?, atts: Attributes?) {
-        val tag = qName ?: localName ?: return
+        val tag = (qName ?: localName ?: return).substringAfterLast(':')
         path.addLast(tag)
         text.clear()
 
@@ -81,6 +86,8 @@ private class TcxSaxHandler : DefaultHandler() {
                 lapCalories = 0
                 lapAvgHr = null
                 lapMaxHr = null
+                lapMaxSpeedMs = null
+                lapCadence = null
                 inLapAvgHr = false
                 inLapMaxHr = false
             }
@@ -101,7 +108,7 @@ private class TcxSaxHandler : DefaultHandler() {
     }
 
     override fun endElement(uri: String?, localName: String?, qName: String?) {
-        val tag = qName ?: localName ?: return
+        val tag = (qName ?: localName ?: return).substringAfterLast(':')
         val value = text.toString().trim()
 
         when {
@@ -121,6 +128,16 @@ private class TcxSaxHandler : DefaultHandler() {
                     inLapMaxHr -> lapMaxHr = v
                 }
             }
+
+            // ── Lap fields (vitesse max + cadence) ──────────────────────────
+            tag == "MaximumSpeed" && inLap() -> lapMaxSpeedMs = value.toDoubleOrNull()
+            // Garmin cycling: <Cadence> au niveau Lap = cadence moy en rpm
+            tag == "Cadence" && inLap() && !inTrackpoint() -> lapCadence = value.toIntOrNull()
+            // Garmin extensions: AvgRunCadence (strides/min → ×2 pour PPM) ou AvgBikeCadence (RPM)
+            tag == "AvgRunCadence" && inLap() ->
+                if (lapCadence == null) lapCadence = value.toIntOrNull()?.let { it * 2 }
+            tag == "AvgBikeCadence" && inLap() ->
+                if (lapCadence == null) lapCadence = value.toIntOrNull()
 
             // ── Lap end: commit ──────────────────────────────────────────────
             tag == "Lap" -> commitLap()
@@ -144,12 +161,14 @@ private class TcxSaxHandler : DefaultHandler() {
     // ── Commit helpers ─────────────────────────────────────────────────────────
 
     private fun commitLap() {
-        laps.add(TcxLap(lapDurationSec, lapDistanceM, lapAvgHr, lapMaxHr, lapCalories))
+        laps.add(TcxLap(lapDurationSec, lapDistanceM, lapAvgHr, lapMaxHr, lapCalories, lapMaxSpeedMs, lapCadence))
         totalDurationSec += lapDurationSec
         totalDistanceM += lapDistanceM
         totalCalories += lapCalories
         lapAvgHr?.let { totalAvgHrSum += it; lapCountWithHr++ }
         lapMaxHr?.let { if (globalMaxHr == null || it > globalMaxHr!!) globalMaxHr = it }
+        lapMaxSpeedMs?.let { if (globalMaxSpeedMs == null || it > globalMaxSpeedMs!!) globalMaxSpeedMs = it }
+        lapCadence?.let { totalCadenceSum += it; lapCountWithCadence++ }
     }
 
     private fun commitTrackpoint() {
@@ -180,18 +199,22 @@ private class TcxSaxHandler : DefaultHandler() {
         // Elevation gain from trackpoints
         val elevationGain = computeElevationGain(trackPoints)
 
+        val avgCadence = if (lapCountWithCadence > 0) (totalCadenceSum / lapCountWithCadence) else null
+
         return TcxParsedActivity(
-            sportRaw           = sport,
-            workoutType        = workoutType,
-            startTime          = activityId,
-            totalDistanceM     = totalDistanceM,
-            totalDurationSec   = totalDurationSec,
-            totalCalories      = totalCalories,
-            avgHrBpm           = avgHr,
-            maxHrBpm           = globalMaxHr,
-            elevationGainM     = elevationGain,
-            laps               = laps.toList(),
-            rawTrackPoints     = trackPoints.toList(),
+            sportRaw       = sport,
+            workoutType    = workoutType,
+            startTime      = activityId,
+            totalDistanceM = totalDistanceM,
+            totalDurationSec = totalDurationSec,
+            totalCalories  = totalCalories,
+            avgHrBpm       = avgHr,
+            maxHrBpm       = globalMaxHr,
+            maxSpeedMs     = globalMaxSpeedMs,
+            avgCadenceRpm  = avgCadence,
+            elevationGainM = elevationGain,
+            laps           = laps.toList(),
+            rawTrackPoints = trackPoints.toList(),
         )
     }
 }

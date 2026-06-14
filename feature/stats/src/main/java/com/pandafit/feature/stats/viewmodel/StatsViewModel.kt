@@ -2,14 +2,18 @@ package com.pandafit.feature.stats.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.dao.BreathingSessionDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.effectivePrimary
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.WorkoutType
+import com.pandafit.feature.stats.model.BreathingDetailStats
+import com.pandafit.feature.stats.model.CyclingDetailStats
 import com.pandafit.feature.stats.model.DayVolume
 import com.pandafit.feature.stats.model.ExerciseProgression
+import com.pandafit.feature.stats.model.MethodStat
 import com.pandafit.feature.stats.model.MuscleGroupStat
 import com.pandafit.feature.stats.model.RunningDetailStats
 import com.pandafit.feature.stats.model.SportStats
@@ -17,6 +21,7 @@ import com.pandafit.feature.stats.model.StatsConfig
 import com.pandafit.feature.stats.model.StatsPeriod
 import com.pandafit.feature.stats.model.StatsUiState
 import com.pandafit.feature.stats.model.StrengthDetailStats
+import com.pandafit.feature.stats.model.WeeklyBreathingCount
 import com.pandafit.feature.stats.model.WeeklyPace
 import com.pandafit.feature.stats.preferences.StatsPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +42,7 @@ class StatsViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val instanceSeanceDao: InstanceSeanceDao,
     private val exerciseDao: ExerciseDao,
+    private val breathingSessionDao: BreathingSessionDao,
     private val statsPreferences: StatsPreferences,
 ) : ViewModel() {
 
@@ -79,7 +85,7 @@ class StatsViewModel @Inject constructor(
                         totalDurationMinutes = completed.sumOf {
                             it.resultDurationSec?.let { s -> s / 60 } ?: (it.durationMinutes ?: 0)
                         },
-                        totalDistanceKm = if (type == WorkoutType.RUNNING) totalDist else null,
+                        totalDistanceKm = if (totalDist > 0) totalDist else null,
                         averageDurationMinutes = if (completed.isEmpty()) 0.0 else
                             completed.sumOf { it.resultDurationSec?.let { s -> s / 60.0 } ?: (it.durationMinutes?.toDouble() ?: 0.0) } / completed.size,
                         completionRate = if (filtered.isEmpty()) 0f else completed.size.toFloat() / filtered.size,
@@ -89,6 +95,10 @@ class StatsViewModel @Inject constructor(
                 // ── Running detail ────────────────────────────────────────────
                 val runningCompleted = workouts.filter { it.workoutType == WorkoutType.RUNNING && it.isCompleted }
                 val runningDetail = buildRunningDetail(runningCompleted, startDate, today)
+
+                // ── Cycling detail ────────────────────────────────────────────
+                val cyclingCompleted = workouts.filter { it.workoutType == WorkoutType.CYCLING && it.isCompleted }
+                val cyclingDetail = buildCyclingDetail(cyclingCompleted)
 
                 // ── Strength (InstanceSeanceEntity) ──────────────────────────
                 val plannedCount   = instanceSeanceDao.countInRange(startDate, today)
@@ -112,6 +122,10 @@ class StatsViewModel @Inject constructor(
                     plannedCount, instancesWithSeries, exerciseStats, startDate
                 )
 
+                // ── Respiration ───────────────────────────────────────────────
+                val breathingSessions = breathingSessionDao.observeByDateRange(startDate, today).first()
+                val breathingDetail   = buildBreathingDetail(breathingSessions, startDate, today)
+
                 // ── Volume hebdomadaire ───────────────────────────────────────
                 val last7Days = (6 downTo 0).map { today.minusDays(it.toLong()) }
                 val weeklyVolume = last7Days.map { date ->
@@ -122,26 +136,147 @@ class StatsViewModel @Inject constructor(
                         runningMinutes = dayWorkouts.filter { it.workoutType == WorkoutType.RUNNING }
                             .sumOf { it.resultDurationSec?.let { s -> s / 60 } ?: (it.durationMinutes ?: 0) }.toFloat(),
                         cyclingMinutes = dayWorkouts.filter { it.workoutType == WorkoutType.CYCLING }
-                            .sumOf { it.durationMinutes ?: 0 }.toFloat(),
+                            .sumOf { it.resultDurationSec?.let { s -> s / 60 } ?: (it.durationMinutes ?: 0) }.toFloat(),
                         strengthMinutes = dayStrength.sumOf { it.instance.durationSeconds / 60 }.toFloat(),
                     )
                 }
 
                 _uiState.value = StatsUiState(
-                    isLoading = false,
-                    period = period,
-                    runningStats = runningCyclingStats(WorkoutType.RUNNING),
-                    cyclingStats = runningCyclingStats(WorkoutType.CYCLING),
-                    strengthStats = strengthStats,
-                    weeklyVolume = weeklyVolume,
-                    strengthDetail = strengthDetail,
-                    runningDetail = runningDetail,
-                    statsConfig = statsConfig,
+                    isLoading       = false,
+                    period          = period,
+                    runningStats    = runningCyclingStats(WorkoutType.RUNNING),
+                    cyclingStats    = runningCyclingStats(WorkoutType.CYCLING),
+                    strengthStats   = strengthStats,
+                    weeklyVolume    = weeklyVolume,
+                    strengthDetail  = strengthDetail,
+                    runningDetail   = runningDetail,
+                    cyclingDetail   = cyclingDetail,
+                    breathingDetail = breathingDetail,
+                    statsConfig     = statsConfig,
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
+    }
+
+    // ── Cycling detail ────────────────────────────────────────────────────────
+
+    private fun buildCyclingDetail(
+        completed: List<com.pandafit.core.database.entities.WorkoutEntity>,
+    ): CyclingDetailStats {
+        if (completed.isEmpty()) return CyclingDetailStats()
+
+        val withDist = completed.filter { (it.resultDistanceKm ?: 0.0) > 0.0 }
+        val totalDist = withDist.sumOf { it.resultDistanceKm!! }
+        val totalSec = completed.sumOf { it.resultDurationSec ?: (it.durationMinutes?.let { m -> m * 60 } ?: 0) }
+
+        // Vitesse moyenne : calculée depuis distance + durée pour chaque séance
+        val speeds = withDist.mapNotNull { w ->
+            val dist = w.resultDistanceKm ?: return@mapNotNull null
+            val sec = w.resultDurationSec?.toDouble() ?: return@mapNotNull null
+            if (sec <= 0) null else (dist / (sec / 3600.0))
+        }.filter { it > 0.0 }
+        val avgSpeed = if (speeds.isEmpty()) 0.0 else speeds.average()
+        val bestSpeed = speeds.maxOrNull() ?: 0.0
+
+        // FC
+        val hrs = completed.mapNotNull { it.resultHrAvg }.filter { it > 0 }
+        val avgHr = if (hrs.isEmpty()) 0 else hrs.average().toInt()
+        val maxHr = completed.mapNotNull { it.resultHrMax }.filter { it > 0 }.maxOrNull()
+            ?: hrs.maxOrNull() ?: 0
+
+        val totalElev = completed.sumOf { it.resultElevationM ?: 0 }
+        val longestKm = withDist.maxOfOrNull { it.resultDistanceKm!! } ?: 0.0
+
+        // Cadence moyenne des séances qui en ont une
+        val cadences = completed.mapNotNull { it.resultCadenceAvgRpm }.filter { it > 0 }
+        val avgCadence = if (cadences.isEmpty()) 0 else cadences.average().toInt()
+
+        // Distance hebdomadaire (même logique que running)
+        val weekFields = WeekFields.of(Locale.FRENCH)
+        val weeklyDistances = completed
+            .filter { (it.resultDistanceKm ?: 0.0) > 0.0 }
+            .groupBy { w ->
+                val d = w.scheduledDate
+                "${d.get(weekFields.weekBasedYear())}-${d.get(weekFields.weekOfWeekBasedYear())}"
+            }
+            .entries
+            .sortedBy { it.key }
+            .takeLast(8)
+            .map { (_, ws) ->
+                val date = ws.first().scheduledDate
+                val label = "S${date.get(weekFields.weekOfWeekBasedYear())}"
+                val weekDist = ws.mapNotNull { it.resultDistanceKm }.sum()
+                WeeklyPace(label, avgPaceMinPerKm = 0.0, weeklyDistanceKm = weekDist)
+            }
+
+        return CyclingDetailStats(
+            completedSessions = completed.size,
+            totalDistanceKm   = totalDist,
+            totalDurationSec  = totalSec,
+            avgSpeedKmh       = avgSpeed,
+            bestSpeedKmh      = bestSpeed,
+            avgHrBpm          = avgHr,
+            maxHrBpm          = maxHr,
+            totalElevationM   = totalElev,
+            avgCadenceRpm     = avgCadence,
+            longestSessionKm  = longestKm,
+            weeklyDistances   = weeklyDistances,
+        )
+    }
+
+    // ── Breathing detail ──────────────────────────────────────────────────────
+
+    private fun buildBreathingDetail(
+        sessions: List<com.pandafit.core.database.entities.BreathingSessionEntity>,
+        startDate: LocalDate,
+        today: LocalDate,
+    ): BreathingDetailStats {
+        if (sessions.isEmpty()) return BreathingDetailStats()
+
+        val totalSec = sessions.sumOf { it.durationSeconds }
+        val avgSec   = totalSec / sessions.size
+
+        // Méthode favorite = celle avec le plus de sessions
+        val byMethod  = sessions.groupBy { it.methodName }
+        val favorite  = byMethod.maxByOrNull { it.value.size }?.key
+
+        // Répartition par méthode
+        val total = sessions.size.toFloat()
+        val breakdown = byMethod.entries
+            .sortedByDescending { it.value.size }
+            .map { (name, list) ->
+                MethodStat(name, list.size, list.size / total)
+            }
+
+        // Tendance hebdomadaire sur la période
+        val weekFields = WeekFields.of(Locale.FRENCH)
+        val weeklyMap = sessions.groupBy { session ->
+            val d = session.sessionDate
+            "${d.get(weekFields.weekBasedYear())}-${d.get(weekFields.weekOfWeekBasedYear())}"
+        }
+
+        // Générer toutes les semaines de la période (même celles à 0 session)
+        val weeklyCounts = buildList {
+            var cursor = startDate
+            while (!cursor.isAfter(today)) {
+                val key = "${cursor.get(weekFields.weekBasedYear())}-${cursor.get(weekFields.weekOfWeekBasedYear())}"
+                val label = "S${cursor.get(weekFields.weekOfWeekBasedYear())}"
+                val count = weeklyMap[key]?.size ?: 0
+                add(WeeklyBreathingCount(label, count))
+                cursor = cursor.plusWeeks(1)
+            }
+        }.distinctBy { it.weekLabel }.takeLast(8)
+
+        return BreathingDetailStats(
+            totalSessions        = sessions.size,
+            totalDurationSeconds = totalSec,
+            avgDurationSeconds   = avgSec,
+            favoriteMethod       = favorite,
+            methodBreakdown      = breakdown,
+            weeklySessionCounts  = weeklyCounts,
+        )
     }
 
     // ── Strength detail ───────────────────────────────────────────────────────
@@ -262,6 +397,10 @@ class StatsViewModel @Inject constructor(
 
         val longestKm = withDist.maxOfOrNull { it.resultDistanceKm!! } ?: 0.0
 
+        // Cadence moyenne (uniquement les séances avec valeur renseignée)
+        val cadences = completed.mapNotNull { it.resultCadenceAvgRpm }.filter { it > 0 }
+        val avgCadence = if (cadences.isEmpty()) 0 else cadences.average().toInt()
+
         // Distance + allure progression week by week
         val weekFields = WeekFields.of(Locale.FRENCH)
         val weeklyPaces = completed
@@ -295,6 +434,7 @@ class StatsViewModel @Inject constructor(
             avgHrBpm = avgHr,
             maxHrBpm = maxHr,
             totalElevationM = totalElev,
+            avgCadencePpm = avgCadence,
             longestSessionKm = longestKm,
             weeklyPaces = weeklyPaces,
             strollerSessions = strollerRuns.size,

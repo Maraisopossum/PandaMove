@@ -225,6 +225,7 @@ fun AssignSingleDatePickerDialog(
 
 @Composable
 fun AssignMultiDatePickerDialog(
+    minDate: LocalDate = LocalDate.now(),
     onDismiss: () -> Unit,
     onConfirm: (Set<LocalDate>) -> Unit,
 ) {
@@ -272,7 +273,7 @@ fun AssignMultiDatePickerDialog(
                 ) {
                     IconButton(
                         onClick = { displayMonth = displayMonth.minusMonths(1) },
-                        enabled = displayMonth.isAfter(today.withDayOfMonth(1).minusMonths(1)),
+                        enabled = displayMonth > minDate.withDayOfMonth(1),
                     ) {
                         Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Mois précédent", tint = PandaSubtext)
                     }
@@ -311,7 +312,7 @@ fun AssignMultiDatePickerDialog(
                                 } else {
                                     val isSelected = date in selectedDates
                                     val isToday = date == today
-                                    val isPast = date.isBefore(today)
+                                    val isDisabled = date.isBefore(minDate)
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
@@ -326,7 +327,7 @@ fun AssignMultiDatePickerDialog(
                                                 }
                                             )
                                             .then(
-                                                if (!isPast) Modifier.clickable {
+                                                if (!isDisabled) Modifier.clickable {
                                                     selectedDates = if (isSelected) selectedDates - date else selectedDates + date
                                                 } else Modifier
                                             ),
@@ -338,7 +339,7 @@ fun AssignMultiDatePickerDialog(
                                             fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
                                             color = when {
                                                 isSelected -> Color.White
-                                                isPast -> PandaSubtext.copy(alpha = 0.35f)
+                                                isDisabled -> PandaSubtext.copy(alpha = 0.35f)
                                                 else -> MaterialTheme.colorScheme.onSurface
                                             },
                                         )
@@ -442,7 +443,7 @@ fun AssignRecurrenceDialog(
             title = "Date de début",
             confirmLabel = "OK",
             initialDate = startDate,
-            minDate = LocalDate.now(),
+            minDate = LocalDate.of(2000, 1, 1),
             onDismiss = { showStartPicker = false },
             onConfirm = { startDate = it; showStartPicker = false },
         )

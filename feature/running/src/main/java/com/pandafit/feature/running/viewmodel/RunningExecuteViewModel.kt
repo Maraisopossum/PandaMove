@@ -85,6 +85,8 @@ class RunningExecuteViewModel @Inject constructor(
                 resultHrMax       = workout.resultHrMax?.toString() ?: "",
                 resultElevationM  = workout.resultElevationM?.toString() ?: "",
                 resultRpe         = workout.resultRpe?.toString() ?: "",
+                resultCalories    = workout.resultCalories?.toString() ?: "",
+                resultCadenceAvgPpm = workout.resultCadenceAvgRpm?.toString() ?: "",
                 resultNotes       = workout.resultNotes,
             )
         }
@@ -119,6 +121,8 @@ class RunningExecuteViewModel @Inject constructor(
             "hrMax"      -> _uiState.value.copy(resultHrMax = value)
             "elevation"  -> _uiState.value.copy(resultElevationM = value)
             "rpe"        -> _uiState.value.copy(resultRpe = value)
+            "calories"   -> _uiState.value.copy(resultCalories = value)
+            "cadence"    -> _uiState.value.copy(resultCadenceAvgPpm = value)
             "notes"      -> _uiState.value.copy(resultNotes = value)
             else         -> _uiState.value
         }
@@ -154,6 +158,8 @@ class RunningExecuteViewModel @Inject constructor(
                 rpe         = s.resultRpe.toIntOrNull(),
                 notes       = s.resultNotes,
                 elevationM  = s.resultElevationM.toIntOrNull(),
+                cadence     = s.resultCadenceAvgPpm.toIntOrNull(),
+                calories    = s.resultCalories.toIntOrNull(),
                 completedAt = now,
             )
 

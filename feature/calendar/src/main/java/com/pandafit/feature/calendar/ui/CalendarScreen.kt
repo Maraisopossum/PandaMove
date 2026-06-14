@@ -83,8 +83,9 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
-    onNavigateToWorkout: (type: String, id: Long) -> Unit,
+    onNavigateToWorkout: (type: String, id: Long, isCompleted: Boolean) -> Unit,
     onNavigateToInstance: (Long) -> Unit,
+    onNavigateToInstanceReport: (Long) -> Unit = onNavigateToInstance,
     onNavigateToCreateRunning: () -> Unit = {},
     onNavigateToCreateCycling: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
@@ -117,6 +118,7 @@ fun CalendarScreen(
     // Picker reschedule (instances strength et workouts running/vélo)
     if (showReschedulePicker) {
         AssignSingleDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = {
                 showReschedulePicker = false
                 rescheduleInstanceId = null
@@ -271,7 +273,7 @@ fun CalendarScreen(
                 items(uiState.filteredSelectedDayWorkouts, key = { "w_${it.id}" }) { workout ->
                     CalendarWorkoutItem(
                         workout = workout,
-                        onClick = { onNavigateToWorkout(workout.workoutType.name.lowercase(), workout.id) },
+                        onClick = { onNavigateToWorkout(workout.workoutType.name.lowercase(), workout.id, workout.isCompleted) },
                         onDelete = { viewModel.deleteWorkout(workout) },
                         onReschedule = if (!workout.isCompleted) {
                             { rescheduleWorkoutId = workout.id; showReschedulePicker = true }
@@ -284,7 +286,7 @@ fun CalendarScreen(
                     CalendarInstanceItem(
                         instance = instance,
                         seance = seance,
-                        onClick = { onNavigateToInstance(instance.id) },
+                        onClick = { if (instance.isCompleted) onNavigateToInstanceReport(instance.id) else onNavigateToInstance(instance.id) },
                         onDelete = { viewModel.deleteInstance(instance) },
                         onReschedule = if (!instance.isCompleted) {
                             { rescheduleInstanceId = instance.id; showReschedulePicker = true }

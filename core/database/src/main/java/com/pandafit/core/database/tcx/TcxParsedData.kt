@@ -18,6 +18,10 @@ data class TcxParsedActivity(
     val totalCalories: Int,
     val avgHrBpm: Int?,
     val maxHrBpm: Int?,
+    /** Vitesse maximale en m/s issue du meilleur lap (null si absent). */
+    val maxSpeedMs: Double?,
+    /** Cadence moyenne en rpm agrégée sur les laps (null si absent). */
+    val avgCadenceRpm: Int?,
     /** Dénivelé positif cumulé calculé depuis l'altitude des trackpoints (null si absent). */
     val elevationGainM: Int?,
     /** Splits Garmin — un par km par défaut. */
@@ -32,6 +36,10 @@ data class TcxLap(
     val avgHrBpm: Int?,
     val maxHrBpm: Int?,
     val calories: Int,
+    /** Vitesse maximale du lap en m/s (champ MaximumSpeed du TCX). */
+    val maxSpeedMs: Double? = null,
+    /** Cadence moyenne du lap en rpm (champ Cadence ou AverageCadence du TCX). */
+    val avgCadenceRpm: Int? = null,
 )
 
 data class TcxRawPoint(

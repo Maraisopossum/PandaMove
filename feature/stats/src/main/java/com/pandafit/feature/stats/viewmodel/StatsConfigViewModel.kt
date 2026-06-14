@@ -27,4 +27,7 @@ class StatsConfigViewModel @Inject constructor(
     fun setStrWeight2(idx: Int) { viewModelScope.launch { prefs.update(StatsPreferencesKeys.STR_WEIGHT_2, idx) } }
     fun setStrWeight3(idx: Int) { viewModelScope.launch { prefs.update(StatsPreferencesKeys.STR_WEIGHT_3, idx) } }
     fun setStrMonument(idx: Int) { viewModelScope.launch { prefs.update(StatsPreferencesKeys.STR_MONUMENT, idx) } }
+    fun setCycDist1(idx: Int) { viewModelScope.launch { prefs.update(StatsPreferencesKeys.CYC_DIST_1, idx) } }
+    fun setCycDist2(idx: Int) { viewModelScope.launch { prefs.update(StatsPreferencesKeys.CYC_DIST_2, idx) } }
+    fun setCycSummit(idx: Int) { viewModelScope.launch { prefs.update(StatsPreferencesKeys.CYC_SUMMIT, idx) } }
 }

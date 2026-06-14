@@ -97,6 +97,7 @@ fun RunningScreen(
 
     if (showSingleDatePicker) {
         AssignSingleDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showSingleDatePicker = false; assignTarget = null },
             onConfirm = { date ->
                 assignTarget?.id?.let { id -> viewModel.assignToDate(id, date) }
@@ -108,6 +109,7 @@ fun RunningScreen(
 
     if (showMultiDateDialog) {
         AssignMultiDatePickerDialog(
+            minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showMultiDateDialog = false; assignTarget = null },
             onConfirm = { dates ->
                 assignTarget?.id?.let { id -> viewModel.assignToDates(id, dates) }
@@ -257,7 +259,7 @@ fun RunningScreen(
                                 onReschedule = if (!isSelectionMode) {
                                     { rescheduleTargetId = w.id; showReschedulePicker = true }
                                 } else null,
-                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToDetail(w.id) },
+                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToExecute(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
                         }
