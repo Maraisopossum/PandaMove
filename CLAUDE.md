@@ -41,6 +41,12 @@ MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room
 - `app/keystore/`
 - `gradle/libs.versions.toml` (sauf ajout de dépendance explicite)
 
+## Design
+Lire `DESIGN.md` avant tout travail visuel. Direction : **Clean & Bold** (fond neutre, typographie forte, couleurs sport affirmées).
+- TopBar colorée par module sport (violet/vert/bleu/orange)
+- Cartes avec bande gauche 4dp + fond légèrement teinté
+- Chiffres-clés en `ExtraBold`, secondaire en `PandaSubtext`
+
 ## Docs de référence
 - `docs/ai/ARCHITECTURE.md` — patterns MVVM, Hilt, Room, Navigation
 - `docs/ai/PROJECT_CONTEXT_MIN.md` — contexte minimal + flux critiques
