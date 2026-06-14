@@ -34,6 +34,7 @@ import javax.inject.Singleton
  */
 data class TcxImportResult(
     val workoutId: Long,
+    val workoutType: WorkoutType,
     val lapsImported: Int,
     val gpsPointsImported: Int,
     /** true = nouveau workout créé, false = workout existant mis à jour */
@@ -81,7 +82,7 @@ class TcxImportManager @Inject constructor(
 
         val distKm = round(activity.totalDistanceM / 1000.0 * 100) / 100.0
         val durSec = activity.totalDurationSec.toInt()
-        val isCycling = type == WorkoutType.CYCLING
+        val isSpeedBased = type == WorkoutType.CYCLING || type == WorkoutType.HIKING
 
         val workoutId = workoutDao.insert(
             WorkoutEntity(
@@ -94,12 +95,12 @@ class TcxImportManager @Inject constructor(
                 updatedAt             = now,
                 resultDistanceKm      = distKm,
                 resultDurationSec     = durSec,
-                resultPaceAvgMinPerKm = if (!isCycling) activity.avgPaceMinPerKm() else null,
+                resultPaceAvgMinPerKm = if (!isSpeedBased) activity.avgPaceMinPerKm() else null,
                 resultHrAvg           = activity.avgHrBpm,
                 resultHrMax           = activity.maxHrBpm,
                 resultElevationM      = activity.elevationGainM,
-                resultSpeedAvgKmh     = if (isCycling) activity.avgSpeedKmh() else null,
-                resultSpeedMaxKmh     = if (isCycling) activity.maxSpeedMs?.let { it * 3.6 } else null,
+                resultSpeedAvgKmh     = if (isSpeedBased) activity.avgSpeedKmh() else null,
+                resultSpeedMaxKmh     = if (type == WorkoutType.CYCLING) activity.maxSpeedMs?.let { it * 3.6 } else null,
                 resultCadenceAvgRpm   = activity.avgCadenceRpm,
                 resultCalories        = activity.totalCalories.takeIf { it > 0 },
                 withStroller          = withStroller,
@@ -107,9 +108,9 @@ class TcxImportManager @Inject constructor(
         )
 
         val gpsCount = insertGpsTrack(workoutId, activity.rawTrackPoints)
-        val lapsCount = insertLapSplits(workoutId, activity.laps, isCycling)
+        val lapsCount = insertLapSplits(workoutId, activity.laps, type == WorkoutType.CYCLING)
 
-        TcxImportResult(workoutId, lapsCount, gpsCount, isNewWorkout = true)
+        TcxImportResult(workoutId, type, lapsCount, gpsCount, isNewWorkout = true)
     }
 
     // ── 2b. Import into an existing planned session ───────────────────────────
@@ -134,6 +135,7 @@ class TcxImportManager @Inject constructor(
         val existingWorkout = workoutDao.getById(workoutId)
         val effectiveType = type ?: existingWorkout?.workoutType
         val isCycling = effectiveType == WorkoutType.CYCLING
+        val isSpeedBased = isCycling || effectiveType == WorkoutType.HIKING
         val distKm = round(activity.totalDistanceM / 1000.0 * 100) / 100.0
         val durSec = activity.totalDurationSec.toInt()
 
@@ -158,7 +160,7 @@ class TcxImportManager @Inject constructor(
                 id          = workoutId,
                 distKm      = distKm,
                 durSec      = durSec,
-                pace        = activity.avgPaceMinPerKm(),
+                pace        = if (!isSpeedBased) activity.avgPaceMinPerKm() else null,
                 hr          = activity.avgHrBpm,
                 hrMax       = activity.maxHrBpm,
                 rpe         = null,
@@ -182,7 +184,7 @@ class TcxImportManager @Inject constructor(
             workoutDao.update(existing.copy(withStroller = withStroller, updatedAt = LocalDateTime.now()))
         }
 
-        TcxImportResult(workoutId, lapsCount, gpsCount, isNewWorkout = false)
+        TcxImportResult(workoutId, effectiveType ?: WorkoutType.RUNNING, lapsCount, gpsCount, isNewWorkout = false)
     }
 
     // ── GPS track insertion with Douglas-Peucker ──────────────────────────────
@@ -333,6 +335,7 @@ fun TcxParsedActivity.defaultName(): String {
     return when (workoutType) {
         WorkoutType.RUNNING -> "Course du $date"
         WorkoutType.CYCLING -> "Vélo du $date"
+        WorkoutType.HIKING  -> "Randonnée du $date"
         else                -> "Séance du $date"
     }
 }

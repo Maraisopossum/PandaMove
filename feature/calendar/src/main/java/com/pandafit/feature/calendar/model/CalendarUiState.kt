@@ -1,5 +1,6 @@
 package com.pandafit.feature.calendar.model
 
+import com.pandafit.core.database.entities.BreathingSessionEntity
 import com.pandafit.core.database.entities.InstanceSeanceEntity
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.entities.WorkoutEntity
@@ -19,6 +20,8 @@ data class CalendarUiState(
     val instancesByDate: Map<LocalDate, List<InstanceSeanceEntity>> = emptyMap(),
     val selectedDayInstances: List<InstanceSeanceEntity> = emptyList(),
     val seancesById: Map<Long, SeanceEntity> = emptyMap(),
+    val breathingSessionsByDate: Map<LocalDate, List<BreathingSessionEntity>> = emptyMap(),
+    val selectedDayBreathingSessions: List<BreathingSessionEntity> = emptyList(),
     val availableSeances: List<SeanceEntity> = emptyList(),
     val availableRunningWorkouts: List<WorkoutEntity> = emptyList(),
     val availableCyclingWorkouts: List<WorkoutEntity> = emptyList(),

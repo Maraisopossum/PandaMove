@@ -22,11 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pandafit.core.database.entities.BreathingSessionEntity
 import com.pandafit.core.database.entities.InstanceSeanceEntity
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.entities.WorkoutEntity
@@ -68,6 +71,8 @@ import com.pandafit.designsystem.components.PandaFilterChip
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportDot
 import com.pandafit.designsystem.components.SportIconBadge
+import com.pandafit.designsystem.theme.KalyptusGreen
+import com.pandafit.designsystem.theme.PandaAmber
 import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaOrange
@@ -242,6 +247,7 @@ fun CalendarScreen(
                     selectedDate = uiState.selectedDate,
                     workoutsByDate = uiState.filteredWorkoutsByDate,
                     instancesByDate = uiState.instancesByDate,
+                    breathingSessionsByDate = uiState.breathingSessionsByDate,
                     onSelectDate = viewModel::selectDate,
                 )
             }
@@ -259,7 +265,9 @@ fun CalendarScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            val hasContent = uiState.filteredSelectedDayWorkouts.isNotEmpty() || uiState.selectedDayInstances.isNotEmpty()
+            val hasContent = uiState.filteredSelectedDayWorkouts.isNotEmpty()
+                || uiState.selectedDayInstances.isNotEmpty()
+                || uiState.selectedDayBreathingSessions.isNotEmpty()
             if (!hasContent) {
                 item {
                     Text(
@@ -291,6 +299,12 @@ fun CalendarScreen(
                         onReschedule = if (!instance.isCompleted) {
                             { rescheduleInstanceId = instance.id; showReschedulePicker = true }
                         } else null,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+                items(uiState.selectedDayBreathingSessions, key = { "b_${it.id}" }) { session ->
+                    CalendarBreathingItem(
+                        session = session,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                 }
@@ -413,6 +427,7 @@ private fun MonthCalendarGrid(
     selectedDate: LocalDate,
     workoutsByDate: Map<LocalDate, List<WorkoutEntity>>,
     instancesByDate: Map<LocalDate, List<InstanceSeanceEntity>>,
+    breathingSessionsByDate: Map<LocalDate, List<BreathingSessionEntity>>,
     onSelectDate: (LocalDate) -> Unit,
 ) {
     val today = LocalDate.now()
@@ -445,6 +460,7 @@ private fun MonthCalendarGrid(
                             isToday = date == today,
                             workouts = workoutsByDate[date] ?: emptyList(),
                             hasStrengthInstance = (instancesByDate[date]?.isNotEmpty() == true),
+                            hasBreathingSession = (breathingSessionsByDate[date]?.isNotEmpty() == true),
                             onClick = { onSelectDate(date) },
                             modifier = Modifier.weight(1f),
                         )
@@ -459,7 +475,7 @@ private fun MonthCalendarGrid(
 @Composable
 private fun CalendarDayCell(
     day: Int, date: LocalDate, isSelected: Boolean, isToday: Boolean,
-    workouts: List<WorkoutEntity>, hasStrengthInstance: Boolean,
+    workouts: List<WorkoutEntity>, hasStrengthInstance: Boolean, hasBreathingSession: Boolean = false,
     onClick: () -> Unit, modifier: Modifier = Modifier,
 ) {
     Box(
@@ -475,10 +491,11 @@ private fun CalendarDayCell(
                 fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
                 color = when { isSelected -> Color.White; isToday -> PandaGreen; else -> MaterialTheme.colorScheme.onSurface },
             )
-            if (workouts.isNotEmpty() || hasStrengthInstance) {
+            if (workouts.isNotEmpty() || hasStrengthInstance || hasBreathingSession) {
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
                     workouts.take(2).forEach { SportDot(color = workoutTypeColor(it.workoutType), size = 5.dp) }
                     if (hasStrengthInstance) SportDot(color = PandaPurple, size = 5.dp)
+                    if (hasBreathingSession) SportDot(color = KalyptusGreen, size = 5.dp)
                 }
             }
         }
@@ -499,6 +516,7 @@ private fun CalendarWorkoutItem(
         WorkoutType.RUNNING -> Icons.AutoMirrored.Filled.DirectionsRun
         WorkoutType.CYCLING -> Icons.AutoMirrored.Filled.DirectionsBike
         WorkoutType.STRENGTH -> Icons.Default.FitnessCenter
+        WorkoutType.HIKING -> Icons.Default.Landscape
     }
 
     if (showConfirm) {
@@ -597,14 +615,37 @@ private fun CalendarInstanceItem(
     }
 }
 
+@Composable
+private fun CalendarBreathingItem(
+    session: BreathingSessionEntity,
+    modifier: Modifier = Modifier,
+) {
+    val durationMin = session.durationSeconds / 60
+    val durationSec = session.durationSeconds % 60
+    val durationLabel = if (durationMin > 0) "${durationMin}min${if (durationSec > 0) " ${durationSec}s" else ""}" else "${durationSec}s"
+
+    PandaCard(modifier = modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            SportIconBadge(icon = Icons.Default.Air, contentDescription = null, accentColor = KalyptusGreen, size = 40.dp, iconSize = 20.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(session.methodName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text("$durationLabel · ${session.cyclesCompleted} cycle${if (session.cyclesCompleted > 1) "s" else ""}", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+            }
+            Icon(Icons.Default.CheckCircle, "Complétée", tint = KalyptusGreen, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
 private fun workoutTypeLabel(type: WorkoutType) = when (type) {
-    WorkoutType.RUNNING -> "Running"; WorkoutType.CYCLING -> "Vélo"; WorkoutType.STRENGTH -> "Renfort"
+    WorkoutType.RUNNING -> "Running"; WorkoutType.CYCLING -> "Vélo"; WorkoutType.STRENGTH -> "Renfort"; WorkoutType.HIKING -> "Rando"
 }
 private fun workoutTypeColor(type: WorkoutType) = when (type) {
-    WorkoutType.RUNNING -> PandaGreen; WorkoutType.CYCLING -> PandaBlue; WorkoutType.STRENGTH -> PandaPurple
+    WorkoutType.RUNNING -> PandaGreen; WorkoutType.CYCLING -> PandaBlue; WorkoutType.STRENGTH -> PandaPurple; WorkoutType.HIKING -> PandaAmber
 }
 private fun workoutTypeIcon(type: WorkoutType) = when (type) {
     WorkoutType.RUNNING -> Icons.AutoMirrored.Filled.DirectionsRun
     WorkoutType.CYCLING -> Icons.AutoMirrored.Filled.DirectionsBike
     WorkoutType.STRENGTH -> Icons.Default.FitnessCenter
+    WorkoutType.HIKING -> Icons.Default.Landscape
 }

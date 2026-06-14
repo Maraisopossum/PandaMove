@@ -106,8 +106,15 @@ class HomeViewModel @Inject constructor(
                         .filter { it.workoutType == WorkoutType.RUNNING }
                         .sumOf { it.resultDistanceKm ?: 0.0 },
                     runningCount = completedWorkouts.count { it.workoutType == WorkoutType.RUNNING },
+                    cyclingDistanceKm = completedWorkouts
+                        .filter { it.workoutType == WorkoutType.CYCLING }
+                        .sumOf { it.resultDistanceKm ?: 0.0 },
                     cyclingCount = completedWorkouts.count { it.workoutType == WorkoutType.CYCLING },
                     strengthCount = completedWorkouts.count { it.workoutType == WorkoutType.STRENGTH } + weekStrengthDone,
+                    hikingCount = completedWorkouts.count { it.workoutType == WorkoutType.HIKING },
+                    hikingDistanceKm = completedWorkouts
+                        .filter { it.workoutType == WorkoutType.HIKING }
+                        .sumOf { it.resultDistanceKm ?: 0.0 },
                     breathingCount = breathingCount,
                     breathingDurationMinutes = breathingDurationMinutes,
                     breakdown = completedWorkouts.groupingBy { it.workoutType }.eachCount(),

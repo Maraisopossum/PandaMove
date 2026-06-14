@@ -2,6 +2,7 @@ package com.pandafit.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
@@ -97,6 +98,13 @@ sealed class PandaFitDestination(
         selectedIcon = Icons.Filled.Air,
         unselectedIcon = Icons.Filled.Air,
     )
+
+    data object Hiking : PandaFitDestination(
+        route = "hiking",
+        label = "Randonnée",
+        selectedIcon = Icons.Filled.Landscape,
+        unselectedIcon = Icons.Filled.Landscape,
+    )
 }
 
 val TOP_LEVEL_DESTINATIONS = listOf(
@@ -179,6 +187,16 @@ object CyclingRoutes {
 object ProfileRoutes {
     const val STATS_CONFIG = "profile/stats-config"
     const val TCX_IMPORT   = "profile/tcx-import"
+}
+
+object HikingRoutes {
+    const val LIST   = "hiking"
+    const val ENCODE = "hiking/encode"
+    const val REPORT = "hiking/{workoutId}"
+    const val EDIT   = "hiking/{workoutId}/edit"
+
+    fun report(id: Long) = "hiking/$id"
+    fun edit(id: Long)   = "hiking/$id/edit"
 }
 
 object BreathingRoutes {

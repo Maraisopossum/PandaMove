@@ -46,6 +46,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.AppDrawerNav
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
@@ -74,6 +75,9 @@ import com.pandafit.feature.strength.ui.SeanceCreateScreen
 import com.pandafit.feature.strength.ui.SeanceDetailScreen
 import com.pandafit.feature.strength.ui.SeanceListScreen
 import com.pandafit.feature.breathing.ui.BreathingMethodCreateScreen
+import com.pandafit.feature.hiking.ui.HikingScreen
+import com.pandafit.feature.hiking.ui.HikingWorkoutDetailScreen
+import com.pandafit.feature.hiking.ui.HikingWorkoutReportScreen
 import com.pandafit.feature.breathing.ui.BreathingMethodSelectionScreen
 import com.pandafit.feature.breathing.ui.BreathingSessionScreen
 import com.pandafit.feature.warmup.ui.WarmupListScreen
@@ -209,6 +213,7 @@ fun PandaFitNavHost() {
                     onNavigateToStats = { navController.navigate(PandaFitDestination.Stats.route) },
                     onNavigateToProfile = { navController.navigate(PandaFitDestination.Profile.route) },
                     onNavigateToBreathing = { navController.navigate(BreathingRoutes.SELECT) },
+                    onNavigateToHiking = { navController.navigate(HikingRoutes.LIST) },
                     onNavigateToWorkout = { type, id, isCompleted ->
                         when (type) {
                             "running" -> if (isCompleted) navController.navigate(RunningRoutes.detail(id))
@@ -216,6 +221,7 @@ fun PandaFitNavHost() {
                             "cycling" -> if (isCompleted) navController.navigate(CyclingRoutes.report(id))
                                          else navController.navigate(CyclingRoutes.execute(id))
                             "strength" -> navController.navigate(StrengthRoutes.seanceDetail(id))
+                            "hiking"   -> navController.navigate(HikingRoutes.report(id))
                         }
                     },
                     onNavigateToInstance = { id -> navController.navigate(StrengthRoutes.instanceExecute(id)) },
@@ -458,6 +464,7 @@ fun PandaFitNavHost() {
                             "cycling" -> if (isCompleted) navController.navigate(CyclingRoutes.report(id))
                                          else navController.navigate(CyclingRoutes.execute(id))
                             "strength" -> navController.navigate(StrengthRoutes.seanceDetail(id))
+                            "hiking"   -> navController.navigate(HikingRoutes.report(id))
                         }
                     },
                     onNavigateToInstance = { id -> navController.navigate(StrengthRoutes.instanceExecute(id)) },
@@ -496,7 +503,54 @@ fun PandaFitNavHost() {
                 StatsConfigScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(ProfileRoutes.TCX_IMPORT) {
-                TcxImportScreen(onNavigateBack = { navController.popBackStack() })
+                TcxImportScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToWorkout = { id, type ->
+                        navController.popBackStack()
+                        when (type) {
+                            WorkoutType.RUNNING  -> navController.navigate(RunningRoutes.detail(id))
+                            WorkoutType.CYCLING  -> navController.navigate(CyclingRoutes.report(id))
+                            WorkoutType.HIKING   -> navController.navigate(HikingRoutes.report(id))
+                            else                 -> { /* STRENGTH: pas de rapport TCX */ }
+                        }
+                    },
+                )
+            }
+
+            // Hiking
+            composable(HikingRoutes.LIST) {
+                HikingScreen(
+                    onNavigateToReport = { id -> navController.navigate(HikingRoutes.report(id)) },
+                    onNavigateToEncode = { navController.navigate(HikingRoutes.ENCODE) },
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                )
+            }
+            composable(HikingRoutes.ENCODE) {
+                HikingWorkoutDetailScreen(
+                    workoutId = null,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSaved = { id ->
+                        navController.navigate(HikingRoutes.report(id)) {
+                            popUpTo(HikingRoutes.ENCODE) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable(HikingRoutes.REPORT) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                HikingWorkoutReportScreen(
+                    workoutId = id,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEdit = { wId -> navController.navigate(HikingRoutes.edit(wId)) },
+                )
+            }
+            composable(HikingRoutes.EDIT) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                HikingWorkoutDetailScreen(
+                    workoutId = id,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
             }
 
             // Breathing

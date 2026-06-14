@@ -198,6 +198,12 @@ class BreathingViewModel @Inject constructor(
         val durationSeconds = ((System.currentTimeMillis() - engine.sessionStartMs) / 1000)
             .toInt().coerceAtLeast(1)
 
+        // Flag posé synchroniquement pour bloquer tout appel concurrent avant que l'insert termine.
+        _uiState.value = _uiState.value.copy(
+            isSessionSaved              = true,
+            sessionSavedDurationSeconds = durationSeconds,
+        )
+
         viewModelScope.launch {
             breathingSessionDao.insert(
                 BreathingSessionEntity(
@@ -207,10 +213,6 @@ class BreathingViewModel @Inject constructor(
                     durationSeconds = durationSeconds,
                     sessionDate     = LocalDate.now(),
                 )
-            )
-            _uiState.value = _uiState.value.copy(
-                isSessionSaved              = true,
-                sessionSavedDurationSeconds = durationSeconds,
             )
         }
     }

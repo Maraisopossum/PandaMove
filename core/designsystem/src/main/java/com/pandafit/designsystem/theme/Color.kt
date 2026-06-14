@@ -32,6 +32,11 @@ val PandaRed             = Color(0xFFE53935)
 val PandaRedLight        = Color(0xFFFFEBEE)
 val PandaRedDark         = Color(0xFFB71C1C)
 
+// ── Ambre — randonnée, montagne ───────────────────────────────────────────────
+val PandaAmber           = Color(0xFFF59E0B)
+val PandaAmberLight      = Color(0xFFFFF8E1)
+val PandaAmberDark       = Color(0xFFB45309)
+
 // ── Orange — supersets, intervalles, calendrier ───────────────────────────────
 val PandaOrange          = Color(0xFFE65100)
 val PandaOrangeLight     = Color(0xFFFFF3E0)

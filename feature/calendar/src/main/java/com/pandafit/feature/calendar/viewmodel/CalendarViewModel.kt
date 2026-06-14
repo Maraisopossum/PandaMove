@@ -2,6 +2,7 @@ package com.pandafit.feature.calendar.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.dao.BreathingSessionDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.dao.WorkoutDao
@@ -27,6 +28,7 @@ class CalendarViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val instanceSeanceDao: InstanceSeanceDao,
     private val seanceDao: SeanceDao,
+    private val breathingSessionDao: BreathingSessionDao,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalendarUiState())
@@ -63,11 +65,13 @@ class CalendarViewModel @Inject constructor(
             combine(
                 workoutDao.observeByDateRange(startDate, endDate),
                 instanceSeanceDao.observeByDateRange(startDate, endDate),
-            ) { workouts, instances -> Pair(workouts, instances) }
+                breathingSessionDao.observeByDateRange(startDate, endDate),
+            ) { workouts, instances, breathingSessions -> Triple(workouts, instances, breathingSessions) }
                 .catch { e -> _uiState.value = _uiState.value.copy(error = e.message) }
-                .collect { (workouts, instances) ->
+                .collect { (workouts, instances, breathingSessions) ->
                     val workoutsByDate = workouts.filter { !it.isTemplate }.groupBy { it.scheduledDate }
                     val instancesByDate = instances.groupBy { it.date }
+                    val breathingByDate = breathingSessions.groupBy { it.sessionDate }
 
                     val seanceIds = instances.map { it.seanceId }.toSet()
                     val seancesById = seanceIds.mapNotNull { id ->
@@ -84,9 +88,11 @@ class CalendarViewModel @Inject constructor(
                         isLoading = false,
                         workoutsByDate = workoutsByDate,
                         instancesByDate = strengthInstancesByDate,
+                        breathingSessionsByDate = breathingByDate,
                         seancesById = seancesById,
                         selectedDayWorkouts = workoutsByDate[selectedDate] ?: emptyList(),
                         selectedDayInstances = strengthInstancesByDate[selectedDate] ?: emptyList(),
+                        selectedDayBreathingSessions = breathingByDate[selectedDate] ?: emptyList(),
                     )
                 }
         }
@@ -95,10 +101,12 @@ class CalendarViewModel @Inject constructor(
     fun selectDate(date: LocalDate) {
         val workouts = _uiState.value.workoutsByDate[date] ?: emptyList()
         val instances = _uiState.value.instancesByDate[date] ?: emptyList()
+        val breathingSessions = _uiState.value.breathingSessionsByDate[date] ?: emptyList()
         _uiState.value = _uiState.value.copy(
             selectedDate = date,
             selectedDayWorkouts = workouts,
             selectedDayInstances = instances,
+            selectedDayBreathingSessions = breathingSessions,
         )
         val month = YearMonth.of(date.year, date.month)
         if (month != _uiState.value.currentMonth) loadMonth(month)

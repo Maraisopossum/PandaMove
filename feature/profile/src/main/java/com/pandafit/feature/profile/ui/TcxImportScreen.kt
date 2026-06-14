@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.RadioButtonChecked
@@ -66,6 +67,7 @@ import com.pandafit.feature.profile.viewmodel.TcxImportViewModel
 @Composable
 fun TcxImportScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToWorkout: ((workoutId: Long, workoutType: WorkoutType) -> Unit)? = null,
     viewModel: TcxImportViewModel = hiltViewModel(),
 ) {
     val step by viewModel.step.collectAsStateWithLifecycle()
@@ -130,8 +132,11 @@ fun TcxImportScreen(
                 DoneContent(
                     result   = s,
                     modifier = Modifier.padding(innerPadding),
-                    onImportAnother = viewModel::reset,
-                    onBack          = onNavigateBack,
+                    onImportAnother    = viewModel::reset,
+                    onBack             = onNavigateBack,
+                    onNavigateToWorkout = onNavigateToWorkout?.let { cb ->
+                        { cb(s.result.workoutId, s.result.workoutType) }
+                    },
                 )
             }
 
@@ -220,15 +225,15 @@ private fun PreviewContent(
     onPickAnother: () -> Unit,
 ) {
     val a = preview.activity
-    val isCycling = preview.workoutType == WorkoutType.CYCLING
+    val isSpeedBased = preview.workoutType == WorkoutType.CYCLING || preview.workoutType == WorkoutType.HIKING
 
     // Computed global stats for display
     val distKm   = a.totalDistanceM / 1000.0
     val durMin   = a.totalDurationSec.toInt() / 60
     val durSec   = a.totalDurationSec.toInt() % 60
-    val speedOrPaceLabel = if (isCycling) "Vitesse moy." else "Allure moy."
+    val speedOrPaceLabel = if (isSpeedBased) "Vitesse moy." else "Allure moy."
     val speedOrPaceStr = if (a.totalDistanceM > 1) {
-        if (isCycling) {
+        if (isSpeedBased) {
             val speedKmh = (a.totalDistanceM / 1000.0) / (a.totalDurationSec / 3600.0)
             "%.1f km/h".format(speedKmh)
         } else {
@@ -267,26 +272,24 @@ private fun PreviewContent(
             Text("Type de sport", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             PandaCard(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(8.dp).selectableGroup(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                Column(modifier = Modifier.selectableGroup()) {
                     listOf(
-                        WorkoutType.RUNNING to ("Course à pied" to Icons.Default.DirectionsRun),
-                        WorkoutType.CYCLING to ("Vélo" to Icons.Default.DirectionsBike),
-                    ).forEach { (type, labelIcon) ->
-                        val (label, icon) = labelIcon
+                        Triple(WorkoutType.RUNNING, "Course à pied", Icons.Default.DirectionsRun),
+                        Triple(WorkoutType.CYCLING, "Vélo",          Icons.Default.DirectionsBike),
+                        Triple(WorkoutType.HIKING,  "Randonnée",     Icons.Default.Landscape),
+                    ).forEachIndexed { index, (type, label, icon) ->
+                        if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         val selected = preview.workoutType == type
                         Row(
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth()
                                 .selectable(selected = selected, role = Role.RadioButton, onClick = { onUpdateType(type) })
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             RadioButton(selected = selected, onClick = null)
-                            Icon(icon, null, modifier = Modifier.size(18.dp), tint = if (selected) KalyptusGreen else PandaSubtext)
+                            Icon(icon, null, modifier = Modifier.size(20.dp), tint = if (selected) KalyptusGreen else PandaSubtext)
                             Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
                         }
                     }
@@ -401,6 +404,7 @@ private fun DoneContent(
     modifier: Modifier,
     onImportAnother: () -> Unit,
     onBack: () -> Unit,
+    onNavigateToWorkout: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
@@ -417,10 +421,18 @@ private fun DoneContent(
             color = PandaSubtext,
         )
         Spacer(Modifier.height(32.dp))
+        if (onNavigateToWorkout != null) {
+            Button(
+                onClick  = onNavigateToWorkout,
+                modifier = Modifier.fillMaxWidth(0.7f),
+                colors   = ButtonDefaults.buttonColors(containerColor = KalyptusGreen),
+            ) { Text("Voir la séance") }
+            Spacer(Modifier.height(8.dp))
+        }
         Button(
             onClick  = onBack,
             modifier = Modifier.fillMaxWidth(0.7f),
-            colors   = ButtonDefaults.buttonColors(containerColor = KalyptusGreen),
+            colors   = ButtonDefaults.buttonColors(containerColor = if (onNavigateToWorkout != null) MaterialTheme.colorScheme.secondary else KalyptusGreen),
         ) { Text("Retour au profil") }
         Spacer(Modifier.height(8.dp))
         androidx.compose.material3.OutlinedButton(

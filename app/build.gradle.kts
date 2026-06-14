@@ -80,6 +80,7 @@ dependencies {
     implementation(project(":feature:timer"))
     implementation(project(":feature:warmup"))
     implementation(project(":feature:breathing"))
+    implementation(project(":feature:hiking"))
 
     // Android
     implementation(libs.core.ktx)

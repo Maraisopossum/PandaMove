@@ -100,5 +100,5 @@ data class WorkoutEntity(
 )
 
 enum class WorkoutType {
-    RUNNING, CYCLING, STRENGTH
+    RUNNING, CYCLING, STRENGTH, HIKING
 }

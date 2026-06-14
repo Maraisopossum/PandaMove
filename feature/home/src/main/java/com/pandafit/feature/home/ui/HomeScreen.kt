@@ -3,8 +3,11 @@ package com.pandafit.feature.home.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,6 +33,7 @@ import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.*
 import com.pandafit.feature.home.R
+import com.pandafit.feature.home.data.pandaFactOfTheDay
 import com.pandafit.feature.home.model.HomeUiState
 import com.pandafit.feature.home.model.WeeklySummary
 import com.pandafit.feature.home.viewmodel.HomeViewModel
@@ -47,6 +52,7 @@ fun HomeScreen(
     onNavigateToStats: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToBreathing: () -> Unit = {},
+    onNavigateToHiking: () -> Unit = {},
     onNavigateToWorkout: (type: String, id: Long, isCompleted: Boolean) -> Unit,
     onNavigateToInstance: ((Long) -> Unit)? = null,
     onNavigateToInstanceReport: ((Long) -> Unit)? = null,
@@ -66,6 +72,7 @@ fun HomeScreen(
         onNavigateToCycling = onNavigateToCycling,
         onNavigateToStrength = onNavigateToStrength,
         onNavigateToBreathing = onNavigateToBreathing,
+        onNavigateToHiking = onNavigateToHiking,
         onNavigateToWorkout = onNavigateToWorkout,
         onNavigateToInstance = onNavigateToInstance ?: {},
         onNavigateToInstanceReport = onNavigateToInstanceReport ?: {},
@@ -86,6 +93,7 @@ private fun HomeContent(
     onNavigateToCycling: () -> Unit,
     onNavigateToStrength: () -> Unit,
     onNavigateToBreathing: () -> Unit,
+    onNavigateToHiking: () -> Unit,
     onNavigateToWorkout: (String, Long, Boolean) -> Unit,
     onNavigateToInstance: (Long) -> Unit,
     onNavigateToInstanceReport: (Long) -> Unit,
@@ -134,6 +142,44 @@ private fun HomeContent(
                 bottom = 80.dp,
             ),
         ) {
+            // ── Salutation ──
+            item(key = "greeting") {
+                val prenom = uiState.userName.substringBefore(' ').ifBlank { null }
+                val fact = remember { pandaFactOfTheDay() }
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
+                    Text(
+                        if (prenom != null) "Bonjour $prenom 👋" else "Bonjour 👋",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Text(
+                        "Prêt pour ta prochaine activité ?",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PandaSubtext,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surface,
+                                RoundedCornerShape(10.dp),
+                            )
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("🐼", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            fact,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PandaSubtext,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
             // ── Bilan hebdo ──
             item(key = "week_recap") {
                 WeekRecapCard(
@@ -183,6 +229,7 @@ private fun HomeContent(
                         WorkoutType.RUNNING  -> PandaGreen
                         WorkoutType.CYCLING  -> PandaBlue
                         WorkoutType.STRENGTH -> PandaPurple
+                        WorkoutType.HIKING   -> PandaAmber
                     }
                     TodaySessionCard(
                         title = workout.name,
@@ -195,6 +242,7 @@ private fun HomeContent(
                                     WorkoutType.RUNNING  -> "running"
                                     WorkoutType.CYCLING  -> "cycling"
                                     WorkoutType.STRENGTH -> "strength"
+                                    WorkoutType.HIKING   -> "hiking"
                                 },
                                 workout.id,
                                 workout.isCompleted,
@@ -204,7 +252,7 @@ private fun HomeContent(
                 }
             }
 
-            // ── Activités ──
+            // ── Activités (carousel horizontal) ──
             item(key = "activities_label") {
                 Text(
                     "MES ACTIVITÉS",
@@ -214,54 +262,74 @@ private fun HomeContent(
                     modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
                 )
             }
-            item(key = "activity_running") {
-                ActivityCard(
-                    label = "Course à pieds",
-                    color = PandaGreen,
-                    imageRes = null, // img_panda_running manquant
-                    icon = Icons.AutoMirrored.Filled.DirectionsRun,
-                    stat = if (summary.runningCount == 0) "Aucun run cette semaine"
-                           else if (summary.runningDistanceKm > 0) "${"%.1f".format(summary.runningDistanceKm)} km cette semaine"
-                           else "${summary.runningCount} séance${if (summary.runningCount > 1) "s" else ""} cette semaine",
-                    onClick = onNavigateToRunning,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
-                )
-            }
-            item(key = "activity_cycling") {
-                ActivityCard(
-                    label = "Vélo",
-                    color = PandaBlue,
-                    imageRes = R.drawable.img_panda_cycling,
-                    icon = Icons.AutoMirrored.Filled.DirectionsBike,
-                    stat = if (summary.cyclingCount == 0) "Aucune sortie cette semaine"
-                           else "${summary.cyclingCount} sortie${if (summary.cyclingCount > 1) "s" else ""} cette semaine",
-                    onClick = onNavigateToCycling,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
-                )
-            }
-            item(key = "activity_strength") {
-                ActivityCard(
-                    label = "Renforcement",
-                    color = PandaPurple,
-                    imageRes = null, // img_panda_strength manquant
-                    icon = Icons.Default.FitnessCenter,
-                    stat = if (summary.strengthCount == 0) "Aucune séance cette semaine"
-                           else "${summary.strengthCount} séance${if (summary.strengthCount > 1) "s" else ""} cette semaine",
-                    onClick = onNavigateToStrength,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
-                )
-            }
-            item(key = "activity_breathing") {
-                ActivityCard(
-                    label = "Respiration",
-                    color = KalyptusGreen,
-                    imageRes = null, // img_panda_breathing manquant
-                    icon = Icons.Default.Air,
-                    stat = if (summary.breathingCount == 0) "Aucune session cette semaine"
-                           else "${summary.breathingDurationMinutes} min cette semaine",
-                    onClick = onNavigateToBreathing,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
-                )
+            item(key = "activities_row") {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    item {
+                        ActivityCard(
+                            label = "Course",
+                            color = PandaGreen,
+                            bgImageRes = null,          // → bg_card_running.jpg
+                            pandaImageRes = null,       // → img_panda_running.png
+                            icon = Icons.AutoMirrored.Filled.DirectionsRun,
+                            stat = if (summary.runningCount == 0) "Aucun run"
+                                   else if (summary.runningDistanceKm > 0) "${"%.1f".format(summary.runningDistanceKm)} km"
+                                   else "${summary.runningCount} séance${if (summary.runningCount > 1) "s" else ""}",
+                            onClick = onNavigateToRunning,
+                        )
+                    }
+                    item {
+                        ActivityCard(
+                            label = "Vélo",
+                            color = PandaBlue,
+                            bgImageRes = R.drawable.img_panda_cycling,
+                            pandaImageRes = null,       // → img_panda_cycling_cutout.png
+                            icon = Icons.AutoMirrored.Filled.DirectionsBike,
+                            stat = if (summary.cyclingCount == 0) "Aucune sortie"
+                                   else "${summary.cyclingCount} sortie${if (summary.cyclingCount > 1) "s" else ""}",
+                            onClick = onNavigateToCycling,
+                        )
+                    }
+                    item {
+                        ActivityCard(
+                            label = "Renforcement",
+                            color = PandaPurple,
+                            bgImageRes = null,          // → bg_card_strength.jpg
+                            pandaImageRes = null,       // → img_panda_strength.png
+                            icon = Icons.Default.FitnessCenter,
+                            stat = if (summary.strengthCount == 0) "Aucune séance"
+                                   else "${summary.strengthCount} séance${if (summary.strengthCount > 1) "s" else ""}",
+                            onClick = onNavigateToStrength,
+                        )
+                    }
+                    item {
+                        ActivityCard(
+                            label = "Respiration",
+                            color = KalyptusGreen,
+                            bgImageRes = null,          // → bg_card_breathing.jpg
+                            pandaImageRes = null,       // → img_panda_breathing.png
+                            icon = Icons.Default.Air,
+                            stat = if (summary.breathingCount == 0) "Aucune session"
+                                   else "${summary.breathingDurationMinutes} min",
+                            onClick = onNavigateToBreathing,
+                        )
+                    }
+                    item {
+                        ActivityCard(
+                            label = "Randonnée",
+                            color = PandaAmber,
+                            bgImageRes = null,          // → bg_card_hiking.jpg
+                            pandaImageRes = null,       // → img_panda_hiking.png
+                            icon = Icons.Default.Landscape,
+                            stat = if (summary.hikingCount == 0) "Aucune sortie"
+                                   else if (summary.hikingDistanceKm > 0) "${"%.1f".format(summary.hikingDistanceKm)} km"
+                                   else "${summary.hikingCount} sortie${if (summary.hikingCount > 1) "s" else ""}",
+                            onClick = onNavigateToHiking,
+                        )
+                    }
+                }
             }
         }
     }
@@ -269,80 +337,116 @@ private fun HomeContent(
 
 // ── Activity card ─────────────────────────────────────────────────────────────
 
+/**
+ * Carte d'activité à deux couches d'image indépendantes.
+ *
+ * [bgImageRes]    — image de fond plein format (photo sport, décor). Dossier :
+ *                   feature/home/src/main/res/drawable/
+ *                   Ex: bg_card_running.jpg, bg_card_cycling.jpg …
+ *                   Si null → gradient coloré.
+ *
+ * [pandaImageRes] — PNG avec fond transparent (cutout du panda). Même dossier.
+ *                   Ex: img_panda_running.png, img_panda_cycling.png …
+ *                   Affiché en bas-droite de la carte avec alpha 0.45f.
+ */
 @Composable
 private fun ActivityCard(
     label: String,
     color: Color,
-    imageRes: Int?,
+    bgImageRes: Int? = null,
+    pandaImageRes: Int? = null,
     icon: ImageVector,
     stat: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.fillMaxWidth().height(180.dp),
+        modifier = Modifier.width(160.dp).height(260.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (imageRes != null) {
+
+            // 1. Fond : image plein format ou gradient coloré
+            if (bgImageRes != null) {
                 Image(
-                    painter = painterResource(imageRes),
+                    painter = painterResource(bgImageRes),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
+                )
+                // Voile coloré pour harmoniser avec la teinte du module
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(color.copy(alpha = 0.30f))
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            Brush.linearGradient(
-                                listOf(color.copy(alpha = 0.55f), color.copy(alpha = 0.85f))
+                            Brush.verticalGradient(
+                                listOf(color.copy(alpha = 0.50f), color.copy(alpha = 0.90f))
                             )
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.20f),
-                        modifier = Modifier.size(90.dp),
-                    )
-                }
+                        )
+                )
             }
-            // Gradient pour lisibilité du texte
+
+            // 2. Panda transparent (PNG cutout) positionné en bas-droite
+            if (pandaImageRes != null) {
+                Image(
+                    painter = painterResource(pandaImageRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .fillMaxHeight(0.72f)
+                        .alpha(0.45f),
+                )
+            } else if (bgImageRes == null) {
+                // Icône fantôme quand ni fond ni panda
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.18f),
+                    modifier = Modifier.size(80.dp).align(Alignment.Center),
+                )
+            }
+
+            // 3. Gradient sombre en bas pour la lisibilité du texte
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.60f)),
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
                         )
                     )
             )
-            // Bande gauche 4dp
+
+            // 4. Bande gauche colorée
             Box(
                 modifier = Modifier
                     .width(4.dp)
                     .fillMaxHeight()
                     .background(color)
             )
-            // Texte bas-gauche
+
+            // 5. Texte bas-gauche
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 14.dp, end = 16.dp),
+                    .padding(start = 12.dp, bottom = 12.dp, end = 8.dp),
             ) {
                 Text(
                     stat,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.80f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.75f),
                 )
                 Text(
                     label,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White,
                 )
@@ -353,8 +457,30 @@ private fun ActivityCard(
 
 // ── Bilan de la semaine ───────────────────────────────────────────────────────
 
+private data class SportDistance(val label: String, val km: Double, val color: Color)
+
 @Composable
 private fun WeekRecapCard(summary: WeeklySummary, modifier: Modifier = Modifier) {
+    val distances = remember(summary) {
+        listOf(
+            SportDistance("Course",    summary.runningDistanceKm,  PandaGreen),
+            SportDistance("Vélo",      summary.cyclingDistanceKm,  PandaBlue),
+            SportDistance("Randonnée", summary.hikingDistanceKm,   PandaAmber),
+        )
+    }
+    var distIdx by remember { mutableIntStateOf(0) }
+    val currentDist = distances[distIdx]
+
+    val activeBadges = remember(summary) {
+        buildList {
+            if (summary.runningCount  > 0) add(Triple("${summary.runningCount} course${if (summary.runningCount  > 1) "s" else ""}",  Icons.AutoMirrored.Filled.DirectionsRun,  PandaGreen))
+            if (summary.cyclingCount  > 0) add(Triple("${summary.cyclingCount} vélo${if (summary.cyclingCount   > 1) "s" else ""}",    Icons.AutoMirrored.Filled.DirectionsBike, PandaBlue))
+            if (summary.strengthCount > 0) add(Triple("${summary.strengthCount} renfo",                                                Icons.Default.FitnessCenter,              PandaPurple))
+            if (summary.hikingCount   > 0) add(Triple("${summary.hikingCount} rando${if (summary.hikingCount    > 1) "s" else ""}",    Icons.Default.Landscape,                  PandaAmber))
+            if (summary.breathingCount > 0) add(Triple("${summary.breathingCount} respiration${if (summary.breathingCount > 1) "s" else ""}",Icons.Default.Air,                  KalyptusGreen))
+        }
+    }
+
     Card(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -370,36 +496,83 @@ private fun WeekRecapCard(summary: WeeklySummary, modifier: Modifier = Modifier)
             )
             Spacer(Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                WeekStatColumn("${summary.totalSessions}", "Séances", PandaPurple)
-                WeekStatDivider()
-                WeekStatColumn(
-                    if (summary.runningDistanceKm > 0) "${"%.1f".format(summary.runningDistanceKm)} km" else "—",
-                    "Distance",
-                    PandaGreen,
-                )
-                WeekStatDivider()
-                WeekStatColumn(formatDuration(summary.totalDurationMinutes), "Durée", PandaBlue)
+                // Séances
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "${summary.totalSessions}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PandaPurple,
+                    )
+                    Text("Séances", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                }
+
+                Box(modifier = Modifier.height(32.dp).width(1.dp).background(PandaSubtext.copy(alpha = 0.20f)))
+
+                // Distance cyclable (tap pour changer de sport)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { distIdx = (distIdx + 1) % distances.size },
+                ) {
+                    Text(
+                        if (currentDist.km > 0) "${"%.1f".format(currentDist.km)} km" else "—",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = currentDist.color,
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(currentDist.label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = "Changer de sport",
+                            tint = PandaSubtext,
+                            modifier = Modifier.size(12.dp),
+                        )
+                    }
+                }
+
+                Box(modifier = Modifier.height(32.dp).width(1.dp).background(PandaSubtext.copy(alpha = 0.20f)))
+
+                // Durée
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        formatDuration(summary.totalDurationMinutes),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PandaBlue,
+                    )
+                    Text("Durée", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                }
+            }
+
+            // Badges sports actifs cette semaine
+            if (activeBadges.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(PandaSubtext.copy(alpha = 0.15f)))
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                ) {
+                    activeBadges.forEach { (label, icon, color) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            modifier = Modifier
+                                .background(color.copy(alpha = 0.13f), RoundedCornerShape(20.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
+                            Text(label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
             }
         }
     }
-}
-
-@Composable
-private fun WeekStatColumn(value: String, label: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = color,
-        )
-        Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
-    }
-}
-
-@Composable
-private fun WeekStatDivider() {
-    Box(modifier = Modifier.height(32.dp).width(1.dp).background(PandaSubtext.copy(alpha = 0.20f)))
 }
 
 // ── Séance du jour ────────────────────────────────────────────────────────────
