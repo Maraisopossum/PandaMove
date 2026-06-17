@@ -127,8 +127,12 @@ fun InstanceReportScreen(
     val seriesTotal = seriesMap.values.flatten().size
     val durationLabel = run {
         val s = instance?.durationSeconds?.takeIf { it > 0 } ?: sessionSeconds
-        val m = s / 60; val sec = s % 60
-        if (m > 0) "${m}min${if (sec > 0) "${sec}s" else ""}" else if (s > 0) "${s}s" else "—"
+        if (s <= 0) "—"
+        else {
+            val h = s / 3600; val m = (s % 3600) / 60; val sec = s % 60
+            if (h > 0) "$h:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}"
+            else "${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}"
+        }
     }
     val tonnageLabel = when {
         totalTonnageKg >= 1000.0 -> "${"%.1f".format(totalTonnageKg / 1000.0)} T"

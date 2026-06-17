@@ -949,7 +949,7 @@ private fun InstanceExecuteTopBar(
     onRestStop: () -> Unit,
     onFinir: () -> Unit,
 ) {
-    val sessionLabel = "${sessionSeconds / 60}:${(sessionSeconds % 60).toString().padStart(2, '0')}"
+    val sessionLabel = formatSessionDuration(sessionSeconds)
     TopAppBar(
         title = {
             Column {
@@ -1346,6 +1346,14 @@ private fun HistoriqueSection(histoForExercice: List<Pair<LocalDate, List<SerieR
 }
 
 private fun formatKg(kg: Float): String = if (kg == kg.toLong().toFloat()) "${kg.toInt()} kg" else "$kg kg"
+
+private fun formatSessionDuration(totalSec: Int): String {
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return if (h > 0) "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
+    else "${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
+}
 
 // ===== Overlay décompte 3-2-1 =====
 

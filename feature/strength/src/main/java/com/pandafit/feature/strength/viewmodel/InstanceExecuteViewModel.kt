@@ -199,9 +199,8 @@ class InstanceExecuteViewModel @Inject constructor(
                 isCompleted = instance.isCompleted,
             )
 
-            val hasExistingProgress = seriesParExercice.values.any { s -> s.any { it.isCompleted } }
             val alreadyActive = activeSessionManager.activeInstanceId.value == instanceId
-            if (!instance.isCompleted && (hasExistingProgress || alreadyActive)) {
+            if (!instance.isCompleted) {
                 activeSessionManager.resumeSession(
                     instanceId = instanceId,
                     seanceName = seance?.nom ?: "",
