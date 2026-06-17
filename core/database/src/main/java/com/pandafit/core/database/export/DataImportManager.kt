@@ -1,5 +1,6 @@
 package com.pandafit.core.database.export
 
+import com.pandafit.core.database.dao.BreathingSessionDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
@@ -8,6 +9,7 @@ import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.BlocSeanceEntity
+import com.pandafit.core.database.entities.BreathingSessionEntity
 import com.pandafit.core.database.entities.GpsTrackPointEntity
 import com.pandafit.core.database.entities.BlocType
 import com.pandafit.core.database.entities.ExerciceSeanceEntity
@@ -27,12 +29,10 @@ import com.pandafit.core.database.entities.SerieRealiseeEntity
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -42,6 +42,7 @@ data class ImportResult(
     val imported: Int = 0,
     val skipped: Int = 0,
     val errors: Int = 0,
+    val parseError: String? = null,
 ) {
     val total get() = imported + skipped + errors
     override fun toString() =
@@ -106,6 +107,7 @@ class DataImportManager @Inject constructor(
     private val instanceSeanceDao: InstanceSeanceDao,
     private val exerciseDao: ExerciseDao,
     private val gpsDao: GpsTrackPointDao,
+    private val breathingSessionDao: BreathingSessionDao,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -120,23 +122,18 @@ class DataImportManager @Inject constructor(
     ): ImportResult = withContext(Dispatchers.IO) {
         var imported = 0; var skipped = 0; var errors = 0
 
-        // ── Détection de version ───────────────────────────────────────────────
-        val version = runCatching {
-            json.parseToJsonElement(jsonContent).jsonObject["version"]?.jsonPrimitive?.contentOrNull
-        }.getOrNull() ?: "2.0"
-
-        val export: PandaMoveExport = when {
-            version.startsWith("3") -> {
-                runCatching { json.decodeFromString<PandaMoveExport>(jsonContent) }.getOrNull()
-                    ?: return@withContext ImportResult(errors = 1)
-            }
-            else -> {
-                // v2.0 ou format inconnu → parsing legacy puis conversion
-                val legacy = runCatching {
-                    json.decodeFromString<PandaMoveExportV2>(jsonContent)
-                }.getOrNull() ?: return@withContext ImportResult(errors = 1)
-                legacy.toV3()
-            }
+        // Toujours essayer v3 en premier (couvre les exports sans champ "version"),
+        // puis v2 comme fallback si v3 échoue (ancien format avec strengthSessions en liste plate).
+        val export: PandaMoveExport = runCatching {
+            json.decodeFromString<PandaMoveExport>(jsonContent)
+        }.getOrNull() ?: run {
+            val v2Result = runCatching { json.decodeFromString<PandaMoveExportV2>(jsonContent) }
+            val legacy = v2Result.getOrNull()
+                ?: return@withContext ImportResult(
+                    errors = 1,
+                    parseError = v2Result.exceptionOrNull()?.message,
+                )
+            legacy.toV3()
         }
 
         // ── 1. Exercices personnalisés (à importer en premier — les séances y réfèrent) ──
@@ -159,6 +156,12 @@ class DataImportManager @Inject constructor(
                 }
             }
         }
+
+        // Maps de résolution exerciceId → utilisées par les sections 2 et 3
+        // Les IDs du catalogue diffèrent entre téléphones (auto-increment après migration).
+        val allExercises = exerciseDao.observeAll().first()
+        val exerciseIdSet = allExercises.map { it.id }.toHashSet()
+        val exerciseNameToId = allExercises.associate { it.name to it.id }
 
         // ── 2. Templates renforcement ──────────────────────────────────────────
         if (options.strengthTemplates) {
@@ -207,10 +210,17 @@ class DataImportManager @Inject constructor(
                 }
 
                 for (ex in template.exercices) {
+                    val resolvedExerciceId = if (exerciseIdSet.contains(ex.exerciceId)) {
+                        ex.exerciceId
+                    } else {
+                        val fallback = if (ex.exerciceName.isNotBlank()) exerciseNameToId[ex.exerciceName] else null
+                        if (fallback == null) { errors++; continue }
+                        fallback
+                    }
                     try {
                         val r = seanceDao.insertExerciceIgnore(
                             ExerciceSeanceEntity(
-                                id = ex.id, seanceId = ex.seanceId, exerciceId = ex.exerciceId,
+                                id = ex.id, seanceId = ex.seanceId, exerciceId = resolvedExerciceId,
                                 blocId = ex.blocId, supersetGroupe = ex.supersetGroupe,
                                 position = ex.position,
                                 nombreSeriesPrevues = ex.nombreSeriesPrevues,
@@ -220,6 +230,7 @@ class DataImportManager @Inject constructor(
                                     .getOrDefault(RepsType.REPS),
                                 tempsReposSec = ex.tempsReposSec, consigneCle = ex.consigneCle,
                                 equipement = ex.equipement, avertissement = ex.avertissement,
+                                isBilateral = ex.isBilateral,
                             )
                         )
                         if (r > 0) imported++ else skipped++
@@ -255,6 +266,56 @@ class DataImportManager @Inject constructor(
                     imported++
                 } catch (_: Exception) {
                     errors++; continue
+                }
+
+                for (bloc in session.blocs) {
+                    try {
+                        val r = seanceDao.insertBlocIgnore(
+                            BlocSeanceEntity(
+                                id = bloc.id, seanceId = bloc.seanceId, nom = bloc.nom,
+                                type = runCatching { BlocType.valueOf(bloc.type) }
+                                    .getOrDefault(BlocType.ECHAUFFEMENT),
+                                position = bloc.position, dureeMin = bloc.dureeMin,
+                                description = bloc.description,
+                                tempsReposInterSec = bloc.tempsReposInterSec,
+                                tempsReposFinRoundSec = bloc.tempsReposFinRoundSec,
+                                instanceSeanceId = bloc.instanceSeanceId,
+                            )
+                        )
+                        if (r > 0) imported++ else skipped++
+                    } catch (_: Exception) {
+                        errors++
+                    }
+                }
+
+                for (ex in session.exercices) {
+                    val resolvedExerciceId = if (exerciseIdSet.contains(ex.exerciceId)) {
+                        ex.exerciceId
+                    } else {
+                        val fallback = if (ex.exerciceName.isNotBlank()) exerciseNameToId[ex.exerciceName] else null
+                        if (fallback == null) { errors++; continue }
+                        fallback
+                    }
+                    try {
+                        val r = seanceDao.insertExerciceIgnore(
+                            ExerciceSeanceEntity(
+                                id = ex.id, seanceId = ex.seanceId, exerciceId = resolvedExerciceId,
+                                instanceSeanceId = ex.instanceSeanceId,
+                                blocId = ex.blocId, supersetGroupe = ex.supersetGroupe,
+                                position = ex.position, nombreSeriesPrevues = ex.nombreSeriesPrevues,
+                                repsCibles = ex.repsCibles, chargeCible = ex.chargeCible,
+                                tempo = ex.tempo,
+                                repsType = runCatching { RepsType.valueOf(ex.repsType) }
+                                    .getOrDefault(RepsType.REPS),
+                                tempsReposSec = ex.tempsReposSec, consigneCle = ex.consigneCle,
+                                equipement = ex.equipement, avertissement = ex.avertissement,
+                                isBilateral = ex.isBilateral,
+                            )
+                        )
+                        if (r > 0) imported++ else skipped++
+                    } catch (_: Exception) {
+                        errors++
+                    }
                 }
 
                 for (serie in session.series) {
@@ -324,6 +385,10 @@ class DataImportManager @Inject constructor(
                         resultRpe = w.resultRpe, resultNotes = w.resultNotes,
                         resultElevationM = w.resultElevationM,
                         withStroller = w.withStroller ?: false,
+                        resultSpeedAvgKmh = w.resultSpeedAvgKmh,
+                        resultSpeedMaxKmh = w.resultSpeedMaxKmh,
+                        resultCadenceAvgRpm = w.resultCadenceAvgRpm,
+                        resultCalories = w.resultCalories,
                     )
                 )
                 if (workoutResult == -1L) { skipped++; continue }
@@ -386,6 +451,96 @@ class DataImportManager @Inject constructor(
                         )
                     })
                     imported += runWorkout.gpsPoints.size
+                } catch (_: Exception) {
+                    errors++
+                }
+            }
+        }
+
+        // ── 6. Templates + sessions randonnée ─────────────────────────────────
+        val hikingWorkoutsToImport = mutableListOf<RunWorkoutDto>()
+        if (options.hikingTemplates) hikingWorkoutsToImport.addAll(export.hikingTemplates)
+        if (options.hikingSessions) {
+            hikingWorkoutsToImport.addAll(export.hikingSessions.completed)
+            hikingWorkoutsToImport.addAll(export.hikingSessions.planned)
+        }
+
+        for (runWorkout in hikingWorkoutsToImport) {
+            try {
+                val w = runWorkout.workout
+                val workoutResult = workoutDao.insertIgnore(
+                    WorkoutEntity(
+                        id = w.id,
+                        workoutType = runCatching { WorkoutType.valueOf(w.workoutType) }
+                            .getOrDefault(WorkoutType.HIKING),
+                        name = w.name, notes = w.notes, objective = w.objective,
+                        scheduledDate = runCatching { LocalDate.parse(w.scheduledDate) }
+                            .getOrDefault(LocalDate.now()),
+                        createdAt = runCatching { LocalDateTime.parse(w.createdAt) }
+                            .getOrDefault(LocalDateTime.now()),
+                        updatedAt = runCatching { LocalDateTime.parse(w.updatedAt) }
+                            .getOrDefault(LocalDateTime.now()),
+                        isCompleted = w.isCompleted ?: false,
+                        completedAt = w.completedAt?.let {
+                            runCatching { LocalDateTime.parse(it) }.getOrNull()
+                        },
+                        durationMinutes = w.durationMinutes, tags = w.tags,
+                        colorHex = w.colorHex,
+                        isTemplate = w.isTemplate ?: false,
+                        cycleLabel = w.cycleLabel,
+                        resultDistanceKm = w.resultDistanceKm,
+                        resultDurationSec = w.resultDurationSec,
+                        resultPaceAvgMinPerKm = w.resultPaceAvgMinPerKm,
+                        resultHrAvg = w.resultHrAvg, resultHrMax = w.resultHrMax,
+                        resultRpe = w.resultRpe, resultNotes = w.resultNotes,
+                        resultElevationM = w.resultElevationM,
+                        withStroller = w.withStroller ?: false,
+                        resultSpeedAvgKmh = w.resultSpeedAvgKmh,
+                        resultSpeedMaxKmh = w.resultSpeedMaxKmh,
+                        resultCadenceAvgRpm = w.resultCadenceAvgRpm,
+                        resultCalories = w.resultCalories,
+                    )
+                )
+                if (workoutResult == -1L) { skipped++; continue }
+                imported++
+            } catch (_: Exception) {
+                errors++; continue
+            }
+
+            if (runWorkout.gpsPoints.isNotEmpty()) {
+                try {
+                    gpsDao.insertAll(runWorkout.gpsPoints.map { p ->
+                        GpsTrackPointEntity(
+                            workoutId = runWorkout.workout.id,
+                            pointIndex = p.index,
+                            latitude = p.lat,
+                            longitude = p.lon,
+                            altitudeM = p.alt,
+                        )
+                    })
+                    imported += runWorkout.gpsPoints.size
+                } catch (_: Exception) {
+                    errors++
+                }
+            }
+        }
+
+        // ── 7. Sessions de respiration ─────────────────────────────────────────
+        if (options.breathingSessions) {
+            for (s in export.breathingSessions) {
+                try {
+                    breathingSessionDao.insert(
+                        BreathingSessionEntity(
+                            id = s.id,
+                            methodId = s.methodId,
+                            methodName = s.methodName,
+                            cyclesCompleted = s.cyclesCompleted,
+                            durationSeconds = s.durationSeconds,
+                            sessionDate = runCatching { java.time.LocalDate.parse(s.sessionDate) }
+                                .getOrDefault(java.time.LocalDate.now()),
+                        )
+                    )
+                    imported++
                 } catch (_: Exception) {
                     errors++
                 }

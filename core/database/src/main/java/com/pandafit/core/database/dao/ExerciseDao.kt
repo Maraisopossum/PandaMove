@@ -31,6 +31,9 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE id IN (:ids)")
     suspend fun getByIds(ids: List<Long>): List<ExerciseEntity>
 
+    @Query("SELECT * FROM exercises WHERE name = :name LIMIT 1")
+    suspend fun getByName(name: String): ExerciseEntity?
+
     @Query("SELECT * FROM exercises ORDER BY name ASC")
     fun observeAll(): Flow<List<ExerciseEntity>>
 

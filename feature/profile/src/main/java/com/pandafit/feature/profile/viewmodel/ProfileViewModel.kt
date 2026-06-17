@@ -120,6 +120,7 @@ class ProfileViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     exportImportStatus = ExportImportStatus.SUCCESS_IMPORT,
                     importResult = result,
+                    errorMessage = result.parseError,
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

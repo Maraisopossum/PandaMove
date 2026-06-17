@@ -99,7 +99,7 @@ fun ProfileScreen(
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri ?: return@rememberLauncherForActivityResult
-        val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
+        val content = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.readText()
             ?: return@rememberLauncherForActivityResult
         viewModel.importData(content)
     }
@@ -151,6 +151,14 @@ fun ProfileScreen(
                         Text(
                             "${result.errors} erreur${if (result.errors > 1) "s" else ""}",
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    val parseErr = uiState.errorMessage
+                    if (parseErr != null) {
+                        Text(
+                            "Détail : $parseErr",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
                     }

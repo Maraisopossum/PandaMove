@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PandaMoveExport(
     val version: String = "3.0",
-    val exportDate: String,
+    val exportDate: String = "",
     // ── Renforcement
     val strengthTemplates: List<StrengthTemplateDto> = emptyList(),
     val strengthSessions: StrengthSessionsDto = StrengthSessionsDto(),
@@ -25,6 +25,11 @@ data class PandaMoveExport(
     // ── Cyclisme
     val cyclingTemplates: List<RunWorkoutDto> = emptyList(),
     val cyclingSessions: RunSessionsDto = RunSessionsDto(),
+    // ── Randonnée (ajouté v3.1)
+    val hikingTemplates: List<RunWorkoutDto> = emptyList(),
+    val hikingSessions: RunSessionsDto = RunSessionsDto(),
+    // ── Respiration (ajouté v3.1)
+    val breathingSessions: List<BreathingSessionDto> = emptyList(),
     // ── Exercices personnalisés
     val customExercises: List<CustomExerciseDto> = emptyList(),
 )
@@ -67,6 +72,7 @@ data class BlocDto(
     val description: String = "",
     val tempsReposInterSec: Int = 20,
     val tempsReposFinRoundSec: Int = 120,
+    val instanceSeanceId: Long? = null,
 )
 
 @Serializable
@@ -74,6 +80,8 @@ data class ExerciceDto(
     val id: Long,
     val seanceId: Long,
     val exerciceId: Long,
+    val exerciceName: String = "",
+    val instanceSeanceId: Long? = null,
     val blocId: Long? = null,
     val supersetGroupe: String? = null,
     val position: Int = 0,
@@ -86,12 +94,15 @@ data class ExerciceDto(
     val consigneCle: String = "",
     val equipement: String = "",
     val avertissement: String = "",
+    val isBilateral: Boolean = false,
 )
 
 @Serializable
 data class StrengthSessionDto(
     val instance: InstanceDto,
     val series: List<SerieDto> = emptyList(),
+    val blocs: List<BlocDto> = emptyList(),
+    val exercices: List<ExerciceDto> = emptyList(),
 )
 
 @Serializable
@@ -166,6 +177,10 @@ data class WorkoutDto(
     val resultElevationM: Int? = null,
     // null dans les exports antérieurs → false par défaut à l'import
     val withStroller: Boolean? = false,
+    val resultSpeedAvgKmh: Double? = null,
+    val resultSpeedMaxKmh: Double? = null,
+    val resultCadenceAvgRpm: Int? = null,
+    val resultCalories: Int? = null,
 )
 
 @Serializable
@@ -202,6 +217,18 @@ data class GpsPointDto(
     val lon: Double,
     /** Altitude en mètres (null si non disponible). */
     val alt: Double? = null,
+)
+
+// ── Respiration ──────────────────────────────────────────────────────────────
+
+@Serializable
+data class BreathingSessionDto(
+    val id: Long,
+    val methodId: String,
+    val methodName: String,
+    val cyclesCompleted: Int,
+    val durationSeconds: Int,
+    val sessionDate: String,
 )
 
 // ── Exercices personnalisés ───────────────────────────────────────────────────
