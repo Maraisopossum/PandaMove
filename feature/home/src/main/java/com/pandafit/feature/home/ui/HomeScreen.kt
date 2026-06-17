@@ -33,6 +33,7 @@ import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.*
 import com.pandafit.feature.home.R
+import com.pandafit.feature.home.R.drawable.bg_card_cycling
 import com.pandafit.feature.home.data.pandaFactOfTheDay
 import com.pandafit.feature.home.model.HomeUiState
 import com.pandafit.feature.home.model.WeeklySummary
@@ -284,8 +285,8 @@ private fun HomeContent(
                         ActivityCard(
                             label = "Vélo",
                             color = PandaBlue,
-                            bgImageRes = R.drawable.img_panda_cycling,
-                            pandaImageRes = null,       // → img_panda_cycling_cutout.png
+                            bgImageRes = bg_card_cycling,
+                            pandaImageRes = R.drawable.img_card_cycling,       // → img_panda_cycling_cutout.png
                             icon = Icons.AutoMirrored.Filled.DirectionsBike,
                             stat = if (summary.cyclingCount == 0) "Aucune sortie"
                                    else "${summary.cyclingCount} sortie${if (summary.cyclingCount > 1) "s" else ""}",
