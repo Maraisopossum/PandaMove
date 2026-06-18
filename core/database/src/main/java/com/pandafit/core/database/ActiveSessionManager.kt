@@ -1,5 +1,6 @@
 package com.pandafit.core.database
 
+import com.pandafit.core.database.entities.WorkoutType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -93,6 +94,29 @@ class ActiveSessionManager @Inject constructor() {
 
     fun syncSeconds(seconds: Int) {
         _sessionSeconds.value = seconds
+    }
+
+    // ── Workout actif (Running / Cyclisme) ────────────────────────────────────
+
+    private val _activeWorkoutId = MutableStateFlow<Long?>(null)
+    val activeWorkoutId: StateFlow<Long?> = _activeWorkoutId.asStateFlow()
+
+    private val _activeWorkoutName = MutableStateFlow<String?>(null)
+    val activeWorkoutName: StateFlow<String?> = _activeWorkoutName.asStateFlow()
+
+    private val _activeWorkoutType = MutableStateFlow<WorkoutType?>(null)
+    val activeWorkoutType: StateFlow<WorkoutType?> = _activeWorkoutType.asStateFlow()
+
+    fun startWorkout(workoutId: Long, name: String, type: WorkoutType) {
+        _activeWorkoutId.value = workoutId
+        _activeWorkoutName.value = name
+        _activeWorkoutType.value = type
+    }
+
+    fun endWorkout() {
+        _activeWorkoutId.value = null
+        _activeWorkoutName.value = null
+        _activeWorkoutType.value = null
     }
 
     private fun startTimer() {

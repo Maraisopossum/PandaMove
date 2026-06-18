@@ -449,7 +449,7 @@ fun InstanceExecuteScreen(
                 showPencilMenu = showPencilMenu,
                 showRestMenu = showRestMenu,
                 onNavigateBack = {
-                    if (hasProgress && !uiState.isCompleted) showExitDialog = true else onNavigateBack()
+                    if (!uiState.isCompleted) showExitDialog = true else onNavigateBack()
                 },
                 onPencilClick = { showPencilMenu = true },
                 onPencilDismiss = { showPencilMenu = false },

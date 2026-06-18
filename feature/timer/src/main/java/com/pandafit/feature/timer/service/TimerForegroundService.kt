@@ -28,8 +28,8 @@ class TimerForegroundService : Service() {
         val time  = intent?.getStringExtra(EXTRA_TIME)  ?: "--:--"
         val label = intent?.getStringExtra(EXTRA_LABEL) ?: "Minuteur"
         val notification = buildNotification(this, time, label)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             @Suppress("DEPRECATION")
             startForeground(NOTIFICATION_ID, notification)

@@ -9,6 +9,8 @@
     <!-- Service de premier plan pour la session de respiration guidée -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".PandaFitApp"
@@ -24,6 +26,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.PandaFit.Launch">
             <intent-filter>
@@ -31,6 +34,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Notification session active (running / cyclisme / renforcement) -->
+        <service
+            android:name=".service.ActiveSessionService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- FileProvider pour le partage de fichiers TCX Garmin -->
         <provider

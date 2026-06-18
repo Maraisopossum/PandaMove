@@ -50,6 +50,7 @@ import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.AppDrawerNav
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import com.pandafit.feature.calendar.ui.CalendarScreen
 import com.pandafit.feature.cycling.ui.CyclingScreen
@@ -130,6 +131,14 @@ fun PandaFitNavHost() {
     LaunchedEffect(audioStream) {
         activeSessionVM.restCountdownBeep.collect {
             runCatching { toneBeep.startTone(ToneGenerator.TONE_PROP_BEEP, 120) }
+        }
+    }
+
+    // Navigation depuis la notification (app en bg ou fermée)
+    LaunchedEffect(Unit) {
+        NavigationRouter.pendingRoute.filterNotNull().collect { route ->
+            navController.navigate(route) { launchSingleTop = true }
+            NavigationRouter.consume()
         }
     }
 

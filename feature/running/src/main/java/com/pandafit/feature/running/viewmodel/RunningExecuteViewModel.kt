@@ -3,10 +3,12 @@ package com.pandafit.feature.running.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.RunStepType
+import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
 import com.pandafit.core.database.model.IntervalRepResult
@@ -32,6 +34,7 @@ class RunningExecuteViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val stepDao: RunStepDao,
     private val repeatDao: RunRepeatDao,
+    private val sessionManager: ActiveSessionManager,
 ) : ViewModel() {
 
     private val workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
@@ -43,6 +46,7 @@ class RunningExecuteViewModel @Inject constructor(
     private fun loadWorkout() {
         viewModelScope.launch {
             val workout  = workoutDao.getById(workoutId) ?: return@launch
+            sessionManager.startWorkout(workoutId, workout.name, WorkoutType.RUNNING)
             val repeats  = repeatDao.getByWorkout(workoutId)
             val allSteps = stepDao.getByWorkout(workoutId)
 
@@ -175,8 +179,14 @@ class RunningExecuteViewModel @Inject constructor(
                 stepDao.updateResults(fse.step.id, encoded)
             }
 
+            sessionManager.endWorkout()
             _uiState.value = s.copy(isCompleted = true)
         }
+    }
+
+    override fun onCleared() {
+        sessionManager.endWorkout()
+        super.onCleared()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

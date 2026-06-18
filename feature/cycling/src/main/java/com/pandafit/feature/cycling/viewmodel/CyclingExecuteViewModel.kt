@@ -3,8 +3,10 @@ package com.pandafit.feature.cycling.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.WorkoutEntity
+import com.pandafit.core.database.entities.WorkoutType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +39,7 @@ data class CyclingExecuteUiState(
 class CyclingExecuteViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val workoutDao: WorkoutDao,
+    private val sessionManager: ActiveSessionManager,
 ) : ViewModel() {
 
     private val workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
@@ -52,6 +55,7 @@ class CyclingExecuteViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 return@launch
             }
+            sessionManager.startWorkout(workoutId, w.name, WorkoutType.CYCLING)
             _uiState.value = CyclingExecuteUiState(
                 isLoading          = false,
                 workout            = w,
@@ -121,8 +125,14 @@ class CyclingExecuteViewModel @Inject constructor(
                 notes       = s.resultNotes,
                 completedAt = completedAt,
             )
+            sessionManager.endWorkout()
             _uiState.value = s.copy(isCompleted = true)
         }
+    }
+
+    override fun onCleared() {
+        sessionManager.endWorkout()
+        super.onCleared()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

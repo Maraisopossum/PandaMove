@@ -89,9 +89,11 @@ class HomeViewModel @Inject constructor(
                     .sortedBy { it.isCompleted }
                     .map { inst -> inst to seancesById[inst.seanceId] }
 
-                val weekStrengthDone = allInstances.count { inst ->
+                val weekStrengthInstances = allInstances.filter { inst ->
                     inst.isCompleted && !inst.date.isBefore(weekStart) && !inst.date.isAfter(weekEnd)
                 }
+                val weekStrengthDone = weekStrengthInstances.size
+                val weekStrengthDurationMinutes = weekStrengthInstances.sumOf { it.durationSeconds } / 60
 
                 val completedWorkouts = weekWorkouts.filter { it.isCompleted && !it.isTemplate }
                 val breathingCount = breathingSessions.size
@@ -101,7 +103,7 @@ class HomeViewModel @Inject constructor(
                     totalSessions = completedWorkouts.size + weekStrengthDone + breathingCount,
                     totalDurationMinutes = completedWorkouts.sumOf {
                         it.resultDurationSec?.let { s -> s / 60 } ?: (it.durationMinutes ?: 0)
-                    } + breathingDurationMinutes,
+                    } + breathingDurationMinutes + weekStrengthDurationMinutes,
                     runningDistanceKm = completedWorkouts
                         .filter { it.workoutType == WorkoutType.RUNNING }
                         .sumOf { it.resultDistanceKm ?: 0.0 },

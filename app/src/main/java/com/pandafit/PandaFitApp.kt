@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.pandafit.core.database.seeder.ExerciseSeeder
+import com.pandafit.service.ActiveSessionService
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,7 @@ class PandaFitApp : Application(), Configuration.Provider {
         applicationScope.launch {
             exerciseSeeder.seedIfEmpty()
         }
+        ActiveSessionService.start(this)
     }
 
     override val workManagerConfiguration: Configuration
