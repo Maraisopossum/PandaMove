@@ -834,8 +834,14 @@ private fun formatDuration(minutes: Int): String {
 
 private fun formatSeconds(seconds: Int): String {
     if (seconds <= 0) return "—"
-    val h = seconds / 3600; val m = (seconds % 3600) / 60
-    return if (h > 0) "${h}h${m.toString().padStart(2, '0')}" else "${m}min"
+    val h = seconds / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
+    return when {
+        h > 0 -> "${h}h${m.toString().padStart(2, '0')}m${s.toString().padStart(2, '0')}s"
+        m > 0 -> "${m}min${if (s > 0) "${s}s" else ""}"
+        else  -> "${s}s"
+    }
 }
 
 private fun formatPace(paceMinPerKm: Double): String {
