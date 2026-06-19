@@ -3,13 +3,19 @@ package com.pandafit
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.pandafit.core.database.seeder.ExerciseSeeder
 import com.pandafit.service.ActiveSessionService
+import com.pandafit.core.database.worker.DriveBackupWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -31,6 +37,13 @@ class PandaFitApp : Application(), Configuration.Provider {
             exerciseSeeder.seedIfEmpty()
         }
         ActiveSessionService.start(this)
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            DriveBackupWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<DriveBackupWorker>(7, TimeUnit.DAYS)
+                .setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
+                .build(),
+        )
     }
 
     override val workManagerConfiguration: Configuration

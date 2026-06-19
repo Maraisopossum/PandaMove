@@ -41,4 +41,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.core.ktx)
     implementation(libs.datastore.preferences)
+
+    implementation(libs.workmanager.ktx)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
+    implementation(libs.documentfile)
 }
