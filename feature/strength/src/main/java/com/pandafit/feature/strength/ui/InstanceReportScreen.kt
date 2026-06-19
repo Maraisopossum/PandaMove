@@ -48,10 +48,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.pandafit.feature.strength.R
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -236,15 +238,15 @@ fun InstanceReportScreen(
     if (showFinishDialog) {
         AlertDialog(
             onDismissRequest = { showFinishDialog = false },
-            title = { Text("Terminer la séance ?", fontWeight = FontWeight.Bold) },
-            text = { Text("Les résultats seront sauvegardés et la séance marquée comme terminée.") },
+            title = { Text(stringResource(R.string.instance_report_finish_dialog_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.instance_report_finish_dialog_message)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.finishInstance(); showFinishDialog = false; onFinish() }) {
-                    Text("Terminer", color = PandaGreen, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.instance_report_finish_confirm), color = PandaGreen, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showFinishDialog = false }) { Text("Annuler") }
+                TextButton(onClick = { showFinishDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -252,18 +254,18 @@ fun InstanceReportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Rapport de séance", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(R.string.instance_report_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_navigate_back_cd))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToEdit) {
-                        Icon(Icons.Default.Edit, "Modifier", tint = KalyptusGreen)
+                        Icon(Icons.Default.Edit, stringResource(R.string.instance_report_edit_cd), tint = KalyptusGreen)
                     }
                     IconButton(onClick = { showExportSheet = true }) {
-                        Icon(Icons.Default.Share, "Exporter", tint = KalyptusGreen)
+                        Icon(Icons.Default.Share, stringResource(R.string.instance_report_export_cd), tint = KalyptusGreen)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -286,7 +288,7 @@ fun InstanceReportScreen(
                 ) {
                     Column {
                         Text(
-                            seance?.nom ?: "Séance de renforcement",
+                            seance?.nom ?: stringResource(R.string.instance_report_seance_name_fallback),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                         )
@@ -305,14 +307,17 @@ fun InstanceReportScreen(
                             )
                         }
                         Spacer(Modifier.height(10.dp))
+                        val kpiDuration = stringResource(R.string.instance_report_kpi_duration)
+                        val kpiTonnage = stringResource(R.string.instance_report_kpi_tonnage)
+                        val kpiSeries = stringResource(R.string.instance_report_kpi_series)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             listOf(
-                                Triple("⏱", durationLabel, "Durée"),
-                                Triple("💪", tonnageLabel, "Tonnage"),
-                                Triple("✅", "$seriesCompleted / $seriesTotal", "Séries"),
+                                Triple("⏱", durationLabel, kpiDuration),
+                                Triple("💪", tonnageLabel, kpiTonnage),
+                                Triple("✅", "$seriesCompleted / $seriesTotal", kpiSeries),
                             ).forEach { (emoji, value, label) ->
                                 Column(
                                     modifier = Modifier
@@ -342,11 +347,11 @@ fun InstanceReportScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("#", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(20.dp))
-                    Text("EXERCICE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
-                    Text("REPS", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(36.dp))
-                    Text("KG", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(40.dp))
-                    Text("RPE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(44.dp))
+                    Text(stringResource(R.string.instance_report_col_num), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(20.dp))
+                    Text(stringResource(R.string.instance_report_col_exercise), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.instance_report_col_reps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(36.dp))
+                    Text(stringResource(R.string.instance_report_col_kg), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(40.dp))
+                    Text(stringResource(R.string.instance_report_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(44.dp))
                 }
                 Spacer(Modifier.height(6.dp))
             }
@@ -438,7 +443,7 @@ fun InstanceReportScreen(
             if (!instance?.notes.isNullOrBlank()) {
                 item {
                     Spacer(Modifier.height(8.dp))
-                    Text("NOTE DE SÉANCE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.instance_report_note_section_title), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text(instance!!.notes, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(16.dp))
@@ -454,7 +459,7 @@ fun InstanceReportScreen(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PandaGreen),
                 ) {
-                    Text("✓  Terminer la séance", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(stringResource(R.string.instance_report_finish_button), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
@@ -527,7 +532,7 @@ private fun ReportSerieRow(serie: SerieRealiseeState, isEvenRow: Boolean) {
             modifier = Modifier.width(36.dp),
         )
         Text(
-            serie.chargeLabel ?: serie.chargeKg?.let { "$it kg" } ?: "PDC",
+            serie.chargeLabel ?: serie.chargeKg?.let { "$it kg" } ?: stringResource(R.string.instance_report_charge_pdc_fallback),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = textColor,
@@ -584,7 +589,7 @@ internal fun ReportPrintContent(
         ) {
             Column {
                 Text(
-                    seance?.nom ?: "Séance de renforcement",
+                    seance?.nom ?: stringResource(R.string.instance_report_seance_name_fallback),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                 )
@@ -603,14 +608,17 @@ internal fun ReportPrintContent(
                     )
                 }
                 Spacer(Modifier.height(10.dp))
+                val kpiDuration = stringResource(R.string.instance_report_kpi_duration)
+                val kpiTonnage = stringResource(R.string.instance_report_kpi_tonnage)
+                val kpiSeries = stringResource(R.string.instance_report_kpi_series)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf(
-                        Triple("⏱", durationLabel, "Durée"),
-                        Triple("💪", tonnageLabel, "Tonnage"),
-                        Triple("✅", "$seriesCompleted / $seriesTotal", "Séries"),
+                        Triple("⏱", durationLabel, kpiDuration),
+                        Triple("💪", tonnageLabel, kpiTonnage),
+                        Triple("✅", "$seriesCompleted / $seriesTotal", kpiSeries),
                     ).forEach { (emoji, value, label) ->
                         Column(
                             modifier = Modifier
@@ -638,11 +646,11 @@ internal fun ReportPrintContent(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("#", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(20.dp))
-            Text("EXERCICE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
-            Text("REPS", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(36.dp))
-            Text("KG", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(40.dp))
-            Text("RPE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(38.dp))
+            Text(stringResource(R.string.instance_report_col_num), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(20.dp))
+            Text(stringResource(R.string.instance_report_col_exercise), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.instance_report_col_reps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(36.dp))
+            Text(stringResource(R.string.instance_report_col_kg), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(40.dp))
+            Text(stringResource(R.string.instance_report_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(38.dp))
         }
         Spacer(Modifier.height(6.dp))
 
@@ -725,7 +733,7 @@ internal fun ReportPrintContent(
         // Note de séance
         if (!instance?.notes.isNullOrBlank()) {
             Spacer(Modifier.height(8.dp))
-            Text("NOTE DE SÉANCE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.instance_report_note_section_title), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text(instance!!.notes, style = MaterialTheme.typography.bodySmall)
         }
@@ -735,7 +743,7 @@ internal fun ReportPrintContent(
         HorizontalDivider(color = Color(0xFFE0E0E0))
         Spacer(Modifier.height(8.dp))
         Text(
-            "🐼 PandaFit",
+            stringResource(R.string.instance_report_branding),
             style = MaterialTheme.typography.labelSmall,
             color = Color(0xFF9E9E9E),
             modifier = Modifier.fillMaxWidth(),
@@ -763,7 +771,7 @@ private fun ExportSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Spacer(Modifier.height(4.dp))
-            Text("Exporter le rapport", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.instance_report_export_sheet_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
 
             // Option image
@@ -778,8 +786,8 @@ private fun ExportSheet(
             ) {
                 Text("📷", style = MaterialTheme.typography.headlineSmall)
                 Column {
-                    Text("Image", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    Text("PNG partagé via WhatsApp, Instagram…", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                    Text(stringResource(R.string.instance_report_export_image_label), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.instance_report_export_image_description), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                 }
             }
 
@@ -795,8 +803,8 @@ private fun ExportSheet(
             ) {
                 Text("🌐", style = MaterialTheme.typography.headlineSmall)
                 Column {
-                    Text("Fichier HTML", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Archivage, mail, ouverture dans un navigateur", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                    Text(stringResource(R.string.instance_report_export_html_label), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.instance_report_export_html_description), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                 }
             }
 

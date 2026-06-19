@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -20,6 +21,7 @@ import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.breathing.R
 import com.pandafit.feature.breathing.viewmodel.BreathingViewModel
 import kotlinx.coroutines.launch
 
@@ -85,7 +87,7 @@ fun BreathingMethodCreateScreen(
     Scaffold(
         topBar = {
             PandaTopBar(
-                title          = if (isEditing) "Modifier la méthode" else "Nouvelle méthode",
+                title          = if (isEditing) stringResource(R.string.breathing_create_title_edit) else stringResource(R.string.breathing_create_title_new),
                 onNavigateBack = onNavigateBack,
             )
         },
@@ -101,20 +103,20 @@ fun BreathingMethodCreateScreen(
         ) {
 
             // ── Identité ────────────────────────────────────────────────────
-            Text("Identité", style = MaterialTheme.typography.labelLarge, color = PandaSubtext)
+            Text(stringResource(R.string.breathing_create_section_identity), style = MaterialTheme.typography.labelLarge, color = PandaSubtext)
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value         = emoji,
                     onValueChange = { if (it.length <= 8) emoji = it },
-                    label         = { Text("Emoji") },
+                    label         = { Text(stringResource(R.string.breathing_create_emoji_label)) },
                     singleLine    = true,
                     modifier      = Modifier.width(90.dp),
                 )
                 OutlinedTextField(
                     value         = name,
                     onValueChange = { name = it },
-                    label         = { Text("Nom de la méthode") },
+                    label         = { Text(stringResource(R.string.breathing_create_name_label)) },
                     singleLine    = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     modifier      = Modifier.weight(1f),
@@ -122,10 +124,10 @@ fun BreathingMethodCreateScreen(
             }
 
             // ── Phases ───────────────────────────────────────────────────────
-            Text("Durées des phases", style = MaterialTheme.typography.labelLarge, color = PandaSubtext)
+            Text(stringResource(R.string.breathing_create_section_phases), style = MaterialTheme.typography.labelLarge, color = PandaSubtext)
 
             PhaseRow(
-                label    = "Inspiration",
+                label    = stringResource(R.string.breathing_create_phase_inhale),
                 seconds  = inhaleSeconds,
                 enabled  = true,    // toujours active
                 onToggle = null,
@@ -133,7 +135,7 @@ fun BreathingMethodCreateScreen(
                 onIncrement = { if (inhaleSeconds < 60) inhaleSeconds++ },
             )
             PhaseRow(
-                label    = "Rétention (poumons pleins)",
+                label    = stringResource(R.string.breathing_create_phase_hold_in),
                 seconds  = holdInSeconds,
                 enabled  = holdInEnabled,
                 onToggle = { holdInEnabled = it },
@@ -141,7 +143,7 @@ fun BreathingMethodCreateScreen(
                 onIncrement = { if (holdInSeconds < 60) holdInSeconds++ },
             )
             PhaseRow(
-                label    = "Expiration",
+                label    = stringResource(R.string.breathing_create_phase_exhale),
                 seconds  = exhaleSeconds,
                 enabled  = true,    // toujours active
                 onToggle = null,
@@ -149,7 +151,7 @@ fun BreathingMethodCreateScreen(
                 onIncrement = { if (exhaleSeconds < 60) exhaleSeconds++ },
             )
             PhaseRow(
-                label    = "Rétention (poumons vides)",
+                label    = stringResource(R.string.breathing_create_phase_hold_out),
                 seconds  = holdOutSeconds,
                 enabled  = holdOutEnabled,
                 onToggle = { holdOutEnabled = it },
@@ -158,7 +160,7 @@ fun BreathingMethodCreateScreen(
             )
 
             // ── Nombre de cycles ─────────────────────────────────────────────
-            Text("Nombre de cycles par défaut", style = MaterialTheme.typography.labelLarge, color = PandaSubtext)
+            Text(stringResource(R.string.breathing_create_cycles_section), style = MaterialTheme.typography.labelLarge, color = PandaSubtext)
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -177,7 +179,7 @@ fun BreathingMethodCreateScreen(
                         fontWeight = FontWeight.Bold,
                         color      = PandaBlue,
                     )
-                    Text("cycles", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                    Text(stringResource(R.string.breathing_create_cycles_unit), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                 }
 
                 FilledIconButton(
@@ -194,7 +196,7 @@ fun BreathingMethodCreateScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Aperçu de la description",
+                        stringResource(R.string.breathing_create_preview_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                     )
@@ -230,7 +232,7 @@ fun BreathingMethodCreateScreen(
                 colors   = ButtonDefaults.buttonColors(containerColor = PandaGreen),
             ) {
                 Text(
-                    if (isEditing) "Enregistrer les modifications" else "Créer la méthode",
+                    if (isEditing) stringResource(R.string.breathing_create_save_edit) else stringResource(R.string.breathing_create_save_new),
                     fontWeight = FontWeight.SemiBold,
                 )
             }

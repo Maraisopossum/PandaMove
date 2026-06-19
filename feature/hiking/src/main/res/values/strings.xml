@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings communes -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_confirm_delete">Supprimer</string>
+    <string name="common_validate">Valider</string>
+    <string name="common_create">Créer</string>
+    <string name="common_save_cd">Sauvegarder</string>
+    <string name="common_edit_cd">Modifier</string>
+    <string name="common_delete_cd">Supprimer</string>
+    <string name="common_navigate_back_cd">Retour</string>
+    <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_search_label">Rechercher</string>
+    <string name="common_notes_label">Notes</string>
+    <string name="common_seance_name_label">Nom de la séance</string>
+    <string name="common_empty_dash">—</string>
+
+    <!-- Hiking strings -->
+    <string name="hiking_screen_title">Randonnée</string>
+    <string name="hiking_delete_selected_cd">Supprimer</string>
+    <string name="hiking_fab_encode_cd">Encoder une sortie</string>
+    <string name="hiking_delete_dialog_title">Supprimer %1$d sortie(s) ?</string>
+    <string name="hiking_delete_dialog_text">Cette action est irréversible.</string>
+    <string name="hiking_selection_title">%1$d sélectionné(e)(s)</string>
+    <string name="hiking_empty_title">Aucune sortie rando</string>
+    <string name="hiking_empty_description">Encode ta première randonnée avec le bouton +</string>
+    <string name="hiking_section_completed">SORTIES TERMINÉES</string>
+    <string name="hiking_detail_title_new">Encoder une sortie</string>
+    <string name="hiking_detail_title_edit">Modifier la sortie</string>
+    <string name="hiking_field_name_label">Nom de la sortie *</string>
+    <string name="hiking_field_date_label">Date (jj/mm/aaaa) *</string>
+    <string name="hiking_metrics_section">Métriques</string>
+    <string name="hiking_field_distance">Distance (km)</string>
+    <string name="hiking_field_duration_h">Durée h</string>
+    <string name="hiking_field_duration_min">min</string>
+    <string name="hiking_field_elevation">Dénivelé+ (m)</string>
+    <string name="hiking_field_speed">Vitesse moy (km/h)</string>
+    <string name="hiking_field_speed_placeholder">Auto si vide</string>
+    <string name="hiking_optional_section">Optionnel</string>
+    <string name="hiking_field_hr">FC moy (bpm)</string>
+    <string name="hiking_field_rpe">RPE (1-10)</string>
+    <string name="hiking_field_notes">Notes</string>
+    <string name="hiking_save_button">Enregistrer</string>
+    <string name="hiking_report_title_fallback">Sortie rando</string>
+    <string name="hiking_report_modify_cd">Modifier</string>
+    <string name="hiking_report_delete_cd">Supprimer</string>
+    <string name="hiking_report_delete_dialog_title">Supprimer cette sortie ?</string>
+    <string name="hiking_report_metric_distance">Distance</string>
+    <string name="hiking_report_metric_duration">Durée</string>
+    <string name="hiking_report_metric_elevation">Dénivelé+</string>
+    <string name="hiking_report_speed">Vitesse moyenne</string>
+    <string name="hiking_report_hr">FC moyenne</string>
+    <string name="hiking_report_rpe">RPE</string>
+    <string name="hiking_report_notes_title">Notes</string>
+</resources>

@@ -29,10 +29,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pandafit.feature.strength.R
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaCard
@@ -59,10 +61,10 @@ fun StrengthScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = { PandaTopBar(title = "Renforcement", scrollBehavior = scrollBehavior) },
+        topBar = { PandaTopBar(title = stringResource(R.string.strength_screen_title), scrollBehavior = scrollBehavior) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToCreate, containerColor = PandaPurple) {
-                Icon(Icons.Default.Add, "Nouvelle séance", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.Add, stringResource(R.string.strength_fab_new_seance_cd), tint = MaterialTheme.colorScheme.onPrimary)
             }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -71,10 +73,10 @@ fun StrengthScreen(
             uiState.isLoading -> PandaLoadingIndicator()
             uiState.error != null -> PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             uiState.workouts.isEmpty() -> PandaEmptyState(
-                title = "Aucune séance de renforcement",
-                description = "Crée ta première séance musculaire.",
+                title = stringResource(R.string.strength_empty_title),
+                description = stringResource(R.string.strength_empty_description),
                 icon = Icons.Default.FitnessCenter,
-                action = { AppButton(label = "Créer une séance", onClick = onNavigateToCreate) },
+                action = { AppButton(label = stringResource(R.string.strength_empty_action_create), onClick = onNavigateToCreate) },
                 modifier = Modifier.padding(innerPadding),
             )
             else -> LazyColumn(

@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.cycling.R
 import com.pandafit.feature.cycling.viewmodel.CyclingExecuteViewModel
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -50,14 +52,14 @@ fun CyclingWorkoutExecuteScreen(
     if (showFinishDialog) {
         AlertDialog(
             onDismissRequest = { showFinishDialog = false },
-            title = { Text("Valider la séance ?", fontWeight = FontWeight.Bold) },
-            text = { Text("Les résultats seront sauvegardés et la séance marquée comme terminée.") },
+            title = { Text(stringResource(R.string.cycling_execute_finish_dialog_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.cycling_execute_finish_dialog_text)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.finishWorkout(); showFinishDialog = false }) {
-                    Text("Valider", color = PandaBlue, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.cycling_execute_validate_button), color = PandaBlue, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showFinishDialog = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showFinishDialog = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 
@@ -67,7 +69,7 @@ fun CyclingWorkoutExecuteScreen(
                 title = {
                     Column {
                         Text(
-                            uiState.workout?.name ?: "Résultats",
+                            uiState.workout?.name ?: stringResource(R.string.cycling_execute_title_fallback),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.ExtraBold,
                         )
@@ -81,12 +83,12 @@ fun CyclingWorkoutExecuteScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cycling_execute_back_cd))
                     }
                 },
                 actions = {
                     TextButton(onClick = { showFinishDialog = true }) {
-                        Text("Valider", color = PandaBlue, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.cycling_execute_validate_action), color = PandaBlue, fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -110,7 +112,7 @@ fun CyclingWorkoutExecuteScreen(
                         .padding(14.dp),
                 ) {
                     Text(
-                        "RÉSULTATS",
+                        stringResource(R.string.cycling_execute_section_results),
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                         fontWeight = FontWeight.Bold,
@@ -119,25 +121,25 @@ fun CyclingWorkoutExecuteScreen(
 
                     // Ligne 1 : Distance · Durée · Vitesse moy. (auto)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell("Distance (km)", uiState.resultDistanceKm, KeyboardType.Decimal, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_distance), uiState.resultDistanceKm, KeyboardType.Decimal, Modifier.weight(1f)) {
                             viewModel.updateField("distanceKm", it)
                         }
-                        ResultInputCell("Durée (h:mm:ss)", uiState.resultDurationStr, KeyboardType.Text, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_duration), uiState.resultDurationStr, KeyboardType.Text, Modifier.weight(1f)) {
                             viewModel.updateField("duration", it)
                         }
-                        ReadOnlyCell("Vit. moy. (km/h)", uiState.resultSpeedAvgKmh, Modifier.weight(1f))
+                        ReadOnlyCell(stringResource(R.string.cycling_execute_cell_speed_avg), uiState.resultSpeedAvgKmh, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
 
                     // Ligne 2 : Vitesse max · FC moy · FC max
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell("Vit. max (km/h)", uiState.resultSpeedMaxKmh, KeyboardType.Decimal, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_speed_max), uiState.resultSpeedMaxKmh, KeyboardType.Decimal, Modifier.weight(1f)) {
                             viewModel.updateField("speedMax", it)
                         }
-                        ResultInputCell("FC moy. (bpm)", uiState.resultHrAvg, KeyboardType.Number, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_hr_avg), uiState.resultHrAvg, KeyboardType.Number, Modifier.weight(1f)) {
                             viewModel.updateField("hr", it)
                         }
-                        ResultInputCell("FC max (bpm)", uiState.resultHrMax, KeyboardType.Number, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_hr_max), uiState.resultHrMax, KeyboardType.Number, Modifier.weight(1f)) {
                             viewModel.updateField("hrMax", it)
                         }
                     }
@@ -145,13 +147,13 @@ fun CyclingWorkoutExecuteScreen(
 
                     // Ligne 3 : Cadence · RPE · Dénivelé+
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell("Cadence (rpm)", uiState.resultCadenceAvgRpm, KeyboardType.Number, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_cadence), uiState.resultCadenceAvgRpm, KeyboardType.Number, Modifier.weight(1f)) {
                             viewModel.updateField("cadence", it)
                         }
-                        ResultInputCell("RPE (1–10)", uiState.resultRpe, KeyboardType.Number, Modifier.weight(1f)) { v ->
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_rpe), uiState.resultRpe, KeyboardType.Number, Modifier.weight(1f)) { v ->
                             if (v.isEmpty() || (v.toIntOrNull() ?: 0) <= 10) viewModel.updateField("rpe", v)
                         }
-                        ResultInputCell("Dénivelé+ (m)", uiState.resultElevationM, KeyboardType.Number, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_elevation), uiState.resultElevationM, KeyboardType.Number, Modifier.weight(1f)) {
                             viewModel.updateField("elevation", it)
                         }
                     }
@@ -159,7 +161,7 @@ fun CyclingWorkoutExecuteScreen(
 
                     // Ligne 4 : Calories
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell("Calories (kcal)", uiState.resultCalories, KeyboardType.Number, Modifier.weight(1f)) {
+                        ResultInputCell(stringResource(R.string.cycling_execute_cell_calories), uiState.resultCalories, KeyboardType.Number, Modifier.weight(1f)) {
                             viewModel.updateField("calories", it)
                         }
                         Spacer(Modifier.weight(2f))
@@ -171,7 +173,7 @@ fun CyclingWorkoutExecuteScreen(
             // ── Note de séance ────────────────────────────────────────────────
             item {
                 Text(
-                    "NOTE DE SÉANCE",
+                    stringResource(R.string.cycling_execute_section_notes),
                     style = MaterialTheme.typography.labelSmall,
                     color = PandaSubtext,
                     fontWeight = FontWeight.Bold,
@@ -182,7 +184,7 @@ fun CyclingWorkoutExecuteScreen(
                     onValueChange = { viewModel.updateField("notes", it) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
-                    placeholder = { Text("Commentaire global de la séance…") },
+                    placeholder = { Text(stringResource(R.string.cycling_execute_notes_placeholder)) },
                     shape = RoundedCornerShape(12.dp),
                 )
                 Spacer(Modifier.height(16.dp))
@@ -197,7 +199,7 @@ fun CyclingWorkoutExecuteScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PandaBlue),
                 ) {
                     Text(
-                        "Valider la séance",
+                        stringResource(R.string.cycling_execute_validate_seance_button),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelLarge,
@@ -235,7 +237,7 @@ private fun ResultInputCell(
             decorationBox = { inner ->
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     if (value.isEmpty()) {
-                        Text("—", style = TextStyle(fontSize = 15.sp, color = PandaSubtext, textAlign = TextAlign.Center))
+                        Text(stringResource(R.string.common_empty_dash), style = TextStyle(fontSize = 15.sp, color = PandaSubtext, textAlign = TextAlign.Center))
                     }
                     inner()
                 }
@@ -260,7 +262,7 @@ private fun ReadOnlyCell(
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, textAlign = TextAlign.Center)
         Text(
-            text = if (value.isEmpty()) "auto" else value,
+            text = if (value.isEmpty()) stringResource(R.string.cycling_execute_cell_auto) else value,
             style = TextStyle(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,

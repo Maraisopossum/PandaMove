@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -110,14 +111,14 @@ private fun HomeContent(
             TopAppBar(
                 title = {
                     Text(
-                        "PandaMove",
+                        stringResource(R.string.home_screen_title),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
                     )
                 },
                 actions = {
                     IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.home_menu_cd))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -149,13 +150,13 @@ private fun HomeContent(
                 val fact = remember { pandaFactOfTheDay() }
                 Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
                     Text(
-                        if (prenom != null) "Bonjour $prenom 👋" else "Bonjour 👋",
+                        if (prenom != null) stringResource(R.string.home_greeting_with_name, prenom) else stringResource(R.string.home_greeting),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     Text(
-                        "Prêt pour ta prochaine activité ?",
+                        stringResource(R.string.home_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = PandaSubtext,
                     )
@@ -193,7 +194,7 @@ private fun HomeContent(
             if (activeInstanceId != null) {
                 item(key = "active_session_banner") {
                     ActiveResumeBanner(
-                        seanceName = activeSeanceName ?: "Séance en cours",
+                        seanceName = activeSeanceName ?: stringResource(R.string.home_active_session_fallback),
                         sessionSeconds = sessionSeconds,
                         restRemaining = restRemaining,
                         onClick = { onNavigateToInstance(activeInstanceId) },
@@ -206,7 +207,7 @@ private fun HomeContent(
             if (hasUpcoming) {
                 item(key = "today_label") {
                     Text(
-                        "SÉANCES DU JOUR",
+                        stringResource(R.string.home_section_today),
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                         fontWeight = FontWeight.Bold,
@@ -215,7 +216,7 @@ private fun HomeContent(
                 }
                 items(uiState.upcomingInstances, key = { "inst_${it.first.id}" }) { (instance, seance) ->
                     TodaySessionCard(
-                        title = seance?.nom ?: "Renforcement",
+                        title = seance?.nom ?: stringResource(R.string.home_instance_title_fallback),
                         dateStr = formatDate(instance.date),
                         accentColor = PandaPurple,
                         isCompleted = instance.isCompleted,
@@ -256,7 +257,7 @@ private fun HomeContent(
             // ── Activités (carousel horizontal) ──
             item(key = "activities_label") {
                 Text(
-                    "MES ACTIVITÉS",
+                    stringResource(R.string.home_section_activities),
                     style = MaterialTheme.typography.labelSmall,
                     color = PandaSubtext,
                     fontWeight = FontWeight.Bold,
@@ -270,12 +271,12 @@ private fun HomeContent(
                 ) {
                     item {
                         ActivityCard(
-                            label = "Course",
+                            label = stringResource(R.string.home_activity_running),
                             color = PandaGreen,
                             bgImageRes = null,          // → bg_card_running.jpg
                             pandaImageRes = null,       // → img_panda_running.png
                             icon = Icons.AutoMirrored.Filled.DirectionsRun,
-                            stat = if (summary.runningCount == 0) "Aucun run"
+                            stat = if (summary.runningCount == 0) stringResource(R.string.home_stat_no_run)
                                    else if (summary.runningDistanceKm > 0) "${"%.1f".format(summary.runningDistanceKm)} km"
                                    else "${summary.runningCount} séance${if (summary.runningCount > 1) "s" else ""}",
                             onClick = onNavigateToRunning,
@@ -283,48 +284,48 @@ private fun HomeContent(
                     }
                     item {
                         ActivityCard(
-                            label = "Vélo",
+                            label = stringResource(R.string.home_activity_cycling),
                             color = PandaBlue,
                             bgImageRes = bg_card_cycling,
                             pandaImageRes = R.drawable.img_card_cycling,       // → img_panda_cycling_cutout.png
                             icon = Icons.AutoMirrored.Filled.DirectionsBike,
-                            stat = if (summary.cyclingCount == 0) "Aucune sortie"
+                            stat = if (summary.cyclingCount == 0) stringResource(R.string.home_stat_no_cycling)
                                    else "${summary.cyclingCount} sortie${if (summary.cyclingCount > 1) "s" else ""}",
                             onClick = onNavigateToCycling,
                         )
                     }
                     item {
                         ActivityCard(
-                            label = "Renforcement",
+                            label = stringResource(R.string.home_activity_strength),
                             color = PandaPurple,
                             bgImageRes = null,          // → bg_card_strength.jpg
                             pandaImageRes = null,       // → img_panda_strength.png
                             icon = Icons.Default.FitnessCenter,
-                            stat = if (summary.strengthCount == 0) "Aucune séance"
+                            stat = if (summary.strengthCount == 0) stringResource(R.string.home_stat_no_strength)
                                    else "${summary.strengthCount} séance${if (summary.strengthCount > 1) "s" else ""}",
                             onClick = onNavigateToStrength,
                         )
                     }
                     item {
                         ActivityCard(
-                            label = "Respiration",
+                            label = stringResource(R.string.home_activity_breathing),
                             color = KalyptusGreen,
                             bgImageRes = null,          // → bg_card_breathing.jpg
                             pandaImageRes = null,       // → img_panda_breathing.png
                             icon = Icons.Default.Air,
-                            stat = if (summary.breathingCount == 0) "Aucune session"
+                            stat = if (summary.breathingCount == 0) stringResource(R.string.home_stat_no_breathing)
                                    else "${summary.breathingDurationMinutes} min",
                             onClick = onNavigateToBreathing,
                         )
                     }
                     item {
                         ActivityCard(
-                            label = "Randonnée",
+                            label = stringResource(R.string.home_activity_hiking),
                             color = PandaAmber,
                             bgImageRes = null,          // → bg_card_hiking.jpg
                             pandaImageRes = null,       // → img_panda_hiking.png
                             icon = Icons.Default.Landscape,
-                            stat = if (summary.hikingCount == 0) "Aucune sortie"
+                            stat = if (summary.hikingCount == 0) stringResource(R.string.home_stat_no_cycling)
                                    else if (summary.hikingDistanceKm > 0) "${"%.1f".format(summary.hikingDistanceKm)} km"
                                    else "${summary.hikingCount} sortie${if (summary.hikingCount > 1) "s" else ""}",
                             onClick = onNavigateToHiking,
@@ -490,7 +491,7 @@ private fun WeekRecapCard(summary: WeeklySummary, modifier: Modifier = Modifier)
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(
-                "BILAN DE LA SEMAINE",
+                stringResource(R.string.home_section_week_recap),
                 style = MaterialTheme.typography.labelSmall,
                 color = PandaSubtext,
                 fontWeight = FontWeight.Bold,
@@ -505,7 +506,7 @@ private fun WeekRecapCard(summary: WeeklySummary, modifier: Modifier = Modifier)
                         fontWeight = FontWeight.ExtraBold,
                         color = PandaPurple,
                     )
-                    Text("Séances", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                    Text(stringResource(R.string.home_week_stat_sessions), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                 }
 
                 Box(modifier = Modifier.height(32.dp).width(1.dp).background(PandaSubtext.copy(alpha = 0.20f)))
@@ -528,7 +529,7 @@ private fun WeekRecapCard(summary: WeeklySummary, modifier: Modifier = Modifier)
                         Text(currentDist.label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                         Icon(
                             Icons.Default.ChevronRight,
-                            contentDescription = "Changer de sport",
+                            contentDescription = stringResource(R.string.home_change_sport_cd),
                             tint = PandaSubtext,
                             modifier = Modifier.size(12.dp),
                         )
@@ -545,7 +546,7 @@ private fun WeekRecapCard(summary: WeeklySummary, modifier: Modifier = Modifier)
                         fontWeight = FontWeight.ExtraBold,
                         color = PandaBlue,
                     )
-                    Text("Durée", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                    Text(stringResource(R.string.home_week_stat_duration), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                 }
             }
 
@@ -661,7 +662,7 @@ private fun ActiveResumeBanner(
             Spacer(Modifier.width(4.dp))
         }
         Text(sessionLabel, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-        Icon(Icons.Default.PlayArrow, "Reprendre", tint = Color.White, modifier = Modifier.size(16.dp))
+        Icon(Icons.Default.PlayArrow, stringResource(R.string.home_resume_cd), tint = Color.White, modifier = Modifier.size(16.dp))
     }
 }
 

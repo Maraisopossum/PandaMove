@@ -53,12 +53,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.DpOffset
+import com.pandafit.feature.strength.R
 import com.pandafit.core.database.entities.InstanceSeanceEntity
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.designsystem.components.AssignMenuDialog
@@ -140,31 +143,36 @@ fun SeanceListScreen(
     }
 
     if (showDeleteDialog) {
-        val label = if (totalSelected == 1) "cet élément" else "ces $totalSelected éléments"
+        val label = if (totalSelected == 1)
+            stringResource(R.string.seance_list_delete_dialog_label_single)
+        else
+            stringResource(R.string.seance_list_delete_dialog_label_plural, totalSelected)
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer $label ?") },
+            title = { Text(stringResource(R.string.seance_list_delete_dialog_title, label)) },
             text = {
                 val detail = buildString {
                     if (selectedSeanceIds.isNotEmpty()) {
-                        append("${selectedSeanceIds.size} séance${if (selectedSeanceIds.size > 1) "s type" else " type"}")
-                        if (selectedInstanceIds.isNotEmpty()) append(" et ")
+                        val n = selectedSeanceIds.size
+                        append(pluralStringResource(R.plurals.seance_list_delete_count_types, n, n))
+                        if (selectedInstanceIds.isNotEmpty()) append(stringResource(R.string.seance_list_delete_detail_separator))
                     }
                     if (selectedInstanceIds.isNotEmpty()) {
-                        append("${selectedInstanceIds.size} séance${if (selectedInstanceIds.size > 1) "s planifiées" else " planifiée"}")
+                        val n = selectedInstanceIds.size
+                        append(pluralStringResource(R.plurals.seance_list_delete_count_planned, n, n))
                     }
-                    append(" seront supprimées.")
-                    if (selectedSeanceIds.isNotEmpty()) append("\nAttention : supprimer une séance type supprime aussi toutes ses instances.")
+                    append(stringResource(R.string.seance_list_delete_detail_suffix))
+                    if (selectedSeanceIds.isNotEmpty()) append("\n" + stringResource(R.string.seance_list_delete_warning_cascade))
                 }
                 Text(detail, style = MaterialTheme.typography.bodySmall)
             },
             confirmButton = {
                 TextButton(onClick = { deleteSelected(); showDeleteDialog = false }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -230,20 +238,20 @@ fun SeanceListScreen(
     if (showOneShotDialog) {
         AlertDialog(
             onDismissRequest = { showOneShotDialog = false; oneShotNom = "" },
-            title = { Text("Séance directe") },
+            title = { Text(stringResource(R.string.seance_list_oneshot_dialog_title)) },
             text = {
                 androidx.compose.foundation.layout.Column(
                     verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
-                        "Crée une séance planifiée indépendante, sans séance type associée.",
+                        stringResource(R.string.seance_list_oneshot_dialog_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = PandaSubtext,
                     )
                     OutlinedTextField(
                         value = oneShotNom,
                         onValueChange = { oneShotNom = it },
-                        label = { Text("Nom de la séance") },
+                        label = { Text(stringResource(R.string.seance_list_oneshot_name_label)) },
                         placeholder = { Text("Séance du ${oneShotDate.dayOfMonth}/${oneShotDate.monthValue}") },
                         singleLine = true,
                         modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
@@ -256,11 +264,11 @@ fun SeanceListScreen(
                     showOneShotDialog = false
                     oneShotNom = ""
                 }) {
-                    Text("Créer", color = PandaPurple, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_create), color = PandaPurple, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showOneShotDialog = false; oneShotNom = "" }) { Text("Annuler") }
+                TextButton(onClick = { showOneShotDialog = false; oneShotNom = "" }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -272,18 +280,18 @@ fun SeanceListScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            "$totalSelected sélectionné${if (totalSelected > 1) "s" else ""}",
+                            pluralStringResource(R.plurals.seance_list_selection_count, totalSelected, totalSelected),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = ::clearSelection) {
-                            Icon(Icons.Default.Close, "Annuler la sélection")
+                            Icon(Icons.Default.Close, stringResource(R.string.seance_list_selection_cancel_cd))
                         }
                     },
                     actions = {
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, stringResource(R.string.seance_list_delete_icon_cd), tint = MaterialTheme.colorScheme.error)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -291,14 +299,14 @@ fun SeanceListScreen(
                     ),
                 )
             } else {
-                PandaTopBar(title = "Renforcement", onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(title = stringResource(R.string.strength_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
             }
         },
         floatingActionButton = {
             if (!isSelectionMode) {
                 androidx.compose.foundation.layout.Box {
                     FloatingActionButton(onClick = { showFabMenu = true }, containerColor = PandaPurple) {
-                        Icon(Icons.Default.Add, "Nouvelle séance", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(Icons.Default.Add, stringResource(R.string.strength_fab_new_seance_cd), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     DropdownMenu(
                         expanded = showFabMenu,
@@ -306,12 +314,12 @@ fun SeanceListScreen(
                         offset = DpOffset(0.dp, (-8).dp),
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Séance type") },
+                            text = { Text(stringResource(R.string.seance_list_fab_menu_type)) },
                             leadingIcon = { Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = androidx.compose.ui.Modifier.size(18.dp)) },
                             onClick = { showFabMenu = false; onNavigateToCreate() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Séance directe") },
+                            text = { Text(stringResource(R.string.seance_list_fab_menu_direct)) },
                             leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = PandaPurple, modifier = androidx.compose.ui.Modifier.size(18.dp)) },
                             onClick = { showFabMenu = false; oneShotDate = java.time.LocalDate.now(); showOneShotDialog = true },
                         )
@@ -325,10 +333,10 @@ fun SeanceListScreen(
             uiState.isLoading -> PandaLoadingIndicator()
             uiState.error != null -> PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             uiState.seances.isEmpty() && uiState.instances.isEmpty() -> PandaEmptyState(
-                title = "Aucune séance",
-                description = "Crée ta première séance de renforcement.",
+                title = stringResource(R.string.seance_list_empty_title),
+                description = stringResource(R.string.seance_list_empty_description),
                 icon = Icons.Default.FitnessCenter,
-                action = { AppButton(label = "Créer une séance", onClick = onNavigateToCreate) },
+                action = { AppButton(label = stringResource(R.string.seance_list_empty_action_create), onClick = onNavigateToCreate) },
                 modifier = Modifier.padding(innerPadding),
             )
             else -> {
@@ -347,7 +355,7 @@ fun SeanceListScreen(
                 ) {
                     // ===== SÉANCES TYPES =====
                     if (uiState.seances.isNotEmpty()) {
-                        item { SeanceSectionHeader("Séances types") }
+                        item { SeanceSectionHeader(stringResource(R.string.seance_list_section_types)) }
                         items(uiState.seances, key = { "s_${it.id}" }) { seance ->
                             val isSelected = seance.id in selectedSeanceIds
                             SelectableSeanceTypeCard(
@@ -367,7 +375,7 @@ fun SeanceListScreen(
 
                     // ===== SÉANCES PLANIFIÉES =====
                     if (plannedInstances.isNotEmpty()) {
-                        item { SeanceSectionHeader("Séances planifiées") }
+                        item { SeanceSectionHeader(stringResource(R.string.seance_list_section_planned)) }
                         items(plannedInstances, key = { "ip_${it.id}" }) { instance ->
                             val seance = uiState.seancesById[instance.seanceId]
                             val isSelected = instance.id in selectedInstanceIds
@@ -390,7 +398,7 @@ fun SeanceListScreen(
 
                     // ===== SÉANCES TERMINÉES =====
                     if (completedInstances.isNotEmpty()) {
-                        item { SeanceSectionHeader("Séances terminées") }
+                        item { SeanceSectionHeader(stringResource(R.string.seance_list_section_completed)) }
                         items(visibleCompleted, key = { "ic_${it.id}" }) { instance ->
                             val seance = uiState.seancesById[instance.seanceId]
                             val isSelected = instance.id in selectedInstanceIds
@@ -420,8 +428,8 @@ fun SeanceListScreen(
                                     )
                                     Spacer(Modifier.width(4.dp))
                                     Text(
-                                        if (showAllCompleted) "Réduire"
-                                        else "Voir les ${completedInstances.size - MAX_COMPLETED_VISIBLE} autres",
+                                        if (showAllCompleted) stringResource(R.string.seance_list_collapse_label)
+                                        else stringResource(R.string.seance_list_see_more_label, completedInstances.size - MAX_COMPLETED_VISIBLE),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = PandaSubtext,
                                     )
@@ -502,12 +510,12 @@ private fun SelectableSeanceTypeCard(
             if (!isSelectionMode) {
                 if (onDuplicate != null) {
                     IconButton(onClick = onDuplicate, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.ContentCopy, "Dupliquer", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.ContentCopy, stringResource(R.string.seance_list_card_duplicate_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 if (onAssign != null) {
                     IconButton(onClick = onAssign, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.CalendarMonth, "Affecter au calendrier", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.CalendarMonth, stringResource(R.string.seance_list_card_assign_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 Icon(Icons.AutoMirrored.Filled.NavigateNext, null, tint = PandaSubtext, modifier = Modifier.size(18.dp))
@@ -562,7 +570,7 @@ private fun SelectableInstanceCard(
                 Spacer(Modifier.width(12.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(seance?.nom ?: "Séance", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(seance?.nom ?: stringResource(R.string.seance_list_instance_name_fallback), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Text("$dayName ${instance.date.format(dateFormatter)}", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
             }
             if (!isSelectionMode) {
@@ -572,7 +580,7 @@ private fun SelectableInstanceCard(
                     // Bouton décalage de date (uniquement sur les séances non terminées)
                     if (onReschedule != null) {
                         IconButton(onClick = onReschedule, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.CalendarMonth, "Changer la date", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.CalendarMonth, stringResource(R.string.seance_list_reschedule_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                         }
                     }
                     Icon(Icons.Default.PlayArrow, null, tint = PandaPurple, modifier = Modifier.size(18.dp))

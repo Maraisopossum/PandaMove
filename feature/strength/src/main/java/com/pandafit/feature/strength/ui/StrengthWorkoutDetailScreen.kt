@@ -56,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -69,6 +70,7 @@ import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.strength.model.StrengthExerciseDraft
 import com.pandafit.feature.strength.model.StrengthSetDraft
 import com.pandafit.feature.strength.model.StrengthWorkoutMode
+import com.pandafit.feature.strength.R
 import com.pandafit.feature.strength.viewmodel.StrengthDetailViewModel
 import kotlinx.coroutines.launch
 
@@ -107,7 +109,7 @@ fun StrengthWorkoutDetailScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             PandaTopBar(
-                title = if (uiState.isNew) "Nouvelle séance" else "Modifier",
+                title = if (uiState.isNew) stringResource(R.string.seance_create_title_new) else stringResource(R.string.seance_create_title_edit),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
             )
@@ -116,9 +118,9 @@ fun StrengthWorkoutDetailScreen(
             BottomAppBar(
                 actions = {
                     IconButton(onClick = viewModel::showExercisePicker) {
-                        Icon(Icons.Default.Add, "Ajouter un exercice")
+                        Icon(Icons.Default.Add, stringResource(R.string.strength_detail_add_exercise_cd))
                     }
-                    Text("Ajouter un exercice", style = MaterialTheme.typography.labelMedium, color = PandaSubtext)
+                    Text(stringResource(R.string.strength_detail_add_exercise_label), style = MaterialTheme.typography.labelMedium, color = PandaSubtext)
                 },
                 floatingActionButton = {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -127,13 +129,13 @@ fun StrengthWorkoutDetailScreen(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                             elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation(),
-                        ) { Icon(Icons.Default.Save, "Sauvegarder") }
+                        ) { Icon(Icons.Default.Save, stringResource(R.string.common_save_cd)) }
                         FloatingActionButton(
                             onClick = { navigateToExecute = true; viewModel.save() },
                             containerColor = PandaPurple,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                             elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation(),
-                        ) { Icon(Icons.Default.PlayArrow, "Démarrer") }
+                        ) { Icon(Icons.Default.PlayArrow, stringResource(R.string.strength_detail_start_cd)) }
                     }
                 },
             )
@@ -151,11 +153,11 @@ fun StrengthWorkoutDetailScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
                             value = uiState.name, onValueChange = viewModel::updateName,
-                            label = { Text("Nom de la séance") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            label = { Text(stringResource(R.string.common_seance_name_label)) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                         )
                         OutlinedTextField(
                             value = uiState.notes, onValueChange = viewModel::updateNotes,
-                            label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), maxLines = 3,
+                            label = { Text(stringResource(R.string.common_notes_label)) }, modifier = Modifier.fillMaxWidth(), maxLines = 3,
                         )
                     }
                 }
@@ -164,14 +166,14 @@ fun StrengthWorkoutDetailScreen(
             // Mode de séance
             item {
                 Column {
-                    Text("Type d'entraînement", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.strength_detail_type_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StrengthWorkoutMode.entries.forEach { mode ->
                             FilterChip(
                                 selected = uiState.mode == mode,
                                 onClick = { viewModel.updateMode(mode) },
-                                label = { Text(modeName(mode)) },
+                                label = { Text(modeNameRes(mode)) },
                             )
                         }
                     }
@@ -180,7 +182,7 @@ fun StrengthWorkoutDetailScreen(
 
             item {
                 Text(
-                    text = "Exercices (${uiState.exercises.size})",
+                    text = stringResource(R.string.strength_detail_exercises_section_title, uiState.exercises.size),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -190,7 +192,7 @@ fun StrengthWorkoutDetailScreen(
                 item {
                     TextButton(onClick = viewModel::showExercisePicker, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.FitnessCenter, null)
-                        Text("  Ajouter un exercice")
+                        Text(stringResource(R.string.strength_detail_add_exercise_button))
                     }
                 }
             }
@@ -240,10 +242,10 @@ private fun StrengthExerciseCard(
                         style = MaterialTheme.typography.labelSmall, color = PandaSubtext,
                     )
                 }
-                IconButton(onClick = onDuplicate) { Icon(Icons.Default.ContentCopy, "Dupliquer", modifier = Modifier.size(18.dp)) }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer", modifier = Modifier.size(18.dp)) }
+                IconButton(onClick = onDuplicate) { Icon(Icons.Default.ContentCopy, stringResource(R.string.common_duplicate_cd), modifier = Modifier.size(18.dp)) }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), modifier = Modifier.size(18.dp)) }
                 IconButton(onClick = { expanded = !expanded }) {
-                    Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, "Toggle")
+                    Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, stringResource(R.string.strength_detail_expand_toggle_cd))
                 }
             }
 
@@ -254,10 +256,10 @@ private fun StrengthExerciseCard(
 
                     // En-têtes colonnes
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Série", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(40.dp))
-                        Text("Reps", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                        Text("Charge (kg)", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.5f))
-                        Text("RPE", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f))
+                        Text(stringResource(R.string.strength_detail_col_serie), style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(40.dp))
+                        Text(stringResource(R.string.strength_detail_col_reps), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.strength_detail_col_charge_kg), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.5f))
+                        Text(stringResource(R.string.strength_detail_col_rpe), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f))
                         Spacer(Modifier.size(36.dp))
                     }
                     Spacer(Modifier.height(4.dp))
@@ -281,7 +283,7 @@ private fun StrengthExerciseCard(
                         ),
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                        Text(" Ajouter une série")
+                        Text(stringResource(R.string.strength_detail_add_set_button))
                     }
 
                     // Notes exercise
@@ -289,7 +291,7 @@ private fun StrengthExerciseCard(
                     OutlinedTextField(
                         value = exercise.notes,
                         onValueChange = { onUpdate(exercise.copy(notes = it)) },
-                        label = { Text("Notes") },
+                        label = { Text(stringResource(R.string.common_notes_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 2,
                     )
@@ -297,11 +299,11 @@ private fun StrengthExerciseCard(
                     // Repos entre séries
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Repos entre séries :", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                        Text(stringResource(R.string.strength_detail_rest_between_sets_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                         OutlinedTextField(
                             value = exercise.restBetweenSetsSeconds.toString(),
                             onValueChange = { it.toIntOrNull()?.let { v -> onUpdate(exercise.copy(restBetweenSetsSeconds = v)) } },
-                            label = { Text("sec") },
+                            label = { Text(stringResource(R.string.strength_detail_rest_sec_label)) },
                             modifier = Modifier.width(80.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
@@ -355,7 +357,7 @@ private fun SetRow(
             singleLine = true,
         )
         IconButton(onClick = onDelete, enabled = canDelete, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Default.Delete, "Supprimer", modifier = Modifier.size(16.dp), tint = if (canDelete) MaterialTheme.colorScheme.error else PandaSubtext)
+            Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), modifier = Modifier.size(16.dp), tint = if (canDelete) MaterialTheme.colorScheme.error else PandaSubtext)
         }
     }
 }
@@ -373,15 +375,15 @@ private fun ExercisePickerSheet(
     }
 
     Column(modifier = Modifier.padding(16.dp)) {
-        Text("Choisir un exercice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.strength_detail_picker_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = query, onValueChange = { query = it },
-            label = { Text("Rechercher") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.common_search_label)) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
         )
         Spacer(Modifier.height(12.dp))
         if (filtered.isEmpty()) {
-            Text("Aucun exercice trouvé.", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+            Text(stringResource(R.string.strength_detail_picker_empty), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
         }
         filtered.take(30).forEach { exercise ->
             TextButton(
@@ -398,8 +400,9 @@ private fun ExercisePickerSheet(
     }
 }
 
-private fun modeName(mode: StrengthWorkoutMode) = when (mode) {
-    StrengthWorkoutMode.CLASSIC -> "Classique"
-    StrengthWorkoutMode.SUPERSET -> "Superset"
-    StrengthWorkoutMode.CIRCUIT -> "Circuit"
+@Composable
+private fun modeNameRes(mode: StrengthWorkoutMode) = when (mode) {
+    StrengthWorkoutMode.CLASSIC -> stringResource(R.string.strength_mode_classic)
+    StrengthWorkoutMode.SUPERSET -> stringResource(R.string.strength_mode_superset)
+    StrengthWorkoutMode.CIRCUIT -> stringResource(R.string.strength_mode_circuit)
 }

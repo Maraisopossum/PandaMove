@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══════════════════════════════════════════════════════
+         Strings communes (miroir de core/designsystem)
+    ══════════════════════════════════════════════════════ -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_confirm_delete">Supprimer</string>
+    <string name="common_validate">Valider</string>
+    <string name="common_create">Créer</string>
+    <string name="common_save_cd">Sauvegarder</string>
+    <string name="common_edit_cd">Modifier</string>
+    <string name="common_delete_cd">Supprimer</string>
+    <string name="common_navigate_back_cd">Retour</string>
+    <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_search_label">Rechercher</string>
+    <string name="common_notes_label">Notes</string>
+    <string name="common_seance_name_label">Nom de la séance</string>
+    <string name="common_empty_dash">—</string>
+
+
+    <!-- ══════════════════════════════════════════════════════
+         StrengthScreen
+    ══════════════════════════════════════════════════════ -->
+    <string name="strength_screen_title">Renforcement</string>
+    <string name="strength_fab_new_seance_cd">Nouvelle séance</string>
+    <string name="strength_empty_title">Aucune séance de renforcement</string>
+    <string name="strength_empty_description">Crée ta première séance musculaire.</string>
+    <string name="strength_empty_action_create">Créer une séance</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         SeanceListScreen
+    ══════════════════════════════════════════════════════ -->
+    <!-- Dialog suppression multi-sélection -->
+    <string name="seance_list_delete_dialog_label_single">cet élément</string>
+    <string name="seance_list_delete_dialog_label_plural">ces %1$d éléments</string>
+    <string name="seance_list_delete_dialog_title">Supprimer %1$s ?</string>
+    <plurals name="seance_list_delete_count_types">
+        <item quantity="one">%1$d séance type</item>
+        <item quantity="other">%1$d séances type</item>
+    </plurals>
+    <plurals name="seance_list_delete_count_planned">
+        <item quantity="one">%1$d séance planifiée</item>
+        <item quantity="other">%1$d séances planifiées</item>
+    </plurals>
+    <string name="seance_list_delete_detail_separator"> et </string>
+    <string name="seance_list_delete_detail_suffix"> seront supprimées.</string>
+    <string name="seance_list_delete_warning_cascade">Attention : supprimer une séance type supprime aussi toutes ses instances.</string>
+
+    <!-- Dialog séance directe (one-shot) -->
+    <string name="seance_list_oneshot_dialog_title">Séance directe</string>
+    <string name="seance_list_oneshot_dialog_description">Crée une séance planifiée indépendante, sans séance type associée.</string>
+    <string name="seance_list_oneshot_name_label">Nom de la séance</string>
+
+    <!-- Top bar sélection -->
+    <plurals name="seance_list_selection_count">
+        <item quantity="one">%1$d sélectionné</item>
+        <item quantity="other">%1$d sélectionnés</item>
+    </plurals>
+    <string name="seance_list_selection_cancel_cd">Annuler la sélection</string>
+    <string name="seance_list_delete_icon_cd">Supprimer</string>
+
+    <!-- FAB menu -->
+    <string name="seance_list_fab_menu_type">Séance type</string>
+    <string name="seance_list_fab_menu_direct">Séance directe</string>
+
+    <!-- Empty state -->
+    <string name="seance_list_empty_title">Aucune séance</string>
+    <string name="seance_list_empty_description">Crée ta première séance de renforcement.</string>
+    <string name="seance_list_empty_action_create">Créer une séance</string>
+
+    <!-- Sections -->
+    <string name="seance_list_section_types">Séances types</string>
+    <string name="seance_list_section_planned">Séances planifiées</string>
+    <string name="seance_list_section_completed">Séances terminées</string>
+
+    <!-- Toggle voir-plus / réduire -->
+    <string name="seance_list_collapse_label">Réduire</string>
+    <string name="seance_list_see_more_label">Voir les %1$d autres</string>
+
+    <!-- Cartes -->
+    <string name="seance_list_card_duplicate_cd">Dupliquer</string>
+    <string name="seance_list_card_assign_cd">Affecter au calendrier</string>
+    <string name="seance_list_instance_name_fallback">Séance</string>
+    <string name="seance_list_reschedule_cd">Changer la date</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         SeanceCreateScreen
+    ══════════════════════════════════════════════════════ -->
+    <string name="seance_create_title_edit_instance">Modifier la séance</string>
+    <string name="seance_create_title_new">Nouvelle séance</string>
+    <string name="seance_create_title_edit">Modifier</string>
+    <string name="seance_create_name_placeholder">Ex. Séance A — Jambes</string>
+    <string name="seance_create_add_exercice_button">  Exercice</string>
+    <string name="seance_create_add_bloc_button">  Bloc</string>
+    <string name="seance_create_move_up_cd">Monter</string>
+    <string name="seance_create_move_down_cd">Descendre</string>
+    <string name="seance_create_expand_toggle_cd">Toggle</string>
+    <string name="seance_create_field_series">Séries</string>
+    <string name="seance_create_field_rest">Repos (s)</string>
+    <string name="seance_create_bloc_rest_inter_label">Repos inter (s)</string>
+    <string name="seance_create_bloc_rest_end_round_label">Repos fin round (s)</string>
+    <string name="seance_create_bloc_circuit_series_label">Séries (circuit)</string>
+    <string name="seance_create_bloc_add_exercice_button">  Ajouter un exercice</string>
+    <string name="seance_create_reps_type_reps">Reps</string>
+    <string name="seance_create_reps_type_duration">Durée</string>
+    <string name="seance_create_circuit_duration_info">Circuit — durée obligatoire</string>
+    <string name="seance_create_inline_reps_label">Reps :</string>
+    <string name="seance_create_inline_duration_label">Durée :</string>
+    <string name="seance_create_duration_min_label">min</string>
+    <string name="seance_create_duration_min_placeholder">0</string>
+    <string name="seance_create_duration_sec_label">sec</string>
+    <string name="seance_create_duration_sec_placeholder">0</string>
+    <string name="seance_create_inline_charge_label">Charge :</string>
+    <string name="seance_create_inline_comment_label">Commentaire :</string>
+    <string name="seance_create_bilateral_label">Bilatéral (G + D)</string>
+    <string name="seance_create_bilateral_description">À chaque round : côté G, puis côté D</string>
+    <string name="seance_create_warmup_picker_title">Choisir un échauffement</string>
+    <string name="seance_create_warmup_picker_empty">Aucun échauffement disponible.</string>
+    <string name="seance_create_exercise_picker_title">Ajouter des exercices</string>
+    <string name="seance_create_exercise_picker_confirm_button">Ajouter (%1$d)</string>
+    <string name="seance_create_picker_filter_equipment">Mon matériel</string>
+    <string name="seance_create_picker_filter_all">Tous</string>
+    <string name="seance_create_picker_empty">Aucun exercice trouvé.</string>
+
+    <!-- BlocType labels (utilisés inline dans les Composables) -->
+    <string name="bloc_type_echauffement">Échauffement</string>
+    <string name="bloc_type_activation">Activation</string>
+    <string name="bloc_type_superset">Superset</string>
+    <string name="bloc_type_circuit">Circuit</string>
+    <string name="bloc_type_recuperation">Récupération</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         SeanceDetailScreen
+    ══════════════════════════════════════════════════════ -->
+    <string name="seance_detail_title_fallback">Séance</string>
+    <string name="seance_detail_instances_section_title">Instances programmées</string>
+    <string name="seance_detail_table_header_exercise">EXERCICE</string>
+    <string name="seance_detail_table_header_sets">SÉR.</string>
+    <string name="seance_detail_table_header_reps">REPS</string>
+    <string name="seance_detail_table_header_charge">CHARGE</string>
+    <string name="seance_detail_table_header_rest">REPOS</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         StrengthWorkoutDetailScreen (ancien écran workout)
+    ══════════════════════════════════════════════════════ -->
+    <string name="strength_detail_title_new">Nouvelle séance</string>
+    <string name="strength_detail_title_edit">Modifier</string>
+    <string name="strength_detail_add_exercise_cd">Ajouter un exercice</string>
+    <string name="strength_detail_add_exercise_label">Ajouter un exercice</string>
+    <string name="strength_detail_start_cd">Démarrer</string>
+    <string name="strength_detail_type_title">Type d\'entraînement</string>
+    <string name="strength_detail_exercises_section_title">Exercices (%1$d)</string>
+    <string name="strength_detail_add_exercise_button">  Ajouter un exercice</string>
+    <string name="strength_detail_col_serie">Série</string>
+    <string name="strength_detail_col_reps">Reps</string>
+    <string name="strength_detail_col_charge_kg">Charge (kg)</string>
+    <string name="strength_detail_col_rpe">RPE</string>
+    <string name="strength_detail_add_set_button"> Ajouter une série</string>
+    <string name="strength_detail_rest_between_sets_label">Repos entre séries :</string>
+    <string name="strength_detail_rest_sec_label">sec</string>
+    <string name="strength_detail_picker_title">Choisir un exercice</string>
+    <string name="strength_detail_picker_empty">Aucun exercice trouvé.</string>
+    <string name="strength_detail_expand_toggle_cd">Toggle</string>
+
+    <!-- Modes d\'entraînement (StrengthWorkoutMode) -->
+    <string name="strength_mode_classic">Classique</string>
+    <string name="strength_mode_superset">Superset</string>
+    <string name="strength_mode_circuit">Circuit</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         StrengthWorkoutExecuteScreen
+    ══════════════════════════════════════════════════════ -->
+    <string name="strength_execute_title_fallback">Exécution</string>
+    <string name="strength_execute_finish_button">  Terminer la séance</string>
+    <string name="strength_execute_exercise_sets_count">%1$d séries</string>
+    <string name="strength_execute_exercise_completed_cd">Complété</string>
+    <string name="strength_execute_col_target">Cible</string>
+    <string name="strength_execute_col_actual_reps">Reps réelles</string>
+    <string name="strength_execute_col_actual_charge">Charge réelle</string>
+    <string name="strength_execute_set_validate_cd">Valider</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         InstanceExecuteScreen
+    ══════════════════════════════════════════════════════ -->
+    <!-- Dialog retour au rapport -->
+    <string name="instance_execute_return_dialog_title">Retourner au rapport ?</string>
+    <string name="instance_execute_return_dialog_message">Les modifications ont été enregistrées automatiquement.</string>
+    <string name="instance_execute_return_dialog_confirm">Retourner</string>
+    <string name="instance_execute_return_dialog_cancel">Continuer à modifier</string>
+
+    <!-- Dialog quitter -->
+    <string name="instance_execute_exit_dialog_title">Quitter la séance ?</string>
+    <string name="instance_execute_exit_stay">Rester ici</string>
+    <string name="instance_execute_exit_go_menu">Aller dans le menu</string>
+    <string name="instance_execute_exit_without_save">Quitter sans enregistrer</string>
+    <string name="instance_execute_exit_cancel_seance">Annuler la séance</string>
+
+    <!-- Dialog renommer -->
+    <string name="instance_execute_rename_dialog_title">Modifier le nom</string>
+
+    <!-- Dialog supprimer instance -->
+    <string name="instance_execute_delete_dialog_title">Supprimer la séance ?</string>
+    <string name="instance_execute_delete_dialog_message">Cette séance planifiée sera supprimée.</string>
+
+    <!-- Fallback nom séance -->
+    <string name="instance_execute_seance_name_fallback">Séance</string>
+
+    <!-- Boutons de démarrage exercice -->
+    <string name="instance_execute_start_circuit_button">Lancer le circuit</string>
+    <string name="instance_execute_start_button">Démarrer</string>
+    <string name="instance_execute_duration_invalid_error">Durée invalide — saisis un nombre de secondes valide</string>
+
+    <!-- Section headers -->
+    <string name="instance_execute_today_section_header">SÉANCE DU JOUR</string>
+    <string name="instance_execute_bilateral_info">🔄 Bilatéral — alternance G puis D à chaque round</string>
+
+    <!-- FABs -->
+    <string name="instance_execute_manual_timer_cd">Minuteur manuel</string>
+    <string name="instance_execute_plate_calculator_cd">Calculateur de disques</string>
+
+    <!-- Minuteur manuel (bottom sheet) -->
+    <string name="instance_execute_manual_timer_title">⏱  Minuteur manuel</string>
+    <string name="instance_execute_timer_minus30_label">−30s</string>
+    <string name="instance_execute_timer_plus30_label">+30s</string>
+    <string name="instance_execute_timer_stop_label">Stop</string>
+    <string name="instance_execute_timer_start_button">Démarrer %1$s</string>
+
+    <!-- Top bar actions -->
+    <string name="instance_execute_edit_cd">Éditer</string>
+    <string name="instance_execute_menu_rename">Modifier le nom</string>
+    <string name="instance_execute_menu_edit_exercises">Modifier les exercices</string>
+    <string name="instance_execute_menu_delete">Supprimer la séance</string>
+    <string name="instance_execute_finish_button">FINIR</string>
+
+    <!-- Menu timer repos -->
+    <string name="instance_execute_rest_extend30_label">Allonger de 30s</string>
+    <string name="instance_execute_rest_shorten30_label">Écourter de 30s</string>
+    <string name="instance_execute_rest_stop_label">Arrêter</string>
+
+    <!-- Commentaires / notes -->
+    <string name="instance_execute_note_exercise_header_format">NOTE — %1$s</string>
+    <string name="instance_execute_note_exercise_placeholder">Note sur cet exercice…</string>
+    <string name="instance_execute_note_seance_header">NOTE DE SÉANCE</string>
+    <string name="instance_execute_note_seance_placeholder">Commentaire global de la séance…</string>
+
+    <!-- En-têtes colonnes tableau -->
+    <string name="instance_execute_col_reps">Reps</string>
+    <string name="instance_execute_col_temps">Temps</string>
+    <string name="instance_execute_col_kg">Kg</string>
+    <string name="instance_execute_col_rest">Repos</string>
+    <string name="instance_execute_col_rpe">RPE</string>
+    <string name="instance_execute_serie_validate_cd">Valider</string>
+
+    <!-- Boutons de série -->
+    <string name="instance_execute_remove_serie_button">Supprimer</string>
+    <string name="instance_execute_add_serie_button">Ajouter une série</string>
+
+    <!-- Historique -->
+    <string name="instance_execute_history_title">Historique</string>
+
+    <!-- Overlay countdown 3-2-1 -->
+    <string name="instance_execute_countdown_ready">Prêt ?</string>
+
+    <!-- Overlay circuit -->
+    <string name="instance_execute_circuit_serie_label">SÉRIE %1$d%2$s / %3$d</string>
+    <string name="instance_execute_circuit_exercise_label">Exercice %1$d / %2$d</string>
+    <string name="instance_execute_circuit_end_round_rest">FIN DU ROUND — REPOS</string>
+    <string name="instance_execute_circuit_rest">REPOS</string>
+    <string name="instance_execute_circuit_next_exercise">Prochain : %1$s</string>
+    <string name="instance_execute_stop_circuit_button">Arrêter le circuit</string>
+
+    <!-- Calculateur de disques -->
+    <string name="instance_execute_plate_calculator_title">🏋️ Calculateur de disques</string>
+    <string name="instance_execute_equipment_barre">Barre</string>
+    <string name="instance_execute_equipment_haltere">Haltère</string>
+    <string name="instance_execute_bar_weight_label">Tige (kg)</string>
+    <string name="instance_execute_dumbbell_weight_label">Haltère vide (kg)</string>
+    <string name="instance_execute_target_weight_label">Poids total (kg)</string>
+    <string name="instance_execute_calculator_hint">Saisissez un poids cible</string>
+    <string name="instance_execute_calculator_bar_error">Poids de tige invalide</string>
+    <string name="instance_execute_calculator_impossible">Impossible avec les disques standards</string>
+    <string name="instance_execute_calculator_per_side">Disques par côté</string>
+    <string name="instance_execute_calculator_per_dumbbell">Disques par haltère</string>
+    <string name="instance_execute_calculator_no_plates_bar">Aucun disque — tige seule suffit</string>
+    <string name="instance_execute_calculator_no_plates_dumbbell">Aucun disque — haltère seul suffit</string>
+    <string name="instance_execute_calculator_detail_haltere">Haltère</string>
+    <string name="instance_execute_calculator_detail_bar">Tige</string>
+    <string name="instance_execute_calculator_detail_plates">Disques</string>
+    <string name="instance_execute_calculator_detail_total">Total</string>
+
+    <!-- ══════════════════════════════════════════════════════
+         InstanceReportScreen
+    ══════════════════════════════════════════════════════ -->
+    <string name="instance_report_finish_dialog_title">Terminer la séance ?</string>
+    <string name="instance_report_finish_dialog_message">Les résultats seront sauvegardés et la séance marquée comme terminée.</string>
+    <string name="instance_report_finish_confirm">Terminer</string>
+    <string name="instance_report_title">Rapport de séance</string>
+    <string name="instance_report_export_cd">Exporter</string>
+    <string name="instance_report_edit_cd">Modifier</string>
+    <string name="instance_report_seance_name_fallback">Séance de renforcement</string>
+    <string name="instance_report_kpi_duration">Durée</string>
+    <string name="instance_report_kpi_tonnage">Tonnage</string>
+    <string name="instance_report_kpi_series">Séries</string>
+    <string name="instance_report_col_num">#</string>
+    <string name="instance_report_col_exercise">EXERCICE</string>
+    <string name="instance_report_col_reps">REPS</string>
+    <string name="instance_report_col_kg">KG</string>
+    <string name="instance_report_col_rpe">RPE</string>
+    <string name="instance_report_note_section_title">NOTE DE SÉANCE</string>
+    <string name="instance_report_finish_button">✓  Terminer la séance</string>
+    <string name="instance_report_export_sheet_title">Exporter le rapport</string>
+    <string name="instance_report_export_image_label">Image</string>
+    <string name="instance_report_export_image_description">PNG partagé via WhatsApp, Instagram…</string>
+    <string name="instance_report_export_html_label">Fichier HTML</string>
+    <string name="instance_report_export_html_description">Archivage, mail, ouverture dans un navigateur</string>
+    <string name="instance_report_branding">🐼 PandaFit</string>
+    <string name="instance_report_charge_pdc_fallback">PDC</string>
+
+</resources>

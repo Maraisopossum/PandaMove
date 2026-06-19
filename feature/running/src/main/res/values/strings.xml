@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Chaînes communes (partagées entre modules) -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_confirm_delete">Supprimer</string>
+    <string name="common_validate">Valider</string>
+    <string name="common_create">Créer</string>
+    <string name="common_save_cd">Sauvegarder</string>
+    <string name="common_edit_cd">Modifier</string>
+    <string name="common_delete_cd">Supprimer</string>
+    <string name="common_navigate_back_cd">Retour</string>
+    <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_search_label">Rechercher</string>
+    <string name="common_notes_label">Notes</string>
+    <string name="common_seance_name_label">Nom de la séance</string>
+    <string name="common_empty_dash">—</string>
+
+    <!-- RunningScreen -->
+    <string name="running_screen_title">Course à pieds</string>
+    <string name="running_screen_fab_new_seance_cd">Nouvelle séance</string>
+    <string name="running_screen_fab_seance_type">Séance type</string>
+    <string name="running_screen_fab_seance_directe">Séance directe</string>
+    <string name="running_screen_selection_count">%1$d sélectionné(s)</string>
+    <string name="running_screen_cancel_selection_cd">Annuler la sélection</string>
+    <string name="running_screen_delete_selection_cd">Supprimer</string>
+    <string name="running_screen_delete_dialog_title">Supprimer %1$d séance(s) ?</string>
+    <string name="running_screen_delete_dialog_body">Cette action est irréversible. Les séances et leurs données associées seront définitivement supprimées.</string>
+    <string name="running_screen_empty_title">Aucune séance de running</string>
+    <string name="running_screen_empty_description">Crée ta première séance type avec le bouton +</string>
+    <string name="running_screen_section_templates">Séances types</string>
+    <string name="running_screen_section_planned">Séances planifiées</string>
+    <string name="running_screen_section_completed">Séances terminées</string>
+    <string name="running_screen_card_duplicate_cd">Dupliquer</string>
+    <string name="running_screen_card_assign_cd">Affecter au calendrier</string>
+    <string name="running_screen_card_reschedule_cd">Changer la date</string>
+    <string name="running_reschedule_title">Changer la date</string>
+
+    <!-- RunningWorkoutDetailScreen -->
+    <string name="running_detail_title_new">Nouvelle séance</string>
+    <string name="running_detail_title_edit">Modifier la séance</string>
+    <string name="running_detail_save_button">Sauvegarder</string>
+    <string name="running_detail_name_label">Nom de la séance</string>
+    <string name="running_detail_name_placeholder">Ex. VMA 8×300m</string>
+    <string name="running_detail_name_error">Le nom de la séance est requis</string>
+    <string name="running_detail_template_info">La séance type ne sera pas modifiée si vous éditez une occurrence dans le calendrier.</string>
+    <string name="running_detail_with_stroller">Avec la poussette 🚼</string>
+    <string name="running_detail_section_steps">Étapes</string>
+    <string name="running_detail_add_step">Ajouter étape</string>
+    <string name="running_detail_add_repeat">Ajouter répét.</string>
+    <string name="running_detail_step_type_label">Type d\'étape</string>
+    <string name="running_detail_step_end_label">Fin d\'étape</string>
+    <string name="running_detail_end_type_duration">Durée</string>
+    <string name="running_detail_end_type_distance">Distance</string>
+    <string name="running_detail_duration_label">Durée</string>
+    <string name="running_detail_distance_label">Distance</string>
+    <string name="running_detail_unit_label">Unité</string>
+    <string name="running_detail_note_label">Note (optionnelle)</string>
+    <string name="running_detail_note_counter">%1$d/200</string>
+    <string name="running_detail_target_label">Objectif d\'intensité</string>
+    <string name="running_detail_target_none">Pas de cible</string>
+    <string name="running_detail_target_pace">Allure</string>
+    <string name="running_detail_target_cadence">Cadence</string>
+    <string name="running_detail_target_hr_zone">Zone de fréquence cardiaque</string>
+    <string name="running_detail_target_hr_custom">Fréquence cardiaque personnalisée</string>
+    <string name="running_detail_pace_min_label">Allure min /km</string>
+    <string name="running_detail_pace_max_label">Allure max /km</string>
+    <string name="running_detail_pace_error">L\'allure max (plus lente) doit être > allure min — ex : min 4:00, max 5:00</string>
+    <string name="running_detail_cadence_min_label">Cadence min (spm)</string>
+    <string name="running_detail_cadence_max_label">Cadence max</string>
+    <string name="running_detail_cadence_error">La cadence max doit être supérieure à la cadence min</string>
+    <string name="running_detail_hr_zone_label">Zone FC</string>
+    <string name="running_detail_hr_zone_placeholder">Choisir une zone</string>
+    <string name="running_detail_hr_min_label">FC min (bpm)</string>
+    <string name="running_detail_hr_max_label">FC max (bpm)</string>
+    <string name="running_detail_hr_error">La FC max doit être supérieure à la FC min</string>
+    <string name="running_detail_repeat_count">%1$d fois</string>
+    <string name="running_detail_step_move_up_cd">Monter</string>
+    <string name="running_detail_step_move_down_cd">Descendre</string>
+    <string name="running_detail_step_reorder_cd">Réordonner</string>
+    <string name="running_detail_step_delete_cd">Supprimer</string>
+    <string name="running_detail_repeat_reorder_cd">Réordonner</string>
+    <string name="running_detail_repeat_delete_cd">Supprimer</string>
+    <string name="running_detail_mm_label">min</string>
+    <string name="running_detail_ss_label">sec</string>
+
+    <!-- RunningWorkoutExecuteScreen -->
+    <string name="running_execute_title_fallback">Résultats</string>
+    <string name="running_execute_finish_dialog_title">Terminer la séance ?</string>
+    <string name="running_execute_finish_dialog_body">Les résultats seront sauvegardés et la séance marquée comme terminée.</string>
+    <string name="running_execute_finish_button">Terminer</string>
+    <string name="running_execute_cancel_button">Annuler</string>
+    <string name="running_execute_global_results_label">RÉSULTATS GLOBAUX</string>
+    <string name="running_execute_cell_distance">Distance (km)</string>
+    <string name="running_execute_cell_time">Temps (mm:ss)</string>
+    <string name="running_execute_cell_pace">Allure (/km)</string>
+    <string name="running_execute_cell_hr_avg">FC moy. (bpm)</string>
+    <string name="running_execute_cell_hr_max">FC max (bpm)</string>
+    <string name="running_execute_cell_rpe">RPE (1–10)</string>
+    <string name="running_execute_cell_elevation">Dénivelé (m)</string>
+    <string name="running_execute_cell_calories">Calories (kcal)</string>
+    <string name="running_execute_cell_cadence">Cadence (ppm)</string>
+    <string name="running_execute_session_note_label">NOTE DE SÉANCE</string>
+    <string name="running_execute_session_note_placeholder">Commentaire global de la séance...</string>
+    <string name="running_execute_finish_seance_button">Terminer la séance</string>
+    <string name="running_execute_interval_label">INTERVALLES — %1$d fois</string>
+    <string name="running_execute_navigate_back_cd">Retour</string>
+
+    <!-- Table headers (execute + report) -->
+    <string name="running_table_col_num">#</string>
+    <string name="running_table_col_cible">Cible</string>
+    <string name="running_table_col_tps">Tps</string>
+    <string name="running_table_col_temps">Temps</string>
+    <string name="running_table_col_rpe">RPE</string>
+    <string name="running_table_col_check">✓</string>
+
+    <!-- RunningWorkoutReportScreen -->
+    <string name="running_report_title_fallback">Séance running</string>
+    <string name="running_report_edit_results_cd">Modifier les résultats</string>
+    <string name="running_report_edit_seance_cd">Modifier la séance</string>
+    <string name="running_report_launch_cd">Lancer la séance</string>
+    <string name="running_report_steps_label">ÉTAPES</string>
+    <string name="running_report_session_note_label">NOTE DE SÉANCE</string>
+    <string name="running_report_with_stroller">Avec la poussette 🚼</string>
+    <string name="running_report_results_label">RÉSULTATS</string>
+    <string name="running_report_cell_distance">Distance</string>
+    <string name="running_report_cell_time">Temps</string>
+    <string name="running_report_cell_pace">Allure moy.</string>
+    <string name="running_report_cell_hr_avg">FC moy.</string>
+    <string name="running_report_cell_hr_max">FC max</string>
+    <string name="running_report_cell_rpe">RPE</string>
+    <string name="running_report_cell_elevation">Dénivelé +</string>
+    <string name="running_report_cell_calories">Calories</string>
+    <string name="running_report_cell_cadence">Cadence</string>
+    <string name="running_report_repeat_count">%1$d fois</string>
+
+</resources>

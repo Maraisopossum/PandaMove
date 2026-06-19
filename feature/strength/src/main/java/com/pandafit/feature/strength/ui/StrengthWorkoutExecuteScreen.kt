@@ -34,11 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pandafit.feature.strength.R
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
@@ -60,7 +62,7 @@ fun StrengthWorkoutExecuteScreen(
     Scaffold(
         topBar = {
             PandaTopBar(
-                title = uiState.workout?.name ?: "Exécution",
+                title = uiState.workout?.name ?: stringResource(R.string.strength_execute_title_fallback),
                 onNavigateBack = onNavigateBack,
             )
         },
@@ -94,7 +96,7 @@ fun StrengthWorkoutExecuteScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = PandaPurple),
                     ) {
                         Icon(Icons.Default.Flag, null)
-                        Text("  Terminer la séance")
+                        Text(stringResource(R.string.strength_execute_finish_button))
                     }
                 }
             }
@@ -119,10 +121,10 @@ private fun StrengthExecutionExerciseCard(
                 Spacer(Modifier.padding(horizontal = 6.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(execution.draft.exercise.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    Text("${execution.draft.sets.size} séries", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                    Text(stringResource(R.string.strength_execute_exercise_sets_count, execution.draft.sets.size), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                 }
                 if (execution.isCompleted) {
-                    Icon(Icons.Default.CheckCircle, "Complété", tint = PandaPurple)
+                    Icon(Icons.Default.CheckCircle, stringResource(R.string.strength_execute_exercise_completed_cd), tint = PandaPurple)
                 }
             }
 
@@ -134,9 +136,9 @@ private fun StrengthExecutionExerciseCard(
                 // En-têtes
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("#", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(30.dp))
-                    Text("Cible", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                    Text("Reps réelles", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                    Text("Charge réelle", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.strength_execute_col_target), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.strength_execute_col_actual_reps), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.strength_execute_col_actual_charge), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                     Spacer(Modifier.size(48.dp))
                 }
 
@@ -210,7 +212,7 @@ private fun ExecutionSetRow(
         ) {
             Icon(
                 Icons.Default.CheckCircle,
-                "Valider",
+                stringResource(R.string.strength_execute_set_validate_cd),
                 tint = if (isCompleted) PandaPurple else PandaSubtext,
             )
         }

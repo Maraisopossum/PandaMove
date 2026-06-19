@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import com.pandafit.feature.running.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -82,16 +84,17 @@ fun RunningWorkoutDetailScreen(
                 Spacer(Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_navigate_back_cd), tint = MaterialTheme.colorScheme.onSurface)
                     }
+                    val screenTitle = if (uiState.isNew) stringResource(R.string.running_detail_title_new) else stringResource(R.string.running_detail_title_edit)
                     Text(
-                        if (uiState.isNew) "Nouvelle séance" else "Modifier la séance",
+                        screenTitle,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     )
                     TextButton(onClick = { viewModel.save() }, enabled = !uiState.isSaving) {
-                        Text("Sauvegarder", color = PandaPurple, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.running_detail_save_button), color = PandaPurple, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -103,18 +106,18 @@ fun RunningWorkoutDetailScreen(
                 OutlinedTextField(
                     value = uiState.name,
                     onValueChange = viewModel::updateName,
-                    label = { Text("Nom de la séance") },
+                    label = { Text(stringResource(R.string.running_detail_name_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    placeholder = { Text("Ex. VMA 8×300m") },
+                    placeholder = { Text(stringResource(R.string.running_detail_name_placeholder)) },
                     isError = nameError,
                     supportingText = if (nameError) {
-                        { Text("Le nom de la séance est requis", color = MaterialTheme.colorScheme.error) }
+                        { Text(stringResource(R.string.running_detail_name_error), color = MaterialTheme.colorScheme.error) }
                     } else null,
                 )
                 if (!nameError) Spacer(Modifier.height(4.dp))
                 Text(
-                    "La séance type ne sera pas modifiée si vous éditez une occurrence dans le calendrier.",
+                    stringResource(R.string.running_detail_template_info),
                     style = MaterialTheme.typography.bodySmall,
                     color = PandaSubtext,
                 )
@@ -134,7 +137,7 @@ fun RunningWorkoutDetailScreen(
                             colors = CheckboxDefaults.colors(checkedColor = PandaPurple),
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Avec la poussette 🚼", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.running_detail_with_stroller), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -143,7 +146,7 @@ fun RunningWorkoutDetailScreen(
             // ── Section label ──
             item(key = "section_label") {
                 Text(
-                    "Étapes",
+                    stringResource(R.string.running_detail_section_steps),
                     style = MaterialTheme.typography.labelSmall,
                     color = PandaPurple,
                     fontWeight = FontWeight.Bold,
@@ -207,7 +210,7 @@ fun RunningWorkoutDetailScreen(
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Ajouter étape", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.running_detail_add_step), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                     OutlinedButton(
                         onClick = { viewModel.addRepeat() },
@@ -216,7 +219,7 @@ fun RunningWorkoutDetailScreen(
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Ajouter répét.", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.running_detail_add_repeat), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -275,20 +278,20 @@ private fun RunStepCard(
                 }
                 if (showUpDown) {
                     IconButton(onClick = onMoveUp, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.KeyboardArrowUp, "Monter", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.running_detail_step_move_up_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                     IconButton(onClick = onMoveDown, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.KeyboardArrowDown, "Descendre", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.running_detail_step_move_down_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 } else {
                     Icon(
-                        Icons.Default.DragHandle, "Réordonner",
+                        Icons.Default.DragHandle, stringResource(R.string.running_detail_step_reorder_cd),
                         tint = PandaSubtext,
                         modifier = dragHandleModifier.padding(horizontal = 8.dp).size(20.dp),
                     )
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Delete, "Supprimer", tint = PandaRed, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, stringResource(R.string.running_detail_step_delete_cd), tint = PandaRed, modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -300,7 +303,7 @@ private fun RunStepCard(
 
                     // Type d'étape
                     StepDropdown(
-                        label = "Type d'étape",
+                        label = stringResource(R.string.running_detail_step_type_label),
                         options = RunStepType.entries.map { it to stepLabel(it) },
                         selected = step.stepType,
                         onSelect = { onUpdate(step.copy(stepType = it)) },
@@ -318,10 +321,10 @@ private fun RunStepCard(
                     OutlinedTextField(
                         value = step.note,
                         onValueChange = { if (it.length <= 200) onUpdate(step.copy(note = it)) },
-                        label = { Text("Note (optionnelle)") },
+                        label = { Text(stringResource(R.string.running_detail_note_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3,
-                        supportingText = { Text("${step.note.length}/200", color = PandaSubtext) },
+                        supportingText = { Text(stringResource(R.string.running_detail_note_counter, step.note.length), color = PandaSubtext) },
                     )
                     Spacer(Modifier.height(10.dp))
 
@@ -381,7 +384,7 @@ private fun RunRepeatCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "${repeat.repeatCount} fois",
+                            stringResource(R.string.running_detail_repeat_count, repeat.repeatCount),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = PandaOrange,
@@ -398,12 +401,12 @@ private fun RunRepeatCard(
                     }
                 }
                 Icon(
-                    Icons.Default.DragHandle, "Réordonner",
+                    Icons.Default.DragHandle, stringResource(R.string.running_detail_repeat_reorder_cd),
                     tint = PandaSubtext,
                     modifier = dragHandleModifier.padding(horizontal = 8.dp).size(20.dp),
                 )
                 IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Delete, "Supprimer", tint = PandaRed, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, stringResource(R.string.running_detail_repeat_delete_cd), tint = PandaRed, modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -433,7 +436,7 @@ private fun RunRepeatCard(
             ) {
                 Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Ajouter étape", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.running_detail_add_step), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -449,20 +452,21 @@ private fun EndTypeField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) 
 
     Column {
         ExposedDropdownMenuBox(expanded = endTypeExpanded, onExpandedChange = { endTypeExpanded = it }) {
+            val endTypeLabel = if (step.endType == RunEndType.DURATION) stringResource(R.string.running_detail_end_type_duration) else stringResource(R.string.running_detail_end_type_distance)
             OutlinedTextField(
-                value = if (step.endType == RunEndType.DURATION) "Durée" else "Distance",
+                value = endTypeLabel,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Fin d'étape") },
+                label = { Text(stringResource(R.string.running_detail_step_end_label)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endTypeExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
             )
             ExposedDropdownMenu(expanded = endTypeExpanded, onDismissRequest = { endTypeExpanded = false }) {
-                DropdownMenuItem(text = { Text("Durée") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.running_detail_end_type_duration)) }, onClick = {
                     onUpdate(step.copy(endType = RunEndType.DURATION, endUnit = RunEndUnit.SECONDS, endValue = ""))
                     endTypeExpanded = false
                 })
-                DropdownMenuItem(text = { Text("Distance") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.running_detail_end_type_distance)) }, onClick = {
                     onUpdate(step.copy(endType = RunEndType.DISTANCE, endUnit = RunEndUnit.METERS, endValue = ""))
                     endTypeExpanded = false
                 })
@@ -472,7 +476,7 @@ private fun EndTypeField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) 
 
         if (step.endType == RunEndType.DURATION) {
             MmSsSplitField(
-                label = "Durée",
+                label = stringResource(R.string.running_detail_duration_label),
                 totalSeconds = step.endValue.toIntOrNull() ?: 0,
                 onValueChange = { onUpdate(step.copy(endValue = it.toString())) },
             )
@@ -481,7 +485,7 @@ private fun EndTypeField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) 
                 OutlinedTextField(
                     value = step.endValue,
                     onValueChange = { v -> if (v.all { it.isDigit() }) onUpdate(step.copy(endValue = v)) },
-                    label = { Text("Distance") },
+                    label = { Text(stringResource(R.string.running_detail_distance_label)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -495,7 +499,7 @@ private fun EndTypeField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) 
                         value = if (step.endUnit == RunEndUnit.METERS) "m" else "km",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Unité") },
+                        label = { Text(stringResource(R.string.running_detail_unit_label)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
                         modifier = Modifier.menuAnchor(),
                     )
@@ -515,20 +519,20 @@ private fun EndTypeField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) 
 @Composable
 private fun TargetField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) -> Unit) {
     val targetOptions = listOf(
-        RunTargetType.NONE       to "Pas de cible",
-        RunTargetType.PACE       to "Allure",
-        RunTargetType.CADENCE    to "Cadence",
-        RunTargetType.HR_ZONE    to "Zone de fréquence cardiaque",
-        RunTargetType.HR_CUSTOM  to "Fréquence cardiaque personnalisée",
+        RunTargetType.NONE       to stringResource(R.string.running_detail_target_none),
+        RunTargetType.PACE       to stringResource(R.string.running_detail_target_pace),
+        RunTargetType.CADENCE    to stringResource(R.string.running_detail_target_cadence),
+        RunTargetType.HR_ZONE    to stringResource(R.string.running_detail_target_hr_zone),
+        RunTargetType.HR_CUSTOM  to stringResource(R.string.running_detail_target_hr_custom),
     )
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = targetOptions.find { it.first == step.targetType }?.second ?: "Pas de cible",
+            value = targetOptions.find { it.first == step.targetType }?.second ?: stringResource(R.string.running_detail_target_none),
             onValueChange = {},
             readOnly = true,
-            label = { Text("Objectif d'intensité") },
+            label = { Text(stringResource(R.string.running_detail_target_label)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(),
         )
@@ -556,7 +560,7 @@ private fun TargetField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) -
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                     MmSsSplitField(
-                        label = "Allure min /km",
+                        label = stringResource(R.string.running_detail_pace_min_label),
                         totalSeconds = minSec,
                         onValueChange = { onUpdate(step.copy(targetMin = if (it > 0) it.toString() else "")) },
                         modifier = Modifier.weight(1f),
@@ -564,7 +568,7 @@ private fun TargetField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) -
                     )
                     Text("→", modifier = Modifier.padding(top = 20.dp))
                     MmSsSplitField(
-                        label = "Allure max /km",
+                        label = stringResource(R.string.running_detail_pace_max_label),
                         totalSeconds = maxSec,
                         onValueChange = { onUpdate(step.copy(targetMax = if (it > 0) it.toString() else "")) },
                         modifier = Modifier.weight(1f),
@@ -573,7 +577,7 @@ private fun TargetField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) -
                 }
                 if (paceError) {
                     Text(
-                        "L'allure max (plus lente) doit être > allure min — ex : min 4:00, max 5:00",
+                        stringResource(R.string.running_detail_pace_error),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = 2.dp),
@@ -587,13 +591,13 @@ private fun TargetField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) -
             val cadenceError = step.targetMin.isNotBlank() && step.targetMax.isNotBlank() && maxVal <= minVal
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    StepIntField("Cadence min (spm)", step.targetMin, Modifier.weight(1f), isError = cadenceError) { onUpdate(step.copy(targetMin = it)) }
+                    StepIntField(stringResource(R.string.running_detail_cadence_min_label), step.targetMin, Modifier.weight(1f), isError = cadenceError) { onUpdate(step.copy(targetMin = it)) }
                     Text("→", modifier = Modifier.align(Alignment.CenterVertically))
-                    StepIntField("Cadence max", step.targetMax, Modifier.weight(1f), isError = cadenceError) { onUpdate(step.copy(targetMax = it)) }
+                    StepIntField(stringResource(R.string.running_detail_cadence_max_label), step.targetMax, Modifier.weight(1f), isError = cadenceError) { onUpdate(step.copy(targetMax = it)) }
                 }
                 if (cadenceError) {
                     Text(
-                        "La cadence max doit être supérieure à la cadence min",
+                        stringResource(R.string.running_detail_cadence_error),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = 2.dp),
@@ -605,10 +609,10 @@ private fun TargetField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) -
             var zoneExpanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = zoneExpanded, onExpandedChange = { zoneExpanded = it }) {
                 OutlinedTextField(
-                    value = if (step.targetMin.isNotBlank()) "Z${step.targetMin}" else "Choisir une zone",
+                    value = if (step.targetMin.isNotBlank()) "Z${step.targetMin}" else stringResource(R.string.running_detail_hr_zone_placeholder),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Zone FC") },
+                    label = { Text(stringResource(R.string.running_detail_hr_zone_label)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = zoneExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                 )
@@ -625,13 +629,13 @@ private fun TargetField(step: RunItemDraft.Step, onUpdate: (RunItemDraft.Step) -
             val hrError = step.targetMin.isNotBlank() && step.targetMax.isNotBlank() && maxVal <= minVal
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    StepIntField("FC min (bpm)", step.targetMin, Modifier.weight(1f), isError = hrError) { onUpdate(step.copy(targetMin = it)) }
+                    StepIntField(stringResource(R.string.running_detail_hr_min_label), step.targetMin, Modifier.weight(1f), isError = hrError) { onUpdate(step.copy(targetMin = it)) }
                     Text("→", modifier = Modifier.align(Alignment.CenterVertically))
-                    StepIntField("FC max (bpm)", step.targetMax, Modifier.weight(1f), isError = hrError) { onUpdate(step.copy(targetMax = it)) }
+                    StepIntField(stringResource(R.string.running_detail_hr_max_label), step.targetMax, Modifier.weight(1f), isError = hrError) { onUpdate(step.copy(targetMax = it)) }
                 }
                 if (hrError) {
                     Text(
-                        "La FC max doit être supérieure à la FC min",
+                        stringResource(R.string.running_detail_hr_error),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = 2.dp),
@@ -721,7 +725,7 @@ private fun MmSsSplitField(
                         onValueChange((v.toIntOrNull() ?: 0) * 60 + (secStr.toIntOrNull() ?: 0))
                     }
                 },
-                label = { Text("min") },
+                label = { Text(stringResource(R.string.running_detail_mm_label)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 isError = isError,
@@ -739,7 +743,7 @@ private fun MmSsSplitField(
                         }
                     }
                 },
-                label = { Text("sec") },
+                label = { Text(stringResource(R.string.running_detail_ss_label)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 isError = isError,

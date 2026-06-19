@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -61,6 +62,7 @@ import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.profile.R
 import com.pandafit.feature.profile.viewmodel.CreateDialogState
 import com.pandafit.feature.profile.viewmodel.EditDialogState
 import com.pandafit.feature.profile.viewmodel.ExerciseCatalogViewModel
@@ -99,11 +101,11 @@ fun ExerciseCatalogScreen(
     }
 
     Scaffold(
-        topBar = { PandaTopBar(title = "Catalogue d'exercices", onNavigateBack = onNavigateBack) },
+        topBar = { PandaTopBar(title = stringResource(R.string.exercise_catalog_title), onNavigateBack = onNavigateBack) },
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(onClick = viewModel::openCreate, containerColor = PandaGreen) {
-                Icon(Icons.Default.Add, "Ajouter", tint = Color.White)
+                Icon(Icons.Default.Add, stringResource(R.string.exercise_catalog_add_cd), tint = Color.White)
             }
         },
     ) { innerPadding ->
@@ -136,7 +138,7 @@ private fun ExerciseFilters(
         OutlinedTextField(
             value = listState.query,
             onValueChange = onQueryChange,
-            placeholder = { Text("Rechercher un exercice…") },
+            placeholder = { Text(stringResource(R.string.exercise_catalog_search_placeholder)) },
             leadingIcon = { Icon(Icons.Default.Search, null) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -148,7 +150,7 @@ private fun ExerciseFilters(
             FilterChip(
                 selected = listState.onlyAvailable,
                 onClick = onToggleAvailable,
-                label = { Text("Mon matériel") },
+                label = { Text(stringResource(R.string.exercise_catalog_my_equipment)) },
                 leadingIcon = { Icon(Icons.Default.Tune, null, Modifier.size(16.dp)) },
             )
             Spacer(Modifier.width(8.dp))
@@ -166,7 +168,7 @@ private fun ExerciseFilters(
             FilterChip(
                 selected = listState.selectedGroup == null,
                 onClick = { onGroupChange(null) },
-                label = { Text("Tous") },
+                label = { Text(stringResource(R.string.exercise_catalog_all_filter)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = PandaGreen.copy(alpha = 0.15f),
                     selectedLabelColor = PandaGreen,
@@ -200,9 +202,9 @@ private fun ExerciseGroupedList(
         ) {
             Text(
                 if (listState.query.isNotBlank() || listState.selectedGroup != null || listState.onlyAvailable)
-                    "Aucun exercice pour ces filtres."
+                    stringResource(R.string.exercise_catalog_empty_filtered)
                 else
-                    "Chargement du catalogue…",
+                    stringResource(R.string.exercise_catalog_loading),
                 style = MaterialTheme.typography.bodyMedium,
                 color = PandaSubtext,
             )
@@ -273,7 +275,7 @@ private fun CreateExerciseDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nouvel exercice personnalisé") },
+        title = { Text(stringResource(R.string.exercise_catalog_create_title)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -282,7 +284,7 @@ private fun CreateExerciseDialog(
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = onNameChange,
-                    label = { Text("Nom de l'exercice *") },
+                    label = { Text(stringResource(R.string.exercise_catalog_create_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -298,10 +300,10 @@ private fun CreateExerciseDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm, enabled = state.name.isNotBlank()) {
-                Text("Créer", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.exercise_catalog_create_confirm), fontWeight = FontWeight.SemiBold)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
 }
 
@@ -334,7 +336,7 @@ private fun EditExerciseDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    "Modifier l'exercice",
+                    stringResource(R.string.exercise_catalog_edit_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -342,7 +344,7 @@ private fun EditExerciseDialog(
                 // Nom verrouillé — identifiant stable
                 Column {
                     Text(
-                        "Nom (non modifiable)",
+                        stringResource(R.string.exercise_catalog_name_locked),
                         style = MaterialTheme.typography.labelMedium,
                         color = PandaSubtext,
                     )
@@ -359,13 +361,13 @@ private fun EditExerciseDialog(
                 // Type d'exercice
                 Column {
                     Text(
-                        "Type",
+                        stringResource(R.string.exercise_catalog_type_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = PandaSubtext,
                     )
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("" to "Non défini", "Mono" to "Mono-articulaire", "Pluri" to "Pluri-articulaire").forEach { (value, label) ->
+                        listOf("" to stringResource(R.string.exercise_catalog_type_undefined), "Mono" to stringResource(R.string.exercise_catalog_type_mono), "Pluri" to stringResource(R.string.exercise_catalog_type_pluri)).forEach { (value, label) ->
                             FilterChip(
                                 selected = state.exerciseType == value,
                                 onClick = { onTypeSelect(value) },
@@ -392,10 +394,10 @@ private fun EditExerciseDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Annuler") }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
                     Spacer(Modifier.width(8.dp))
                     TextButton(onClick = onConfirm) {
-                        Text("Enregistrer", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.exercise_catalog_save), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -411,7 +413,7 @@ private fun MusclePickerSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            "Muscles sollicités (dans l'ordre : principal en premier)",
+            stringResource(R.string.exercise_catalog_muscles_label),
             style = MaterialTheme.typography.labelMedium,
             color = PandaSubtext,
         )
@@ -466,7 +468,7 @@ private fun EquipmentPickerSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            "Matériel nécessaire (optionnel)",
+            stringResource(R.string.exercise_catalog_equipment_label),
             style = MaterialTheme.typography.labelMedium,
             color = PandaSubtext,
         )
@@ -521,7 +523,7 @@ private fun ExerciseCatalogRow(
         IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
             Icon(
                 Icons.Default.Edit,
-                "Modifier",
+                stringResource(R.string.exercise_catalog_edit_cd),
                 tint = PandaSubtext,
                 modifier = Modifier.size(16.dp),
             )
@@ -530,7 +532,7 @@ private fun ExerciseCatalogRow(
             IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                 Icon(
                     Icons.Default.Delete,
-                    "Supprimer",
+                    stringResource(R.string.exercise_catalog_delete_cd),
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(16.dp),
                 )

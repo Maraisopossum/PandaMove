@@ -10,7 +10,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
+import com.pandafit.feature.running.R
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
@@ -68,16 +70,17 @@ fun RunningWorkoutReportScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             PandaTopBar(
-                title = workout?.name ?: "Séance running",
+                title = workout?.name ?: stringResource(R.string.running_report_title_fallback),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
                 actions = {
                     // Crayon : édition pour templates et séances planifiées ; modif résultats si terminée
+                    val editCd = if (isCompleted) stringResource(R.string.running_report_edit_results_cd) else stringResource(R.string.running_report_edit_seance_cd)
                     IconButton(onClick = {
                         if (isTemplate || !isCompleted) onNavigateToEdit(workoutId)
                         else onNavigateToExecute(workoutId)
                     }) {
-                        Icon(Icons.Default.Edit, if (isCompleted) "Modifier les résultats" else "Modifier la séance")
+                        Icon(Icons.Default.Edit, editCd)
                     }
                 },
             )
@@ -85,7 +88,7 @@ fun RunningWorkoutReportScreen(
         floatingActionButton = {
             if (!isTemplate && !isCompleted) {
                 FloatingActionButton(onClick = { onNavigateToExecute(workoutId) }, containerColor = PandaGreen) {
-                    Icon(Icons.Default.PlayArrow, "Lancer la séance", tint = Color.White)
+                    Icon(Icons.Default.PlayArrow, stringResource(R.string.running_report_launch_cd), tint = Color.White)
                 }
             }
         },
@@ -138,7 +141,7 @@ fun RunningWorkoutReportScreen(
             if (uiState.items.isNotEmpty()) {
                 item {
                     Text(
-                        "ÉTAPES",
+                        stringResource(R.string.running_report_steps_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                         fontWeight = FontWeight.Bold,
@@ -171,7 +174,7 @@ fun RunningWorkoutReportScreen(
             if (isCompleted && workout?.resultNotes?.isNotBlank() == true) {
                 item {
                     Spacer(Modifier.height(8.dp))
-                    Text("NOTE DE SÉANCE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                    Text(stringResource(R.string.running_report_session_note_label), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
                     Spacer(Modifier.height(4.dp))
                     Text(workout!!.resultNotes, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
                 }
@@ -193,7 +196,7 @@ fun RunningWorkoutReportScreen(
                         colors = CheckboxDefaults.colors(checkedColor = PandaGreen),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Avec la poussette 🚼", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.running_report_with_stroller), style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
@@ -235,27 +238,27 @@ private fun GlobalResultsCard(
 ) {
     Surface(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = Color(0xFFF4F4F7)) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Text("RÉSULTATS", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.running_report_results_label), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ResultCell("Distance",  workout.resultDistanceKm?.let { "$it km" } ?: "—", Modifier.weight(1f))
-                ResultCell("Temps",     workout.resultDurationSec?.let { formatDurSec(it) } ?: "—", Modifier.weight(1f))
-                ResultCell("Allure moy.", workout.resultPaceAvgMinPerKm?.let { formatPaceDisplay(it) + "/km" } ?: "—", Modifier.weight(1f))
+                ResultCell(stringResource(R.string.running_report_cell_distance), workout.resultDistanceKm?.let { "$it km" } ?: "—", Modifier.weight(1f))
+                ResultCell(stringResource(R.string.running_report_cell_time),     workout.resultDurationSec?.let { formatDurSec(it) } ?: "—", Modifier.weight(1f))
+                ResultCell(stringResource(R.string.running_report_cell_pace),     workout.resultPaceAvgMinPerKm?.let { formatPaceDisplay(it) + "/km" } ?: "—", Modifier.weight(1f))
             }
             if (workout.resultHrAvg != null || workout.resultHrMax != null || workout.resultRpe != null || workout.resultElevationM != null) {
                 Spacer(Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ResultCell("FC moy.",  workout.resultHrAvg?.let { "$it bpm" } ?: "—", Modifier.weight(1f))
-                    ResultCell("FC max",   workout.resultHrMax?.let { "$it bpm" } ?: "—", Modifier.weight(1f))
-                    ResultCell("RPE",      workout.resultRpe?.toString() ?: "—", Modifier.weight(1f))
+                    ResultCell(stringResource(R.string.running_report_cell_hr_avg), workout.resultHrAvg?.let { "$it bpm" } ?: "—", Modifier.weight(1f))
+                    ResultCell(stringResource(R.string.running_report_cell_hr_max), workout.resultHrMax?.let { "$it bpm" } ?: "—", Modifier.weight(1f))
+                    ResultCell(stringResource(R.string.running_report_cell_rpe),    workout.resultRpe?.toString() ?: "—", Modifier.weight(1f))
                 }
             }
             if (workout.resultElevationM != null || workout.resultCalories != null || workout.resultCadenceAvgRpm != null) {
                 Spacer(Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ResultCell("Dénivelé +", workout.resultElevationM?.let { "$it m" } ?: "—", Modifier.weight(1f))
-                    ResultCell("Calories",   workout.resultCalories?.let { "$it kcal" } ?: "—", Modifier.weight(1f))
-                    ResultCell("Cadence",    workout.resultCadenceAvgRpm?.let { "$it ppm" } ?: "—", Modifier.weight(1f))
+                    ResultCell(stringResource(R.string.running_report_cell_elevation), workout.resultElevationM?.let { "$it m" } ?: "—", Modifier.weight(1f))
+                    ResultCell(stringResource(R.string.running_report_cell_calories),  workout.resultCalories?.let { "$it kcal" } ?: "—", Modifier.weight(1f))
+                    ResultCell(stringResource(R.string.running_report_cell_cadence),   workout.resultCadenceAvgRpm?.let { "$it ppm" } ?: "—", Modifier.weight(1f))
                 }
             }
         }
@@ -306,7 +309,7 @@ private fun RepeatReadBlock(
 
     Surface(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = PandaOrangeContainer) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-            Text("${repeat.repeatCount} fois", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = PandaOrange, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+            Text(stringResource(R.string.running_report_repeat_count, repeat.repeatCount), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = PandaOrange, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
             steps.forEach { step ->
                 StepReadRow(step, modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 2.dp))
             }
@@ -320,11 +323,11 @@ private fun RepeatReadBlock(
                         .background(Color(0xFFFFF8F0), MaterialTheme.shapes.small),
                 ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        Text("#", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(28.dp))
-                        Text("Temps", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(stringResource(R.string.running_table_col_num), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(28.dp))
+                        Text(stringResource(R.string.running_table_col_temps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         if (intensityLabel != null) Text(intensityLabel, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        Text("RPE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(32.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        Text("✓", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(24.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(stringResource(R.string.running_table_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(32.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(stringResource(R.string.running_table_col_check), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(24.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                     repResults.forEach { rep ->
                         HorizontalDivider(color = Color(0xFFFFE0B2))

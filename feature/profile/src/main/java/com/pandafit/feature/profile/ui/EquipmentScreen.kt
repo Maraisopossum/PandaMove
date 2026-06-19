@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.core.database.catalog.EquipmentCategory
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaGreen
+import com.pandafit.feature.profile.R
 import com.pandafit.feature.profile.viewmodel.EquipmentViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +46,7 @@ fun EquipmentScreen(
     val selected by viewModel.selected.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { PandaTopBar(title = "Mon matériel", onNavigateBack = onNavigateBack) },
+        topBar = { PandaTopBar(title = stringResource(R.string.equipment_screen_title), onNavigateBack = onNavigateBack) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Column(
@@ -55,7 +57,7 @@ fun EquipmentScreen(
         ) {
             Spacer(Modifier.height(8.dp))
             Text(
-                "Sélectionne le matériel que tu as à disposition. Les exercices seront filtrés en conséquence.",
+                stringResource(R.string.equipment_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -103,11 +105,11 @@ fun EquipmentScreen(
                 Button(
                     onClick = { viewModel.selectAll() },
                     modifier = Modifier.weight(1f),
-                ) { Text("Tout sélectionner") }
+                ) { Text(stringResource(R.string.equipment_select_all)) }
                 Button(
                     onClick = { viewModel.clearAll() },
                     modifier = Modifier.weight(1f),
-                ) { Text("Tout désélectionner") }
+                ) { Text(stringResource(R.string.equipment_deselect_all)) }
             }
         }
     }

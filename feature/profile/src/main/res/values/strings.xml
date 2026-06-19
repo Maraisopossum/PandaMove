@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings communes -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_confirm_delete">Supprimer</string>
+    <string name="common_validate">Valider</string>
+    <string name="common_create">Créer</string>
+    <string name="common_save_cd">Sauvegarder</string>
+    <string name="common_edit_cd">Modifier</string>
+    <string name="common_delete_cd">Supprimer</string>
+    <string name="common_navigate_back_cd">Retour</string>
+    <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_search_label">Rechercher</string>
+    <string name="common_notes_label">Notes</string>
+    <string name="common_seance_name_label">Nom de la séance</string>
+    <string name="common_empty_dash">—</string>
+
+    <!-- Profile strings -->
+    <string name="profile_screen_title">Profil</string>
+    <string name="profile_rename_dialog_title">Modifier le nom</string>
+    <string name="profile_rename_label">Ton prénom ou pseudo</string>
+    <string name="profile_rename_confirm">Valider</string>
+    <string name="profile_import_done_title">Import terminé</string>
+    <string name="profile_section_profile">Profil</string>
+    <string name="profile_gender_label">Genre</string>
+    <string name="profile_gender_male">Homme</string>
+    <string name="profile_gender_female">Femme</string>
+    <string name="profile_section_strength">Renforcement</string>
+    <string name="profile_equipment_title">Mon matériel</string>
+    <string name="profile_equipment_subtitle">Équipement disponible pour filtrer les exercices</string>
+    <string name="profile_catalog_title">Catalogue d\'exercices</string>
+    <string name="profile_section_stats">Statistiques</string>
+    <string name="profile_stats_config_title">Configuration des statistiques</string>
+    <string name="profile_stats_config_subtitle">Distances, sommets et équivalents</string>
+    <string name="profile_section_sounds">Sons</string>
+    <string name="profile_sound_override_title">Sons en mode discret</string>
+    <string name="profile_sound_override_subtitle">Les bips de timer sonnent même si le téléphone est en silencieux</string>
+    <string name="profile_section_data">Données</string>
+    <string name="profile_export_title">Exporter mes données</string>
+    <string name="profile_export_in_progress">Export en cours…</string>
+    <string name="profile_export_done">Export terminé</string>
+    <string name="profile_export_subtitle">Export JSON complet de toutes vos données</string>
+    <string name="profile_import_title">Importer des données</string>
+    <string name="profile_import_in_progress">Import en cours…</string>
+    <string name="profile_import_done">Import terminé</string>
+    <string name="profile_import_subtitle">Depuis un fichier JSON PandaMove</string>
+    <string name="profile_tcx_title">Importer depuis Garmin (.tcx)</string>
+    <string name="profile_tcx_subtitle">Importe tracé GPS, splits et fréquence cardiaque</string>
+    <string name="profile_about_title">A propos de PandaMove</string>
+    <string name="profile_about_version">Version 1.0.0</string>
+    <string name="profile_identity_subtitle">Toutes vos seances. Un seul endroit.</string>
+    <string name="profile_edit_name_cd">Modifier le nom</string>
+    <string name="profile_error_fallback">Erreur</string>
+
+    <!-- Equipment strings -->
+    <string name="equipment_screen_title">Mon matériel</string>
+    <string name="equipment_description">Sélectionne le matériel que tu as à disposition. Les exercices seront filtrés en conséquence.</string>
+    <string name="equipment_select_all">Tout sélectionner</string>
+    <string name="equipment_deselect_all">Tout désélectionner</string>
+
+    <!-- Exercise catalog strings -->
+    <string name="exercise_catalog_title">Catalogue d\'exercices</string>
+    <string name="exercise_catalog_add_cd">Ajouter</string>
+    <string name="exercise_catalog_search_placeholder">Rechercher un exercice…</string>
+    <string name="exercise_catalog_my_equipment">Mon matériel</string>
+    <string name="exercise_catalog_all_filter">Tous</string>
+    <string name="exercise_catalog_empty_filtered">Aucun exercice pour ces filtres.</string>
+    <string name="exercise_catalog_loading">Chargement du catalogue…</string>
+    <string name="exercise_catalog_create_title">Nouvel exercice personnalisé</string>
+    <string name="exercise_catalog_create_name_label">Nom de l\'exercice *</string>
+    <string name="exercise_catalog_create_confirm">Créer</string>
+    <string name="exercise_catalog_edit_title">Modifier l\'exercice</string>
+    <string name="exercise_catalog_name_locked">Nom (non modifiable)</string>
+    <string name="exercise_catalog_type_label">Type</string>
+    <string name="exercise_catalog_type_undefined">Non défini</string>
+    <string name="exercise_catalog_type_mono">Mono-articulaire</string>
+    <string name="exercise_catalog_type_pluri">Pluri-articulaire</string>
+    <string name="exercise_catalog_muscles_label">Muscles sollicités (dans l\'ordre : principal en premier)</string>
+    <string name="exercise_catalog_equipment_label">Matériel nécessaire (optionnel)</string>
+    <string name="exercise_catalog_save">Enregistrer</string>
+    <string name="exercise_catalog_edit_cd">Modifier</string>
+    <string name="exercise_catalog_delete_cd">Supprimer</string>
+
+    <!-- TCX Import strings -->
+    <string name="tcx_screen_title">Import Garmin (.tcx)</string>
+    <string name="tcx_back_cd">Retour</string>
+    <string name="tcx_idle_title">Importer depuis Garmin</string>
+    <string name="tcx_idle_description">Sélectionnez un fichier .tcx exporté depuis Garmin Connect ou Garmin Express.</string>
+    <string name="tcx_pick_file_button">Choisir un fichier .tcx</string>
+    <string name="tcx_parsing_label">Lecture du fichier…</string>
+    <string name="tcx_importing_label">Import en cours…</string>
+    <string name="tcx_preview_title">Aperçu de l\'activité</string>
+    <string name="tcx_sport_type_title">Type de sport</string>
+    <string name="tcx_sport_running">Course à pied</string>
+    <string name="tcx_sport_cycling">Vélo</string>
+    <string name="tcx_sport_hiking">Randonnée</string>
+    <string name="tcx_import_as_title">Importer comme…</string>
+    <string name="tcx_mode_new_label">Nouvelle séance libre</string>
+    <string name="tcx_mode_new_subtitle">Crée une séance terminée avec les résultats du TCX</string>
+    <string name="tcx_mode_existing_label">Lier à une séance planifiée</string>
+    <string name="tcx_mode_no_planned">Aucune séance planifiée de ce type</string>
+    <string name="tcx_choose_session_title">Choisir la séance</string>
+    <string name="tcx_session_name_label">Nom de la séance</string>
+    <string name="tcx_with_stroller">Avec la poussette 🚼</string>
+    <string name="tcx_import_button">Importer</string>
+    <string name="tcx_pick_another_button">Choisir un autre fichier</string>
+    <string name="tcx_done_title">Import réussi !</string>
+    <string name="tcx_view_session_button">Voir la séance</string>
+    <string name="tcx_back_to_profile_button">Retour au profil</string>
+    <string name="tcx_import_another_button">Importer un autre fichier</string>
+    <string name="tcx_error_title">Erreur d\'import</string>
+    <string name="tcx_retry_button">Réessayer</string>
+    <string name="tcx_stat_distance">Distance</string>
+    <string name="tcx_stat_duration">Durée</string>
+    <string name="tcx_stat_avg_hr">FC moy.</string>
+    <string name="tcx_stat_max_hr">FC max</string>
+    <string name="tcx_stat_elevation">Dénivelé +</string>
+    <string name="tcx_stat_splits">Splits</string>
+    <string name="tcx_stat_gps_points">Points GPS</string>
+</resources>

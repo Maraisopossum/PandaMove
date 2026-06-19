@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,7 @@ import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.cycling.R
 import com.pandafit.feature.cycling.model.CyclingBlockDraft
 import com.pandafit.feature.cycling.viewmodel.CyclingDetailViewModel
 
@@ -69,7 +71,7 @@ fun CyclingWorkoutDetailScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             PandaTopBar(
-                title = if (uiState.isNew) "Nouvelle sortie" else "Modifier la sortie",
+                title = if (uiState.isNew) stringResource(R.string.cycling_detail_title_new) else stringResource(R.string.cycling_detail_title_edit),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
             )
@@ -78,13 +80,13 @@ fun CyclingWorkoutDetailScreen(
             BottomAppBar(
                 actions = {
                     IconButton(onClick = viewModel::addBlock) {
-                        Icon(Icons.Default.Add, "Ajouter un bloc")
+                        Icon(Icons.Default.Add, stringResource(R.string.cycling_detail_add_block_cd))
                     }
-                    Text("Ajouter un bloc", style = MaterialTheme.typography.labelMedium, color = PandaSubtext)
+                    Text(stringResource(R.string.cycling_detail_add_block_label), style = MaterialTheme.typography.labelMedium, color = PandaSubtext)
                 },
                 floatingActionButton = {
                     FloatingActionButton(onClick = viewModel::save, containerColor = PandaBlue) {
-                        Icon(Icons.Default.Save, "Sauvegarder", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(Icons.Default.Save, stringResource(R.string.cycling_detail_save_cd), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 },
             )
@@ -114,22 +116,22 @@ fun CyclingWorkoutDetailScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
                             value = uiState.name, onValueChange = viewModel::updateName,
-                            label = { Text("Nom de la sortie") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            label = { Text(stringResource(R.string.cycling_detail_field_name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                         )
                         OutlinedTextField(
                             value = uiState.objective, onValueChange = viewModel::updateObjective,
-                            label = { Text("Objectif") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            label = { Text(stringResource(R.string.cycling_detail_field_objective)) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                         )
                         OutlinedTextField(
                             value = uiState.notes, onValueChange = viewModel::updateNotes,
-                            label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), maxLines = 3,
+                            label = { Text(stringResource(R.string.cycling_detail_field_notes)) }, modifier = Modifier.fillMaxWidth(), maxLines = 3,
                         )
                     }
                 }
             }
 
             item {
-                Text("Structure de la séance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.cycling_detail_section_structure), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
 
             itemsIndexed(uiState.blocks, key = { i, b -> "${b.blockType}_${b.id}_$i" }) { index, block ->
@@ -159,26 +161,26 @@ private fun CyclingBlockCard(
                     Text(block.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = PandaBlue)
                     Text(cyclingBlockTypeName(block.blockType), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                 }
-                IconButton(onClick = onDuplicate) { Icon(Icons.Default.ContentCopy, "Dupliquer") }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer") }
+                IconButton(onClick = onDuplicate) { Icon(Icons.Default.ContentCopy, stringResource(R.string.cycling_block_duplicate_cd)) }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, stringResource(R.string.cycling_block_delete_cd)) }
             }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = block.name, onValueChange = { onUpdate(block.copy(name = it)) },
-                label = { Text("Nom du bloc") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = { Text(stringResource(R.string.cycling_block_field_name)) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = block.durationMinutes?.toString() ?: "",
                     onValueChange = { onUpdate(block.copy(durationMinutes = it.toIntOrNull())) },
-                    label = { Text("Durée (min)") }, modifier = Modifier.weight(1f),
+                    label = { Text(stringResource(R.string.cycling_block_field_duration)) }, modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
                 )
                 OutlinedTextField(
                     value = block.distanceKm?.toString() ?: "",
                     onValueChange = { onUpdate(block.copy(distanceKm = it.toDoubleOrNull())) },
-                    label = { Text("Distance (km)") }, modifier = Modifier.weight(1f),
+                    label = { Text(stringResource(R.string.cycling_block_field_distance)) }, modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
                 )
             }
@@ -187,13 +189,13 @@ private fun CyclingBlockCard(
                 OutlinedTextField(
                     value = block.targetPowerWatts?.toString() ?: "",
                     onValueChange = { onUpdate(block.copy(targetPowerWatts = it.toIntOrNull())) },
-                    label = { Text("Puissance (W)") }, modifier = Modifier.weight(1f),
+                    label = { Text(stringResource(R.string.cycling_block_field_power)) }, modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
                 )
                 OutlinedTextField(
                     value = block.targetCadenceRpm?.toString() ?: "",
                     onValueChange = { onUpdate(block.copy(targetCadenceRpm = it.toIntOrNull())) },
-                    label = { Text("Cadence (rpm)") }, modifier = Modifier.weight(1f),
+                    label = { Text(stringResource(R.string.cycling_block_field_cadence)) }, modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
                 )
             }
@@ -202,13 +204,13 @@ private fun CyclingBlockCard(
                 OutlinedTextField(
                     value = block.targetHeartRateBpm?.toString() ?: "",
                     onValueChange = { onUpdate(block.copy(targetHeartRateBpm = it.toIntOrNull())) },
-                    label = { Text("FC cible (bpm)") }, modifier = Modifier.weight(1f),
+                    label = { Text(stringResource(R.string.cycling_block_field_heart_rate)) }, modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
                 )
                 OutlinedTextField(
                     value = block.rpeTarget?.toString() ?: "",
                     onValueChange = { onUpdate(block.copy(rpeTarget = it.toIntOrNull()?.coerceIn(1, 10))) },
-                    label = { Text("RPE (1-10)") }, modifier = Modifier.weight(1f),
+                    label = { Text(stringResource(R.string.cycling_block_field_rpe)) }, modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
                 )
             }
@@ -218,13 +220,13 @@ private fun CyclingBlockCard(
                     OutlinedTextField(
                         value = block.repetitions?.toString() ?: "",
                         onValueChange = { onUpdate(block.copy(repetitions = it.toIntOrNull())) },
-                        label = { Text("Répétitions") }, modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.cycling_block_field_repetitions)) }, modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
                     )
                     OutlinedTextField(
                         value = block.recoveryMinutes?.toString() ?: "",
                         onValueChange = { onUpdate(block.copy(recoveryMinutes = it.toIntOrNull())) },
-                        label = { Text("Récup. (min)") }, modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.cycling_block_field_recovery)) }, modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
                     )
                 }

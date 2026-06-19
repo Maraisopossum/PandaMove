@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,6 +34,7 @@ import com.pandafit.feature.stats.model.DISTANCE_PRESETS
 import com.pandafit.feature.stats.model.MONUMENT_PRESETS
 import com.pandafit.feature.stats.model.SUMMIT_PRESETS
 import com.pandafit.feature.stats.model.WEIGHT_PRESETS
+import com.pandafit.feature.stats.R
 import com.pandafit.feature.stats.viewmodel.StatsConfigViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -46,7 +48,7 @@ fun StatsConfigScreen(
     Scaffold(
         topBar = {
             PandaTopBar(
-                title = "Configuration des statistiques",
+                title = stringResource(R.string.stats_config_screen_title),
                 onNavigateBack = onNavigateBack,
             )
         },
@@ -61,7 +63,7 @@ fun StatsConfigScreen(
         ) {
             item {
                 Text(
-                    "Course à pieds",
+                    stringResource(R.string.stats_config_running_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -72,8 +74,8 @@ fun StatsConfigScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         ChipSection(
-                            title = "Distance 1",
-                            subtitle = "Référence principale de distance",
+                            title = stringResource(R.string.stats_config_distance1_title),
+                            subtitle = stringResource(R.string.stats_config_distance1_subtitle),
                             color = PandaGreen,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -89,8 +91,8 @@ fun StatsConfigScreen(
                         }
 
                         ChipSection(
-                            title = "Distance 2",
-                            subtitle = "Référence secondaire de distance",
+                            title = stringResource(R.string.stats_config_distance2_title),
+                            subtitle = stringResource(R.string.stats_config_distance2_subtitle),
                             color = PandaGreen,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -106,8 +108,8 @@ fun StatsConfigScreen(
                         }
 
                         ChipSection(
-                            title = "Sommet",
-                            subtitle = "Calculé avec le dénivelé réel de tes séances",
+                            title = stringResource(R.string.stats_config_summit_title),
+                            subtitle = stringResource(R.string.stats_config_summit_subtitle_running),
                             color = PandaGreen,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -127,7 +129,7 @@ fun StatsConfigScreen(
 
             item {
                 Text(
-                    "Vélo",
+                    stringResource(R.string.stats_config_cycling_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -138,8 +140,8 @@ fun StatsConfigScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         ChipSection(
-                            title = "Distance 1",
-                            subtitle = "Référence principale de distance",
+                            title = stringResource(R.string.stats_config_distance1_title),
+                            subtitle = stringResource(R.string.stats_config_distance1_subtitle),
                             color = PandaBlue,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -155,8 +157,8 @@ fun StatsConfigScreen(
                         }
 
                         ChipSection(
-                            title = "Distance 2",
-                            subtitle = "Référence secondaire de distance",
+                            title = stringResource(R.string.stats_config_distance2_title),
+                            subtitle = stringResource(R.string.stats_config_distance2_subtitle),
                             color = PandaBlue,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -172,8 +174,8 @@ fun StatsConfigScreen(
                         }
 
                         ChipSection(
-                            title = "Sommet",
-                            subtitle = "Calculé avec le dénivelé réel de tes séances vélo",
+                            title = stringResource(R.string.stats_config_summit_title),
+                            subtitle = stringResource(R.string.stats_config_summit_subtitle_cycling),
                             color = PandaBlue,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -193,7 +195,7 @@ fun StatsConfigScreen(
 
             item {
                 Text(
-                    "Renforcement",
+                    stringResource(R.string.stats_config_strength_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -204,8 +206,8 @@ fun StatsConfigScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         ChipSection(
-                            title = "Animal / Objet 1",
-                            subtitle = "Premier équivalent de tonnage",
+                            title = stringResource(R.string.stats_config_weight1_title),
+                            subtitle = stringResource(R.string.stats_config_weight1_subtitle),
                             color = PandaPurple,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -221,8 +223,8 @@ fun StatsConfigScreen(
                         }
 
                         ChipSection(
-                            title = "Animal / Objet 2",
-                            subtitle = "Deuxième équivalent de tonnage",
+                            title = stringResource(R.string.stats_config_weight2_title),
+                            subtitle = stringResource(R.string.stats_config_weight2_subtitle),
                             color = PandaPurple,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -238,8 +240,8 @@ fun StatsConfigScreen(
                         }
 
                         ChipSection(
-                            title = "Animal / Objet 3",
-                            subtitle = "Troisième équivalent de tonnage",
+                            title = stringResource(R.string.stats_config_weight3_title),
+                            subtitle = stringResource(R.string.stats_config_weight3_subtitle),
                             color = PandaPurple,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -255,8 +257,8 @@ fun StatsConfigScreen(
                         }
 
                         ChipSection(
-                            title = "Monument",
-                            subtitle = "Référence de tonnage monumentale",
+                            title = stringResource(R.string.stats_config_monument_title),
+                            subtitle = stringResource(R.string.stats_config_monument_subtitle),
                             color = PandaPurple,
                         ) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

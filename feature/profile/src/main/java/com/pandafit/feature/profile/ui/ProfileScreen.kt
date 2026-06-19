@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -62,6 +63,7 @@ import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.profile.R
 import com.pandafit.feature.profile.viewmodel.ExportImportStatus
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
 import com.pandafit.feature.profile.viewmodel.UserGender
@@ -109,23 +111,23 @@ fun ProfileScreen(
         var inputName by remember(uiState.userName) { mutableStateOf(uiState.userName) }
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Modifier le nom") },
+            title = { Text(stringResource(R.string.profile_rename_dialog_title)) },
             text = {
                 OutlinedTextField(
                     value = inputName,
                     onValueChange = { inputName = it },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Ton prénom ou pseudo") },
+                    label = { Text(stringResource(R.string.profile_rename_label)) },
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.updateUserName(inputName.trim().ifBlank { "Sportif PandaMove" })
                     showRenameDialog = false
-                }) { Text("Valider", fontWeight = FontWeight.SemiBold) }
+                }) { Text(stringResource(R.string.profile_rename_confirm), fontWeight = FontWeight.SemiBold) }
             },
-            dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 
@@ -135,7 +137,7 @@ fun ProfileScreen(
         val result = importResult
         AlertDialog(
             onDismissRequest = { viewModel.clearStatus() },
-            title = { Text("Import terminé", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.profile_import_done_title), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
@@ -171,7 +173,7 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        topBar = { PandaTopBar(title = "Profil", onOpenDrawer = onOpenDrawer) },
+        topBar = { PandaTopBar(title = stringResource(R.string.profile_screen_title), onOpenDrawer = onOpenDrawer) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         LazyColumn(
@@ -189,19 +191,19 @@ fun ProfileScreen(
             }
 
             item {
-                Text("Profil", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.profile_section_profile), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 PandaCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            "Genre",
+                            stringResource(R.string.profile_gender_label),
                             style = MaterialTheme.typography.labelMedium,
                             color = androidx.compose.ui.graphics.Color(0xFF888888),
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             val genders = listOf(
-                                UserGender.MALE to ("Homme" to Icons.Default.Male),
-                                UserGender.FEMALE to ("Femme" to Icons.Default.Female),
+                                UserGender.MALE to (stringResource(R.string.profile_gender_male) to Icons.Default.Male),
+                                UserGender.FEMALE to (stringResource(R.string.profile_gender_female) to Icons.Default.Female),
                             )
                             genders.forEach { (gender, labelIcon) ->
                                 val (label, icon) = labelIcon
@@ -239,20 +241,20 @@ fun ProfileScreen(
             }
 
             item {
-                Text("Renforcement", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.profile_section_strength), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 PandaCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(4.dp)) {
                         SettingsActionRow(
                             icon = Icons.Default.SportsMartialArts,
-                            title = "Mon matériel",
-                            subtitle = "Équipement disponible pour filtrer les exercices",
+                            title = stringResource(R.string.profile_equipment_title),
+                            subtitle = stringResource(R.string.profile_equipment_subtitle),
                             onClick = onNavigateToEquipment,
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(
                             icon = Icons.Default.FitnessCenter,
-                            title = "Catalogue d'exercices",
+                            title = stringResource(R.string.profile_catalog_title),
                             subtitle = "${uiState.exerciseCount} exercice${if (uiState.exerciseCount > 1) "s" else ""} · filtrables par muscle et matériel",
                             onClick = onNavigateToExerciseCatalog,
                         )
@@ -261,14 +263,14 @@ fun ProfileScreen(
             }
 
             item {
-                Text("Statistiques", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.profile_section_stats), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 PandaCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(4.dp)) {
                         SettingsActionRow(
                             icon = Icons.Default.BarChart,
-                            title = "Configuration des statistiques",
-                            subtitle = "Distances, sommets et équivalents",
+                            title = stringResource(R.string.profile_stats_config_title),
+                            subtitle = stringResource(R.string.profile_stats_config_subtitle),
                             onClick = onNavigateToStatsConfig,
                         )
                     }
@@ -276,14 +278,14 @@ fun ProfileScreen(
             }
 
             item {
-                Text("Sons", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.profile_section_sounds), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 PandaCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(4.dp)) {
                         SettingsToggleRow(
                             icon = Icons.Default.NotificationsActive,
-                            title = "Sons en mode discret",
-                            subtitle = "Les bips de timer sonnent même si le téléphone est en silencieux",
+                            title = stringResource(R.string.profile_sound_override_title),
+                            subtitle = stringResource(R.string.profile_sound_override_subtitle),
                             checked = uiState.soundOverrideSilent,
                             onCheckedChange = { viewModel.setSoundOverrideSilent(it) },
                         )
@@ -292,18 +294,18 @@ fun ProfileScreen(
             }
 
             item {
-                Text("Données", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.profile_section_data), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 PandaCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(4.dp)) {
                         SettingsActionRow(
                             icon = Icons.Default.Share,
-                            title = "Exporter mes données",
+                            title = stringResource(R.string.profile_export_title),
                             subtitle = when (uiState.exportImportStatus) {
-                                ExportImportStatus.EXPORTING -> "Export en cours..."
-                                ExportImportStatus.SUCCESS_EXPORT -> "Export terminé"
-                                ExportImportStatus.ERROR -> uiState.errorMessage ?: "Erreur"
-                                else -> "Export JSON complet de toutes vos données"
+                                ExportImportStatus.EXPORTING -> stringResource(R.string.profile_export_in_progress)
+                                ExportImportStatus.SUCCESS_EXPORT -> stringResource(R.string.profile_export_done)
+                                ExportImportStatus.ERROR -> uiState.errorMessage ?: stringResource(R.string.profile_error_fallback)
+                                else -> stringResource(R.string.profile_export_subtitle)
                             },
                             onClick = {
                                 if (uiState.exportImportStatus != ExportImportStatus.EXPORTING) {
@@ -314,12 +316,12 @@ fun ProfileScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(
                             icon = Icons.Default.Download,
-                            title = "Importer des données",
+                            title = stringResource(R.string.profile_import_title),
                             subtitle = when (uiState.exportImportStatus) {
-                                ExportImportStatus.IMPORTING -> "Import en cours..."
-                                ExportImportStatus.SUCCESS_IMPORT -> "Import terminé"
-                                ExportImportStatus.ERROR -> uiState.errorMessage ?: "Erreur"
-                                else -> "Depuis un fichier JSON PandaMove"
+                                ExportImportStatus.IMPORTING -> stringResource(R.string.profile_import_in_progress)
+                                ExportImportStatus.SUCCESS_IMPORT -> stringResource(R.string.profile_import_done)
+                                ExportImportStatus.ERROR -> uiState.errorMessage ?: stringResource(R.string.profile_error_fallback)
+                                else -> stringResource(R.string.profile_import_subtitle)
                             },
                             onClick = {
                                 if (uiState.exportImportStatus != ExportImportStatus.IMPORTING) {
@@ -330,15 +332,15 @@ fun ProfileScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(
                             icon = Icons.Default.Route,
-                            title = "Importer depuis Garmin (.tcx)",
-                            subtitle = "Importe tracé GPS, splits et fréquence cardiaque",
+                            title = stringResource(R.string.profile_tcx_title),
+                            subtitle = stringResource(R.string.profile_tcx_subtitle),
                             onClick = onNavigateToTcxImport,
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(
                             icon = Icons.Default.Info,
-                            title = "A propos de PandaMove",
-                            subtitle = "Version 1.0.0",
+                            title = stringResource(R.string.profile_about_title),
+                            subtitle = stringResource(R.string.profile_about_version),
                             onClick = { },
                         )
                     }
@@ -382,12 +384,12 @@ private fun ProfileIdentityCard(name: String, onEditClick: () -> Unit) {
                         .padding(4.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.Edit, "Modifier le nom", modifier = Modifier.size(16.dp), tint = PandaSubtext)
+                    Icon(Icons.Default.Edit, stringResource(R.string.profile_edit_name_cd), modifier = Modifier.size(16.dp), tint = PandaSubtext)
                 }
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                "Toutes vos seances. Un seul endroit.",
+                stringResource(R.string.profile_identity_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = PandaSubtext,
             )

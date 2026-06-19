@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings communes -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_confirm_delete">Supprimer</string>
+    <string name="common_validate">Valider</string>
+    <string name="common_create">Créer</string>
+    <string name="common_save_cd">Sauvegarder</string>
+    <string name="common_edit_cd">Modifier</string>
+    <string name="common_delete_cd">Supprimer</string>
+    <string name="common_navigate_back_cd">Retour</string>
+    <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_search_label">Rechercher</string>
+    <string name="common_notes_label">Notes</string>
+    <string name="common_seance_name_label">Nom de la séance</string>
+    <string name="common_empty_dash">—</string>
+
+    <!-- Home strings -->
+    <string name="home_screen_title">PandaMove</string>
+    <string name="home_menu_cd">Menu</string>
+    <string name="home_greeting_with_name">Bonjour %1$s 👋</string>
+    <string name="home_greeting">Bonjour 👋</string>
+    <string name="home_subtitle">Prêt pour ta prochaine activité ?</string>
+    <string name="home_section_today">SÉANCES DU JOUR</string>
+    <string name="home_section_activities">MES ACTIVITÉS</string>
+    <string name="home_section_week_recap">BILAN DE LA SEMAINE</string>
+    <string name="home_week_stat_sessions">Séances</string>
+    <string name="home_week_stat_duration">Durée</string>
+    <string name="home_change_sport_cd">Changer de sport</string>
+    <string name="home_activity_running">Course</string>
+    <string name="home_activity_cycling">Vélo</string>
+    <string name="home_activity_strength">Renforcement</string>
+    <string name="home_activity_breathing">Respiration</string>
+    <string name="home_activity_hiking">Randonnée</string>
+    <string name="home_stat_no_run">Aucun run</string>
+    <string name="home_stat_no_cycling">Aucune sortie</string>
+    <string name="home_stat_no_strength">Aucune séance</string>
+    <string name="home_stat_no_breathing">Aucune session</string>
+    <string name="home_active_session_fallback">Séance en cours</string>
+    <string name="home_resume_cd">Reprendre</string>
+    <string name="home_instance_title_fallback">Renforcement</string>
+</resources>

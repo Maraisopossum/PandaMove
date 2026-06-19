@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +60,7 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.strength.R
 import com.pandafit.feature.strength.model.formatRepsDisplay
 import com.pandafit.feature.strength.viewmodel.SeanceDetailViewModel
 import java.time.LocalDate
@@ -82,12 +84,12 @@ fun SeanceDetailScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             PandaTopBar(
-                title = uiState.seance?.nom ?: "Séance",
+                title = uiState.seance?.nom ?: stringResource(R.string.seance_detail_title_fallback),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
                 actions = {
                     IconButton(onClick = { onNavigateToEdit(seanceId) }) {
-                        Icon(Icons.Default.Edit, "Modifier")
+                        Icon(Icons.Default.Edit, stringResource(R.string.common_edit_cd))
                     }
                 },
             )
@@ -140,7 +142,7 @@ fun SeanceDetailScreen(
             if (uiState.instances.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(16.dp))
-                    Text("Instances programmées", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 16.dp))
+                    Text(stringResource(R.string.seance_detail_instances_section_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 16.dp))
                     Spacer(Modifier.height(8.dp))
                 }
                 items(uiState.instances, key = { "inst_${it.id}" }) { instance ->
@@ -187,11 +189,11 @@ private fun TableHeader() {
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)).padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("EXERCICE", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(3f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text("SÉR.", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text("REPS", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.9f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text("CHARGE", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.1f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text("REPOS", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f), color = PandaSubtext, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.seance_detail_table_header_exercise), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(3f), color = PandaSubtext, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.seance_detail_table_header_sets), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = PandaSubtext, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.seance_detail_table_header_reps), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.9f), color = PandaSubtext, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.seance_detail_table_header_charge), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.1f), color = PandaSubtext, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.seance_detail_table_header_rest), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f), color = PandaSubtext, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -241,7 +243,7 @@ private fun ExerciceTableReadRow(ex: ExerciceSeanceWithExercise, bloc: BlocSeanc
             color = PandaPurple,
         )
         Text(formatRepsDisplay(e.repsCibles, e.repsType), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.9f))
-        Text(e.chargeCible.ifBlank { "—" }, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.1f))
+        Text(e.chargeCible.ifBlank { stringResource(R.string.common_empty_dash) }, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.1f))
         Text(if (!hideExerciceRepos && e.tempsReposSec > 0) formatRest(e.tempsReposSec) else "—", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.8f), color = PandaPurple)
     }
 }

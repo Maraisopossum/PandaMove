@@ -13,6 +13,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import com.pandafit.feature.running.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -65,14 +67,14 @@ fun RunningWorkoutExecuteScreen(
     if (showFinishDialog) {
         AlertDialog(
             onDismissRequest = { showFinishDialog = false },
-            title = { Text("Terminer la séance ?", fontWeight = FontWeight.Bold) },
-            text = { Text("Les résultats seront sauvegardés et la séance marquée comme terminée.") },
+            title = { Text(stringResource(R.string.running_execute_finish_dialog_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.running_execute_finish_dialog_body)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.finishWorkout(); showFinishDialog = false }) {
-                    Text("Terminer", color = RedColor, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.running_execute_finish_button), color = RedColor, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showFinishDialog = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showFinishDialog = false }) { Text(stringResource(R.string.running_execute_cancel_button)) } },
         )
     }
 
@@ -82,7 +84,7 @@ fun RunningWorkoutExecuteScreen(
                 title = {
                     Column {
                         Text(
-                            uiState.workout?.name ?: "Résultats",
+                            uiState.workout?.name ?: stringResource(R.string.running_execute_title_fallback),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.ExtraBold,
                         )
@@ -96,12 +98,12 @@ fun RunningWorkoutExecuteScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.running_execute_navigate_back_cd))
                     }
                 },
                 actions = {
                     TextButton(onClick = { showFinishDialog = true }) {
-                        Text("Terminer", color = RedColor, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.running_execute_finish_button), color = RedColor, fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -125,28 +127,28 @@ fun RunningWorkoutExecuteScreen(
                         .padding(14.dp),
                 ) {
                     Text(
-                        "RÉSULTATS GLOBAUX",
+                        stringResource(R.string.running_execute_global_results_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell("Distance (km)", uiState.resultDistanceKm, { viewModel.updateOverallResult("distanceKm", it) }, KeyboardType.Decimal, Modifier.weight(1f))
-                        ResultInputCell("Temps (mm:ss)", uiState.resultDurationStr, { viewModel.updateOverallResult("duration", it) }, KeyboardType.Text, Modifier.weight(1f))
-                        ReadOnlyCell("Allure (/km)", uiState.resultPaceStr, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_distance), uiState.resultDistanceKm, { viewModel.updateOverallResult("distanceKm", it) }, KeyboardType.Decimal, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_time), uiState.resultDurationStr, { viewModel.updateOverallResult("duration", it) }, KeyboardType.Text, Modifier.weight(1f))
+                        ReadOnlyCell(stringResource(R.string.running_execute_cell_pace), uiState.resultPaceStr, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell("FC moy. (bpm)", uiState.resultHrAvg, { viewModel.updateOverallResult("hr", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell("FC max (bpm)", uiState.resultHrMax, { viewModel.updateOverallResult("hrMax", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell("RPE (1–10)", uiState.resultRpe, { viewModel.updateOverallResult("rpe", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_avg), uiState.resultHrAvg, { viewModel.updateOverallResult("hr", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_max), uiState.resultHrMax, { viewModel.updateOverallResult("hrMax", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_rpe), uiState.resultRpe, { viewModel.updateOverallResult("rpe", it) }, KeyboardType.Number, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell("Dénivelé (m)", uiState.resultElevationM, { viewModel.updateOverallResult("elevation", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell("Calories (kcal)", uiState.resultCalories, { viewModel.updateOverallResult("calories", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell("Cadence (ppm)", uiState.resultCadenceAvgPpm, { viewModel.updateOverallResult("cadence", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_elevation), uiState.resultElevationM, { viewModel.updateOverallResult("elevation", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_calories), uiState.resultCalories, { viewModel.updateOverallResult("calories", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_cadence), uiState.resultCadenceAvgPpm, { viewModel.updateOverallResult("cadence", it) }, KeyboardType.Number, Modifier.weight(1f))
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -180,7 +182,7 @@ fun RunningWorkoutExecuteScreen(
             // ── Note de séance ──
             item {
                 Text(
-                    "NOTE DE SÉANCE",
+                    stringResource(R.string.running_execute_session_note_label),
                     style = MaterialTheme.typography.labelSmall,
                     color = PandaSubtext,
                     fontWeight = FontWeight.Bold,
@@ -191,7 +193,7 @@ fun RunningWorkoutExecuteScreen(
                     onValueChange = { viewModel.updateOverallResult("notes", it) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
-                    placeholder = { Text("Commentaire global de la séance...") },
+                    placeholder = { Text(stringResource(R.string.running_execute_session_note_placeholder)) },
                     shape = RoundedCornerShape(12.dp),
                 )
                 Spacer(Modifier.height(16.dp))
@@ -205,7 +207,7 @@ fun RunningWorkoutExecuteScreen(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = RedColor),
                 ) {
-                    Text("Terminer la séance", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.running_execute_finish_seance_button), color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -251,7 +253,7 @@ private fun RepeatIntervalSection(
     }
 
     Text(
-        "INTERVALLES — ${execution.repeat.repeatCount} fois",
+        stringResource(R.string.running_execute_interval_label, execution.repeat.repeatCount),
         style = MaterialTheme.typography.labelSmall,
         color = PandaSubtext,
         fontWeight = FontWeight.Bold,
@@ -265,12 +267,12 @@ private fun RepeatIntervalSection(
     ) {
         // En-tête
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
-            Text("#", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(30.dp))
-            Text("Cible", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("Tps", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
+            Text(stringResource(R.string.running_table_col_num), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(30.dp))
+            Text(stringResource(R.string.running_table_col_cible), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text(stringResource(R.string.running_table_col_tps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
             if (hasIntensity) Text(intensityLabel!!, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(52.dp), textAlign = TextAlign.Center)
-            Text("RPE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(30.dp), textAlign = TextAlign.Center)
-            Text("✓", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+            Text(stringResource(R.string.running_table_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(30.dp), textAlign = TextAlign.Center)
+            Text(stringResource(R.string.running_table_col_check), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
         }
 
         execution.reps.forEachIndexed { idx, rep ->
@@ -363,10 +365,10 @@ private fun FreeStepSection(
             )
             // En-tête
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
-                Text("Tps", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(stringResource(R.string.running_table_col_tps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 if (intensityLabel != null) Text(intensityLabel, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                Text("RPE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
-                Text("✓", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(32.dp), textAlign = TextAlign.Center)
+                Text(stringResource(R.string.running_table_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
+                Text(stringResource(R.string.running_table_col_check), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(32.dp), textAlign = TextAlign.Center)
             }
             HorizontalDivider(color = Color(0xFFD0D8F0))
             Row(

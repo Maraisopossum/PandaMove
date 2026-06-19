@@ -79,6 +79,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -92,6 +93,7 @@ import com.pandafit.feature.timer.model.TimerConfig
 import com.pandafit.feature.timer.model.TimerMode
 import com.pandafit.feature.timer.model.TimerPhase
 import com.pandafit.feature.timer.model.TimerUiState
+import com.pandafit.feature.timer.R
 import com.pandafit.feature.timer.viewmodel.TimerViewModel
 // ── Couleurs ──────────────────────────────────────────────────────────────────
 private val StopwatchColor = Color(0xFF00BCD4)
@@ -204,7 +206,7 @@ fun TimerScreen(
     }
 
     Scaffold(
-        topBar = { if (page == TimerPage.HOME) PandaTopBar(title = "Minuteur", onOpenDrawer = onOpenDrawer) },
+        topBar = { if (page == TimerPage.HOME) PandaTopBar(title = stringResource(R.string.timer_screen_title), onOpenDrawer = onOpenDrawer) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         AnimatedContent(
@@ -271,20 +273,20 @@ private fun TimerHomeView(onSelectMode: (TimerMode) -> Unit) {
         // Text("Choisis ton mode", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         // Spacer(Modifier.height(36.dp))
 
-        TimerSectionLabel("BASIQUE")
+        TimerSectionLabel(stringResource(R.string.timer_section_basic))
         Spacer(Modifier.height(12.dp))
-        TimerModePillButton("CHRONOMÈTRE", StopwatchColor) { onSelectMode(TimerMode.STOPWATCH) }
+        TimerModePillButton(stringResource(R.string.timer_mode_stopwatch), StopwatchColor) { onSelectMode(TimerMode.STOPWATCH) }
         Spacer(Modifier.height(12.dp))
-        TimerModePillButton("MINUTEUR", CountdownColor) { onSelectMode(TimerMode.COUNTDOWN) }
+        TimerModePillButton(stringResource(R.string.timer_mode_countdown), CountdownColor) { onSelectMode(TimerMode.COUNTDOWN) }
         Spacer(Modifier.height(28.dp))
 
-        TimerSectionLabel("ENTRAÎNEMENT")
+        TimerSectionLabel(stringResource(R.string.timer_section_training))
         Spacer(Modifier.height(12.dp))
         listOf(
-            Triple(TimerMode.TABATA, "TABATA", TabataColor),
-            Triple(TimerMode.EMOM, "EMOM", EmomColor),
-            Triple(TimerMode.AMRAP, "AMRAP", AmrapColor),
-            Triple(TimerMode.FOR_TIME, "FOR TIME", ForTimeColor),
+            Triple(TimerMode.TABATA, stringResource(R.string.timer_mode_tabata), TabataColor),
+            Triple(TimerMode.EMOM, stringResource(R.string.timer_mode_emom), EmomColor),
+            Triple(TimerMode.AMRAP, stringResource(R.string.timer_mode_amrap), AmrapColor),
+            Triple(TimerMode.FOR_TIME, stringResource(R.string.timer_mode_for_time), ForTimeColor),
         ).forEach { (mode, label, color) ->
             TimerModePillButton(label, color) { onSelectMode(mode) }
             Spacer(Modifier.height(12.dp))
@@ -329,13 +331,13 @@ private fun TimerConfigView(
     if (showNotesDialog) {
         AlertDialog(
             onDismissRequest = { showNotesDialog = false },
-            title = { Text("Ajoute des notes") },
+            title = { Text(stringResource(R.string.timer_notes_dialog_title)) },
             text = {
                 OutlinedTextField(
                     value = notesText,
                     onValueChange = { notesText = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Exercices, objectifs...") },
+                    placeholder = { Text(stringResource(R.string.timer_notes_placeholder)) },
                     minLines = 3,
                 )
             },
@@ -347,13 +349,13 @@ private fun TimerConfigView(
         // Top bar — IconButton direct pour éviter fillMaxWidth dans un Row enfant
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.timer_back_cd))
             }
             Spacer(Modifier.weight(1f))
             if (config.mode != TimerMode.COUNTDOWN) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.BookmarkBorder, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
-                    Text("PRÉRÉGLAGES", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.timer_presets_label), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.width(8.dp))
             }
@@ -387,7 +389,7 @@ private fun TimerConfigView(
                 ) {
                     Icon(Icons.Default.EditCalendar, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width(6.dp))
-                    Text("Ajoute des notes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.timer_notes_add_label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -413,7 +415,7 @@ private fun SimpleCountdownConfigContent(
     val minutes = config.countdownSeconds / 60
     val seconds = config.countdownSeconds % 60
 
-    Text("Durée du décompte", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+    Text(stringResource(R.string.timer_countdown_duration_label), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     Spacer(Modifier.height(24.dp))
 
     CountdownTimePicker(
@@ -451,7 +453,7 @@ private fun SimpleCountdownConfigContent(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp), tint = color)
-                Text("Enregistrer", style = MaterialTheme.typography.labelMedium, color = color)
+                Text(stringResource(R.string.timer_preset_save_button), style = MaterialTheme.typography.labelMedium, color = color)
             }
         }
     }
@@ -570,15 +572,15 @@ private fun CountdownPresetRow(
     pendingDelete?.let { secs ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Supprimer ce preset ?") },
+            title = { Text(stringResource(R.string.timer_preset_delete_title)) },
             text = { Text(formatMmSs(secs), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
             confirmButton = {
                 TextButton(onClick = { onDeletePreset(secs); pendingDelete = null }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Annuler") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -619,25 +621,25 @@ private fun CountdownPresetRow(
 @Composable
 private fun TabataConfigContent(config: TimerConfig, color: Color, onChange: (TimerConfig) -> Unit) {
     var showPicker by remember { mutableStateOf<String?>(null) }
-    Text("Programme ton Tabata", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+    Text(stringResource(R.string.timer_tabata_config_title), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     Spacer(Modifier.height(24.dp))
-    TimerFieldRow("Tours", config.rounds.toString(), color) { showPicker = "rounds" }
+    TimerFieldRow(stringResource(R.string.timer_field_rounds), config.rounds.toString(), color) { showPicker = "rounds" }
     Spacer(Modifier.height(16.dp))
-    TimerFieldRow("Travail", formatMmSs(config.workSeconds), color) { showPicker = "work" }
+    TimerFieldRow(stringResource(R.string.timer_field_work), formatMmSs(config.workSeconds), color) { showPicker = "work" }
     Spacer(Modifier.height(16.dp))
-    TimerFieldRow("Récupération", formatMmSs(config.restSeconds), color) { showPicker = "rest" }
+    TimerFieldRow(stringResource(R.string.timer_field_rest), formatMmSs(config.restSeconds), color) { showPicker = "rest" }
     Spacer(Modifier.height(16.dp))
-    TimerExpandableSection("Réglages facultatifs", color) {
-        TimerFieldRow("Échauffement", formatMmSs(config.warmupSeconds), color) { showPicker = "warmup" }
+    TimerExpandableSection(stringResource(R.string.timer_optional_settings), color) {
+        TimerFieldRow(stringResource(R.string.timer_field_warmup), formatMmSs(config.warmupSeconds), color) { showPicker = "warmup" }
         Spacer(Modifier.height(8.dp))
-        TimerFieldRow("Refroidissement", formatMmSs(config.cooldownSeconds), color) { showPicker = "cooldown" }
+        TimerFieldRow(stringResource(R.string.timer_field_cooldown), formatMmSs(config.cooldownSeconds), color) { showPicker = "cooldown" }
     }
     when (showPicker) {
-        "rounds"   -> TimerValuePickerDialog("Tours", config.rounds, 1, 50, 1, false, { showPicker = null }) { onChange(config.copy(rounds = it)) }
-        "work"     -> TimerValuePickerDialog("Travail", config.workSeconds, 5, 3600, 5, true, { showPicker = null }) { onChange(config.copy(workSeconds = it)) }
-        "rest"     -> TimerValuePickerDialog("Récupération", config.restSeconds, 0, 600, 5, true, { showPicker = null }) { onChange(config.copy(restSeconds = it)) }
-        "warmup"   -> TimerValuePickerDialog("Échauffement", config.warmupSeconds, 0, 600, 15, true, { showPicker = null }) { onChange(config.copy(warmupSeconds = it)) }
-        "cooldown" -> TimerValuePickerDialog("Refroidissement", config.cooldownSeconds, 0, 600, 15, true, { showPicker = null }) { onChange(config.copy(cooldownSeconds = it)) }
+        "rounds"   -> TimerValuePickerDialog(stringResource(R.string.timer_field_rounds), config.rounds, 1, 50, 1, false, { showPicker = null }) { onChange(config.copy(rounds = it)) }
+        "work"     -> TimerValuePickerDialog(stringResource(R.string.timer_field_work), config.workSeconds, 5, 3600, 5, true, { showPicker = null }) { onChange(config.copy(workSeconds = it)) }
+        "rest"     -> TimerValuePickerDialog(stringResource(R.string.timer_field_rest), config.restSeconds, 0, 600, 5, true, { showPicker = null }) { onChange(config.copy(restSeconds = it)) }
+        "warmup"   -> TimerValuePickerDialog(stringResource(R.string.timer_field_warmup), config.warmupSeconds, 0, 600, 15, true, { showPicker = null }) { onChange(config.copy(warmupSeconds = it)) }
+        "cooldown" -> TimerValuePickerDialog(stringResource(R.string.timer_field_cooldown), config.cooldownSeconds, 0, 600, 15, true, { showPicker = null }) { onChange(config.copy(cooldownSeconds = it)) }
     }
 }
 
@@ -656,7 +658,7 @@ private fun EmomConfigContent(config: TimerConfig, color: Color, onChange: (Time
     Row(modifier = Modifier.fillMaxWidth().clickable { deathBy = !deathBy }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
         Text("∞", style = MaterialTheme.typography.titleMedium, color = if (deathBy) color else MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(8.dp))
-        Text("Aussi longtemps que possible (\"Death By\")", style = MaterialTheme.typography.bodySmall, color = if (deathBy) color else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.timer_emom_death_by), style = MaterialTheme.typography.bodySmall, color = if (deathBy) color else MaterialTheme.colorScheme.onSurfaceVariant)
     }
     when (showPicker) {
         "interval" -> TimerValuePickerDialog("Intervalle (min)", intervalMinutes, 1, 10, 1, false, { showPicker = null }) { onChange(config.copy(workSeconds = it * 60)) }
@@ -668,12 +670,12 @@ private fun EmomConfigContent(config: TimerConfig, color: Color, onChange: (Time
 private fun AmrapConfigContent(config: TimerConfig, color: Color, onChange: (TimerConfig) -> Unit) {
     val minutes = (config.totalSeconds / 60).coerceAtLeast(1)
     var showPicker by remember { mutableStateOf(false) }
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { Text("Autant de tours que possible en", style = MaterialTheme.typography.bodyLarge) }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { Text(stringResource(R.string.timer_amrap_label), style = MaterialTheme.typography.bodyLarge) }
     Spacer(Modifier.height(16.dp))
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         TimerValueBox(minutes.toString(), color) { showPicker = true }
         Spacer(Modifier.width(12.dp))
-        Text("minutes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Normal)
+        Text(stringResource(R.string.timer_amrap_minutes), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Normal)
     }
     if (showPicker) TimerValuePickerDialog("Durée (minutes)", minutes, 1, 120, 1, false, { showPicker = false }) { onChange(config.copy(totalSeconds = it * 60)) }
 }
@@ -682,11 +684,11 @@ private fun AmrapConfigContent(config: TimerConfig, color: Color, onChange: (Tim
 private fun ForTimeConfigContent(config: TimerConfig, color: Color, onChange: (TimerConfig) -> Unit) {
     val minutes = config.totalSeconds / 60
     var showPicker by remember { mutableStateOf(false) }
-    Text("Aussi vite que possible", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+    Text(stringResource(R.string.timer_fortime_label), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     Spacer(Modifier.height(24.dp))
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        Text("Temps limite : ", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Normal)
-        TimerValueBox(if (minutes == 0) "aucun" else "${minutes}min", color, wide = true) { showPicker = true }
+        Text(stringResource(R.string.timer_fortime_limit), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Normal)
+        TimerValueBox(if (minutes == 0) stringResource(R.string.timer_fortime_no_limit) else "${minutes}min", color, wide = true) { showPicker = true }
     }
     if (showPicker) TimerValuePickerDialog("Temps limite (min)", minutes.coerceAtLeast(1), 0, 120, 1, false, { showPicker = false }) { onChange(config.copy(totalSeconds = it * 60)) }
 }
@@ -743,7 +745,7 @@ private fun TimerStartButton(config: TimerConfig, color: Color, onClick: () -> U
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("DÉMARRER", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, letterSpacing = 1.sp)
+            Text(stringResource(R.string.timer_start_button), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, letterSpacing = 1.sp)
             if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f))
         }
     }
@@ -763,7 +765,7 @@ private fun TimerValuePickerDialog(title: String, initial: Int, min: Int, max: I
             }
         },
         confirmButton = { TextButton(onClick = { onConfirm(current); onDismiss() }) { Text("OK", fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
 }
 
@@ -833,7 +835,7 @@ private fun StopwatchActiveContent(
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 // Reset
                 ControlButton(size = 60.dp, bgColor = MaterialTheme.colorScheme.surfaceVariant, onClick = onReset) {
-                    Icon(Icons.Default.Refresh, "Reset", modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Refresh, stringResource(R.string.timer_reset_cd), modifier = Modifier.size(28.dp))
                 }
                 // Play / Pause
                 ControlButton(size = 92.dp, bgColor = StopwatchColor, onClick = if (uiState.isRunning) onPause else onResume) {
@@ -856,7 +858,7 @@ private fun StopwatchActiveContent(
 
             Spacer(Modifier.height(8.dp))
             Text(
-                when { uiState.phase == TimerPhase.IDLE -> "Prêt"; uiState.isRunning -> "En cours"; else -> "En pause" },
+                when { uiState.phase == TimerPhase.IDLE -> stringResource(R.string.timer_ready); uiState.isRunning -> stringResource(R.string.timer_running); else -> stringResource(R.string.timer_paused) },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -895,7 +897,7 @@ private fun CountdownActiveContent(
                 CircularProgressIndicator(progress = { animProgress }, modifier = Modifier.size(256.dp), color = CountdownColor, strokeWidth = 12.dp, trackColor = CountdownColor.copy(alpha = 0.12f), strokeCap = StrokeCap.Round)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (uiState.isFinished) {
-                        Text("Terminé !", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CountdownColor)
+                        Text(stringResource(R.string.timer_finished), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CountdownColor)
                     } else {
                         val totalSec = remainingMs / 1000
                         Text("${(totalSec / 60).toString().padStart(2, '0')}:${(totalSec % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.displayMedium.copy(fontSize = 60.sp), fontWeight = FontWeight.Bold, color = CountdownColor)
@@ -910,11 +912,11 @@ private fun CountdownActiveContent(
                 Box(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(CountdownColor).clickable(onClick = onReset).padding(vertical = 18.dp),
                     contentAlignment = Alignment.Center,
-                ) { Text("Recommencer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White) }
+                ) { Text(stringResource(R.string.timer_restart_button), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White) }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
                     ControlButton(60.dp, MaterialTheme.colorScheme.surfaceVariant, onClick = onReset) {
-                        Icon(Icons.Default.Refresh, "Réinitialiser", modifier = Modifier.size(28.dp))
+                        Icon(Icons.Default.Refresh, stringResource(R.string.timer_reset_cd), modifier = Modifier.size(28.dp))
                     }
                     ControlButton(92.dp, CountdownColor, onClick = if (uiState.isRunning) onPause else onResume) {
                         Icon(if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(46.dp))
@@ -959,14 +961,14 @@ private fun HiitActiveContent(uiState: TimerUiState, onPause: () -> Unit, onResu
                 Text("Écoulé : ${(uiState.totalElapsed / 60).toString().padStart(2, '0')}:${(uiState.totalElapsed % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (phase == TimerPhase.DONE) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Terminé !", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = accentColor)
-                        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(accentColor).clickable(onClick = onReset).padding(vertical = 18.dp), contentAlignment = Alignment.Center) { Text("Recommencer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White) }
+                        Text(stringResource(R.string.timer_finished), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = accentColor)
+                        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(accentColor).clickable(onClick = onReset).padding(vertical = 18.dp), contentAlignment = Alignment.Center) { Text(stringResource(R.string.timer_restart_button), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White) }
                     }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                        ControlButton(52.dp, MaterialTheme.colorScheme.surfaceVariant, onReset) { Icon(Icons.Default.Refresh, "Reset", modifier = Modifier.size(26.dp)) }
+                        ControlButton(52.dp, MaterialTheme.colorScheme.surfaceVariant, onReset) { Icon(Icons.Default.Refresh, stringResource(R.string.timer_reset_cd), modifier = Modifier.size(26.dp)) }
                         ControlButton(80.dp, phaseColor, if (uiState.isRunning) onPause else onResume) { Icon(if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(40.dp)) }
-                        ControlButton(52.dp, MaterialTheme.colorScheme.surfaceVariant, onSettings) { Icon(Icons.Default.EditCalendar, "Config", modifier = Modifier.size(26.dp)) }
+                        ControlButton(52.dp, MaterialTheme.colorScheme.surfaceVariant, onSettings) { Icon(Icons.Default.EditCalendar, stringResource(R.string.timer_presets_label), modifier = Modifier.size(26.dp)) }
                     }
                 }
             }
@@ -989,7 +991,7 @@ private fun ControlButton(size: Dp, bgColor: Color, onClick: () -> Unit, content
 private fun TimerActiveTopBar(onBack: () -> Unit, modifier: Modifier = Modifier) {
     Row(modifier = modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.timer_back_cd))
         }
     }
 }
@@ -1004,9 +1006,9 @@ private fun StopwatchLapList(laps: List<LapRecord>, modifier: Modifier = Modifie
     Column(modifier = modifier) {
         HorizontalDivider(modifier = Modifier.alpha(0.3f))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-            Text("Lap", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.6f))
-            Text("Temps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("Total", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+            Text(stringResource(R.string.timer_lap_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.6f))
+            Text(stringResource(R.string.timer_time_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text(stringResource(R.string.timer_total_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
         }
         HorizontalDivider(modifier = Modifier.alpha(0.3f))
         LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Communs -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_confirm_delete">Supprimer</string>
+    <string name="common_validate">Valider</string>
+    <string name="common_create">Créer</string>
+    <string name="common_save_cd">Sauvegarder</string>
+    <string name="common_edit_cd">Modifier</string>
+    <string name="common_delete_cd">Supprimer</string>
+    <string name="common_navigate_back_cd">Retour</string>
+    <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_search_label">Rechercher</string>
+    <string name="common_notes_label">Notes</string>
+    <string name="common_seance_name_label">Nom de la séance</string>
+    <string name="common_empty_dash">—</string>
+
+    <!-- CyclingScreen -->
+    <string name="cycling_screen_title">Vélo</string>
+    <string name="cycling_screen_empty_title">Aucune séance de vélo</string>
+    <string name="cycling_screen_empty_description">Crée ta première sortie à vélo avec le bouton +</string>
+    <string name="cycling_screen_fab_cd">Nouvelle séance</string>
+    <string name="cycling_screen_fab_template">Séance type</string>
+    <string name="cycling_screen_fab_direct">Séance directe</string>
+    <string name="cycling_screen_section_templates">Séances types</string>
+    <string name="cycling_screen_section_planned">Séances planifiées</string>
+    <string name="cycling_screen_section_completed">Séances terminées</string>
+    <string name="cycling_screen_show_less">Réduire</string>
+    <!-- %1$d = nombre d\'autres séances -->
+    <string name="cycling_screen_show_more">Voir les %1$d autres</string>
+    <!-- %1$d = nombre sélectionné -->
+    <string name="cycling_screen_selection_title_one">%1$d sélectionné</string>
+    <string name="cycling_screen_selection_title_many">%1$d sélectionnés</string>
+    <!-- Delete dialog -->
+    <string name="cycling_screen_delete_dialog_title_one">Supprimer %1$d séance ?</string>
+    <string name="cycling_screen_delete_dialog_title_many">Supprimer %1$d séances ?</string>
+    <string name="cycling_screen_delete_dialog_text">Cette action est irréversible.</string>
+    <!-- Card icon content descriptions -->
+    <string name="cycling_card_duplicate_cd">Dupliquer</string>
+    <string name="cycling_card_assign_cd">Affecter au calendrier</string>
+    <string name="cycling_card_reschedule_cd">Changer la date</string>
+    <!-- Reschedule picker -->
+    <string name="cycling_reschedule_picker_title">Changer la date</string>
+    <string name="cycling_reschedule_picker_confirm">Valider</string>
+
+    <!-- CyclingWorkoutDetailScreen -->
+    <string name="cycling_detail_title_new">Nouvelle sortie</string>
+    <string name="cycling_detail_title_edit">Modifier la sortie</string>
+    <string name="cycling_detail_add_block_cd">Ajouter un bloc</string>
+    <string name="cycling_detail_add_block_label">Ajouter un bloc</string>
+    <string name="cycling_detail_save_cd">Sauvegarder</string>
+    <string name="cycling_detail_field_name">Nom de la sortie</string>
+    <string name="cycling_detail_field_objective">Objectif</string>
+    <string name="cycling_detail_field_notes">Notes</string>
+    <string name="cycling_detail_section_structure">Structure de la séance</string>
+    <!-- Block card -->
+    <string name="cycling_block_duplicate_cd">Dupliquer</string>
+    <string name="cycling_block_delete_cd">Supprimer</string>
+    <string name="cycling_block_field_name">Nom du bloc</string>
+    <string name="cycling_block_field_duration">Durée (min)</string>
+    <string name="cycling_block_field_distance">Distance (km)</string>
+    <string name="cycling_block_field_power">Puissance (W)</string>
+    <string name="cycling_block_field_cadence">Cadence (rpm)</string>
+    <string name="cycling_block_field_heart_rate">FC cible (bpm)</string>
+    <string name="cycling_block_field_rpe">RPE (1-10)</string>
+    <string name="cycling_block_field_repetitions">Répétitions</string>
+    <string name="cycling_block_field_recovery">Récup. (min)</string>
+
+    <!-- CyclingWorkoutExecuteScreen -->
+    <string name="cycling_execute_finish_dialog_title">Valider la séance ?</string>
+    <string name="cycling_execute_finish_dialog_text">Les résultats seront sauvegardés et la séance marquée comme terminée.</string>
+    <string name="cycling_execute_validate_button">Valider</string>
+    <string name="cycling_execute_validate_action">Valider</string>
+    <string name="cycling_execute_back_cd">Retour</string>
+    <string name="cycling_execute_title_fallback">Résultats</string>
+    <string name="cycling_execute_section_results">RÉSULTATS</string>
+    <string name="cycling_execute_section_notes">NOTE DE SÉANCE</string>
+    <string name="cycling_execute_notes_placeholder">Commentaire global de la séance…</string>
+    <string name="cycling_execute_validate_seance_button">Valider la séance</string>
+    <string name="cycling_execute_cell_auto">auto</string>
+    <!-- Result cell labels -->
+    <string name="cycling_execute_cell_distance">Distance (km)</string>
+    <string name="cycling_execute_cell_duration">Durée (h:mm:ss)</string>
+    <string name="cycling_execute_cell_speed_avg">Vit. moy. (km/h)</string>
+    <string name="cycling_execute_cell_speed_max">Vit. max (km/h)</string>
+    <string name="cycling_execute_cell_hr_avg">FC moy. (bpm)</string>
+    <string name="cycling_execute_cell_hr_max">FC max (bpm)</string>
+    <string name="cycling_execute_cell_cadence">Cadence (rpm)</string>
+    <string name="cycling_execute_cell_rpe">RPE (1–10)</string>
+    <string name="cycling_execute_cell_elevation">Dénivelé+ (m)</string>
+    <string name="cycling_execute_cell_calories">Calories (kcal)</string>
+
+    <!-- CyclingWorkoutReportScreen -->
+    <string name="cycling_report_title_fallback">Séance vélo</string>
+    <string name="cycling_report_edit_results_cd">Modifier les résultats</string>
+    <string name="cycling_report_edit_seance_cd">Modifier la séance</string>
+    <string name="cycling_report_encode_cd">Encoder les résultats</string>
+    <string name="cycling_report_section_blocks">BLOCS</string>
+    <string name="cycling_report_section_results">RÉSULTATS</string>
+    <!-- Report result cell labels -->
+    <string name="cycling_report_cell_distance">Distance</string>
+    <string name="cycling_report_cell_time">Temps</string>
+    <string name="cycling_report_cell_speed_avg">Vit. moy.</string>
+    <string name="cycling_report_cell_speed_max">Vit. max</string>
+    <string name="cycling_report_cell_hr_avg">FC moy.</string>
+    <string name="cycling_report_cell_hr_max">FC max</string>
+    <string name="cycling_report_cell_cadence">Cadence</string>
+    <string name="cycling_report_cell_elevation">Dénivelé+</string>
+    <string name="cycling_report_cell_calories">Calories</string>
+    <string name="cycling_report_cell_rpe">RPE</string>
+
+</resources>

@@ -21,6 +21,8 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import com.pandafit.feature.running.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -74,8 +76,8 @@ fun RunningScreen(
 
     if (showReschedulePicker) {
         AssignSingleDatePickerDialog(
-            title = "Changer la date",
-            confirmLabel = "Valider",
+            title = stringResource(R.string.running_reschedule_title),
+            confirmLabel = stringResource(R.string.common_validate),
             minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showReschedulePicker = false; rescheduleTargetId = null },
             onConfirm = { date ->
@@ -139,10 +141,10 @@ fun RunningScreen(
         val n = selectedIds.size
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer $n séance${if (n > 1) "s" else ""} ?") },
+            title = { Text(stringResource(R.string.running_screen_delete_dialog_title, n)) },
             text = {
                 Text(
-                    "Cette action est irréversible. Les séances et leurs données associées seront définitivement supprimées.",
+                    stringResource(R.string.running_screen_delete_dialog_body),
                     style = MaterialTheme.typography.bodySmall,
                 )
             },
@@ -152,11 +154,11 @@ fun RunningScreen(
                     clearSelection()
                     showDeleteDialog = false
                 }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -168,31 +170,31 @@ fun RunningScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            "${selectedIds.size} sélectionné${if (selectedIds.size > 1) "s" else ""}",
+                            stringResource(R.string.running_screen_selection_count, selectedIds.size),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = ::clearSelection) {
-                            Icon(Icons.Default.Close, "Annuler la sélection")
+                            Icon(Icons.Default.Close, stringResource(R.string.running_screen_cancel_selection_cd))
                         }
                     },
                     actions = {
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, stringResource(R.string.running_screen_delete_selection_cd), tint = MaterialTheme.colorScheme.error)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaPurple.copy(alpha = 0.08f)),
                 )
             } else {
-                PandaTopBar(title = "Course à pieds", onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(title = stringResource(R.string.running_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
             }
         },
         floatingActionButton = {
             if (!isSelectionMode) {
                 Box {
                     FloatingActionButton(onClick = { showFabMenu = true }, containerColor = PandaGreen, contentColor = MaterialTheme.colorScheme.onPrimary) {
-                        Icon(Icons.Default.Add, "Nouvelle séance")
+                        Icon(Icons.Default.Add, stringResource(R.string.running_screen_fab_new_seance_cd))
                     }
                     DropdownMenu(
                         expanded = showFabMenu,
@@ -200,12 +202,12 @@ fun RunningScreen(
                         offset = DpOffset(0.dp, (-8).dp),
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Séance type") },
+                            text = { Text(stringResource(R.string.running_screen_fab_seance_type)) },
                             leadingIcon = { Icon(Icons.Default.DirectionsRun, null, tint = PandaGreen, modifier = Modifier.size(18.dp)) },
                             onClick = { showFabMenu = false; onNavigateToCreate() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Séance directe") },
+                            text = { Text(stringResource(R.string.running_screen_fab_seance_directe)) },
                             leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = PandaGreen, modifier = Modifier.size(18.dp)) },
                             onClick = { showFabMenu = false; onNavigateToCreatePlanned() },
                         )
@@ -222,8 +224,8 @@ fun RunningScreen(
                 PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             } else if (isEmpty) {
                 PandaEmptyState(
-                    title = "Aucune séance de running",
-                    description = "Crée ta première séance type avec le bouton +",
+                    title = stringResource(R.string.running_screen_empty_title),
+                    description = stringResource(R.string.running_screen_empty_description),
                     icon = Icons.Default.DirectionsRun,
                     modifier = Modifier.padding(innerPadding),
                 )
@@ -233,7 +235,7 @@ fun RunningScreen(
                     contentPadding = PaddingValues(bottom = 88.dp),
                 ) {
                     if (uiState.templates.isNotEmpty()) {
-                        item { RunSectionHeader("Séances types") }
+                        item { RunSectionHeader(stringResource(R.string.running_screen_section_templates)) }
                         items(uiState.templates, key = { "t_${it.id}" }) { w ->
                             RunWorkoutCard(
                                 workout = w,
@@ -249,7 +251,7 @@ fun RunningScreen(
                         }
                     }
                     if (uiState.planned.isNotEmpty()) {
-                        item { RunSectionHeader("Séances planifiées") }
+                        item { RunSectionHeader(stringResource(R.string.running_screen_section_planned)) }
                         items(uiState.planned, key = { "p_${it.id}" }) { w ->
                             RunWorkoutCard(
                                 workout = w,
@@ -265,7 +267,7 @@ fun RunningScreen(
                         }
                     }
                     if (uiState.completed.isNotEmpty()) {
-                        item { RunSectionHeader("Séances terminées") }
+                        item { RunSectionHeader(stringResource(R.string.running_screen_section_completed)) }
                         items(uiState.completed, key = { "c_${it.id}" }) { w ->
                             RunWorkoutCard(
                                 workout = w,
@@ -364,17 +366,17 @@ private fun RunWorkoutCard(
             if (!isSelectionMode) {
                 if (onDuplicate != null) {
                     IconButton(onClick = onDuplicate, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.ContentCopy, "Dupliquer", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.ContentCopy, stringResource(R.string.running_screen_card_duplicate_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 if (onAssign != null) {
                     IconButton(onClick = onAssign, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.CalendarMonth, "Affecter au calendrier", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.CalendarMonth, stringResource(R.string.running_screen_card_assign_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 if (onReschedule != null) {
                     IconButton(onClick = onReschedule, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.CalendarMonth, "Changer la date", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.CalendarMonth, stringResource(R.string.running_screen_card_reschedule_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 when (trailingIcon) {

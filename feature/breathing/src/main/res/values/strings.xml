@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings communes -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_confirm_delete">Supprimer</string>
+    <string name="common_validate">Valider</string>
+    <string name="common_create">Créer</string>
+    <string name="common_save_cd">Sauvegarder</string>
+    <string name="common_edit_cd">Modifier</string>
+    <string name="common_delete_cd">Supprimer</string>
+    <string name="common_navigate_back_cd">Retour</string>
+    <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_search_label">Rechercher</string>
+    <string name="common_notes_label">Notes</string>
+    <string name="common_seance_name_label">Nom de la séance</string>
+    <string name="common_empty_dash">—</string>
+
+    <!-- Breathing strings -->
+    <string name="breathing_selection_title">Respiration</string>
+    <string name="breathing_create_method_cd">Créer une méthode</string>
+    <string name="breathing_panda_meditation_cd">Panda en méditation</string>
+    <string name="breathing_choose_method">Choisissez une méthode</string>
+    <string name="breathing_delete_method_title">Supprimer la méthode ?</string>
+    <string name="breathing_delete_session_title">Supprimer la séance ?</string>
+    <string name="breathing_delete_session_text">Cette séance sera définitivement supprimée de l\'historique.</string>
+    <string name="breathing_history_collapse_cd">Replier</string>
+    <string name="breathing_history_expand_cd">Déplier</string>
+    <string name="breathing_method_edit_cd">Modifier</string>
+    <string name="breathing_method_delete_cd">Supprimer</string>
+    <string name="breathing_duration_label">Durée</string>
+    <string name="breathing_cycles_chip">Cycles</string>
+    <string name="breathing_minutes_chip">Minutes</string>
+    <string name="breathing_start_button">Démarrer</string>
+    <string name="breathing_session_close_cd">Quitter</string>
+    <string name="breathing_session_prepare">Prépare-toi…</string>
+    <string name="breathing_session_countdown_label">La session commence dans %1$d s</string>
+    <string name="breathing_session_pause_cd">Pause</string>
+    <string name="breathing_session_resume_cd">Reprendre</string>
+    <string name="breathing_completion_title">Séance terminée 🎉</string>
+    <string name="breathing_completion_cycles_label">Cycles</string>
+    <string name="breathing_completion_duration_label">Durée</string>
+    <string name="breathing_completion_close">Fermer</string>
+    <string name="breathing_completion_restart">Recommencer</string>
+    <string name="breathing_create_title_new">Nouvelle méthode</string>
+    <string name="breathing_create_title_edit">Modifier la méthode</string>
+    <string name="breathing_create_section_identity">Identité</string>
+    <string name="breathing_create_emoji_label">Emoji</string>
+    <string name="breathing_create_name_label">Nom de la méthode</string>
+    <string name="breathing_create_section_phases">Durées des phases</string>
+    <string name="breathing_create_phase_inhale">Inspiration</string>
+    <string name="breathing_create_phase_hold_in">Rétention (poumons pleins)</string>
+    <string name="breathing_create_phase_exhale">Expiration</string>
+    <string name="breathing_create_phase_hold_out">Rétention (poumons vides)</string>
+    <string name="breathing_create_cycles_section">Nombre de cycles par défaut</string>
+    <string name="breathing_create_cycles_unit">cycles</string>
+    <string name="breathing_create_preview_label">Aperçu de la description</string>
+    <string name="breathing_create_save_new">Créer la méthode</string>
+    <string name="breathing_create_save_edit">Enregistrer les modifications</string>
+    <string name="breathing_history_delete_cd">Supprimer</string>
+</resources>

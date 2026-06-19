@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.cycling.R
 import com.pandafit.feature.cycling.viewmodel.CyclingReportViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +64,7 @@ fun CyclingWorkoutReportScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             PandaTopBar(
-                title = workout?.name ?: "Séance vélo",
+                title = workout?.name ?: stringResource(R.string.cycling_report_title_fallback),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
                 actions = {
@@ -70,7 +72,7 @@ fun CyclingWorkoutReportScreen(
                         if (isTemplate || !isCompleted) onNavigateToEdit(workoutId)
                         else onNavigateToExecute(workoutId)
                     }) {
-                        Icon(Icons.Default.Edit, if (isCompleted) "Modifier les résultats" else "Modifier la séance")
+                        Icon(Icons.Default.Edit, if (isCompleted) stringResource(R.string.cycling_report_edit_results_cd) else stringResource(R.string.cycling_report_edit_seance_cd))
                     }
                 },
             )
@@ -81,7 +83,7 @@ fun CyclingWorkoutReportScreen(
                     onClick = { onNavigateToExecute(workoutId) },
                     containerColor = PandaBlue,
                 ) {
-                    Icon(Icons.Default.PlayArrow, "Encoder les résultats", tint = Color.White)
+                    Icon(Icons.Default.PlayArrow, stringResource(R.string.cycling_report_encode_cd), tint = Color.White)
                 }
             }
         },
@@ -147,7 +149,7 @@ fun CyclingWorkoutReportScreen(
             if (uiState.blocks.isNotEmpty()) {
                 item {
                     Text(
-                        "BLOCS",
+                        stringResource(R.string.cycling_report_section_blocks),
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                         fontWeight = FontWeight.Bold,
@@ -174,14 +176,14 @@ private fun CyclingGlobalResultsCard(
 ) {
     Surface(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = Color(0xFFF0F4FF)) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Text("RÉSULTATS", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.cycling_report_section_results), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
 
             // Ligne 1 : Distance / Durée / Vitesse moy
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyclingResultCell("Distance",     workout.resultDistanceKm?.let { "%.1f km".format(it) } ?: "—", Modifier.weight(1f))
-                CyclingResultCell("Temps",        workout.resultDurationSec?.let { formatDurSec(it) } ?: "—",    Modifier.weight(1f))
-                CyclingResultCell("Vit. moy.",    workout.resultSpeedAvgKmh?.let { "%.1f km/h".format(it) } ?: "—", Modifier.weight(1f))
+                CyclingResultCell(stringResource(R.string.cycling_report_cell_distance), workout.resultDistanceKm?.let { "%.1f km".format(it) } ?: "—", Modifier.weight(1f))
+                CyclingResultCell(stringResource(R.string.cycling_report_cell_time),     workout.resultDurationSec?.let { formatDurSec(it) } ?: "—",    Modifier.weight(1f))
+                CyclingResultCell(stringResource(R.string.cycling_report_cell_speed_avg), workout.resultSpeedAvgKmh?.let { "%.1f km/h".format(it) } ?: "—", Modifier.weight(1f))
             }
 
             // Ligne 2 : Vitesse max / FC moy / FC max (si présents)
@@ -189,9 +191,9 @@ private fun CyclingGlobalResultsCard(
             if (hasLine2) {
                 Spacer(Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CyclingResultCell("Vit. max",  workout.resultSpeedMaxKmh?.let { "%.1f km/h".format(it) } ?: "—", Modifier.weight(1f))
-                    CyclingResultCell("FC moy.",   workout.resultHrAvg?.let { "$it bpm" } ?: "—",   Modifier.weight(1f))
-                    CyclingResultCell("FC max",    workout.resultHrMax?.let { "$it bpm" } ?: "—",   Modifier.weight(1f))
+                    CyclingResultCell(stringResource(R.string.cycling_report_cell_speed_max), workout.resultSpeedMaxKmh?.let { "%.1f km/h".format(it) } ?: "—", Modifier.weight(1f))
+                    CyclingResultCell(stringResource(R.string.cycling_report_cell_hr_avg),    workout.resultHrAvg?.let { "$it bpm" } ?: "—",   Modifier.weight(1f))
+                    CyclingResultCell(stringResource(R.string.cycling_report_cell_hr_max),    workout.resultHrMax?.let { "$it bpm" } ?: "—",   Modifier.weight(1f))
                 }
             }
 
@@ -201,14 +203,14 @@ private fun CyclingGlobalResultsCard(
             if (hasLine3) {
                 Spacer(Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CyclingResultCell("Cadence",   workout.resultCadenceAvgRpm?.let { "$it rpm" } ?: "—", Modifier.weight(1f))
-                    CyclingResultCell("Dénivelé+", workout.resultElevationM?.let { "$it m" } ?: "—",       Modifier.weight(1f))
-                    CyclingResultCell("Calories",  workout.resultCalories?.let { "$it kcal" } ?: "—",      Modifier.weight(1f))
+                    CyclingResultCell(stringResource(R.string.cycling_report_cell_cadence),   workout.resultCadenceAvgRpm?.let { "$it rpm" } ?: "—", Modifier.weight(1f))
+                    CyclingResultCell(stringResource(R.string.cycling_report_cell_elevation), workout.resultElevationM?.let { "$it m" } ?: "—",       Modifier.weight(1f))
+                    CyclingResultCell(stringResource(R.string.cycling_report_cell_calories),  workout.resultCalories?.let { "$it kcal" } ?: "—",      Modifier.weight(1f))
                 }
                 if (workout.resultRpe != null) {
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CyclingResultCell("RPE", workout.resultRpe.toString(), Modifier.weight(1f))
+                        CyclingResultCell(stringResource(R.string.cycling_report_cell_rpe), workout.resultRpe.toString(), Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                     }

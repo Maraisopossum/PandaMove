@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,6 +26,7 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaAmber
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.hiking.R
 import com.pandafit.feature.hiking.viewmodel.HikingListViewModel
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -48,17 +50,17 @@ fun HikingScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer ${selectedIds.size} sortie(s) ?") },
-            text = { Text("Cette action est irréversible.") },
+            title = { Text(stringResource(R.string.hiking_delete_dialog_title, selectedIds.size)) },
+            text = { Text(stringResource(R.string.hiking_delete_dialog_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     selectedIds.forEach { viewModel.delete(it) }
                     selectedIds = emptySet()
                     showDeleteDialog = false
-                }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -66,7 +68,7 @@ fun HikingScreen(
     Scaffold(
         topBar = {
             PandaTopBar(
-                title = if (isSelectionMode) "${selectedIds.size} sélectionné(e)(s)" else "Randonnée",
+                title = if (isSelectionMode) stringResource(R.string.hiking_selection_title, selectedIds.size) else stringResource(R.string.hiking_screen_title),
                 containerColor = PandaAmber,
                 scrollBehavior = scrollBehavior,
                 onNavigateBack = if (isSelectionMode) ({ selectedIds = emptySet() }) else null,
@@ -74,7 +76,7 @@ fun HikingScreen(
                 actions = {
                     if (isSelectionMode) {
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = Color.White)
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.hiking_delete_selected_cd), tint = Color.White)
                         }
                     }
                 },
@@ -87,7 +89,7 @@ fun HikingScreen(
                     containerColor = PandaAmber,
                     contentColor = Color.White,
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Encoder une sortie")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.hiking_fab_encode_cd))
                 }
             }
         },
@@ -98,8 +100,8 @@ fun HikingScreen(
         if (uiState.completed.isEmpty()) {
             PandaEmptyState(
                 icon = Icons.Default.Landscape,
-                title = "Aucune sortie rando",
-                description = "Encode ta première randonnée avec le bouton +",
+                title = stringResource(R.string.hiking_empty_title),
+                description = stringResource(R.string.hiking_empty_description),
                 modifier = Modifier.padding(innerPadding),
             )
             return@Scaffold
@@ -116,7 +118,7 @@ fun HikingScreen(
         ) {
             item {
                 Text(
-                    "SORTIES TERMINÉES",
+                    stringResource(R.string.hiking_section_completed),
                     style = MaterialTheme.typography.labelSmall,
                     color = PandaSubtext,
                     fontWeight = FontWeight.Bold,

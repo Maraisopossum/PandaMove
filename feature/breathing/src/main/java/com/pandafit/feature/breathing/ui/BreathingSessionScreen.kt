@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -145,7 +146,7 @@ fun BreathingSessionScreen(
                     viewModel.stopSession()
                     onNavigateBack()
                 }) {
-                    Icon(Icons.Default.Close, "Quitter", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(Icons.Default.Close, stringResource(R.string.breathing_session_close_cd), tint = MaterialTheme.colorScheme.onSurface)
                 }
 
                 Text(
@@ -213,13 +214,13 @@ fun BreathingSessionScreen(
             ) {
                 if (countdown > 0) {
                     Text(
-                        "Prépare-toi…",
+                        stringResource(R.string.breathing_session_prepare),
                         style      = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color      = phaseColor,
                     )
                     Text(
-                        "La session commence dans $countdown s",
+                        stringResource(R.string.breathing_session_countdown_label, countdown),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     )
@@ -258,7 +259,7 @@ fun BreathingSessionScreen(
                     ) {
                         Icon(
                             if (phaseState.isActive) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (phaseState.isActive) "Pause" else "Reprendre",
+                            contentDescription = if (phaseState.isActive) stringResource(R.string.breathing_session_pause_cd) else stringResource(R.string.breathing_session_resume_cd),
                             modifier           = Modifier.size(32.dp),
                         )
                     }
@@ -294,7 +295,7 @@ private fun BreathingCompletionScreen(
 
             // Titre
             Text(
-                "Séance terminée 🎉",
+                stringResource(R.string.breathing_completion_title),
                 style      = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign  = TextAlign.Center,
@@ -303,7 +304,7 @@ private fun BreathingCompletionScreen(
             // Panda en méditation
             Image(
                 painter            = painterResource(id = R.drawable.male_meditation_v1),
-                contentDescription = "Panda en méditation",
+                contentDescription = stringResource(R.string.breathing_panda_meditation_cd),
                 modifier           = Modifier
                     .fillMaxWidth()
                     .height(220.dp),
@@ -333,8 +334,8 @@ private fun BreathingCompletionScreen(
                         color      = accentColor,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-                        CompletionStat(label = "Cycles", value = "$cyclesCompleted")
-                        CompletionStat(label = "Durée",  value = formatCompletionDuration(durationSeconds))
+                        CompletionStat(label = stringResource(R.string.breathing_completion_cycles_label), value = "$cyclesCompleted")
+                        CompletionStat(label = stringResource(R.string.breathing_completion_duration_label), value = formatCompletionDuration(durationSeconds))
                     }
                 }
             }
@@ -350,7 +351,7 @@ private fun BreathingCompletionScreen(
                     onClick  = onClose,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Fermer")
+                    Text(stringResource(R.string.breathing_completion_close))
                 }
                 Button(
                     onClick  = onRestart,
@@ -359,7 +360,7 @@ private fun BreathingCompletionScreen(
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Recommencer", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.breathing_completion_restart), fontWeight = FontWeight.SemiBold)
                 }
             }
 

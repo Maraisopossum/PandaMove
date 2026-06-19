@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,6 +34,7 @@ import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.designsystem.components.*
 import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.cycling.R
 import com.pandafit.feature.cycling.viewmodel.CyclingListViewModel
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -75,8 +77,8 @@ fun CyclingScreen(
 
     if (showReschedulePicker) {
         AssignSingleDatePickerDialog(
-            title = "Changer la date",
-            confirmLabel = "Valider",
+            title = stringResource(R.string.cycling_reschedule_picker_title),
+            confirmLabel = stringResource(R.string.cycling_reschedule_picker_confirm),
             minDate = java.time.LocalDate.of(2000, 1, 1),
             onDismiss = { showReschedulePicker = false; rescheduleTargetId = null },
             onConfirm = { date ->
@@ -124,14 +126,19 @@ fun CyclingScreen(
         val n = selectedIds.size
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer $n séance${if (n > 1) "s" else ""} ?") },
-            text = { Text("Cette action est irréversible.", style = MaterialTheme.typography.bodySmall) },
+            title = {
+                Text(
+                    if (n > 1) stringResource(R.string.cycling_screen_delete_dialog_title_many, n)
+                    else stringResource(R.string.cycling_screen_delete_dialog_title_one, n)
+                )
+            },
+            text = { Text(stringResource(R.string.cycling_screen_delete_dialog_text), style = MaterialTheme.typography.bodySmall) },
             confirmButton = {
                 TextButton(onClick = { viewModel.deleteWorkouts(selectedIds); clearSelection(); showDeleteDialog = false }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 
@@ -140,20 +147,26 @@ fun CyclingScreen(
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
-                    title = { Text("${selectedIds.size} sélectionné${if (selectedIds.size > 1) "s" else ""}", style = MaterialTheme.typography.titleMedium) },
-                    navigationIcon = { IconButton(onClick = ::clearSelection) { Icon(Icons.Default.Close, "Annuler") } },
-                    actions = { IconButton(onClick = { showDeleteDialog = true }) { Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error) } },
+                    title = {
+                        Text(
+                            if (selectedIds.size > 1) stringResource(R.string.cycling_screen_selection_title_many, selectedIds.size)
+                            else stringResource(R.string.cycling_screen_selection_title_one, selectedIds.size),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                    navigationIcon = { IconButton(onClick = ::clearSelection) { Icon(Icons.Default.Close, stringResource(R.string.common_cancel)) } },
+                    actions = { IconButton(onClick = { showDeleteDialog = true }) { Icon(Icons.Default.Delete, stringResource(R.string.common_confirm_delete), tint = MaterialTheme.colorScheme.error) } },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaBlue.copy(alpha = 0.08f)),
                 )
             } else {
-                PandaTopBar(title = "Vélo", onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(title = stringResource(R.string.cycling_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
             }
         },
         floatingActionButton = {
             if (!isSelectionMode) {
                 Box {
                     FloatingActionButton(onClick = { showFabMenu = true }, containerColor = PandaBlue, contentColor = MaterialTheme.colorScheme.onPrimary) {
-                        Icon(Icons.Default.Add, "Nouvelle séance")
+                        Icon(Icons.Default.Add, stringResource(R.string.cycling_screen_fab_cd))
                     }
                     DropdownMenu(
                         expanded = showFabMenu,
@@ -161,12 +174,12 @@ fun CyclingScreen(
                         offset = DpOffset(0.dp, (-8).dp),
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Séance type") },
+                            text = { Text(stringResource(R.string.cycling_screen_fab_template)) },
                             leadingIcon = { Icon(Icons.Default.DirectionsBike, null, tint = PandaBlue, modifier = Modifier.size(18.dp)) },
                             onClick = { showFabMenu = false; onNavigateToCreate() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Séance directe") },
+                            text = { Text(stringResource(R.string.cycling_screen_fab_direct)) },
                             leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = PandaBlue, modifier = Modifier.size(18.dp)) },
                             onClick = { showFabMenu = false; onNavigateToCreatePlanned() },
                         )
@@ -180,8 +193,8 @@ fun CyclingScreen(
             uiState.isLoading -> PandaLoadingIndicator()
             uiState.error != null -> PandaErrorState(description = uiState.error!!, modifier = Modifier.padding(innerPadding))
             isEmpty -> PandaEmptyState(
-                title = "Aucune séance de vélo",
-                description = "Crée ta première sortie à vélo avec le bouton +",
+                title = stringResource(R.string.cycling_screen_empty_title),
+                description = stringResource(R.string.cycling_screen_empty_description),
                 icon = Icons.Default.DirectionsBike,
                 modifier = Modifier.padding(innerPadding),
             )
@@ -194,7 +207,7 @@ fun CyclingScreen(
                     contentPadding = PaddingValues(bottom = 88.dp),
                 ) {
                     if (uiState.templates.isNotEmpty()) {
-                        item { WorkoutSectionHeader("Séances types") }
+                        item { WorkoutSectionHeader(stringResource(R.string.cycling_screen_section_templates)) }
                         items(uiState.templates, key = { "t_${it.id}" }) { w ->
                             CyclingWorkoutCard(
                                 workout = w,
@@ -210,7 +223,7 @@ fun CyclingScreen(
                         }
                     }
                     if (uiState.planned.isNotEmpty()) {
-                        item { WorkoutSectionHeader("Séances planifiées") }
+                        item { WorkoutSectionHeader(stringResource(R.string.cycling_screen_section_planned)) }
                         items(uiState.planned, key = { "p_${it.id}" }) { w ->
                             CyclingWorkoutCard(
                                 workout = w,
@@ -226,7 +239,7 @@ fun CyclingScreen(
                         }
                     }
                     if (uiState.completed.isNotEmpty()) {
-                        item { WorkoutSectionHeader("Séances terminées") }
+                        item { WorkoutSectionHeader(stringResource(R.string.cycling_screen_section_completed)) }
                         items(visibleCompleted, key = { "c_${it.id}" }) { w ->
                             CyclingWorkoutCard(
                                 workout = w,
@@ -245,8 +258,8 @@ fun CyclingScreen(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                                 ) {
                                     Text(
-                                        if (showAllCompleted) "Réduire"
-                                        else "Voir les ${uiState.completed.size - MAX_COMPLETED_VISIBLE} autres",
+                                        if (showAllCompleted) stringResource(R.string.cycling_screen_show_less)
+                                        else stringResource(R.string.cycling_screen_show_more, uiState.completed.size - MAX_COMPLETED_VISIBLE),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = PandaSubtext,
                                     )
@@ -341,17 +354,17 @@ private fun CyclingWorkoutCard(
             if (!isSelectionMode) {
                 if (onDuplicate != null) {
                     IconButton(onClick = onDuplicate, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.ContentCopy, "Dupliquer", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.ContentCopy, stringResource(R.string.cycling_card_duplicate_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 if (onAssign != null) {
                     IconButton(onClick = onAssign, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.CalendarMonth, "Affecter au calendrier", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.CalendarMonth, stringResource(R.string.cycling_card_assign_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 if (onReschedule != null) {
                     IconButton(onClick = onReschedule, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.CalendarMonth, "Changer la date", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.CalendarMonth, stringResource(R.string.cycling_card_reschedule_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
                 when (trailingIcon) {

@@ -83,6 +83,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,6 +103,7 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.strength.model.CircuitPhase
 import com.pandafit.feature.strength.model.SerieRealiseeState
+import com.pandafit.feature.strength.R
 import com.pandafit.feature.strength.viewmodel.InstanceExecuteViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -205,6 +207,7 @@ fun InstanceExecuteScreen(
     var showReturnDialog by remember { mutableStateOf(false) }
     var showManualTimer by remember { mutableStateOf(false) }
     var showPlateCalculator by remember { mutableStateOf(false) }
+    val durationInvalidError = stringResource(R.string.instance_execute_duration_invalid_error)
 
     // ── Empêcher la mise en veille pendant la séance (7.3) ─────────────────────
     val view = LocalView.current
@@ -223,16 +226,16 @@ fun InstanceExecuteScreen(
     if (showReturnDialog) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showReturnDialog = false },
-            title = { androidx.compose.material3.Text("Retourner au rapport ?") },
-            text = { androidx.compose.material3.Text("Les modifications ont été enregistrées automatiquement.") },
+            title = { androidx.compose.material3.Text(stringResource(R.string.instance_execute_return_dialog_title)) },
+            text = { androidx.compose.material3.Text(stringResource(R.string.instance_execute_return_dialog_message)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { showReturnDialog = false; onNavigateBack() }) {
-                    androidx.compose.material3.Text("Retourner", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                    androidx.compose.material3.Text(stringResource(R.string.instance_execute_return_dialog_confirm), fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showReturnDialog = false }) {
-                    androidx.compose.material3.Text("Continuer à modifier")
+                    androidx.compose.material3.Text(stringResource(R.string.instance_execute_return_dialog_cancel))
                 }
             },
         )
@@ -338,7 +341,7 @@ fun InstanceExecuteScreen(
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
-            title = { Text("Quitter la séance ?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.instance_execute_exit_dialog_title), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // Option 1 — Rester
@@ -346,7 +349,7 @@ fun InstanceExecuteScreen(
                         onClick = { showExitDialog = false },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Rester ici", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.instance_execute_exit_stay), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     }
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
                     // Option 2 — Aller dans le menu (session reste active si progression)
@@ -359,7 +362,7 @@ fun InstanceExecuteScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            if (hasProgress) "Aller dans le menu" else "Quitter sans enregistrer",
+                            if (hasProgress) stringResource(R.string.instance_execute_exit_go_menu) else stringResource(R.string.instance_execute_exit_without_save),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -369,7 +372,7 @@ fun InstanceExecuteScreen(
                         onClick = { viewModel.cancelInstance(); showExitDialog = false; onNavigateBack() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Annuler la séance", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.instance_execute_exit_cancel_seance), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
@@ -381,7 +384,7 @@ fun InstanceExecuteScreen(
         var nomInput by remember(uiState.seance?.nom) { mutableStateOf(uiState.seance?.nom ?: "") }
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Modifier le nom") },
+            title = { Text(stringResource(R.string.instance_execute_rename_dialog_title)) },
             text = {
                 OutlinedTextField(
                     value = nomInput,
@@ -392,24 +395,24 @@ fun InstanceExecuteScreen(
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.updateSeanceName(nomInput); showRenameDialog = false }) {
-                    Text("Valider", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_validate), fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer la séance ?") },
-            text = { Text("Cette séance planifiée sera supprimée.", style = MaterialTheme.typography.bodySmall) },
+            title = { Text(stringResource(R.string.instance_execute_delete_dialog_title)) },
+            text = { Text(stringResource(R.string.instance_execute_delete_dialog_message), style = MaterialTheme.typography.bodySmall) },
             confirmButton = {
                 TextButton(onClick = { viewModel.deleteInstance(); onNavigateBack() }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 
@@ -442,7 +445,7 @@ fun InstanceExecuteScreen(
     Scaffold(
         topBar = {
             InstanceExecuteTopBar(
-                seanceName = uiState.seance?.nom ?: "Séance",
+                seanceName = uiState.seance?.nom ?: stringResource(R.string.instance_execute_seance_name_fallback),
                 cycleLabel = uiState.seance?.notes?.trim()?.takeIf { it.isNotBlank() },
                 sessionSeconds = sessionSeconds,
                 restRemaining = restRemaining,
@@ -562,7 +565,7 @@ fun InstanceExecuteScreen(
                                     ) {
                                         Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        Text("Lancer le circuit", fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.instance_execute_start_circuit_button), fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -587,7 +590,7 @@ fun InstanceExecuteScreen(
                                             ?: firstIncomplete?.repsRealisees?.toString()
                                         val effectiveSecs = rawValue?.toIntOrNull()
                                         if (effectiveSecs == null || effectiveSecs <= 0) {
-                                            demarrerError = "Durée invalide — saisis un nombre de secondes valide"
+                                            demarrerError = durationInvalidError
                                         } else {
                                             demarrerError = null
                                             viewModel.startExerciceSeul(exId, durationOverride = effectiveSecs)
@@ -599,7 +602,7 @@ fun InstanceExecuteScreen(
                                 ) {
                                     Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Démarrer", fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.instance_execute_start_button), fontWeight = FontWeight.Bold)
                                 }
                                 demarrerError?.let { msg ->
                                     Text(
@@ -615,7 +618,7 @@ fun InstanceExecuteScreen(
 
                     item {
                         Text(
-                            "SÉANCE DU JOUR",
+                            stringResource(R.string.instance_execute_today_section_header),
                             style = MaterialTheme.typography.labelSmall,
                             color = PandaSubtext,
                             fontWeight = FontWeight.SemiBold,
@@ -633,14 +636,14 @@ fun InstanceExecuteScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    "🔄 Bilatéral — alternance G puis D à chaque round",
+                                    stringResource(R.string.instance_execute_bilateral_info),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = PandaSubtext,
                                 )
                             }
                         }
                         SeriesTableHeader(
-                            repsLabel = if (activeExercice?.exerciceSeance?.repsType == RepsType.DURATION) "Temps" else "Reps",
+                            repsLabel = if (activeExercice?.exerciceSeance?.repsType == RepsType.DURATION) stringResource(R.string.instance_execute_col_temps) else stringResource(R.string.instance_execute_col_reps),
                         )
                     }
 
@@ -726,7 +729,7 @@ fun InstanceExecuteScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(48.dp),
                 ) {
-                    Icon(Icons.Default.Timer, "Minuteur manuel", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Default.Timer, stringResource(R.string.instance_execute_manual_timer_cd), tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
                 }
             }
 
@@ -744,7 +747,7 @@ fun InstanceExecuteScreen(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.size(48.dp),
                 ) {
-                    Icon(Icons.Default.FitnessCenter, "Calculateur de disques", tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Default.FitnessCenter, stringResource(R.string.instance_execute_plate_calculator_cd), tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
                 }
             }
 
@@ -818,7 +821,7 @@ private fun ManualTimerSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                "⏱  Minuteur manuel",
+                stringResource(R.string.instance_execute_manual_timer_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -888,10 +891,10 @@ private fun ManualTimerSheet(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     OutlinedButton(onClick = { onAdjust(-30) }, modifier = Modifier.weight(1f)) {
-                        Text("−30s", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.instance_execute_timer_minus30_label), fontWeight = FontWeight.SemiBold)
                     }
                     OutlinedButton(onClick = { onAdjust(+30) }, modifier = Modifier.weight(1f)) {
-                        Text("+30s", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.instance_execute_timer_plus30_label), fontWeight = FontWeight.SemiBold)
                     }
                     Button(
                         onClick = { onStop(); onDismiss() },
@@ -900,7 +903,7 @@ private fun ManualTimerSheet(
                     ) {
                         Icon(Icons.Default.Stop, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Stop")
+                        Text(stringResource(R.string.instance_execute_timer_stop_label))
                     }
                 }
             } else {
@@ -911,7 +914,7 @@ private fun ManualTimerSheet(
                 ) {
                     Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Démarrer ${formatRestSec(selectedSeconds)}", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.instance_execute_timer_start_button, formatRestSec(selectedSeconds)), fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(Modifier.height(28.dp))
@@ -960,7 +963,7 @@ private fun InstanceExecuteTopBar(
             }
         },
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
+            IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_navigate_back_cd)) }
         },
         actions = {
             Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(end = 4.dp)) {
@@ -984,22 +987,22 @@ private fun InstanceExecuteTopBar(
                         )
                     }
                     DropdownMenu(expanded = showRestMenu, onDismissRequest = onRestMenuDismiss) {
-                        DropdownMenuItem(text = { Text("Allonger de 30s") }, onClick = onRestPlus30)
-                        DropdownMenuItem(text = { Text("Écourter de 30s") }, onClick = onRestMinus30)
-                        DropdownMenuItem(text = { Text("Arrêter") }, onClick = onRestStop)
+                        DropdownMenuItem(text = { Text(stringResource(R.string.instance_execute_rest_extend30_label)) }, onClick = onRestPlus30)
+                        DropdownMenuItem(text = { Text(stringResource(R.string.instance_execute_rest_shorten30_label)) }, onClick = onRestMinus30)
+                        DropdownMenuItem(text = { Text(stringResource(R.string.instance_execute_rest_stop_label)) }, onClick = onRestStop)
                     }
                 }
             }
             Box {
-                IconButton(onClick = onPencilClick) { Icon(Icons.Default.Edit, "Éditer", modifier = Modifier.size(20.dp)) }
+                IconButton(onClick = onPencilClick) { Icon(Icons.Default.Edit, stringResource(R.string.instance_execute_edit_cd), modifier = Modifier.size(20.dp)) }
                 DropdownMenu(expanded = showPencilMenu, onDismissRequest = onPencilDismiss) {
-                    DropdownMenuItem(text = { Text("Modifier le nom") }, onClick = onRenameClick)
-                    DropdownMenuItem(text = { Text("Modifier les exercices") }, onClick = onEditExercisesClick)
-                    DropdownMenuItem(text = { Text("Supprimer la séance", color = MaterialTheme.colorScheme.error) }, onClick = onDeleteClick)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.instance_execute_menu_rename)) }, onClick = onRenameClick)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.instance_execute_menu_edit_exercises)) }, onClick = onEditExercisesClick)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.instance_execute_menu_delete), color = MaterialTheme.colorScheme.error) }, onClick = onDeleteClick)
                 }
             }
             Button(onClick = onFinir, colors = ButtonDefaults.buttonColors(containerColor = Color.Red), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp), modifier = Modifier.height(32.dp).padding(end = 8.dp)) {
-                Text("FINIR", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.instance_execute_finish_button), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -1158,13 +1161,13 @@ private fun ExerciceNavBadge(
 @Composable
 private fun CommentaireExerciceSection(exerciceNom: String, notes: String, onNotesChange: (String) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text("NOTE — $exerciceNom".uppercase(), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.instance_execute_note_exercise_header_format, exerciceNom).uppercase(), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         OutlinedTextField(
             value = notes,
             onValueChange = onNotesChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Note sur cet exercice...", style = MaterialTheme.typography.bodySmall) },
+            placeholder = { Text(stringResource(R.string.instance_execute_note_exercise_placeholder), style = MaterialTheme.typography.bodySmall) },
             minLines = 1,
             maxLines = 2,
             textStyle = MaterialTheme.typography.bodySmall,
@@ -1175,13 +1178,13 @@ private fun CommentaireExerciceSection(exerciceNom: String, notes: String, onNot
 @Composable
 private fun CommentaireSeanceSection(notes: String, onNotesChange: (String) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text("NOTE DE SÉANCE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.instance_execute_note_seance_header), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         OutlinedTextField(
             value = notes,
             onValueChange = onNotesChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Commentaire global de la séance...", style = MaterialTheme.typography.bodySmall) },
+            placeholder = { Text(stringResource(R.string.instance_execute_note_seance_placeholder), style = MaterialTheme.typography.bodySmall) },
             minLines = 2,
             maxLines = 4,
             textStyle = MaterialTheme.typography.bodySmall,
@@ -1196,9 +1199,9 @@ private fun SeriesTableHeader(repsLabel: String = "Reps") {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("#", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(24.dp))
         Text(repsLabel, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
-        Text("Kg", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1.2f))
-        Text("Repos", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
-        Text("RPE", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(0.8f))
+        Text(stringResource(R.string.instance_execute_col_kg), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1.2f))
+        Text(stringResource(R.string.instance_execute_col_rest), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.instance_execute_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(0.8f))
         Spacer(modifier = Modifier.width(32.dp))
     }
 }
@@ -1270,7 +1273,7 @@ private fun SerieRow(
         }
         Box(modifier = Modifier.width(32.dp), contentAlignment = Alignment.Center) {
             IconButton(onClick = onFait, modifier = Modifier.size(28.dp)) {
-                Icon(if (isCompleted) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle, "Valider", tint = if (isCompleted) Color.Red else PandaSubtext, modifier = Modifier.size(22.dp))
+                Icon(if (isCompleted) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle, stringResource(R.string.instance_execute_serie_validate_cd), tint = if (isCompleted) Color.Red else PandaSubtext, modifier = Modifier.size(22.dp))
             }
         }
     }
@@ -1299,12 +1302,12 @@ private fun SerieCell(value: String, isFocused: Boolean, isGrayed: Boolean, enab
 private fun SerieActionsRow(onSupprimer: () -> Unit, onAjouter: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(onClick = onSupprimer, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)) {
-            Text("Supprimer", style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.instance_execute_remove_serie_button), style = MaterialTheme.typography.labelSmall)
         }
         OutlinedButton(onClick = onAjouter, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)) {
             Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Ajouter une série", style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.instance_execute_add_serie_button), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -1316,7 +1319,7 @@ private fun HistoriqueSection(histoForExercice: List<Pair<LocalDate, List<SerieR
     val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.FRENCH)
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
-        Text("Historique", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 6.dp))
+        Text(stringResource(R.string.instance_execute_history_title), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 6.dp))
         histoForExercice.forEach { (date, series) ->
             val nonEmpty = series.filter { it.repsRealisees != null || it.chargeLabel != null || it.chargeKg != null }
             if (nonEmpty.isEmpty()) return@forEach
@@ -1382,7 +1385,7 @@ private fun CountdownOverlay(seconds: Int, exerciceName: String) {
                 color = when (seconds) { 1 -> Color.Red; 2 -> Color(0xFFFF8A65); else -> Color.White },
             )
             Text(
-                "Prêt ?",
+                stringResource(R.string.instance_execute_countdown_ready),
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.White.copy(alpha = 0.6f),
             )
@@ -1413,7 +1416,7 @@ private fun CircuitOverlay(
             when (phase) {
                 is CircuitPhase.ExerciceActif -> {
                     Text(
-                        "SÉRIE ${phase.numeroSerie}${phase.sideLabel} / ${phase.totalSeries}",
+                        stringResource(R.string.instance_execute_circuit_serie_label, phase.numeroSerie, phase.sideLabel, phase.totalSeries),
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White.copy(alpha = 0.65f),
                         fontWeight = FontWeight.Bold,
@@ -1439,7 +1442,7 @@ private fun CircuitOverlay(
                         },
                     )
                     Text(
-                        "Exercice ${phase.positionInBloc} / ${phase.totalInBloc}",
+                        stringResource(R.string.instance_execute_circuit_exercise_label, phase.positionInBloc, phase.totalInBloc),
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White.copy(alpha = 0.55f),
                     )
@@ -1447,7 +1450,7 @@ private fun CircuitOverlay(
 
                 is CircuitPhase.Repos -> {
                     Text(
-                        if (phase.isFinDeRound) "FIN DU ROUND — REPOS" else "REPOS",
+                        if (phase.isFinDeRound) stringResource(R.string.instance_execute_circuit_end_round_rest) else stringResource(R.string.instance_execute_circuit_rest),
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White.copy(alpha = 0.65f),
                         fontWeight = FontWeight.Bold,
@@ -1467,7 +1470,7 @@ private fun CircuitOverlay(
                     )
                     if (!phase.nextExerciceName.isNullOrBlank()) {
                         Text(
-                            "Prochain : ${phase.nextExerciceName}",
+                            stringResource(R.string.instance_execute_circuit_next_exercise, phase.nextExerciceName!!),
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center,
@@ -1484,7 +1487,7 @@ private fun CircuitOverlay(
             ) {
                 Icon(Icons.Default.Stop, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Arrêter le circuit")
+                Text(stringResource(R.string.instance_execute_stop_circuit_button))
             }
         }
     }
@@ -1543,7 +1546,7 @@ private fun PlateCalculatorSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                "🏋️ Calculateur de disques",
+                stringResource(R.string.instance_execute_plate_calculator_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -1573,7 +1576,7 @@ private fun PlateCalculatorSheet(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            if (eq == PlateEquipment.BARRE) "Barre" else "Haltère",
+                            if (eq == PlateEquipment.BARRE) stringResource(R.string.instance_execute_equipment_barre) else stringResource(R.string.instance_execute_equipment_haltere),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                             color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1593,7 +1596,7 @@ private fun PlateCalculatorSheet(
                 OutlinedTextField(
                     value = barInput,
                     onValueChange = { barInput = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
-                    label = { Text(if (equipment == PlateEquipment.BARRE) "Tige (kg)" else "Haltère vide (kg)") },
+                    label = { Text(if (equipment == PlateEquipment.BARRE) stringResource(R.string.instance_execute_bar_weight_label) else stringResource(R.string.instance_execute_dumbbell_weight_label)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -1602,7 +1605,7 @@ private fun PlateCalculatorSheet(
                 OutlinedTextField(
                     value = targetInput,
                     onValueChange = { targetInput = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
-                    label = { Text("Poids total (kg)") },
+                    label = { Text(stringResource(R.string.instance_execute_target_weight_label)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -1616,21 +1619,21 @@ private fun PlateCalculatorSheet(
             when {
                 targetKg == null || targetInput.isBlank() -> {
                     Text(
-                        "Saisissez un poids cible",
+                        stringResource(R.string.instance_execute_calculator_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = PandaSubtext,
                     )
                 }
                 barKg <= 0f -> {
                     Text(
-                        "Poids de tige invalide",
+                        stringResource(R.string.instance_execute_calculator_bar_error),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 plates == null -> {
                     Text(
-                        "Impossible avec les disques standards",
+                        stringResource(R.string.instance_execute_calculator_impossible),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -1665,9 +1668,9 @@ private fun PlateResultDisplay(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        val sideLabel = if (isHaltere) "par haltère" else "par côté"
+        val sideLabel = if (isHaltere) stringResource(R.string.instance_execute_calculator_per_dumbbell) else stringResource(R.string.instance_execute_calculator_per_side)
         Text(
-            "Disques $sideLabel",
+            sideLabel,
             style = MaterialTheme.typography.labelMedium,
             color = PandaSubtext,
             fontWeight = FontWeight.SemiBold,
@@ -1675,7 +1678,7 @@ private fun PlateResultDisplay(
 
         if (plates.isEmpty()) {
             Text(
-                "Aucun disque — ${if (isHaltere) "haltère" else "tige"} seul${if (isHaltere) "" else "e"} suffit",
+                if (isHaltere) stringResource(R.string.instance_execute_calculator_no_plates_dumbbell) else stringResource(R.string.instance_execute_calculator_no_plates_bar),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
@@ -1706,7 +1709,7 @@ private fun PlateResultDisplay(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    if (isHaltere) "Haltère" else "Tige",
+                    if (isHaltere) stringResource(R.string.instance_execute_calculator_detail_haltere) else stringResource(R.string.instance_execute_calculator_detail_bar),
                     style = MaterialTheme.typography.labelSmall,
                     color = PandaSubtext,
                 )
@@ -1719,7 +1722,7 @@ private fun PlateResultDisplay(
             if (plates.isNotEmpty()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "Disques",
+                        stringResource(R.string.instance_execute_calculator_detail_plates),
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                     )
@@ -1732,7 +1735,7 @@ private fun PlateResultDisplay(
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Total",
+                    stringResource(R.string.instance_execute_calculator_detail_total),
                     style = MaterialTheme.typography.labelSmall,
                     color = PandaSubtext,
                 )

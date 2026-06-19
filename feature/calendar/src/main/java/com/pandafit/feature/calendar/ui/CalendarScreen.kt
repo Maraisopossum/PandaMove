@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -78,6 +79,7 @@ import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaOrange
 import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.calendar.R
 import com.pandafit.feature.calendar.model.CalendarUiState
 import com.pandafit.feature.calendar.viewmodel.CalendarViewModel
 import java.time.LocalDate
@@ -174,7 +176,7 @@ fun CalendarScreen(
     }
 
     Scaffold(
-        topBar = { PandaTopBar(title = "Calendrier", onOpenDrawer = onOpenDrawer) },
+        topBar = { PandaTopBar(title = stringResource(R.string.calendar_screen_title), onOpenDrawer = onOpenDrawer) },
         // TODO: réactiver le FAB quand le flux d'affectation depuis le calendrier sera finalisé
 //        floatingActionButton = {
 //            Box {
@@ -271,7 +273,7 @@ fun CalendarScreen(
             if (!hasContent) {
                 item {
                     Text(
-                        "Aucune séance ce jour.",
+                        stringResource(R.string.calendar_no_session_day),
                         style = MaterialTheme.typography.bodyMedium,
                         color = PandaSubtext,
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -323,7 +325,7 @@ private fun SeancePickerSheet(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            "Affecter une séance",
+            stringResource(R.string.calendar_sheet_assign_seance),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -331,7 +333,7 @@ private fun SeancePickerSheet(
         HorizontalDivider()
         if (seances.isEmpty()) {
             Text(
-                "Aucune séance type disponible. Créez-en une depuis l'onglet Renforcement.",
+                stringResource(R.string.calendar_sheet_no_seance),
                 style = MaterialTheme.typography.bodySmall,
                 color = PandaSubtext,
                 modifier = Modifier.padding(16.dp),
@@ -377,7 +379,7 @@ private fun WorkoutPickerSheet(
         HorizontalDivider()
         if (workouts.isEmpty()) {
             Text(
-                "Aucun template disponible. Créez-en un depuis l'onglet correspondant.",
+                stringResource(R.string.calendar_sheet_no_template),
                 style = MaterialTheme.typography.bodySmall,
                 color = PandaSubtext,
                 modifier = Modifier.padding(16.dp),
@@ -411,13 +413,13 @@ private fun MonthNavigationHeader(currentMonth: YearMonth, onPrevious: () -> Uni
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        IconButton(onClick = onPrevious) { Icon(Icons.Default.ChevronLeft, "Mois précédent") }
+        IconButton(onClick = onPrevious) { Icon(Icons.Default.ChevronLeft, stringResource(R.string.calendar_prev_month_cd)) }
         Text(
             text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)).replaceFirstChar { it.uppercase() },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
-        IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, "Mois suivant") }
+        IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, stringResource(R.string.calendar_next_month_cd)) }
     }
 }
 
@@ -522,15 +524,15 @@ private fun CalendarWorkoutItem(
     if (showConfirm) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Supprimer la séance") },
-            text = { Text("Supprimer « ${workout.name} » ? Cette action est irréversible.") },
+            title = { Text(stringResource(R.string.calendar_delete_workout_title)) },
+            text = { Text(stringResource(R.string.calendar_delete_workout_text, workout.name)) },
             confirmButton = {
                 TextButton(onClick = { showConfirm = false; onDelete() }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirm = false }) { Text("Annuler") }
+                TextButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -546,15 +548,15 @@ private fun CalendarWorkoutItem(
                 }
             }
             if (workout.isCompleted) {
-                Icon(Icons.Default.CheckCircle, "Complétée", tint = accentColor, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.CheckCircle, stringResource(R.string.calendar_completed_cd), tint = accentColor, modifier = Modifier.size(18.dp))
             } else if (onReschedule != null) {
                 IconButton(onClick = onReschedule, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.DateRange, "Changer la date", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.DateRange, stringResource(R.string.calendar_change_date_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                 }
             }
             Spacer(Modifier.width(4.dp))
             IconButton(onClick = { showConfirm = true }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -574,15 +576,15 @@ private fun CalendarInstanceItem(
     if (showConfirm) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Supprimer la séance") },
-            text = { Text("Supprimer « ${seance?.nom ?: "cette séance"} » ? Cette action est irréversible.") },
+            title = { Text(stringResource(R.string.calendar_delete_workout_title)) },
+            text = { Text(stringResource(R.string.calendar_delete_instance_text, seance?.nom ?: stringResource(R.string.calendar_delete_instance_fallback))) },
             confirmButton = {
                 TextButton(onClick = { showConfirm = false; onDelete() }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirm = false }) { Text("Annuler") }
+                TextButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -592,24 +594,24 @@ private fun CalendarInstanceItem(
             SportIconBadge(icon = Icons.Default.FitnessCenter, contentDescription = null, accentColor = PandaPurple, size = 40.dp, iconSize = 20.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(seance?.nom ?: "Séance", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(seance?.nom ?: stringResource(R.string.calendar_instance_fallback), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 if (seance?.groupesMusculaires?.isNotEmpty() == true) {
                     Text(seance.groupesMusculaires.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                 }
             }
             if (instance.isCompleted) {
-                Icon(Icons.Default.CheckCircle, "Complétée", tint = PandaPurple, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.CheckCircle, stringResource(R.string.calendar_completed_cd), tint = PandaPurple, modifier = Modifier.size(18.dp))
             } else {
                 if (onReschedule != null) {
                     IconButton(onClick = onReschedule, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.DateRange, "Changer la date", tint = PandaSubtext, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.DateRange, stringResource(R.string.calendar_change_date_cd), tint = PandaSubtext, modifier = Modifier.size(16.dp))
                     }
                 }
-                Icon(Icons.Default.PlayArrow, "Démarrer", tint = PandaPurple, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.PlayArrow, stringResource(R.string.calendar_start_cd), tint = PandaPurple, modifier = Modifier.size(18.dp))
             }
             Spacer(Modifier.width(4.dp))
             IconButton(onClick = { showConfirm = true }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
             }
         }
     }

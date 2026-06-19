@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -19,6 +20,7 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaAmber
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.hiking.R
 import com.pandafit.feature.hiking.viewmodel.HikingReportViewModel
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -40,16 +42,16 @@ fun HikingWorkoutReportScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer cette sortie ?") },
-            text = { Text("Cette action est irréversible.") },
+            title = { Text(stringResource(R.string.hiking_report_delete_dialog_title)) },
+            text = { Text(stringResource(R.string.hiking_delete_dialog_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.delete(workoutId) { onNavigateBack() }
                     showDeleteDialog = false
-                }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -57,15 +59,15 @@ fun HikingWorkoutReportScreen(
     Scaffold(
         topBar = {
             PandaTopBar(
-                title = uiState.workout?.name ?: "Sortie rando",
+                title = uiState.workout?.name ?: stringResource(R.string.hiking_report_title_fallback),
                 containerColor = PandaAmber,
                 onNavigateBack = onNavigateBack,
                 actions = {
                     IconButton(onClick = { onNavigateToEdit(workoutId) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = Color.White)
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.hiking_report_modify_cd), tint = Color.White)
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = Color.White)
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.hiking_report_delete_cd), tint = Color.White)
                     }
                 },
             )
@@ -101,12 +103,12 @@ fun HikingWorkoutReportScreen(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    w.resultDistanceKm?.let { MetricColumn("${"%.2f".format(it)} km", "Distance") }
+                    w.resultDistanceKm?.let { MetricColumn("${"%.2f".format(it)} km", stringResource(R.string.hiking_report_metric_distance)) }
                     w.resultDurationSec?.let { sec ->
                         val h = sec / 3600; val m = (sec % 3600) / 60
-                        MetricColumn(if (h > 0) "${h}h${m.toString().padStart(2, '0')}" else "${m}min", "Durée")
+                        MetricColumn(if (h > 0) "${h}h${m.toString().padStart(2, '0')}" else "${m}min", stringResource(R.string.hiking_report_metric_duration))
                     }
-                    w.resultElevationM?.let { MetricColumn("↑ ${it}m", "Dénivelé+") }
+                    w.resultElevationM?.let { MetricColumn("↑ ${it}m", stringResource(R.string.hiking_report_metric_elevation)) }
                 }
             }
 
@@ -114,9 +116,9 @@ fun HikingWorkoutReportScreen(
             if (w.resultSpeedAvgKmh != null || w.resultHrAvg != null || w.resultRpe != null) {
                 Card(elevation = CardDefaults.cardElevation(2.dp)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        w.resultSpeedAvgKmh?.let { StatRow("Vitesse moyenne", "${"%.1f".format(it)} km/h") }
-                        w.resultHrAvg?.let { StatRow("FC moyenne", "$it bpm") }
-                        w.resultRpe?.let { StatRow("RPE", "$it / 10") }
+                        w.resultSpeedAvgKmh?.let { StatRow(stringResource(R.string.hiking_report_speed), "${"%.1f".format(it)} km/h") }
+                        w.resultHrAvg?.let { StatRow(stringResource(R.string.hiking_report_hr), "$it bpm") }
+                        w.resultRpe?.let { StatRow(stringResource(R.string.hiking_report_rpe), "$it / 10") }
                     }
                 }
             }
@@ -125,7 +127,7 @@ fun HikingWorkoutReportScreen(
             if (w.resultNotes.isNotBlank()) {
                 Card(elevation = CardDefaults.cardElevation(2.dp)) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Notes", style = MaterialTheme.typography.titleSmall, color = PandaAmber)
+                        Text(stringResource(R.string.hiking_report_notes_title), style = MaterialTheme.typography.titleSmall, color = PandaAmber)
                         Spacer(Modifier.height(4.dp))
                         Text(w.resultNotes, style = MaterialTheme.typography.bodyMedium)
                     }

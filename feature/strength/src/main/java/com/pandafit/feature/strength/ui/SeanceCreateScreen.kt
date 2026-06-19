@@ -70,10 +70,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pandafit.feature.strength.R
 import com.pandafit.core.database.catalog.MuscleGroup
 import com.pandafit.core.database.catalog.muscleToGroup
 import com.pandafit.core.database.entities.effectivePrimary
@@ -90,8 +92,15 @@ import com.pandafit.feature.strength.model.BlocDraft
 import com.pandafit.feature.strength.model.ExerciceDraft
 import com.pandafit.feature.strength.model.SeanceItem
 import com.pandafit.feature.strength.viewmodel.SeanceCreateViewModel
-import com.pandafit.feature.strength.viewmodel.defaultName
-import com.pandafit.feature.strength.viewmodel.displayName
+
+@Composable
+private fun BlocType.displayNameRes() = when (this) {
+    BlocType.ECHAUFFEMENT -> stringResource(R.string.bloc_type_echauffement)
+    BlocType.ACTIVATION -> stringResource(R.string.bloc_type_activation)
+    BlocType.SUPERSET -> stringResource(R.string.bloc_type_superset)
+    BlocType.CIRCUIT -> stringResource(R.string.bloc_type_circuit)
+    BlocType.RECUPERATION -> stringResource(R.string.bloc_type_recuperation)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,9 +162,9 @@ fun SeanceCreateScreen(
         topBar = {
             PandaTopBar(
                 title = when {
-                    isInstanceEdit -> "Modifier la séance"
-                    uiState.isNew -> "Nouvelle séance"
-                    else -> "Modifier"
+                    isInstanceEdit -> stringResource(R.string.seance_create_title_edit_instance)
+                    uiState.isNew -> stringResource(R.string.seance_create_title_new)
+                    else -> stringResource(R.string.seance_create_title_edit)
                 },
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
@@ -169,7 +178,7 @@ fun SeanceCreateScreen(
                         containerColor = PandaPurple,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                         elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation(),
-                    ) { Icon(Icons.Default.Save, "Sauvegarder") }
+                    ) { Icon(Icons.Default.Save, stringResource(R.string.common_save_cd)) }
                 },
                 actions = {},
             )
@@ -188,15 +197,15 @@ fun SeanceCreateScreen(
                         OutlinedTextField(
                             value = uiState.nom,
                             onValueChange = viewModel::updateNom,
-                            label = { Text("Nom de la séance") },
+                            label = { Text(stringResource(R.string.common_seance_name_label)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Ex. Séance A — Jambes") },
+                            placeholder = { Text(stringResource(R.string.seance_create_name_placeholder)) },
                         )
                         OutlinedTextField(
                             value = uiState.notes,
                             onValueChange = viewModel::updateNotes,
-                            label = { Text("Notes") },
+                            label = { Text(stringResource(R.string.common_notes_label)) },
                             modifier = Modifier.fillMaxWidth(),
                             maxLines = 3,
                         )
@@ -261,7 +270,7 @@ fun SeanceCreateScreen(
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp), tint = PandaPurple)
-                        Text("  Exercice", color = PandaPurple)
+                        Text(stringResource(R.string.seance_create_add_exercice_button), color = PandaPurple)
                     }
                     AddBlocRow(onAdd = { type -> viewModel.addBloc(type) }, modifier = Modifier.weight(1f))
                 }
@@ -296,28 +305,28 @@ private fun FreeExerciceCard(
                 Text(exercice.exercise.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 if (index > 0) {
                     IconButton(onClick = onMoveUp, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowUp, "Monter", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.seance_create_move_up_cd), modifier = Modifier.size(18.dp))
                     }
                 }
                 if (index < totalItems - 1) {
                     IconButton(onClick = onMoveDown, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowDown, "Descendre", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.seance_create_move_down_cd), modifier = Modifier.size(18.dp))
                     }
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, "Supprimer", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 IntStepperField(
-                    label = "Séries",
+                    label = stringResource(R.string.seance_create_field_series),
                     value = exercice.nombreSeriesPrevues,
                     onValueChange = { onUpdate(exercice.copy(nombreSeriesPrevues = it)) },
                     min = 1,
                     modifier = Modifier.weight(1f),
                 )
                 IntStepperField(
-                    label = "Repos (s)",
+                    label = stringResource(R.string.seance_create_field_rest),
                     value = exercice.tempsReposSec,
                     onValueChange = { onUpdate(exercice.copy(tempsReposSec = it)) },
                     min = 0, step = 15,
@@ -348,6 +357,7 @@ private fun BlocCard(
 ) {
     var expanded by remember { mutableStateOf(true) }
     val accentColor = blocColor(bloc.type)
+    val blocDisplayName = bloc.type.displayNameRes()
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Card(
@@ -365,24 +375,24 @@ private fun BlocCard(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         textStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        placeholder = { Text(bloc.type.defaultName()) },
-                        label = { Text(bloc.type.displayName()) },
+                        placeholder = { Text(blocDisplayName) },
+                        label = { Text(blocDisplayName) },
                     )
                     if (index > 0) {
                         IconButton(onClick = onMoveUp, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.KeyboardArrowUp, "Monter", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.seance_create_move_up_cd), modifier = Modifier.size(18.dp))
                         }
                     }
                     if (index < totalItems - 1) {
                         IconButton(onClick = onMoveDown, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.KeyboardArrowDown, "Descendre", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.seance_create_move_down_cd), modifier = Modifier.size(18.dp))
                         }
                     }
                     IconButton(onClick = { expanded = !expanded }) {
-                        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, "Toggle")
+                        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, stringResource(R.string.seance_create_expand_toggle_cd))
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, "Supprimer", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                     }
                 }
 
@@ -390,14 +400,14 @@ private fun BlocCard(
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         NumberStepper(
-                            label = "Repos inter (s)",
+                            label = stringResource(R.string.seance_create_bloc_rest_inter_label),
                             value = bloc.tempsReposInterSec,
                             onValueChange = { onUpdate(bloc.copy(tempsReposInterSec = it)) },
                             min = 0, step = 5,
                             modifier = Modifier.weight(1f),
                         )
                         NumberStepper(
-                            label = "Repos fin round (s)",
+                            label = stringResource(R.string.seance_create_bloc_rest_end_round_label),
                             value = bloc.tempsReposFinRoundSec,
                             onValueChange = { onUpdate(bloc.copy(tempsReposFinRoundSec = it)) },
                             min = 0, step = 15,
@@ -409,7 +419,7 @@ private fun BlocCard(
                 if (bloc.type == BlocType.CIRCUIT) {
                     Spacer(Modifier.height(8.dp))
                     NumberStepper(
-                        label = "Séries (circuit)",
+                        label = stringResource(R.string.seance_create_bloc_circuit_series_label),
                         value = bloc.nombreSeriesPrevues,
                         onValueChange = { onUpdate(bloc.copy(nombreSeriesPrevues = it)) },
                         min = 1, step = 1,
@@ -435,7 +445,7 @@ private fun BlocCard(
                 }
                 TextButton(onClick = onAddExercice, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp), tint = accentColor)
-                    Text("  Ajouter un exercice", color = accentColor)
+                    Text(stringResource(R.string.seance_create_bloc_add_exercice_button), color = accentColor)
                 }
             }
         }
@@ -471,22 +481,22 @@ private fun ExerciceCard(
                 Text(exercice.exercise.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 if (canMoveUp) {
                     IconButton(onClick = onMoveUp, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowUp, "Monter", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.seance_create_move_up_cd), modifier = Modifier.size(18.dp))
                     }
                 }
                 if (canMoveDown) {
                     IconButton(onClick = onMoveDown, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowDown, "Descendre", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.seance_create_move_down_cd), modifier = Modifier.size(18.dp))
                     }
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, "Supprimer", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 if (showSeries) {
                     IntStepperField(
-                        label = "Séries",
+                        label = stringResource(R.string.seance_create_field_series),
                         value = exercice.nombreSeriesPrevues,
                         onValueChange = { onUpdate(exercice.copy(nombreSeriesPrevues = it)) },
                         min = 1,
@@ -495,7 +505,7 @@ private fun ExerciceCard(
                 }
                 if (showRepos) {
                     IntStepperField(
-                        label = "Repos (s)",
+                        label = stringResource(R.string.seance_create_field_rest),
                         value = exercice.tempsReposSec,
                         onValueChange = { onUpdate(exercice.copy(tempsReposSec = it)) },
                         min = 0, step = 15,
@@ -528,18 +538,18 @@ private fun ExerciceFields(
                 selected = false,
                 onClick = {},
                 enabled = false,
-                label = { Text("Reps") },
+                label = { Text(stringResource(R.string.seance_create_reps_type_reps)) },
                 modifier = Modifier.weight(1f),
             )
             FilterChip(
                 selected = true,
                 onClick = {},
-                label = { Text("Durée") },
+                label = { Text(stringResource(R.string.seance_create_reps_type_duration)) },
                 modifier = Modifier.weight(1f),
             )
         }
         Text(
-            "Circuit — durée obligatoire",
+            stringResource(R.string.seance_create_circuit_duration_info),
             style = MaterialTheme.typography.labelSmall,
             color = PandaSubtext,
         )
@@ -548,13 +558,13 @@ private fun ExerciceFields(
             FilterChip(
                 selected = exercice.repsType == RepsType.REPS,
                 onClick = { onUpdate(exercice.copy(repsType = RepsType.REPS)) },
-                label = { Text("Reps") },
+                label = { Text(stringResource(R.string.seance_create_reps_type_reps)) },
                 modifier = Modifier.weight(1f),
             )
             FilterChip(
                 selected = exercice.repsType == RepsType.DURATION,
                 onClick = { onUpdate(exercice.copy(repsType = RepsType.DURATION)) },
-                label = { Text("Durée") },
+                label = { Text(stringResource(R.string.seance_create_reps_type_duration)) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -563,7 +573,7 @@ private fun ExerciceFields(
     // Reps or Duration field
     if (exercice.repsType == RepsType.REPS) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Reps :", style = labelStyle, modifier = labelWidth)
+            Text(stringResource(R.string.seance_create_inline_reps_label), style = labelStyle, modifier = labelWidth)
             OutlinedTextField(
                 value = exercice.repsCibles,
                 onValueChange = { onUpdate(exercice.copy(repsCibles = it)) },
@@ -581,13 +591,13 @@ private fun ExerciceFields(
             onUpdate(exercice.copy(repsCibles = if (s > 0) s.toString() else ""))
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Durée :", style = labelStyle, modifier = labelWidth)
+            Text(stringResource(R.string.seance_create_inline_duration_label), style = labelStyle, modifier = labelWidth)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
                 OutlinedTextField(
                     value = minStr,
                     onValueChange = { minStr = it.filter { c -> c.isDigit() }.take(2); commit() },
-                    label = { Text("min") },
-                    placeholder = { Text("0") },
+                    label = { Text(stringResource(R.string.seance_create_duration_min_label)) },
+                    placeholder = { Text(stringResource(R.string.seance_create_duration_min_placeholder)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -596,8 +606,8 @@ private fun ExerciceFields(
                 OutlinedTextField(
                     value = secStr,
                     onValueChange = { secStr = it.filter { c -> c.isDigit() }.take(2); commit() },
-                    label = { Text("sec") },
-                    placeholder = { Text("0") },
+                    label = { Text(stringResource(R.string.seance_create_duration_sec_label)) },
+                    placeholder = { Text(stringResource(R.string.seance_create_duration_sec_placeholder)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -608,7 +618,7 @@ private fun ExerciceFields(
     }
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text("Charge :", style = labelStyle, modifier = labelWidth)
+        Text(stringResource(R.string.seance_create_inline_charge_label), style = labelStyle, modifier = labelWidth)
         OutlinedTextField(
             value = exercice.chargeCible,
             onValueChange = { onUpdate(exercice.copy(chargeCible = it)) },
@@ -616,7 +626,7 @@ private fun ExerciceFields(
         )
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text("Commentaire :", style = labelStyle, modifier = labelWidth)
+        Text(stringResource(R.string.seance_create_inline_comment_label), style = labelStyle, modifier = labelWidth)
         OutlinedTextField(
             value = exercice.consigneCle,
             onValueChange = { onUpdate(exercice.copy(consigneCle = it)) },
@@ -635,8 +645,8 @@ private fun ExerciceFields(
                 onCheckedChange = { onUpdate(exercice.copy(isBilateral = it)) },
             )
             Column {
-                Text("Bilatéral (G + D)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                Text("À chaque round : côté G, puis côté D", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                Text(stringResource(R.string.seance_create_bilateral_label), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.seance_create_bilateral_description), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
             }
         }
     }
@@ -652,13 +662,13 @@ private fun WarmupPickerSheet(
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Text(
-            "Choisir un échauffement",
+            stringResource(R.string.seance_create_warmup_picker_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 12.dp),
         )
         if (warmups.isEmpty()) {
-            Text("Aucun échauffement disponible.", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+            Text(stringResource(R.string.seance_create_warmup_picker_empty), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
         } else {
             warmups.forEach { warmup ->
                 Row(
@@ -739,11 +749,11 @@ private fun AddBlocRow(onAdd: (BlocType) -> Unit, modifier: Modifier = Modifier)
     Box(modifier = modifier) {
         TextButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp), tint = PandaPurple)
-            Text("  Bloc", color = PandaPurple)
+            Text(stringResource(R.string.seance_create_add_bloc_button), color = PandaPurple)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             BlocType.entries.forEach { type ->
-                DropdownMenuItem(text = { Text(type.displayName()) }, onClick = { onAdd(type); expanded = false })
+                DropdownMenuItem(text = { Text(type.displayNameRes()) }, onClick = { onAdd(type); expanded = false })
             }
         }
     }
@@ -769,7 +779,7 @@ private fun ExercicePickerSheet(
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Ajouter des exercices",
+                    stringResource(R.string.seance_create_exercise_picker_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -778,13 +788,13 @@ private fun ExercicePickerSheet(
                     Button(
                         onClick = onConfirm,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                    ) { Text("Ajouter (${multiSelectedIds.size})") }
+                    ) { Text(stringResource(R.string.seance_create_exercise_picker_confirm_button, multiSelectedIds.size)) }
                 }
             }
             Spacer(Modifier.height(10.dp))
             OutlinedTextField(
                 value = query, onValueChange = onQueryChange,
-                label = { Text("Rechercher") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = { Text(stringResource(R.string.common_search_label)) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
             )
         }
 
@@ -797,7 +807,7 @@ private fun ExercicePickerSheet(
                 FilterChip(
                     selected = onlyAvailable,
                     onClick = onToggleOnlyAvailable,
-                    label = { Text("Mon matériel") },
+                    label = { Text(stringResource(R.string.seance_create_picker_filter_equipment)) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = PandaPurple.copy(alpha = 0.15f),
                         selectedLabelColor = PandaPurple,
@@ -808,7 +818,7 @@ private fun ExercicePickerSheet(
                 FilterChip(
                     selected = selectedGroup == null,
                     onClick = { onGroupChange(null) },
-                    label = { Text("Tous") },
+                    label = { Text(stringResource(R.string.seance_create_picker_filter_all)) },
                 )
             }
             items(MuscleGroup.entries) { group ->
@@ -828,7 +838,7 @@ private fun ExercicePickerSheet(
 
         if (exercises.isEmpty()) {
             Text(
-                "Aucun exercice trouvé.",
+                stringResource(R.string.seance_create_picker_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = PandaSubtext,
                 modifier = Modifier.padding(16.dp),

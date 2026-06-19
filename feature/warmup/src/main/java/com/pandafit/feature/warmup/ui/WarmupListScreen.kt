@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,6 +42,7 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaOrange
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.warmup.R
 import com.pandafit.feature.warmup.viewmodel.WarmupListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,20 +55,20 @@ fun WarmupListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val categories = listOf(
-        SeanceCategory.WARMUP_GENERAL to "Général",
-        SeanceCategory.WARMUP_MOBILITY to "Mobilité",
-        SeanceCategory.WARMUP_ACTIVATION to "Activation",
+        SeanceCategory.WARMUP_GENERAL to stringResource(R.string.warmup_category_general),
+        SeanceCategory.WARMUP_MOBILITY to stringResource(R.string.warmup_category_mobility),
+        SeanceCategory.WARMUP_ACTIVATION to stringResource(R.string.warmup_category_activation),
     )
     val currentWarmups = uiState.warmupsByCategory[uiState.selectedCategory] ?: emptyList()
 
     Scaffold(
-        topBar = { PandaTopBar(title = "Échauffement", onOpenDrawer = onOpenDrawer) },
+        topBar = { PandaTopBar(title = stringResource(R.string.warmup_screen_title), onOpenDrawer = onOpenDrawer) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNavigateToCreate(uiState.selectedCategory.name) },
                 containerColor = PandaOrange,
             ) {
-                Icon(Icons.Default.Add, "Nouveau", tint = Color.White)
+                Icon(Icons.Default.Add, stringResource(R.string.warmup_fab_new_cd), tint = Color.White)
             }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -100,12 +102,12 @@ fun WarmupListScreen(
             if (currentWarmups.isEmpty()) {
                 item {
                     PandaEmptyState(
-                        title = "Aucun échauffement",
-                        description = "Crée ton premier échauffement type.",
+                        title = stringResource(R.string.warmup_empty_title),
+                        description = stringResource(R.string.warmup_empty_description),
                         icon = Icons.Default.SelfImprovement,
                         action = {
                             AppButton(
-                                label = "Créer",
+                                label = stringResource(R.string.warmup_create_button),
                                 onClick = { onNavigateToCreate(uiState.selectedCategory.name) },
                                 color = PandaOrange,
                             )

@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,6 +66,7 @@ import com.pandafit.feature.stats.model.StatsUiState
 import com.pandafit.feature.stats.model.StrengthDetailStats
 import com.pandafit.feature.stats.model.WeeklyBreathingCount
 import com.pandafit.feature.stats.model.WeeklyPace
+import com.pandafit.feature.stats.R
 import com.pandafit.feature.stats.viewmodel.StatsViewModel
 
 private val BreathingTeal = Color(0xFF00897B)
@@ -86,7 +88,7 @@ fun StatsScreen(
     }
 
     Scaffold(
-        topBar = { PandaTopBar(title = "Statistiques", onOpenDrawer = onOpenDrawer) },
+        topBar = { PandaTopBar(title = stringResource(R.string.stats_screen_title), onOpenDrawer = onOpenDrawer) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         if (uiState.isLoading) { PandaLoadingIndicator(); return@Scaffold }
@@ -117,7 +119,7 @@ fun StatsScreen(
             // Renforcement
             item {
                 SectionHeader(
-                    title = "Renforcement",
+                    title = stringResource(R.string.stats_section_strength),
                     icon = Icons.Default.FitnessCenter,
                     color = PandaPurple,
                 )
@@ -128,7 +130,7 @@ fun StatsScreen(
             // Running
             item {
                 SectionHeader(
-                    title = "Course à pieds",
+                    title = stringResource(R.string.stats_section_running),
                     icon = Icons.AutoMirrored.Filled.DirectionsRun,
                     color = PandaGreen,
                 )
@@ -139,7 +141,7 @@ fun StatsScreen(
             // Vélo
             item {
                 SectionHeader(
-                    title = "Vélo",
+                    title = stringResource(R.string.stats_section_cycling),
                     icon = Icons.AutoMirrored.Filled.DirectionsBike,
                     color = PandaBlue,
                 )
@@ -150,7 +152,7 @@ fun StatsScreen(
             // Respiration
             item {
                 SectionHeader(
-                    title = "Respiration",
+                    title = stringResource(R.string.stats_section_breathing),
                     icon  = Icons.Default.Air,
                     color = BreathingTeal,
                 )
@@ -177,9 +179,9 @@ private fun GlobalSummaryRow(uiState: StatsUiState) {
     val completionPct = if (planned == 0) 0 else (completed * 100 / planned)
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        StatMiniCard("Séances", "$completed/$planned", PandaGreen, Modifier.weight(1f))
-        StatMiniCard("Durée", formatDuration(totalMin), PandaBlue, Modifier.weight(1f))
-        StatMiniCard("Complétion", "$completionPct%", PandaPurple, Modifier.weight(1f))
+        StatMiniCard(stringResource(R.string.stats_mini_card_sessions), "$completed/$planned", PandaGreen, Modifier.weight(1f))
+        StatMiniCard(stringResource(R.string.stats_mini_card_duration), formatDuration(totalMin), PandaBlue, Modifier.weight(1f))
+        StatMiniCard(stringResource(R.string.stats_mini_card_completion), "$completionPct%", PandaPurple, Modifier.weight(1f))
     }
 }
 
@@ -197,15 +199,15 @@ private fun StrengthSection(stats: SportStats, detail: StrengthDetailStats, conf
         PandaCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatItem("Séances", "${detail.completedSessions}/${detail.plannedSessions}", Modifier.weight(1f))
-                    StatItem("Séries", detail.totalSeries.toString(), Modifier.weight(1f))
-                    StatItem("Reps", detail.totalReps.toString(), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_mini_card_sessions), "${detail.completedSessions}/${detail.plannedSessions}", Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_strength_series_label), detail.totalSeries.toString(), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_strength_reps_label), detail.totalReps.toString(), Modifier.weight(1f))
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatItem("Tonnage", formatTonnage(detail.totalTonnageKg), Modifier.weight(1f))
-                    StatItem("Durée moy.", formatDuration(detail.avgDurationMin), Modifier.weight(1f))
-                    StatItem("Durée max", formatDuration(detail.maxDurationMin), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_strength_tonnage_label), formatTonnage(detail.totalTonnageKg), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_strength_avg_duration), formatDuration(detail.avgDurationMin), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_strength_max_duration), formatDuration(detail.maxDurationMin), Modifier.weight(1f))
                 }
                 if (detail.topExercises.isNotEmpty()) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -232,7 +234,7 @@ private fun StrengthSection(stats: SportStats, detail: StrengthDetailStats, conf
         if (detail.exerciseProgressions.isNotEmpty()) {
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Progressions", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Text(stringResource(R.string.stats_strength_progressions), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
                     Spacer(Modifier.height(8.dp))
                     detail.exerciseProgressions.forEach { prog ->
                         ProgressionRow(prog)
@@ -246,7 +248,7 @@ private fun StrengthSection(stats: SportStats, detail: StrengthDetailStats, conf
         if (detail.muscleBreakdown.isNotEmpty()) {
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Répartition musculaire", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Text(stringResource(R.string.stats_strength_muscle_breakdown), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
                     Spacer(Modifier.height(8.dp))
                     detail.muscleBreakdown.forEach { muscle ->
                         MuscleBar(muscle)
@@ -343,33 +345,33 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, config
         PandaCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatItem("Séances", "${stats.completedSessions}/${stats.totalSessions}", Modifier.weight(1f))
-                    StatItem("Distance", "${"%.1f".format(detail.totalDistanceKm)} km", Modifier.weight(1f))
-                    StatItem("Durée", formatSeconds(detail.totalDurationSec), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_mini_card_sessions), "${stats.completedSessions}/${stats.totalSessions}", Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_running_distance), "${"%.1f".format(detail.totalDistanceKm)} km", Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_mini_card_duration), formatSeconds(detail.totalDurationSec), Modifier.weight(1f))
                 }
                 if (detail.avgPaceMinPerKm > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatItem("Allure moy.", formatPace(detail.avgPaceMinPerKm), Modifier.weight(1f))
-                        StatItem("Meilleure", formatPace(detail.bestPaceMinPerKm), Modifier.weight(1f))
-                        StatItem("+ longue", if (detail.longestSessionKm > 0) "${"%.1f".format(detail.longestSessionKm)} km" else "—", Modifier.weight(1f))
+                        StatItem(stringResource(R.string.stats_running_avg_pace), formatPace(detail.avgPaceMinPerKm), Modifier.weight(1f))
+                        StatItem(stringResource(R.string.stats_running_best_pace), formatPace(detail.bestPaceMinPerKm), Modifier.weight(1f))
+                        StatItem(stringResource(R.string.stats_running_longest), if (detail.longestSessionKm > 0) "${"%.1f".format(detail.longestSessionKm)} km" else "—", Modifier.weight(1f))
                     }
                 }
                 if (detail.avgHrBpm > 0 || detail.maxHrBpm > 0 || detail.totalElevationM > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (detail.avgHrBpm > 0) StatItem("FC moy.", "${detail.avgHrBpm} bpm", Modifier.weight(1f))
+                        if (detail.avgHrBpm > 0) StatItem(stringResource(R.string.stats_running_avg_hr), "${detail.avgHrBpm} bpm", Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
-                        if (detail.maxHrBpm > 0) StatItem("FC max", "${detail.maxHrBpm} bpm", Modifier.weight(1f))
+                        if (detail.maxHrBpm > 0) StatItem(stringResource(R.string.stats_running_max_hr), "${detail.maxHrBpm} bpm", Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
-                        if (detail.totalElevationM > 0) StatItem("Dénivelé", "${detail.totalElevationM} m", Modifier.weight(1f))
+                        if (detail.totalElevationM > 0) StatItem(stringResource(R.string.stats_running_elevation), "${detail.totalElevationM} m", Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
                     }
                 }
                 if (detail.avgCadencePpm > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatItem("Cadence moy.", "${detail.avgCadencePpm} ppm", Modifier.weight(1f))
+                        StatItem(stringResource(R.string.stats_running_cadence), "${detail.avgCadencePpm} ppm", Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                     }
@@ -382,7 +384,7 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, config
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "Avec la poussette 🚼",
+                        stringResource(R.string.stats_running_stroller),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = PandaSubtext,
@@ -390,17 +392,17 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, config
                     Spacer(Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatItem(
-                            "Séances",
+                            stringResource(R.string.stats_mini_card_sessions),
                             "${detail.strollerSessions}",
                             Modifier.weight(1f),
                         )
                         StatItem(
-                            "Distance",
+                            stringResource(R.string.stats_running_distance),
                             "${"%.1f".format(detail.strollerDistanceKm)} km",
                             Modifier.weight(1f),
                         )
                         StatItem(
-                            "Du total",
+                            stringResource(R.string.stats_running_stroller_distance),
                             "${(detail.strollerDistancePct * 100).toInt()}%",
                             Modifier.weight(1f),
                         )
@@ -418,7 +420,7 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, config
         if (detail.weeklyPaces.size >= 2) {
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Distance par semaine", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Text(stringResource(R.string.stats_running_weekly_distance), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
                     Spacer(Modifier.height(8.dp))
                     WeeklyDistanceChart(detail.weeklyPaces)
                 }
@@ -497,30 +499,30 @@ private fun CyclingSection(stats: SportStats, detail: CyclingDetailStats, config
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Ligne 1 : séances / distance / durée
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatItem("Séances", "${stats.completedSessions}/${stats.totalSessions}", Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_mini_card_sessions), "${stats.completedSessions}/${stats.totalSessions}", Modifier.weight(1f))
                     StatItem(
-                        "Distance",
+                        stringResource(R.string.stats_cycling_distance),
                         if (detail.totalDistanceKm > 0) "${"%.1f".format(detail.totalDistanceKm)} km" else "—",
                         Modifier.weight(1f),
                     )
-                    StatItem("Durée", formatSeconds(detail.totalDurationSec), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_mini_card_duration), formatSeconds(detail.totalDurationSec), Modifier.weight(1f))
                 }
                 // Ligne 2 : vitesse moy / meilleure / + longue
                 if (detail.avgSpeedKmh > 0 || detail.longestSessionKm > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatItem(
-                            "Vit. moy.",
+                            stringResource(R.string.stats_cycling_avg_speed),
                             if (detail.avgSpeedKmh > 0) "${"%.1f".format(detail.avgSpeedKmh)} km/h" else "—",
                             Modifier.weight(1f),
                         )
                         StatItem(
-                            "Meilleure",
+                            stringResource(R.string.stats_cycling_best_speed),
                             if (detail.bestSpeedKmh > 0) "${"%.1f".format(detail.bestSpeedKmh)} km/h" else "—",
                             Modifier.weight(1f),
                         )
                         StatItem(
-                            "+ longue",
+                            stringResource(R.string.stats_cycling_longest),
                             if (detail.longestSessionKm > 0) "${"%.1f".format(detail.longestSessionKm)} km" else "—",
                             Modifier.weight(1f),
                         )
@@ -530,11 +532,11 @@ private fun CyclingSection(stats: SportStats, detail: CyclingDetailStats, config
                 if (detail.avgHrBpm > 0 || detail.maxHrBpm > 0 || detail.totalElevationM > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (detail.avgHrBpm > 0) StatItem("FC moy.", "${detail.avgHrBpm} bpm", Modifier.weight(1f))
+                        if (detail.avgHrBpm > 0) StatItem(stringResource(R.string.stats_cycling_avg_hr), "${detail.avgHrBpm} bpm", Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
-                        if (detail.maxHrBpm > 0) StatItem("FC max", "${detail.maxHrBpm} bpm", Modifier.weight(1f))
+                        if (detail.maxHrBpm > 0) StatItem(stringResource(R.string.stats_cycling_max_hr), "${detail.maxHrBpm} bpm", Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
-                        if (detail.totalElevationM > 0) StatItem("Dénivelé +", "${detail.totalElevationM} m", Modifier.weight(1f))
+                        if (detail.totalElevationM > 0) StatItem(stringResource(R.string.stats_cycling_elevation), "${detail.totalElevationM} m", Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
                     }
                 }
@@ -542,7 +544,7 @@ private fun CyclingSection(stats: SportStats, detail: CyclingDetailStats, config
                 if (detail.avgCadenceRpm > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatItem("Cadence moy.", "${detail.avgCadenceRpm} rpm", Modifier.weight(1f))
+                        StatItem(stringResource(R.string.stats_cycling_cadence), "${detail.avgCadenceRpm} rpm", Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                     }
@@ -559,7 +561,7 @@ private fun CyclingSection(stats: SportStats, detail: CyclingDetailStats, config
         if (detail.weeklyDistances.isNotEmpty()) {
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Distance par semaine", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Text(stringResource(R.string.stats_cycling_weekly_distance), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
                     Spacer(Modifier.height(8.dp))
                     WeeklyCyclingDistanceChart(detail.weeklyDistances)
                 }
@@ -641,14 +643,14 @@ private fun BreathingSection(detail: BreathingDetailStats) {
         PandaCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatItem("Séances", detail.totalSessions.toString(), Modifier.weight(1f))
-                    StatItem("Durée totale", formatSeconds(detail.totalDurationSeconds), Modifier.weight(1f))
-                    StatItem("Durée moy.", formatSeconds(detail.avgDurationSeconds), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_mini_card_sessions), detail.totalSessions.toString(), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_breathing_total_duration), formatSeconds(detail.totalDurationSeconds), Modifier.weight(1f))
+                    StatItem(stringResource(R.string.stats_breathing_avg_duration), formatSeconds(detail.avgDurationSeconds), Modifier.weight(1f))
                 }
                 if (detail.favoriteMethod != null) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🏆 Méthode favorite", style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                        Text(stringResource(R.string.stats_breathing_favorite_method), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                         Spacer(Modifier.width(8.dp))
                         Text(
                             detail.favoriteMethod,
@@ -664,7 +666,7 @@ private fun BreathingSection(detail: BreathingDetailStats) {
         if (detail.methodBreakdown.size >= 2) {
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Répartition par méthode", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Text(stringResource(R.string.stats_breathing_method_breakdown), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
                     Spacer(Modifier.height(8.dp))
                     detail.methodBreakdown.forEach { stat ->
                         BreathingMethodBar(stat)
@@ -679,7 +681,7 @@ private fun BreathingSection(detail: BreathingDetailStats) {
         if (detail.weeklySessionCounts.size >= 2 && hasVariation) {
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Sessions par semaine", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
+                    Text(stringResource(R.string.stats_breathing_weekly_sessions), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = PandaSubtext)
                     Spacer(Modifier.height(8.dp))
                     WeeklyBreathingChart(detail.weeklySessionCounts)
                 }
@@ -789,7 +791,7 @@ private fun FunItem(emoji: String, value: String, label: String, modifier: Modif
 private fun CompletionBar(rate: Float, color: Color) {
     Column {
         Text(
-            "Taux de complétion : ${(rate * 100).toInt()}%",
+            stringResource(R.string.stats_completion_bar_label, (rate * 100).toInt()),
             style = MaterialTheme.typography.bodySmall,
             color = PandaSubtext,
         )
@@ -807,7 +809,7 @@ private fun CompletionBar(rate: Float, color: Color) {
 private fun EmptyCard() {
     PandaCard(modifier = Modifier.fillMaxWidth()) {
         Text(
-            "Aucune donnée sur cette période.",
+            stringResource(R.string.stats_empty_period),
             style = MaterialTheme.typography.bodySmall,
             color = PandaSubtext,
             modifier = Modifier.padding(14.dp),

@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,7 +60,7 @@ fun BreathingMethodSelectionScreen(
     methodToDelete?.let { method ->
         AlertDialog(
             onDismissRequest = { methodToDelete = null },
-            title = { Text("Supprimer la méthode ?") },
+            title = { Text(stringResource(R.string.breathing_delete_method_title)) },
             text  = { Text("« ${method.name} » sera définitivement supprimée.") },
             confirmButton = {
                 TextButton(
@@ -68,10 +69,10 @@ fun BreathingMethodSelectionScreen(
                         if (expandedMethodId == method.id) expandedMethodId = null
                         methodToDelete = null
                     }
-                ) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
+                ) { Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { methodToDelete = null }) { Text("Annuler") }
+                TextButton(onClick = { methodToDelete = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -80,15 +81,15 @@ fun BreathingMethodSelectionScreen(
     sessionToDelete?.let { id ->
         AlertDialog(
             onDismissRequest = { sessionToDelete = null },
-            title = { Text("Supprimer la séance ?") },
-            text  = { Text("Cette séance sera définitivement supprimée de l'historique.") },
+            title = { Text(stringResource(R.string.breathing_delete_session_title)) },
+            text  = { Text(stringResource(R.string.breathing_delete_session_text)) },
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.deleteSession(id); sessionToDelete = null }
-                ) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
+                ) { Text(stringResource(R.string.common_confirm_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { sessionToDelete = null }) { Text("Annuler") }
+                TextButton(onClick = { sessionToDelete = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -96,12 +97,12 @@ fun BreathingMethodSelectionScreen(
     Scaffold(
         topBar = {
             PandaTopBar(
-                title = "Respiration",
+                title = stringResource(R.string.breathing_selection_title),
                 onOpenDrawer = onOpenDrawer,
                 scrollBehavior = scrollBehavior,
                 actions = {
                     IconButton(onClick = onCreateCustomMethod) {
-                        Icon(Icons.Default.Add, contentDescription = "Créer une méthode")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.breathing_create_method_cd))
                     }
                 },
             )
@@ -124,7 +125,7 @@ fun BreathingMethodSelectionScreen(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.male_meditation_v1),
-                        contentDescription = "Panda en méditation",
+                        contentDescription = stringResource(R.string.breathing_panda_meditation_cd),
                         modifier = Modifier.fillMaxHeight(),
                         contentScale = ContentScale.Fit,
                     )
@@ -133,7 +134,7 @@ fun BreathingMethodSelectionScreen(
 
             item {
                 Text(
-                    "Choisissez une méthode",
+                    stringResource(R.string.breathing_choose_method),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -209,7 +210,7 @@ fun BreathingMethodSelectionScreen(
                         )
                         Icon(
                             imageVector = if (historyExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (historyExpanded) "Replier" else "Déplier",
+                            contentDescription = if (historyExpanded) stringResource(R.string.breathing_history_collapse_cd) else stringResource(R.string.breathing_history_expand_cd),
                             tint = PandaSubtext,
                         )
                     }
@@ -265,7 +266,7 @@ private fun BreathingSessionHistoryItem(
         IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
             Icon(
                 Icons.Default.Delete,
-                contentDescription = "Supprimer",
+                contentDescription = stringResource(R.string.breathing_history_delete_cd),
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
             )
@@ -343,12 +344,12 @@ private fun BreathingMethodCard(
                 // Actions custom (modifier / supprimer) — visibles même quand l'accordéon est fermé
                 if (onEdit != null) {
                     IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Modifier", modifier = Modifier.size(18.dp), tint = PandaSubtext)
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.breathing_method_edit_cd), modifier = Modifier.size(18.dp), tint = PandaSubtext)
                     }
                 }
                 if (onDelete != null) {
                     IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Supprimer", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.breathing_method_delete_cd), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
                     }
                 }
                 // Chevron
@@ -378,17 +379,17 @@ private fun BreathingMethodCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Durée", style = MaterialTheme.typography.labelMedium, color = PandaSubtext)
+                        Text(stringResource(R.string.breathing_duration_label), style = MaterialTheme.typography.labelMedium, color = PandaSubtext)
                         Spacer(Modifier.width(4.dp))
                         FilterChip(
                             selected = configMode == ConfigMode.CYCLES,
                             onClick  = { onConfigModeChange(ConfigMode.CYCLES) },
-                            label    = { Text("Cycles") },
+                            label    = { Text(stringResource(R.string.breathing_cycles_chip)) },
                         )
                         FilterChip(
                             selected = configMode == ConfigMode.MINUTES,
                             onClick  = { onConfigModeChange(ConfigMode.MINUTES) },
-                            label    = { Text("Minutes") },
+                            label    = { Text(stringResource(R.string.breathing_minutes_chip)) },
                         )
                     }
 
@@ -433,7 +434,7 @@ private fun BreathingMethodCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors   = ButtonDefaults.buttonColors(containerColor = PandaGreen),
                     ) {
-                        Text("Démarrer", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.breathing_start_button), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
