@@ -7,6 +7,7 @@ import com.pandafit.core.database.catalog.UserPreferencesRepository
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.export.DataExportManager
 import com.pandafit.core.database.export.DataImportManager
+import com.pandafit.core.database.export.ExportType
 import com.pandafit.core.database.export.ImportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,6 +32,8 @@ data class ProfileUiState(
     val soundOverrideSilent: Boolean = false,
     val exerciseCount: Int = 0,
     val exportImportStatus: ExportImportStatus = ExportImportStatus.IDLE,
+    val csvRunningStatus: ExportImportStatus = ExportImportStatus.IDLE,
+    val csvStrengthStatus: ExportImportStatus = ExportImportStatus.IDLE,
     val importResult: ImportResult? = null,
     val errorMessage: String? = null,
 )
@@ -91,6 +94,8 @@ class ProfileViewModel @Inject constructor(
     fun clearStatus() {
         _uiState.value = _uiState.value.copy(
             exportImportStatus = ExportImportStatus.IDLE,
+            csvRunningStatus = ExportImportStatus.IDLE,
+            csvStrengthStatus = ExportImportStatus.IDLE,
             importResult = null,
             errorMessage = null,
         )
@@ -106,6 +111,38 @@ class ProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     exportImportStatus = ExportImportStatus.ERROR,
+                    errorMessage = e.message ?: "Erreur inconnue",
+                )
+            }
+        }
+    }
+
+    fun exportCsvRunning() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(csvRunningStatus = ExportImportStatus.EXPORTING)
+            try {
+                val file = exportManager.exportToCsv(ExportType.RUNNING)
+                _shareIntent.tryEmit(exportManager.buildShareIntent(file, "text/csv"))
+                _uiState.value = _uiState.value.copy(csvRunningStatus = ExportImportStatus.SUCCESS_EXPORT)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    csvRunningStatus = ExportImportStatus.ERROR,
+                    errorMessage = e.message ?: "Erreur inconnue",
+                )
+            }
+        }
+    }
+
+    fun exportCsvStrength() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(csvStrengthStatus = ExportImportStatus.EXPORTING)
+            try {
+                val file = exportManager.exportToCsv(ExportType.STRENGTH)
+                _shareIntent.tryEmit(exportManager.buildShareIntent(file, "text/csv"))
+                _uiState.value = _uiState.value.copy(csvStrengthStatus = ExportImportStatus.SUCCESS_EXPORT)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    csvStrengthStatus = ExportImportStatus.ERROR,
                     errorMessage = e.message ?: "Erreur inconnue",
                 )
             }

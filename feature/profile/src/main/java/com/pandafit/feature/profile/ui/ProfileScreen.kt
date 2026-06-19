@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Female
@@ -335,6 +336,38 @@ fun ProfileScreen(
                             title = stringResource(R.string.profile_tcx_title),
                             subtitle = stringResource(R.string.profile_tcx_subtitle),
                             onClick = onNavigateToTcxImport,
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        SettingsActionRow(
+                            icon = Icons.Default.DirectionsRun,
+                            title = "CSV Running",
+                            subtitle = when (uiState.csvRunningStatus) {
+                                ExportImportStatus.EXPORTING -> "Export en cours…"
+                                ExportImportStatus.SUCCESS_EXPORT -> "Fichier prêt à partager"
+                                ExportImportStatus.ERROR -> uiState.errorMessage ?: "Erreur"
+                                else -> "date · distance · durée · allure · FC · calories · dénivelé"
+                            },
+                            onClick = {
+                                if (uiState.csvRunningStatus != ExportImportStatus.EXPORTING) {
+                                    viewModel.exportCsvRunning()
+                                }
+                            },
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        SettingsActionRow(
+                            icon = Icons.Default.FitnessCenter,
+                            title = "CSV Renforcement",
+                            subtitle = when (uiState.csvStrengthStatus) {
+                                ExportImportStatus.EXPORTING -> "Export en cours…"
+                                ExportImportStatus.SUCCESS_EXPORT -> "Fichier prêt à partager"
+                                ExportImportStatus.ERROR -> uiState.errorMessage ?: "Erreur"
+                                else -> "date · séance · exercice · séries · charge max · tonnage · reps"
+                            },
+                            onClick = {
+                                if (uiState.csvStrengthStatus != ExportImportStatus.EXPORTING) {
+                                    viewModel.exportCsvStrength()
+                                }
+                            },
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(

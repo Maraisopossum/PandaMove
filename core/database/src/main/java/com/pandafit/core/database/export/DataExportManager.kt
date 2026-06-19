@@ -320,14 +320,90 @@ class DataExportManager @Inject constructor(
         file
     }
 
-    fun buildShareIntent(file: File): Intent {
+    fun buildShareIntent(file: File, mimeType: String = "application/json"): Intent {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val send = Intent(Intent.ACTION_SEND).apply {
-            type = "application/json"
+            type = mimeType
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, "PandaMove — Export de mes données")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         return Intent.createChooser(send, "Partager l'export PandaMove")
     }
+
+    /**
+     * Génère un fichier CSV dans le cacheDir pour le type demandé et le retourne.
+     * Séparateur de colonnes : ';' (standard French/Excel).
+     * Séparateur décimal : ',' (locale française).
+     */
+    suspend fun exportToCsv(type: ExportType): File = withContext(Dispatchers.IO) {
+        // Nettoyage des anciens CSV du même type
+        val prefix = if (type == ExportType.RUNNING) "pandamove_running_" else "pandamove_strength_"
+        context.cacheDir
+            .listFiles { f -> f.name.startsWith(prefix) && f.extension == "csv" }
+            ?.forEach { it.delete() }
+
+        val sb = StringBuilder()
+
+        when (type) {
+            ExportType.RUNNING -> {
+                sb.appendLine("date;distance_km;duration_min;pace_min_km;avg_heart_rate;calories;elevation_m")
+                val workouts = workoutDao.observeAll().first()
+                    .filter { it.workoutType == WorkoutType.RUNNING && !it.isTemplate && it.isCompleted }
+                    .sortedBy { it.completedAt?.toString() ?: it.scheduledDate.toString() }
+                for (w in workouts) {
+                    val date = w.completedAt?.toLocalDate()?.toString() ?: w.scheduledDate.toString()
+                    val distKm   = w.resultDistanceKm.toCsvDecimal(2)
+                    val durMin   = w.resultDurationSec?.let { "%.1f".format(it / 60.0).replace('.', ',') } ?: ""
+                    val pace     = w.resultPaceAvgMinPerKm.toCsvDecimal(2)
+                    val hr       = w.resultHrAvg?.toString() ?: ""
+                    val calories = w.resultCalories?.toString() ?: ""
+                    val elev     = w.resultElevationM?.toString() ?: ""
+                    sb.appendLine("$date;$distKm;$durMin;$pace;$hr;$calories;$elev")
+                }
+            }
+
+            ExportType.STRENGTH -> {
+                sb.appendLine("date;seance_name;exercice;sets_completed;max_load_kg;total_tonnage_kg;total_reps")
+                val instances = instanceSeanceDao.observeAll().first()
+                    .filter { it.isCompleted }
+                    .sortedBy { it.completedAt?.toString() ?: it.date.toString() }
+                for (inst in instances) {
+                    val date       = inst.completedAt?.toLocalDate()?.toString() ?: inst.date.toString()
+                    val seanceName = seanceDao.getById(inst.seanceId)?.nom ?: ""
+                    val withSeries = instanceSeanceDao.getWithSeries(inst.id) ?: continue
+                    val exercices  = seanceDao.getExercicesForInstance(inst.id)
+                    for (ex in exercices) {
+                        val exId = ex.exerciceSeance.id
+                        val completedSeries = withSeries.series
+                            .filter { it.exerciceSeanceId == exId && it.isCompleted }
+                        val setsCompleted  = completedSeries.size
+                        val maxLoad        = completedSeries.mapNotNull { it.chargeKg?.toDouble() }.maxOrNull().toCsvDecimal(1)
+                        val totalTonnage   = completedSeries
+                            .sumOf { (it.repsRealisees ?: 0).toDouble() * (it.chargeKg?.toDouble() ?: 0.0) }
+                            .let { t -> if (t == 0.0) "" else "%.1f".format(t).replace('.', ',') }
+                        val totalReps      = completedSeries.sumOf { it.repsRealisees ?: 0 }
+                        val exerciceName   = ex.exercise.name.escapeCsv()
+                        sb.appendLine("$date;${seanceName.escapeCsv()};$exerciceName;$setsCompleted;$maxLoad;$totalTonnage;$totalReps")
+                    }
+                }
+            }
+        }
+
+        val fileName = "${prefix}${LocalDate.now()}.csv"
+        val file = File(context.cacheDir, fileName)
+        try {
+            file.writeText(sb.toString(), Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+        file
+    }
+
+    private fun Double?.toCsvDecimal(decimals: Int): String =
+        if (this == null) "" else "%.${decimals}f".format(this).replace('.', ',')
+
+    private fun String.escapeCsv(): String =
+        if (contains(';') || contains('"') || contains('\n')) "\"${replace("\"", "\"\"")}\"" else this
 }
