@@ -21,8 +21,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -97,6 +99,11 @@ fun ProfileScreen(
             delay(3000)
             viewModel.clearStatus()
         }
+    }
+
+    // Folder picker for Drive backup (SAF)
+    val backupFolderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let { viewModel.onBackupFolderSelected(it) }
     }
 
     // File picker for import
@@ -369,6 +376,37 @@ fun ProfileScreen(
                                 }
                             },
                         )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        SettingsActionRow(
+                            icon = Icons.Default.Folder,
+                            title = "Backup Drive — dossier",
+                            subtitle = when {
+                                uiState.backupFolderUri != null -> "Configuré · backup hebdomadaire automatique"
+                                else -> "Aucun dossier — appuie pour en choisir un"
+                            },
+                            onClick = { backupFolderLauncher.launch(null) },
+                        )
+                        if (uiState.backupFolderUri != null) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            SettingsActionRow(
+                                icon = Icons.Default.Backup,
+                                title = "Sauvegarder maintenant",
+                                subtitle = when (uiState.backupStatus) {
+                                    ExportImportStatus.EXPORTING -> "Backup en cours…"
+                                    ExportImportStatus.SUCCESS_EXPORT ->
+                                        "Envoyé · dernier backup : ${uiState.lastBackupDate ?: "inconnu"}"
+                                    ExportImportStatus.ERROR -> uiState.errorMessage ?: "Erreur"
+                                    else -> uiState.lastBackupDate
+                                        ?.let { "Dernier backup : $it" }
+                                        ?: "Jamais sauvegardé"
+                                },
+                                onClick = {
+                                    if (uiState.backupStatus != ExportImportStatus.EXPORTING) {
+                                        viewModel.backupNow()
+                                    }
+                                },
+                            )
+                        }
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(
                             icon = Icons.Default.Info,
