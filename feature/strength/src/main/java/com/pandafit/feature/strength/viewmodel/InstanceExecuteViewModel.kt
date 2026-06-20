@@ -303,6 +303,13 @@ class InstanceExecuteViewModel @Inject constructor(
             return
         }
 
+        // Bilatéral dans un bloc alternant (SUPERSET/CIRCUIT) : côté G terminé → attendre le D
+        // avant d'alterner vers l'exercice suivant du bloc.
+        if (isAlternating && exercice.exerciceSeance.isBilateral) {
+            val lastCompleted = series.lastOrNull { it.isCompleted }
+            if (lastCompleted?.notes == "G") return
+        }
+
         if (!isLastInBloc) {
             // Exercice suivant dans le même bloc
             val nextEx = exInBloc[idxInBloc + 1]
