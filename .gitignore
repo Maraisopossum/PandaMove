@@ -26,3 +26,14 @@ captures/
 # OS
 .DS_Store
 Thumbs.db
+
+# Outils annexes / références hors app (non versionnés)
+node_modules/
+package.json
+package-lock.json
+/Pandamove Studio/
+/breathing/
+plan_attaque.html
+plan_attaque_gen.js
+assets/*.docx
+assets/PandaMove_Asset_Catalog.csv
