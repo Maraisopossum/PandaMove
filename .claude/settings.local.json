@@ -111,7 +111,15 @@
       "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; $env:PATH = \"$env:JAVA_HOME\\\\bin;$env:PATH\"; Set-Location \"C:\\\\Users\\\\benoi\\\\Documents\\\\PandaFit\"; .\\\\gradlew.bat --stop 2>&1; .\\\\gradlew.bat installDebug 2>&1)",
       "Bash(git push *)",
       "Bash(./gradlew installDebug)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(Remove-Item *)",
+      "Bash(./gradlew :feature:profile:compileDebugKotlin :app:compileDebugKotlin)",
+      "Bash(gh pr create --title 'feat: refonte home, module randonnée, i18n, corrections build et stats' --body ' *)",
+      "Bash(gh pr *)",
+      "Bash(./gradlew :feature:running:compileDebugKotlin)",
+      "PowerShell(./gradlew :feature:running:compileDebugKotlin)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; ./gradlew :feature:running:compileDebugKotlin)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; ./gradlew :app:assembleDebug)"
     ]
   }
 }
