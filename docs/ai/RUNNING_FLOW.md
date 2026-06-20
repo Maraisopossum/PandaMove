@@ -85,8 +85,37 @@ RunningExecuteViewModel.finishWorkout()
 - `GlobalResultsCard` affiche : Distance / Temps / Allure moy. / FC moy. / FC max / RPE / Dénivelé
 - **Dénivelé** : lu depuis `workout.resultElevationM` (saisi à l'exécution) ← pas calculé depuis distance
 
+## GPS Live Tracking (v20)
+```
+Permissions : ACCESS_FINE_LOCATION + ACCESS_COARSE_LOCATION + FOREGROUND_SERVICE_LOCATION
+Service : app/service/RunningTrackingService (@AndroidEntryPoint, ForegroundService)
+  → FusedLocationProviderClient : Priority.PRIORITY_HIGH_ACCURACY, 1s interval, précision < 30m
+  → Appelle gpsTrackingRepository.addPoint(lat, lng, altM, speedMps, accuracyM, timestampMs)
+  → ACTION_START (workoutId) / ACTION_STOP
+Repository : core/database/catalog/GpsTrackingRepository (@Singleton)
+  → StateFlow<LiveTrackState> { isTracking, distanceM, durationSec, speedMps, paceMinkm, elevationGainM, points }
+  → Haversine pour delta distance · gain élévation cumulé · pace depuis speed FusedLocation si > 0.5 m/s
+  → addPoint() : suspend, insère GpsTrackPointEntity + met à jour le state
+ViewModel (RunningExecuteViewModel) :
+  → liveTrackState : StateFlow<LiveTrackState> (stateIn WhileSubscribed 5s)
+  → startGpsTracking() → RunningTrackingService.start(context, workoutId)
+  → stopGpsTracking() → RunningTrackingService.stop(context)
+  → finishWorkout() : si track.distanceM > 0 → auto-remplit distanceKm/duration/pace/elevation
+Screen (RunningWorkoutExecuteScreen) :
+  → GpsTrackBlock composable (premier item LazyColumn) : 250dp, RoundedCornerShape(14dp)
+  → Si permission absente : placeholder + bouton "Autoriser la localisation"
+  → Si permission : MapView OSMDroid + polyline violette + stats bar (distance/durée/allure/vitesse)
+  → Bouton ▶ Start GPS (PandaPurple) / ⏹ Stop GPS (RedColor) en overlay top-right
+  → DisposableEffect : mapView.onResume() / mapView.onPause()
+  → AndroidView(factory = remember(ctx) { MapView }, update = { polyline + animateTo })
+DB : gps_track_points (workout_id, point_index, latitude, longitude, altitude_m, timestamp_ms, speed_mps, accuracy_m)
+Migration : v19→v20 — ALTER TABLE gps_track_points ADD COLUMN timestamp_ms/speed_mps/accuracy_m
+```
+
 ## Points sensibles
 - `resultElevationM` saisi dans `RunningWorkoutExecuteScreen` → `RunningExecuteViewModel.updateOverallResult("elevation", it)` → `finishWorkout()` → `saveResults(elevationM = s.resultElevationM.toIntOrNull())`
+- Si GPS actif à finishWorkout() → auto-remplit et écrase les champs distance/durée/allure/dénivelé
 - Dans **stats** : `totalElev = completed.sumOf { it.resultElevationM ?: 0 }` — filtre par `scheduled_date` (pas `completed_at`)
 - Fun card "sommet" : `totalElevationM / summit.elevationM * 100` (dénivelé réel, pas distance)
 - `RunningReportViewModel.duplicateForDate()` : toujours inclure `resultHrMax = null, resultElevationM = null` dans le `.copy()`
+- `gpsTrackingRepository.reset()` appelé après `finishWorkout()` pour nettoyer le state

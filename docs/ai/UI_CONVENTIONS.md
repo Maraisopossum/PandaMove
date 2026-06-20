@@ -75,3 +75,23 @@ PandaSubtext  // textes secondaires, labels
 - `AppDrawerNav` wrappe tout le `Scaffold` dans `PandaFitNavHost`
 - `onOpenDrawer: () -> Unit` passé aux screens top-level via NavHost
 - FABs sport : `containerColor = PandaGreen` (running/vélo), `PandaPurple` (renforcement)
+
+## OSMDroid / AndroidView dans Compose
+```kotlin
+// Toujours remember(ctx) pour éviter de recréer la MapView à chaque recomposition
+val mapView = remember(ctx) { MapView(ctx).apply { /* config */ } }
+// Lifecycle : indispensable pour OSMDroid (gestion des tuiles téléchargées)
+DisposableEffect(mapView) { mapView.onResume(); onDispose { mapView.onPause() } }
+// update = {} est rappelé par Compose à chaque recomposition → idéal pour polyline live
+AndroidView(factory = { mapView }, update = { mv -> /* redessiner overlays */ })
+```
+- Charger la config OSMDroid dans le factory : `Configuration.getInstance().load(ctx, prefs)`
+- Utiliser `android.graphics.Color.parseColor(...)` pour la couleur polyline (évite le conflit avec `androidx.compose.ui.graphics.Color`)
+- `clip(RoundedCornerShape(...))` sur le `Box` conteneur pour arrondir la carte
+
+## Permissions runtime
+```kotlin
+var granted by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, permission) == PERMISSION_GRANTED) }
+val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
+// Appel : launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+```

@@ -86,3 +86,5 @@ data class ImportResult(val imported: Int, val skipped: Int, val errors: Int)
 - Les `customExercises` sont filtrés par `isCustom=true` à l'export (le catalogue par défaut n'est pas exporté)
 - Les séries réalisées (`series_realisees`) sont exportées dans `StrengthSessionDto.series`
 - Les résultats par step running (`resultsJson`) sont inclus dans `RunStepDto.resultsJson`
+- Les `gps_track_points` ne sont pas exportés (données volumineuses — tracés GPS uniquement en DB locale)
+- Exercices custom : incluent les champs `muscle_groups` (liste des 16 MuscleGroup) et `muscle_primary`

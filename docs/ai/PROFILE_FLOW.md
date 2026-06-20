@@ -44,13 +44,18 @@ Liste de catégories d'équipement disponibles
 ```
 ExerciseCatalogViewModel
   → exerciseDao.observeAll() : Flow<List<ExerciseEntity>>
-  → filtres : groupe musculaire, équipement, custom/catalogue
+  → filtres : groupe musculaire (16 groupes), équipement, custom/catalogue
   → recherche : ex.name.normalizeSearch().contains(query.normalizeSearch())
       (normalizeSearch() dans core/common → supprime accents, lowercase)
+  → muscleToGroup(muscle: String): MuscleGroup → filtre les exercices par groupe musculaire
+  → toExerciseCategory(): MuscleGroup → ExerciseCategory (mapping 16 groupes → 7 catégories)
+      TRAPEZES/LOMBAIRES → BACK · ADDUCTEURS → LEGS · OBLIQUES → CORE
 Exercices custom (isCustom=true) : exportés + éditables via _showEdit / saveEdit()
 Exercices catalogue (isCustom=false) : non éditables, non exportés
 Édition : ExerciseCatalogViewModel.openEdit(exercise) → _showEdit = true
           saveEdit() → exerciseDao.update(entity) ; closeEdit() → _showEdit = false
+MuscleGroup (16) : PECTORAUX DOS EPAULES BICEPS TRICEPS QUADRICEPS ISCHIO FESSIERS
+                   MOLLETS ABDOMINAUX TRAPEZES LOMBAIRES ADDUCTEURS OBLIQUES AUTRE FULL_BODY
 ```
 
 ## Navigation depuis Profil
@@ -70,8 +75,16 @@ enum class ExportImportStatus { IDLE, EXPORTING, SUCCESS_EXPORT, IMPORTING, SUCC
 // SUCCESS_IMPORT → AlertDialog avec résumé ImportResult(imported, skipped, errors)
 ```
 
+## Dark mode
+```
+ProfileViewModel.isDarkMode : StateFlow<Boolean>  → persisté via DataStore
+MainActivity câble isDarkMode → MaterialTheme(darkTheme = isDarkMode)
+ProfileScreen → switch "Mode sombre" → ProfileViewModel.setDarkMode(Boolean)
+```
+
 ## Points sensibles
 - `importLauncher = rememberLauncherForActivityResult(GetContent())` → lance le file picker system
 - Content type lancé : `"application/json"`
 - `context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()` → lecture fichier
 - `StatsConfigScreen` est dans `feature/stats/` (pas `feature/profile/`) → évite dépendance inter-modules inversée
+- `toExerciseCategory()` dans `ExerciseCatalogViewModel` doit couvrir les 16 MuscleGroup explicitement (sinon les 4 nouveaux tombent dans AUTRE)

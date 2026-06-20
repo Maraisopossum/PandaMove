@@ -1,4 +1,6 @@
-# AI_INDEX — Navigation rapide fichiers
+# AI_INDEX — Navigation rapide fichiers (schema v20)
+> **Démarrage rapide** : lis `CONTEXT_COMPACT.md` en premier (remplace 5 fichiers).  
+> Tâches courantes : voir `PROMPT_TEMPLATES.md` pour les templates de prompts.
 
 ## Renforcement (Strength)
 | Rôle | Fichier |
@@ -73,15 +75,27 @@
 | Catalogue exercices | `feature/profile/ui/ExerciseCatalogScreen.kt` |
 | VM catalogue (recherche sans accents, édition custom) | `feature/profile/viewmodel/ExerciseCatalogViewModel.kt` |
 
+## GPS Live Tracking (v20)
+| Rôle | Fichier |
+|---|---|
+| Service ForegroundService GPS | `app/service/RunningTrackingService.kt` |
+| Repository StateFlow live | `core/database/catalog/GpsTrackingRepository.kt` |
+| State data class | `GpsTrackingRepository.kt` → `LiveTrackState` |
+| Entité track point | `core/database/entities/GpsTrackPointEntity.kt` |
+| DAO points GPS | `core/database/dao/GpsTrackPointDao.kt` |
+| Screen avec carte OSMDroid | `feature/running/ui/RunningWorkoutExecuteScreen.kt` → `GpsTrackBlock` |
+| VM avec GPS control | `feature/running/viewmodel/RunningExecuteViewModel.kt` |
+
 ## Base de données
 | Rôle | Fichier |
 |---|---|
-| Database (v13) | `core/database/PandaFitDatabase.kt` |
-| Migrations | `core/database/PandaFitDatabase.kt` — MIGRATION_3_4 … MIGRATION_12_13 |
+| Database (v20) | `core/database/PandaFitDatabase.kt` |
+| Migrations | `core/database/PandaFitDatabase.kt` — MIGRATION_3_4 … MIGRATION_19_20 |
 | WorkoutDao | `core/database/dao/WorkoutDao.kt` |
 | SeanceDao | `core/database/dao/SeanceDao.kt` |
 | InstanceSeanceDao | `core/database/dao/InstanceSeanceDao.kt` |
 | ExerciseDao | `core/database/dao/ExerciseDao.kt` |
+| GpsTrackPointDao | `core/database/dao/GpsTrackPointDao.kt` |
 
 ## Navigation
 | Rôle | Fichier |
@@ -90,8 +104,35 @@
 | Destinations + routes | `app/navigation/PandaFitDestination.kt` |
 | Drawer navigation | `app/ui/AppDrawerNav.kt` |
 
+## Timer
+| Rôle | Fichier |
+|---|---|
+| Minuteur autonome | `feature/timer/` — modes COUNTDOWN|HIIT|TABATA|EMOM|AMRAP|FOR_TIME |
+| Séparé du timer renforcement | `ActiveSessionManager` (@Singleton) pour le chrono session |
+
 ## Design System
 | Rôle | Fichier |
 |---|---|
 | Composants partagés | `core/designsystem/components/` |
 | Thème + couleurs | `core/designsystem/theme/` — PandaPurple, PandaGreen, PandaBlue, PandaOrange, PandaSubtext |
+
+## Docs IA (ce dossier)
+| Fichier | Contenu |
+|---|---|
+| `CONTEXT_COMPACT.md` | Contexte ultra-dense — lire EN PREMIER (remplace 5 fichiers) |
+| `PROMPT_TEMPLATES.md` | Templates de prompts par tâche (économie tokens) |
+| `ARCHITECTURE.md` | Patterns MVVM, Hilt, Room, GPS service, OSMDroid |
+| `ROOM_SCHEMA_MIN.md` | Schéma Room complet v20 |
+| `PROJECT_CONTEXT_MIN.md` | Contexte minimal v20 + flux critiques |
+| `RUNNING_FLOW.md` | Flux running + GPS live tracking v20 |
+| `STRENGTH_FLOW.md` | Flux renforcement + isolation template/instance |
+| `CYCLING_FLOW.md` | Flux vélo |
+| `WARMUP_FLOW.md` | Flux échauffement |
+| `STATS_FLOW.md` | Flux stats + config DataStore + fun cards |
+| `EXPORT_IMPORT_FLOW.md` | Export/import JSON v3.0 |
+| `ASSIGN_FLOW.md` | Affectation calendrier détaillée |
+| `CALENDAR_SYSTEM.md` | Système calendrier + dialogs affectation |
+| `PROFILE_FLOW.md` | Profil + catalogue exercices + dark mode |
+| `UI_CONVENTIONS.md` | Conventions Compose + OSMDroid + permissions runtime |
+| `KNOWN_BUGS.md` | Bugs résolus + pièges architecturaux |
+| `HOME_BANNER_IMAGES.md` | Guide images bannières HomeScreen |

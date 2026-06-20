@@ -18,7 +18,7 @@ result_notes: String
 completed_at: String?
 ```
 
-Note : `result_hr_max` et `result_elevation_m` existent en DB (migration v10→v11) mais peuvent ne pas être affichés dans l'UI vélo selon l'implémentation.
+Note : `result_hr_max`, `result_elevation_m`, `result_cadence_avg_rpm` et `result_calories` existent en DB (migrations v10→v11 et ultérieures) mais peuvent ne pas être affichés dans l'UI vélo selon l'implémentation.
 
 ## Flux création séance type
 ```

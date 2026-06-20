@@ -1,4 +1,4 @@
-# Room Schema — Version condensée (v13)
+# Room Schema — Version condensée (v20)
 
 ## Tables principales
 
@@ -41,15 +41,25 @@ id PK | name | description | category | muscle_groups | exercise_type | equipmen
 ```
 `ORDER BY name ASC` dans `observeAll()` → tri UTF-8 binaire (É > F, impact sélection multi-exercices)
 
+MuscleGroup (16 valeurs) :
+```
+PECTORAUX | DOS | EPAULES | BICEPS | TRICEPS | QUADRICEPS | ISCHIO | FESSIERS
+MOLLETS | ABDOMINAUX | TRAPEZES | LOMBAIRES | ADDUCTEURS | OBLIQUES | AUTRE | FULL_BODY
+```
+
 ### `workouts` → `WorkoutEntity`
 ```
 id PK | workout_type (RUNNING|CYCLING) | name | notes | objective | scheduled_date
 | is_template | is_completed | completed_at | duration_minutes | cycle_label
-| tags | color_hex | result_distance_km | result_duration_sec | result_pace_avg_min_per_km
-| result_hr_avg | result_hr_max* | result_rpe | result_notes | result_elevation_m*
+| tags | color_hex
+| result_distance_km | result_duration_sec | result_pace_avg_min_per_km
+| result_hr_avg | result_hr_max*        ← migration v10→v11
+| result_rpe | result_notes
+| result_elevation_m*                  ← migration v10→v11
+| result_cadence_avg_rpm               ← migration ultérieure
+| result_calories                      ← migration ultérieure
 | created_at | updated_at
 ```
-★ `result_hr_max` et `result_elevation_m` ajoutés en migration v10→v11
 
 ### `run_repeats` → `RunRepeatEntity`
 ```
@@ -62,6 +72,14 @@ id PK | workout_id FK | repeat_id FK(NULL) | position | step_type | end_type | e
 | note | target_type | target_min | target_max | results_json*
 ```
 ★ `results_json` ajouté en migration v11→v12 (validation des étapes libres)
+
+### `gps_track_points` → `GpsTrackPointEntity`
+```
+id PK | workout_id FK | point_index | latitude | longitude | altitude_m
+| timestamp_ms NOT NULL DEFAULT 0    ← ajouté migration v19→v20
+| speed_mps                          ← ajouté migration v19→v20 (nullable)
+| accuracy_m                         ← ajouté migration v19→v20 (nullable)
+```
 
 ## Relations Room
 | Parent | Enfant | Type | Contrainte |
@@ -93,3 +111,5 @@ ExerciceMapping(id, exerciseId, repsType)  // getExerciceMappingsForSeances()
 | v10 → v11 | `ALTER TABLE workouts ADD COLUMN result_hr_max INTEGER` + `result_elevation_m INTEGER` |
 | v11 → v12 | `ALTER TABLE run_steps ADD COLUMN results_json TEXT NOT NULL DEFAULT ''` |
 | v12 → v13 | `ALTER TABLE blocs_seance ADD COLUMN instance_seance_id INTEGER` + idem sur `exercices_seance` + index |
+| v19 → v20 | `ALTER TABLE gps_track_points ADD COLUMN timestamp_ms INTEGER NOT NULL DEFAULT 0` + `speed_mps REAL` + `accuracy_m REAL` |
+| Prochaine | v20 → v21 — incrémenter `version =` dans `PandaFitDatabase.kt` + ajouter dans `DatabaseModule.addMigrations()` |

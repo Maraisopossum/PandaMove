@@ -30,6 +30,12 @@
 - **Fix** : `multiSelectedIds.mapNotNull { id -> exercisesById[id] }` (respecte l'ordre d'insertion du LinkedHashSet)
 - **Fichier** : `SeanceCreateViewModel.confirmMultiSelection()`
 
+### Bug toExerciseCategory — 4 groupes musculaires non mappés
+- **Symptôme** : exercices TRAPEZES, LOMBAIRES, ADDUCTEURS, OBLIQUES affichés dans la catégorie "Autre" au lieu de DOS/JAMBES/CORE
+- **Cause** : `when (this)` dans `ExerciseCatalogViewModel.toExerciseCategory()` n'avait pas de case pour les 4 groupes ajoutés après la création initiale
+- **Fix** : ajouter explicitement `MuscleGroup.TRAPEZES, MuscleGroup.LOMBAIRES -> ExerciseCategory.BACK`, `MuscleGroup.ADDUCTEURS -> ExerciseCategory.LEGS`, `MuscleGroup.OBLIQUES -> ExerciseCategory.CORE`
+- **Fichier** : `feature/profile/viewmodel/ExerciseCatalogViewModel.kt`
+
 ### Bug duplication workout — resultHrMax/resultElevationM copiés du template
 - **Symptôme** : nouvelles instances héritent de valeurs résiduelles du template
 - **Fix** : `resultHrMax = null, resultElevationM = null` dans `duplicateForDate().copy(...)`
