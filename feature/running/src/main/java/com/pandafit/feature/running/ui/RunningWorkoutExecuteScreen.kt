@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import com.pandafit.feature.running.R
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -38,16 +40,36 @@ import com.pandafit.feature.running.model.FreeStepResult
 import com.pandafit.core.database.model.IntervalRepResult
 import com.pandafit.feature.running.model.RunRepeatExecution
 import com.pandafit.feature.running.viewmodel.RunningExecuteViewModel
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.drawable.BitmapDrawable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import com.pandafit.core.database.catalog.LiveTrackState
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polyline
 
-private val OrangeBorder  = Color(0xFFFFCC80)
-private val OrangeBg      = Color(0xFFFFF8F0)
+private val OrangeBorder    = Color(0xFFFFCC80)
+private val OrangeBg        = Color(0xFFFFF8F0)
 private val OrangeRowBorder = Color(0xFFFFE0B2)
-private val OrangeText    = Color(0xFFE65100)
-private val GrayBg        = Color(0xFFF4F4F7)
-private val DarkColor     = Color(0xFF1A1A2E)
-private val RedColor      = Color(0xFFE53935)
+private val OrangeText      = Color(0xFFE65100)
+private val GrayBg          = Color(0xFFF4F4F7)
+private val DarkColor       = Color(0xFF1A1A2E)
+private val RedColor        = Color(0xFFE53935)
+
+private const val GPS_READY_ACCURACY_M = 20f
+
+private enum class GpsPhase { IDLE, CALIBRATING, RUNNING, PAUSED }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,10 +80,57 @@ fun RunningWorkoutExecuteScreen(
     viewModel: RunningExecuteViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val liveTrackState by viewModel.liveTrackState.collectAsStateWithLifecycle()
     var showFinishDialog by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
+    var locationPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        locationPermissionGranted = granted
+    }
 
     LaunchedEffect(uiState.isCompleted) {
         if (uiState.isCompleted) onNavigateToReport(workoutId)
+    }
+
+    LaunchedEffect(locationPermissionGranted) {
+        if (locationPermissionGranted) viewModel.startCalibration()
+    }
+
+    val currentStepLabel: String? = run {
+        when {
+            uiState.freeSteps.isNotEmpty() -> {
+                val active = uiState.freeSteps.firstOrNull { !it.result.done }
+                active?.let { exec ->
+                    val s = exec.step
+                    val summary = when (s.endType) {
+                        RunEndType.DURATION -> {
+                            val m = s.endValue / 60; val secs = s.endValue % 60
+                            "$m:${secs.toString().padStart(2, '0')}"
+                        }
+                        RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
+                    }
+                    "${stepLabel(s.stepType)} — $summary"
+                }
+            }
+            uiState.repeatBlocks.isNotEmpty() -> {
+                val block = uiState.repeatBlocks.firstOrNull { b -> b.reps.any { !it.done } }
+                block?.let { b ->
+                    val activeRep = b.reps.first { !it.done }
+                    val dist = b.targetStep?.let { s ->
+                        when (s.endType) {
+                            RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
+                            RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
+                        }
+                    } ?: ""
+                    "Int. ${activeRep.repNumber}/${b.repeat.repeatCount}${if (dist.isNotBlank()) " · $dist" else ""}"
+                }
+            }
+            else -> null
+        }
     }
 
     if (showFinishDialog) {
@@ -117,6 +186,21 @@ fun RunningWorkoutExecuteScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
         ) {
+            // ── Carte GPS live ──
+            item {
+                Spacer(Modifier.height(12.dp))
+                GpsTrackBlock(
+                    state = liveTrackState,
+                    currentStepLabel = currentStepLabel,
+                    permissionGranted = locationPermissionGranted,
+                    onStart = { viewModel.startGpsTracking() },
+                    onPause = { viewModel.pauseGpsTracking() },
+                    onResume = { viewModel.resumeGpsTracking() },
+                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
             // ── Résultats globaux ──
             item {
                 Spacer(Modifier.height(12.dp))
@@ -224,7 +308,6 @@ private fun RepeatIntervalSection(
     val target = execution.targetStep
     val intensityLabel = intensityColumnLabel(target)
     val hasIntensity = intensityLabel != null
-    // Pour l'allure (mm:ss), utiliser le clavier texte pour avoir accès à ":"
     val intensityKeyboard = if (target?.targetType == RunTargetType.PACE) KeyboardType.Text else KeyboardType.Decimal
 
     val distStr = target?.let { s ->
@@ -265,7 +348,6 @@ private fun RepeatIntervalSection(
             .border(1.dp, OrangeBorder, RoundedCornerShape(14.dp))
             .background(OrangeBg, RoundedCornerShape(14.dp)),
     ) {
-        // En-tête
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.running_table_col_num), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(30.dp))
             Text(stringResource(R.string.running_table_col_cible), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
@@ -363,7 +445,6 @@ private fun FreeStepSection(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             )
-            // En-tête
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
                 Text(stringResource(R.string.running_table_col_tps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 if (intensityLabel != null) Text(intensityLabel, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
@@ -453,4 +534,241 @@ private fun ReadOnlyCell(label: String, value: String, modifier: Modifier = Modi
             textAlign = TextAlign.Center,
         )
     }
+}
+
+// ── GPS live tracking block ───────────────────────────────────────────────────
+
+@Composable
+private fun GpsTrackBlock(
+    state: LiveTrackState,
+    currentStepLabel: String?,
+    permissionGranted: Boolean,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onRequestPermission: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(250.dp)
+            .clip(RoundedCornerShape(14.dp)),
+    ) {
+        if (!permissionGranted) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(GrayBg),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text("GPS non activé", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DarkColor)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Autorisez la localisation pour le suivi du tracé",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PandaSubtext,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = onRequestPermission, colors = ButtonDefaults.buttonColors(containerColor = PandaPurple)) {
+                        Text("Autoriser la localisation", color = Color.White)
+                    }
+                }
+            }
+        } else {
+            val ctx = LocalContext.current
+            val pandaBitmap = remember(ctx) { createPandaBitmap() }
+            val mapView = remember(ctx) {
+                MapView(ctx).apply {
+                    Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
+                    setTileSource(TileSourceFactory.MAPNIK)
+                    setMultiTouchControls(true)
+                    controller.setZoom(16.0)
+                }
+            }
+
+            DisposableEffect(mapView) {
+                mapView.onResume()
+                onDispose { mapView.onPause() }
+            }
+
+            AndroidView(
+                factory = { mapView },
+                update = { mv ->
+                    mv.overlays.clear()
+                    if (state.points.size >= 2) {
+                        val line = Polyline().apply {
+                            setPoints(state.points.map { (lat, lng) -> GeoPoint(lat, lng) })
+                            outlinePaint.color = android.graphics.Color.parseColor("#7C5CBF")
+                            outlinePaint.strokeWidth = 10f
+                        }
+                        mv.overlays.add(line)
+                    }
+                    val markerPos = state.currentPosition ?: state.points.lastOrNull()
+                    if (markerPos != null) {
+                        val marker = Marker(mv).apply {
+                            position = GeoPoint(markerPos.first, markerPos.second)
+                            icon = BitmapDrawable(ctx.resources, pandaBitmap)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                            infoWindow = null
+                        }
+                        mv.overlays.add(marker)
+                        mv.controller.animateTo(GeoPoint(markerPos.first, markerPos.second))
+                    }
+                    mv.invalidate()
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            val phase = when {
+                state.isTracking && state.isPaused -> GpsPhase.PAUSED
+                state.isTracking                  -> GpsPhase.RUNNING
+                state.calibrationAccuracyM != null -> GpsPhase.CALIBRATING
+                else                              -> GpsPhase.IDLE
+            }
+
+            // Pause overlay (centre de la carte)
+            if (phase == GpsPhase.PAUSED) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .background(Color(0xAA000000), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                ) {
+                    Text("⏸ PAUSE", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Stats bar (bas de la carte)
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color(0xCC000000))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                when (phase) {
+                    GpsPhase.IDLE, GpsPhase.CALIBRATING -> {
+                        val calibrationAccuracyM = state.calibrationAccuracyM
+                        val accuracyText = when {
+                            calibrationAccuracyM == null || calibrationAccuracyM >= Float.MAX_VALUE / 2 ->
+                                "Acquisition GPS..."
+                            calibrationAccuracyM <= GPS_READY_ACCURACY_M ->
+                                "GPS capté · Précision : %.0fm ✓".format(calibrationAccuracyM)
+                            else ->
+                                "Acquisition GPS... Précision : %.0fm".format(calibrationAccuracyM)
+                        }
+                        Text(
+                            accuracyText,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    GpsPhase.RUNNING, GpsPhase.PAUSED -> {
+                        if (currentStepLabel != null && phase == GpsPhase.RUNNING) {
+                            Text(
+                                currentStepLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFBBBBBB),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .alpha(if (phase == GpsPhase.PAUSED) 0.5f else 1f),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                        ) {
+                            GpsStat("Distance", "%.2f km".format(state.distanceM / 1000.0))
+                            GpsStat("Durée", fmtGpsDuration(state.durationSec))
+                            GpsStat("Allure", fmtGpsPace(state.paceMinkm))
+                        }
+                    }
+                }
+            }
+
+            // Bouton d'action (coin haut-droit)
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                when (phase) {
+                    GpsPhase.IDLE, GpsPhase.CALIBRATING -> {
+                        val calibrationAccuracyM = state.calibrationAccuracyM
+                        val ready = calibrationAccuracyM != null &&
+                                calibrationAccuracyM <= GPS_READY_ACCURACY_M
+                        Button(
+                            onClick = onStart,
+                            enabled = ready,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PandaPurple,
+                                disabledContainerColor = Color(0xFF666666),
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text("▶ Démarrer", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                        }
+                    }
+                    GpsPhase.RUNNING -> {
+                        Button(
+                            onClick = onPause,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text("⏸ Pause", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                        }
+                    }
+                    GpsPhase.PAUSED -> {
+                        Button(
+                            onClick = onResume,
+                            colors = ButtonDefaults.buttonColors(containerColor = PandaPurple),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text("▶ Reprendre", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun createPandaBitmap(): android.graphics.Bitmap {
+    val emoji = "🐼"
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { textSize = 56f }
+    val bounds = android.graphics.Rect()
+    paint.getTextBounds(emoji, 0, emoji.length, bounds)
+    val w = (bounds.width() + 8).coerceAtLeast(8)
+    val h = (bounds.height() + 8).coerceAtLeast(8)
+    val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+    android.graphics.Canvas(bmp).drawText(emoji, 4f, h.toFloat() - 4f, paint)
+    return bmp
+}
+
+@Composable
+private fun GpsStat(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color(0xFFBBBBBB))
+        Text(value, style = MaterialTheme.typography.labelMedium, color = Color.White, fontWeight = FontWeight.Bold)
+    }
+}
+
+private fun fmtGpsPace(minkm: Double): String {
+    if (minkm <= 0.0) return "--:--"
+    val min = minkm.toInt()
+    val sec = ((minkm - min) * 60).toInt()
+    return "$min:${sec.toString().padStart(2, '0')} /km"
+}
+
+private fun fmtGpsDuration(totalSec: Int): String {
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return if (h > 0) "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
+    else "$m:${s.toString().padStart(2, '0')}"
 }

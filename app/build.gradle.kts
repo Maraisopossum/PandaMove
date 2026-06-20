@@ -111,9 +111,13 @@ dependencies {
     implementation(libs.workmanager.ktx)
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
+    implementation(libs.documentfile)
 
     // OSMDroid (carte GPS — init dans PandaFitApp)
     implementation(libs.osmdroid)
+
+    // FusedLocationProviderClient (GPS live tracking running)
+    implementation(libs.play.services.location)
 
     // Testing
     testImplementation(libs.junit)

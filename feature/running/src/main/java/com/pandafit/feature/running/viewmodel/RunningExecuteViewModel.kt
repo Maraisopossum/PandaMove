@@ -4,11 +4,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.ActiveSessionManager
+import com.pandafit.core.database.catalog.GpsTrackingRepository
+import com.pandafit.core.database.catalog.LiveTrackState
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.RunStepType
 import com.pandafit.core.database.entities.WorkoutType
+import com.pandafit.feature.running.GpsTrackingController
 import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
 import com.pandafit.core.database.model.IntervalRepResult
@@ -17,8 +20,10 @@ import com.pandafit.feature.running.model.RunningExecuteUiState
 import com.pandafit.feature.running.model.formatPace
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -35,11 +40,16 @@ class RunningExecuteViewModel @Inject constructor(
     private val stepDao: RunStepDao,
     private val repeatDao: RunRepeatDao,
     private val sessionManager: ActiveSessionManager,
+    private val gpsTrackingRepository: GpsTrackingRepository,
+    private val gpsTrackingController: GpsTrackingController,
 ) : ViewModel() {
 
     private val workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
     private val _uiState = MutableStateFlow(RunningExecuteUiState())
     val uiState: StateFlow<RunningExecuteUiState> = _uiState.asStateFlow()
+
+    val liveTrackState: StateFlow<LiveTrackState> = gpsTrackingRepository.state
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveTrackState())
 
     init { loadWorkout() }
 
@@ -50,7 +60,6 @@ class RunningExecuteViewModel @Inject constructor(
             val repeats  = repeatDao.getByWorkout(workoutId)
             val allSteps = stepDao.getByWorkout(workoutId)
 
-            // Étapes libres (hors répétition) — uniquement si aucun repeat block
             val freeSteps = if (repeats.isEmpty()) {
                 allSteps.filter { it.repeatId == null }.sortedBy { it.position }.map { step ->
                     val saved: FreeStepResult = if (step.resultsJson.isNotBlank())
@@ -64,19 +73,14 @@ class RunningExecuteViewModel @Inject constructor(
                 val childSteps = allSteps.filter { it.repeatId == rep.id }.sortedBy { it.position }
                 val targetStep = childSteps.firstOrNull { it.stepType == RunStepType.RUNNING }
                     ?: childSteps.firstOrNull()
-
-                // Charger les résultats déjà sauvegardés (séance terminée en cours d'édition)
                 val savedReps: List<IntervalRepResult> = if (rep.resultsJson.isNotBlank()) {
                     runCatching { json.decodeFromString<List<IntervalRepResult>>(rep.resultsJson) }.getOrDefault(emptyList())
                 } else emptyList()
-
                 val reps = if (savedReps.size == rep.repeatCount) savedReps
                            else (1..rep.repeatCount).map { i -> savedReps.getOrNull(i - 1) ?: IntervalRepResult(i) }
-
                 RunRepeatExecution(repeat = rep, targetStep = targetStep, reps = reps)
             }
 
-            // Pré-remplir les résultats globaux si la séance a déjà été validée
             _uiState.value = RunningExecuteUiState(
                 isLoading = false,
                 workout = workout,
@@ -95,6 +99,26 @@ class RunningExecuteViewModel @Inject constructor(
             )
         }
     }
+
+    // ── GPS tracking ──────────────────────────────────────────────────────────
+
+    fun startCalibration() {
+        gpsTrackingController.startCalibration()
+    }
+
+    fun startGpsTracking() {
+        gpsTrackingController.start(workoutId)
+    }
+
+    fun pauseGpsTracking() {
+        gpsTrackingController.pause()
+    }
+
+    fun resumeGpsTracking() {
+        gpsTrackingController.resume()
+    }
+
+    // ── Results (manual edit) ─────────────────────────────────────────────────
 
     fun updateFreeStep(stepIdx: Int, updated: FreeStepResult) {
         val steps = _uiState.value.freeSteps.toMutableList()
@@ -146,12 +170,34 @@ class RunningExecuteViewModel @Inject constructor(
         return formatPace(durSec / 60.0 / dist)
     }
 
+    // ── Finish ────────────────────────────────────────────────────────────────
+
     fun finishWorkout() {
         viewModelScope.launch {
-            val s = _uiState.value
+            // Arrêter le GPS/calibration si encore actif
+            val track = liveTrackState.value
+            if (track.isTracking) {
+                gpsTrackingController.stop()
+            } else {
+                gpsTrackingController.stopCalibration()
+            }
+
+            // Auto-remplissage depuis le GPS (écrase les champs)
+            val s = if (track.distanceM > 0) {
+                val distKmStr = "%.3f".format(track.distanceM / 1000.0)
+                val durStr    = formatDurationSec(track.durationSec)
+                val paceStr   = formatPace(track.paceMinkm)
+                val elevStr   = if (track.elevationGainM > 0) track.elevationGainM.toString() else _uiState.value.resultElevationM
+                _uiState.value.copy(
+                    resultDistanceKm  = distKmStr,
+                    resultDurationStr = durStr,
+                    resultPaceStr     = paceStr,
+                    resultElevationM  = elevStr,
+                )
+            } else _uiState.value
+
             val now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
-            // Sauvegarder les résultats globaux
             workoutDao.saveResults(
                 id          = workoutId,
                 distKm      = s.resultDistanceKm.replace(",", ".").toDoubleOrNull(),
@@ -167,24 +213,23 @@ class RunningExecuteViewModel @Inject constructor(
                 completedAt = now,
             )
 
-            // Sauvegarder les résultats par répétition (JSON dans RunRepeatEntity)
             s.repeatBlocks.forEach { block ->
                 val encoded = runCatching { json.encodeToString(block.reps) }.getOrDefault("[]")
                 repeatDao.update(block.repeat.copy(resultsJson = encoded))
             }
-
-            // Sauvegarder les résultats des étapes libres
             s.freeSteps.forEach { fse ->
                 val encoded = runCatching { json.encodeToString(fse.result) }.getOrDefault("")
                 stepDao.updateResults(fse.step.id, encoded)
             }
 
+            gpsTrackingRepository.reset()
             sessionManager.endWorkout()
             _uiState.value = s.copy(isCompleted = true)
         }
     }
 
     override fun onCleared() {
+        gpsTrackingController.stopCalibration()
         sessionManager.endWorkout()
         super.onCleared()
     }

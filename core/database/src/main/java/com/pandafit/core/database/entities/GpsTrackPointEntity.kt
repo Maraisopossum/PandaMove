@@ -37,7 +37,19 @@ data class GpsTrackPointEntity(
     val latitude: Double,
     val longitude: Double,
 
-    /** Altitude en mètres (null si non disponible dans le fichier TCX). */
+    /** Altitude en mètres (null si non disponible). */
     @ColumnInfo(name = "altitude_m")
     val altitudeM: Double? = null,
+
+    /** Horodatage Unix en millisecondes (0 pour les points importés via TCX). */
+    @ColumnInfo(name = "timestamp_ms")
+    val timestampMs: Long = 0L,
+
+    /** Vitesse en m/s fournie par FusedLocation (null pour les imports TCX). */
+    @ColumnInfo(name = "speed_mps")
+    val speedMps: Float? = null,
+
+    /** Précision horizontale en mètres (null pour les imports TCX). */
+    @ColumnInfo(name = "accuracy_m")
+    val accuracyM: Float? = null,
 )

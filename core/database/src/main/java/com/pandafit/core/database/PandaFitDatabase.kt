@@ -51,7 +51,7 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         BreathingSessionEntity::class,
         CustomBreathingMethodEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -215,6 +215,15 @@ abstract class PandaFitDatabase : RoomDatabase() {
         val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE exercices_seance ADD COLUMN is_bilateral INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v19 → v20 : ajout des champs live tracking GPS sur gps_track_points
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE gps_track_points ADD COLUMN timestamp_ms INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE gps_track_points ADD COLUMN speed_mps REAL")
+                db.execSQL("ALTER TABLE gps_track_points ADD COLUMN accuracy_m REAL")
             }
         }
 

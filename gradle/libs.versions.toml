@@ -28,6 +28,7 @@ vico-compose = "1.15.0"
 reorderable = "2.4.0"
 osmdroid = "6.1.20"
 lottie = "6.4.0"
+play-services-location = "21.3.0"
 
 [libraries]
 # Kotlin
@@ -84,6 +85,7 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 workmanager-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workmanager" }
 hilt-work = { group = "androidx.hilt", name = "hilt-work", version = "1.2.0" }
 hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version = "1.2.0" }
+documentfile = { group = "androidx.documentfile", name = "documentfile", version = "1.0.1" }
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
@@ -92,6 +94,7 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico-compose" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico-compose" }
 vico-core = { group = "com.patrykandpatrick.vico", name = "core", version.ref = "vico-compose" }
