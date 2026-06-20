@@ -100,6 +100,8 @@ import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SerieRealiseeEntity
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.designsystem.components.PandaLoadingIndicator
+import com.pandafit.designsystem.theme.PandaHighlight
+import com.pandafit.designsystem.theme.PandaHighlightBorder
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.strength.model.CircuitPhase
 import com.pandafit.feature.strength.model.SerieRealiseeState
@@ -648,6 +650,7 @@ fun InstanceExecuteScreen(
                     }
 
                     val seriesForActive = uiState.seriesForExercice(activeExerciceId)
+                    val currentSerieNum = seriesForActive.firstOrNull { !it.isCompleted }?.numeroSerie
                     items(seriesForActive, key = { "${activeExerciceId}_${it.numeroSerie}" }) { serie ->
                         val draft = seriesDraft[activeExerciceId]?.get(serie.numeroSerie) ?: SerieRowDraft()
                         SerieRow(
@@ -657,6 +660,7 @@ fun InstanceExecuteScreen(
                             exercice = activeExercice,
                             activeBloc = activeBloc,
                             isLastInBloc = isLastInBloc,
+                            isCurrentSerie = serie.numeroSerie == currentSerieNum,
                             focusedCell = focusedCell,
                             inputBuffer = inputBuffer,
                             onCellTap = { col ->
@@ -1216,6 +1220,7 @@ private fun SerieRow(
     exercice: ExerciceSeanceWithExercise,
     activeBloc: BlocSeanceEntity?,
     isLastInBloc: Boolean,
+    isCurrentSerie: Boolean,
     focusedCell: CellFocus?,
     inputBuffer: String,
     onCellTap: (SerieColumn) -> Unit,
@@ -1259,21 +1264,35 @@ private fun SerieRow(
         "$num"
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp).alpha(if (isCompleted) 0.45f else 1f),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isCurrentSerie) Modifier.background(PandaHighlight.copy(alpha = 0.1f)) else Modifier),
     ) {
-        Text(serieLabel, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color.Red, modifier = Modifier.width(24.dp))
-        val weights = mapOf(SerieColumn.REPS to 1f, SerieColumn.KG to 1.2f, SerieColumn.REPOS to 1f, SerieColumn.RPE to 0.8f)
-        SerieColumn.entries.forEach { col ->
-            val (value, isGrayed) = cellContent(col)
-            val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell?.serieNum == num && focusedCell?.column == col
-            SerieCell(value = value, isFocused = isFocused, isGrayed = isGrayed, enabled = !isCompleted, onTap = { onCellTap(col) }, modifier = Modifier.weight(weights[col] ?: 1f))
+        if (isCurrentSerie) {
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .matchParentSize()
+                    .background(PandaHighlightBorder.copy(alpha = 0.1f)),
+            )
         }
-        Box(modifier = Modifier.width(32.dp), contentAlignment = Alignment.Center) {
-            IconButton(onClick = onFait, modifier = Modifier.size(28.dp)) {
-                Icon(if (isCompleted) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle, stringResource(R.string.instance_execute_serie_validate_cd), tint = if (isCompleted) Color.Red else PandaSubtext, modifier = Modifier.size(22.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp).alpha(if (isCompleted) 0.45f else 1f),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(serieLabel, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color.Red, modifier = Modifier.width(24.dp))
+            val weights = mapOf(SerieColumn.REPS to 1f, SerieColumn.KG to 1.2f, SerieColumn.REPOS to 1f, SerieColumn.RPE to 0.8f)
+            SerieColumn.entries.forEach { col ->
+                val (value, isGrayed) = cellContent(col)
+                val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell?.serieNum == num && focusedCell?.column == col
+                SerieCell(value = value, isFocused = isFocused, isGrayed = isGrayed, enabled = !isCompleted, onTap = { onCellTap(col) }, modifier = Modifier.weight(weights[col] ?: 1f))
+            }
+            Box(modifier = Modifier.width(32.dp), contentAlignment = Alignment.Center) {
+                IconButton(onClick = onFait, modifier = Modifier.size(28.dp)) {
+                    Icon(if (isCompleted) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle, stringResource(R.string.instance_execute_serie_validate_cd), tint = if (isCompleted) Color.Red else PandaSubtext, modifier = Modifier.size(22.dp))
+                }
             }
         }
     }

@@ -87,6 +87,10 @@ val PandaSurfaceVariantDark  = Color(0xFF252538)
 val PandaOnBackgroundDark    = Color(0xFFF1F0FA)
 val PandaOnSurfaceDark       = Color(0xFFF1F0FA)
 
+// ── Surbrillance — ligne active (série en cours, etc.) ────────────────────────
+val PandaHighlight       = Color(0xFFFFF9C4)   // Jaune pâle, fond léger (ne doit pas masquer le texte)
+val PandaHighlightBorder = Color(0xFFE8C547)   // Jaune plus soutenu, liseré/bordure
+
 // ── États système ─────────────────────────────────────────────────────────────
 val PandaSuccess         = PandaGreen
 val PandaError           = PandaRed
