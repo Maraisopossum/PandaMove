@@ -137,20 +137,27 @@ class DataImportManager @Inject constructor(
         }
 
         // ── 1. Exercices personnalisés (à importer en premier — les séances y réfèrent) ──
+        // Upsert par nom : si un exercice du même nom existe déjà, on met à jour ses champs.
         if (options.customExercises) {
+            val existingByName = exerciseDao.observeAll().first().associate { it.name to it }
             for (ex in export.customExercises) {
                 try {
-                    val r = exerciseDao.insertIgnore(
-                        ExerciseEntity(
-                            id = ex.id, name = ex.name, description = ex.description,
-                            category = runCatching { ExerciseCategory.valueOf(ex.category) }
-                                .getOrDefault(ExerciseCategory.OTHER),
-                            muscleGroups = ex.muscleGroups,
-                            exerciseType = ex.exerciseType, equipment = ex.equipment,
-                            musclePrimary = ex.musclePrimary, isCustom = true,
-                        )
+                    val entity = ExerciseEntity(
+                        name = ex.name, description = ex.description,
+                        category = runCatching { ExerciseCategory.valueOf(ex.category) }
+                            .getOrDefault(ExerciseCategory.OTHER),
+                        muscleGroups = ex.muscleGroups,
+                        exerciseType = ex.exerciseType, equipment = ex.equipment,
+                        musclePrimary = ex.musclePrimary, isCustom = true,
                     )
-                    if (r > 0) imported++ else skipped++
+                    val existing = existingByName[ex.name]
+                    if (existing != null) {
+                        exerciseDao.updateExercise(entity.copy(id = existing.id))
+                        imported++
+                    } else {
+                        val r = exerciseDao.insertIgnore(entity.copy(id = ex.id))
+                        if (r > 0) imported++ else skipped++
+                    }
                 } catch (_: Exception) {
                     errors++
                 }

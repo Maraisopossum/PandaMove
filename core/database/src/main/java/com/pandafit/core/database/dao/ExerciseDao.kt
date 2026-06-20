@@ -49,9 +49,6 @@ interface ExerciseDao {
     @Query("UPDATE exercises SET is_favorite = :isFavorite WHERE id = :id")
     suspend fun updateFavorite(id: Long, isFavorite: Boolean)
 
-    @Query("SELECT * FROM exercises WHERE muscle_primary = :musclePrimary ORDER BY name ASC")
-    fun observeByMusclePrimary(musclePrimary: String): Flow<List<ExerciseEntity>>
-
     @Query("SELECT COUNT(*) FROM exercises WHERE is_custom = 0")
     suspend fun countCatalogExercises(): Int
 

@@ -244,12 +244,16 @@ class ExerciseCatalogViewModel @Inject constructor(
 
 private fun MuscleGroup.toExerciseCategory() = when (this) {
     MuscleGroup.PECTORAUX -> com.pandafit.core.database.entities.ExerciseCategory.CHEST
-    MuscleGroup.DOS -> com.pandafit.core.database.entities.ExerciseCategory.BACK
+    MuscleGroup.DOS,
+    MuscleGroup.TRAPEZES,
+    MuscleGroup.LOMBAIRES -> com.pandafit.core.database.entities.ExerciseCategory.BACK
     MuscleGroup.EPAULES -> com.pandafit.core.database.entities.ExerciseCategory.SHOULDERS
     MuscleGroup.BICEPS -> com.pandafit.core.database.entities.ExerciseCategory.BICEPS
     MuscleGroup.TRICEPS -> com.pandafit.core.database.entities.ExerciseCategory.TRICEPS
     MuscleGroup.QUADRICEPS, MuscleGroup.ISCHIO,
-    MuscleGroup.FESSIERS, MuscleGroup.MOLLETS -> com.pandafit.core.database.entities.ExerciseCategory.LEGS
-    MuscleGroup.ABDOMINAUX -> com.pandafit.core.database.entities.ExerciseCategory.CORE
+    MuscleGroup.FESSIERS, MuscleGroup.MOLLETS,
+    MuscleGroup.ADDUCTEURS -> com.pandafit.core.database.entities.ExerciseCategory.LEGS
+    MuscleGroup.ABDOMINAUX,
+    MuscleGroup.OBLIQUES -> com.pandafit.core.database.entities.ExerciseCategory.CORE
     else -> com.pandafit.core.database.entities.ExerciseCategory.OTHER
 }
