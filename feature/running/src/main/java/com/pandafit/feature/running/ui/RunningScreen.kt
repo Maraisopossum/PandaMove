@@ -54,11 +54,18 @@ fun RunningScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToExecute: (Long) -> Unit,
     onNavigateToCreate: () -> Unit,
-    onNavigateToCreatePlanned: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     viewModel: RunningListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // "Séance directe" : la séance libre est créée en base puis on bascule directement sur l'exécution GPS.
+    LaunchedEffect(uiState.quickStartWorkoutId) {
+        uiState.quickStartWorkoutId?.let { id ->
+            onNavigateToExecute(id)
+            viewModel.onQuickStartHandled()
+        }
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val isEmpty = uiState.templates.isEmpty() && uiState.planned.isEmpty() && uiState.completed.isEmpty()
 
@@ -209,7 +216,7 @@ fun RunningScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.running_screen_fab_seance_directe)) },
                             leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = PandaGreen, modifier = Modifier.size(18.dp)) },
-                            onClick = { showFabMenu = false; onNavigateToCreatePlanned() },
+                            onClick = { showFabMenu = false; viewModel.quickStartFreeRun() },
                         )
                     }
                 }

@@ -19,6 +19,8 @@ data class RunningListUiState(
     val planned: List<WorkoutEntity> = emptyList(),
     val completed: List<WorkoutEntity> = emptyList(),
     val error: String? = null,
+    /** Workout libre créé par "Séance directe" : déclenche la navigation vers l'exécution puis se réinitialise. */
+    val quickStartWorkoutId: Long? = null,
 )
 
 // ── Detail (create/edit) ──────────────────────────────────────────────────────

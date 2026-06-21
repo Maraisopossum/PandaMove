@@ -122,8 +122,6 @@ val TOP_LEVEL_DESTINATIONS = listOf(
 object RunningRoutes {
     const val LIST   = "running"
     const val CREATE = "running/create"
-    /** Crée directement une séance planifiée (isTemplate=false, isPlanned=true dans le VM). */
-    const val CREATE_PLANNED = "running/create/planned"
     const val DETAIL = "running/{workoutId}"          // rapport lecture seule
     const val EDIT   = "running/{workoutId}/edit"     // formulaire modification
     const val EXECUTE = "running/{workoutId}/execute"

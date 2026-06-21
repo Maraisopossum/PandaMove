@@ -186,7 +186,8 @@ class RunningExecuteViewModel @Inject constructor(
             val s = if (track.distanceM > 0) {
                 val distKmStr = "%.3f".format(track.distanceM / 1000.0)
                 val durStr    = formatDurationSec(track.durationSec)
-                val paceStr   = formatPace(track.paceMinkm)
+                // Allure moyenne réelle (durée/distance), pas l'allure instantanée du dernier point GPS
+                val paceStr   = computePaceStr(distKmStr, durStr) ?: formatPace(track.paceMinkm)
                 val elevStr   = if (track.elevationGainM > 0) track.elevationGainM.toString() else _uiState.value.resultElevationM
                 _uiState.value.copy(
                     resultDistanceKm  = distKmStr,

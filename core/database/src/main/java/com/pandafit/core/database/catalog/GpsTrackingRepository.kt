@@ -24,6 +24,8 @@ data class LiveTrackState(
     val paceMinkm: Double = 0.0,
     val elevationGainM: Int = 0,
     val points: List<Pair<Double, Double>> = emptyList(),
+    /** Aligné sur [points] : true si le segment reliant points[i-1] à points[i] suit un trou de signal GPS */
+    val weakSignalAt: List<Boolean> = emptyList(),
     val currentPosition: Pair<Double, Double>? = null,
 )
 
@@ -41,6 +43,9 @@ class GpsTrackingRepository @Inject constructor(
     private var lastAltitudeM: Double? = null
     @Volatile private var pauseStartMs: Long = 0L
     @Volatile private var totalPausedMs: Long = 0L
+    private var lowSpeedStreak: Int = 0
+    @Volatile private var isAutoPaused: Boolean = false
+    private var lastFixTimestampMs: Long = 0L
 
     // ── Calibration ──────────────────────────────────────────────────────────
 
@@ -68,6 +73,9 @@ class GpsTrackingRepository @Inject constructor(
         lastAltitudeM = null
         pauseStartMs = 0L
         totalPausedMs = 0L
+        lowSpeedStreak = 0
+        isAutoPaused = false
+        lastFixTimestampMs = 0L
         _state.value = LiveTrackState(isTracking = true)
     }
 
@@ -81,8 +89,34 @@ class GpsTrackingRepository @Inject constructor(
     ) {
         val currentPos = lat to lng
 
+        // Détection de trou de signal : écart entre deux fix valides (la précision a déjà
+        // filtré les mauvais fix en amont dans RunningTrackingService). Mesuré sur chaque fix
+        // reçu, y compris ceux ignorés pendant une pause, pour ne pas confondre arrêt et perte de signal.
+        val isWeakSignalGap = lastFixTimestampMs > 0L && (timestampMs - lastFixTimestampMs) > SIGNAL_GAP_THRESHOLD_MS
+        lastFixTimestampMs = timestampMs
+
         if (_state.value.isPaused) {
-            _state.value = _state.value.copy(currentPosition = currentPos)
+            // Reprise auto uniquement si la pause vient du filtre anti-drift (pas d'une pause manuelle)
+            if (isAutoPaused && speedMps >= MIN_MOVING_SPEED_MPS) {
+                totalPausedMs += timestampMs - pauseStartMs
+                pauseStartMs = 0L
+                isAutoPaused = false
+                lowSpeedStreak = 0
+                _state.value = _state.value.copy(isPaused = false, currentPosition = currentPos)
+            } else {
+                _state.value = _state.value.copy(currentPosition = currentPos)
+                return
+            }
+        }
+
+        // Filtre anti-drift : sous ce seuil de vitesse pendant plusieurs échantillons,
+        // on considère l'utilisateur arrêté (feu rouge, lacet…) et on auto-pause comme Garmin,
+        // sinon le bruit GPS stationnaire s'accumule en fausse distance.
+        lowSpeedStreak = if (speedMps < MIN_MOVING_SPEED_MPS) lowSpeedStreak + 1 else 0
+        if (lowSpeedStreak >= LOW_SPEED_STREAK_SAMPLES) {
+            pauseStartMs = timestampMs
+            isAutoPaused = true
+            _state.value = _state.value.copy(isPaused = true, currentPosition = currentPos)
             return
         }
 
@@ -112,6 +146,7 @@ class GpsTrackingRepository @Inject constructor(
             paceMinkm = pace,
             elevationGainM = elevGain,
             points = prev.points + currentPos,
+            weakSignalAt = prev.weakSignalAt + isWeakSignalGap,
             currentPosition = currentPos,
         )
 
@@ -131,6 +166,8 @@ class GpsTrackingRepository @Inject constructor(
 
     fun pauseTracking() {
         pauseStartMs = System.currentTimeMillis()
+        isAutoPaused = false
+        lowSpeedStreak = 0
         _state.value = _state.value.copy(isPaused = true)
     }
 
@@ -139,6 +176,8 @@ class GpsTrackingRepository @Inject constructor(
             totalPausedMs += System.currentTimeMillis() - pauseStartMs
             pauseStartMs = 0L
         }
+        isAutoPaused = false
+        lowSpeedStreak = 0
         _state.value = _state.value.copy(isPaused = false)
     }
 
@@ -154,6 +193,15 @@ class GpsTrackingRepository @Inject constructor(
         lastAltitudeM = null
         pauseStartMs = 0L
         totalPausedMs = 0L
+        lowSpeedStreak = 0
+        isAutoPaused = false
+        lastFixTimestampMs = 0L
+    }
+
+    companion object {
+        private const val MIN_MOVING_SPEED_MPS = 0.6f // ~2.2 km/h, sous ce seuil = arrêté
+        private const val LOW_SPEED_STREAK_SAMPLES = 3 // échantillons consécutifs avant auto-pause (~3s à 1Hz)
+        private const val SIGNAL_GAP_THRESHOLD_MS = 5_000L // au-delà, le segment est marqué signal faible (cadence normale ~1-2s)
     }
 }
 

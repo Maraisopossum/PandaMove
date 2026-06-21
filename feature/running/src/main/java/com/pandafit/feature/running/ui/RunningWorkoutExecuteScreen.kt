@@ -43,6 +43,7 @@ import com.pandafit.feature.running.viewmodel.RunningExecuteViewModel
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.DashPathEffect
 import android.graphics.drawable.BitmapDrawable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,6 +59,28 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
+
+/** Découpe le tracé en segments contigus pleins / pointillés (signal GPS faible) pour l'affichage carte. */
+private fun trackSegments(
+    points: List<Pair<Double, Double>>,
+    weakSignalAt: List<Boolean>,
+): List<Pair<Boolean, List<Pair<Double, Double>>>> {
+    if (points.size < 2) return emptyList()
+    val segments = mutableListOf<Pair<Boolean, List<Pair<Double, Double>>>>()
+    var currentWeak = false
+    var currentSeg = mutableListOf(points[0])
+    for (i in 1 until points.size) {
+        val weak = weakSignalAt.getOrElse(i) { false }
+        if (weak != currentWeak) {
+            segments.add(currentWeak to currentSeg)
+            currentSeg = mutableListOf(points[i - 1])
+        }
+        currentSeg.add(points[i])
+        currentWeak = weak
+    }
+    segments.add(currentWeak to currentSeg)
+    return segments
+}
 
 private val OrangeBorder    = Color(0xFFFFCC80)
 private val OrangeBg        = Color(0xFFFFF8F0)
@@ -600,12 +623,17 @@ private fun GpsTrackBlock(
                 update = { mv ->
                     mv.overlays.clear()
                     if (state.points.size >= 2) {
-                        val line = Polyline().apply {
-                            setPoints(state.points.map { (lat, lng) -> GeoPoint(lat, lng) })
-                            outlinePaint.color = android.graphics.Color.parseColor("#7C5CBF")
-                            outlinePaint.strokeWidth = 10f
+                        trackSegments(state.points, state.weakSignalAt).forEach { (isWeakSignal, segPoints) ->
+                            val line = Polyline().apply {
+                                setPoints(segPoints.map { (lat, lng) -> GeoPoint(lat, lng) })
+                                outlinePaint.color = android.graphics.Color.parseColor("#7C5CBF")
+                                outlinePaint.strokeWidth = 10f
+                                if (isWeakSignal) {
+                                    outlinePaint.pathEffect = DashPathEffect(floatArrayOf(20f, 16f), 0f)
+                                }
+                            }
+                            mv.overlays.add(line)
                         }
-                        mv.overlays.add(line)
                     }
                     val markerPos = state.currentPosition ?: state.points.lastOrNull()
                     if (markerPos != null) {

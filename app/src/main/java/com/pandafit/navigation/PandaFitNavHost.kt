@@ -250,22 +250,12 @@ fun PandaFitNavHost() {
                     onNavigateToDetail        = { id -> navController.navigate(RunningRoutes.detail(id)) },
                     onNavigateToExecute       = { id -> navController.navigate(RunningRoutes.execute(id)) },
                     onNavigateToCreate        = { navController.navigate(RunningRoutes.CREATE) },
-                    onNavigateToCreatePlanned = { navController.navigate(RunningRoutes.CREATE_PLANNED) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                 )
             }
             composable(RunningRoutes.CREATE) {
                 RunningWorkoutDetailScreen(
                     workoutId = null,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToExecute = { id -> navController.navigate(RunningRoutes.execute(id)) },
-                )
-            }
-            // Création directe d'une séance running planifiée (isPlanned=true → isTemplate=false dans le VM)
-            composable(RunningRoutes.CREATE_PLANNED) {
-                RunningWorkoutDetailScreen(
-                    workoutId = null,
-                    isPlanned = true,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToExecute = { id -> navController.navigate(RunningRoutes.execute(id)) },
                 )
