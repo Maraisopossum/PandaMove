@@ -44,6 +44,7 @@ import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -241,7 +242,7 @@ fun InstanceReportScreen(
             title = { Text(stringResource(R.string.instance_report_finish_dialog_title), fontWeight = FontWeight.Bold) },
             text = { Text(stringResource(R.string.instance_report_finish_dialog_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.finishInstance(); showFinishDialog = false; onFinish() }) {
+                TextButton(onClick = { viewModel.prepareFinish(); showFinishDialog = false }) {
                     Text(stringResource(R.string.instance_report_finish_confirm), color = PandaGreen, fontWeight = FontWeight.Bold)
                 }
             },
@@ -249,6 +250,18 @@ fun InstanceReportScreen(
                 TextButton(onClick = { showFinishDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
+    }
+
+    val propositionsProgression = uiState.propositionsProgression
+    if (propositionsProgression.isNotEmpty()) {
+        ProgressionRecapDialog(
+            propositions = propositionsProgression,
+            onDismiss = { viewModel.annulerRecapProgression() },
+            onValider = { decisions, ajustements -> viewModel.validerPropositions(decisions, ajustements) },
+        )
+    }
+    LaunchedEffect(Unit) {
+        viewModel.finishedEvent.collect { onFinish() }
     }
 
     Scaffold(

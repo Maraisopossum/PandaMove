@@ -87,6 +87,13 @@ class SeanceCreateViewModel @Inject constructor(
                 equipement = e.exerciceSeance.equipement,
                 avertissement = e.exerciceSeance.avertissement,
                 isBilateral = e.exerciceSeance.isBilateral,
+                progressionActivee = e.exerciceSeance.progressionActivee,
+                systemeProgression = e.exerciceSeance.systemeProgression,
+                repsMin = e.exerciceSeance.repsMin,
+                repsMax = e.exerciceSeance.repsMax,
+                incrementKg = e.exerciceSeance.incrementKg,
+                incrementDureeSec = e.exerciceSeance.incrementDureeSec,
+                seuilDeload = e.exerciceSeance.seuilDeload,
             )
 
             // Reconstruire la liste unifiée en ordre global (position)
@@ -341,6 +348,27 @@ class SeanceCreateViewModel @Inject constructor(
         }
     }
 
+    /** Duplique un exercice libre : copie insérée juste après l'original (nouvel id à la sauvegarde). */
+    fun duplicateFreeExercice(itemIndex: Int) {
+        val items = _uiState.value.items.toMutableList()
+        if (itemIndex !in items.indices) return
+        val item = items[itemIndex] as? SeanceItem.FreeExercise ?: return
+        items.add(itemIndex + 1, SeanceItem.FreeExercise(item.exercice.copy(id = 0)))
+        _uiState.value = _uiState.value.copy(items = items)
+    }
+
+    /** Duplique un exercice dans un bloc : copie insérée juste après l'original dans le même bloc. */
+    fun duplicateExerciceInBloc(itemIndex: Int, exerciceIndex: Int) {
+        val items = _uiState.value.items.toMutableList()
+        if (itemIndex !in items.indices) return
+        val bloc = (items[itemIndex] as? SeanceItem.Bloc)?.bloc ?: return
+        val exercices = bloc.exercices.toMutableList()
+        if (exerciceIndex !in exercices.indices) return
+        exercices.add(exerciceIndex + 1, exercices[exerciceIndex].copy(id = 0))
+        items[itemIndex] = SeanceItem.Bloc(bloc.copy(exercices = exercices))
+        _uiState.value = _uiState.value.copy(items = items)
+    }
+
     // ===== Sauvegarde =====
     fun save() {
         val state = _uiState.value
@@ -546,6 +574,13 @@ private fun toEntity(seanceId: Long, blocId: Long?, position: Int, d: ExerciceDr
         avertissement = d.avertissement,
         instanceSeanceId = instanceSeanceId,
         isBilateral = d.isBilateral,
+        progressionActivee = d.progressionActivee,
+        systemeProgression = d.systemeProgression,
+        repsMin = d.repsMin,
+        repsMax = d.repsMax,
+        incrementKg = d.incrementKg,
+        incrementDureeSec = d.incrementDureeSec,
+        seuilDeload = d.seuilDeload,
     )
 
 fun BlocType.defaultName() = when (this) {

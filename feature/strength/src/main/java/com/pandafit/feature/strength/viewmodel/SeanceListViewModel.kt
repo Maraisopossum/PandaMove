@@ -53,9 +53,17 @@ class SeanceListViewModel @Inject constructor(
         }
     }
 
+    /** Supprime le template, sauf s'il a déjà des instances : dans ce cas on l'archive (masqué de la
+     * liste mais conservé en base) pour ne jamais perdre l'historique des séances déjà réalisées. */
     fun deleteSeances(ids: Set<Long>) {
         viewModelScope.launch {
-            _uiState.value.seances.filter { it.id in ids }.forEach { seanceDao.deleteSeance(it) }
+            _uiState.value.seances.filter { it.id in ids }.forEach { seance ->
+                if (instanceSeanceDao.countForSeance(seance.id) > 0) {
+                    seanceDao.updateSeance(seance.copy(isArchived = true))
+                } else {
+                    seanceDao.deleteSeance(seance)
+                }
+            }
         }
     }
 

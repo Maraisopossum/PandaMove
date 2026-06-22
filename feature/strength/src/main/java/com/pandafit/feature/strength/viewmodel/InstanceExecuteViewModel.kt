@@ -5,14 +5,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.dao.InstanceSeanceDao
+import com.pandafit.core.database.dao.ObjectifProgressionDao
 import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
+import com.pandafit.core.database.entities.ExerciceSeanceEntity
+import com.pandafit.core.database.entities.ObjectifProgressionEntity
+import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SerieRealiseeEntity
+import com.pandafit.core.database.progression.CibleExercice
+import com.pandafit.core.database.progression.PropositionProgression
+import com.pandafit.core.database.progression.StatutExercice
+import com.pandafit.core.database.progression.evaluerExercice
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.core.database.relations.SeanceFull
+import com.pandafit.feature.strength.model.ChoixValidation
 import com.pandafit.feature.strength.model.CircuitPhase
 import com.pandafit.feature.strength.model.InstanceExecuteUiState
+import com.pandafit.feature.strength.model.PropositionAffichee
 import com.pandafit.feature.strength.model.SerieRealiseeState
 import com.pandafit.feature.strength.model.parseChargeKg
 import com.pandafit.feature.strength.model.parseChargeLabel
@@ -35,6 +45,7 @@ class InstanceExecuteViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val seanceDao: SeanceDao,
     private val instanceSeanceDao: InstanceSeanceDao,
+    private val objectifProgressionDao: ObjectifProgressionDao,
     val activeSessionManager: ActiveSessionManager,
 ) : ViewModel() {
 
@@ -53,6 +64,9 @@ class InstanceExecuteViewModel @Inject constructor(
 
     private val _exerciceStartBeep = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val exerciceStartBeep: SharedFlow<Unit> = _exerciceStartBeep.asSharedFlow()
+
+    private val _finishedEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val finishedEvent: SharedFlow<Unit> = _finishedEvent.asSharedFlow()
 
     private val _exerciceEndBeep = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val exerciceEndBeep: SharedFlow<Unit> = _exerciceEndBeep.asSharedFlow()
@@ -101,7 +115,11 @@ class InstanceExecuteViewModel @Inject constructor(
                 }
             }
             val blocs = seanceDao.getBlocsForInstance(instanceId)
-            val exercices = buildOrderedExercicesFromLists(seanceDao.getExercicesForInstance(instanceId), blocs)
+            val exercices = rafraichirCiblesProgression(
+                seanceId = instance.seanceId,
+                figerCible = instance.isCompleted,
+                exercices = buildOrderedExercicesFromLists(seanceDao.getExercicesForInstance(instanceId), blocs),
+            )
 
             // Historique cross-séance par exercise_id (pas seance_id ni exercice_seance_id)
             val historiqueComplet = mutableMapOf<Long, MutableList<Pair<LocalDate, List<SerieRealiseeEntity>>>>()
@@ -176,11 +194,15 @@ class InstanceExecuteViewModel @Inject constructor(
                             if (isBilateral) h.numeroSerie == histoNum && h.notes == side
                             else h.numeroSerie == num
                         } ?: if (isBilateral) historiqueEx?.find { it.numeroSerie == histoNum } else null
+                        // En progression activée, la cible (déjà rafraîchie depuis l'objectif courant)
+                        // prime toujours sur le réalisé précédent — sinon le réalisé d'hier (qui correspond
+                        // à l'ancienne cible, par définition) masquerait systématiquement la nouvelle cible.
+                        val progression = ex.exerciceSeance.progressionActivee
                         SerieRealiseeState(
                             numeroSerie = num,
-                            repsRealisees = histo?.repsRealisees ?: templateReps,
-                            chargeKg = histo?.chargeKg ?: lastCompletedCharge?.chargeKg ?: templateChargeKg,
-                            chargeLabel = histo?.chargeLabel ?: lastCompletedCharge?.chargeLabel ?: templateChargeLabel,
+                            repsRealisees = if (progression) templateReps else histo?.repsRealisees ?: templateReps,
+                            chargeKg = if (progression) templateChargeKg else histo?.chargeKg ?: lastCompletedCharge?.chargeKg ?: templateChargeKg,
+                            chargeLabel = if (progression) templateChargeLabel else histo?.chargeLabel ?: lastCompletedCharge?.chargeLabel ?: templateChargeLabel,
                             rpe = null, isCompleted = false, isPreFilled = true,
                             notes = side,
                         )
@@ -208,6 +230,36 @@ class InstanceExecuteViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    // Synchronise chargeCible/repsCibles de la copie d'instance avec l'objectif courant (table objectifs_progression)
+    // pour les exercices en progression_activee — la cible peut avoir évolué depuis l'assignation de l'instance.
+    // Si l'instance est déjà clôturée, on ne retouche jamais le rapport figé (bible §0.1, exception).
+    private suspend fun rafraichirCiblesProgression(
+        seanceId: Long,
+        figerCible: Boolean,
+        exercices: List<ExerciceSeanceWithExercise>,
+    ): List<ExerciceSeanceWithExercise> {
+        if (figerCible) return exercices
+        return exercices.map { exWithEx ->
+            val es = exWithEx.exerciceSeance
+            if (!es.progressionActivee) return@map exWithEx
+            val objectif = objectifProgressionDao.getBySeanceAndExercice(seanceId, exWithEx.exercise.id) ?: return@map exWithEx
+            val nouvelleChargeCible = formatChargeCibleFraiche(objectif.chargeCible) ?: es.chargeCible
+            val nouveauxRepsCibles = when (es.repsType) {
+                RepsType.DURATION -> objectif.dureeCibleSec?.toString() ?: es.repsCibles
+                RepsType.REPS -> objectif.repsCible?.toString() ?: es.repsCibles
+            }
+            if (nouvelleChargeCible == es.chargeCible && nouveauxRepsCibles == es.repsCibles) return@map exWithEx
+            val miseAJour = es.copy(chargeCible = nouvelleChargeCible, repsCibles = nouveauxRepsCibles)
+            seanceDao.updateExerciceSeance(miseAJour)
+            exWithEx.copy(exerciceSeance = miseAJour)
+        }
+    }
+
+    private fun formatChargeCibleFraiche(chargeKg: Float?): String? {
+        if (chargeKg == null) return null
+        return if (chargeKg == chargeKg.toInt().toFloat()) "${chargeKg.toInt()} kg" else "$chargeKg kg"
     }
 
     private fun buildOrderedExercicesFromLists(
@@ -866,6 +918,114 @@ class InstanceExecuteViewModel @Inject constructor(
         }
     }
 
+    // ===== Surcharge progressive — clôture =====
+
+    /** Évalue chaque exercice en progression_activee, applique silencieusement les échecs/deload,
+     * et prépare le récap (succès + anomalies) pour validation utilisateur avant de clôturer. */
+    fun prepareFinish() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            val instance = state.instance ?: return@launch
+            val rows = mutableListOf<PropositionAffichee>()
+            state.exercices.forEach { exWithEx ->
+                val es = exWithEx.exerciceSeance
+                if (!es.progressionActivee) return@forEach
+                val objectifExistant = objectifProgressionDao.getBySeanceAndExercice(instance.seanceId, exWithEx.exercise.id)
+                val cible = cibleDepuis(objectifExistant, es)
+                val series = seriesCompletesPourEvaluation(es.id, state)
+                val proposition = evaluerExercice(es, cible, objectifExistant?.compteurEchec ?: 0, series, es.isBilateral)
+                when (proposition.statut) {
+                    StatutExercice.SUCCES, StatutExercice.SUCCES_SANS_MARGE, StatutExercice.NON_LOGGE ->
+                        rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition))
+                    StatutExercice.ECHEC, StatutExercice.ECHEC_MARQUE ->
+                        persisterObjectif(instance.seanceId, exWithEx.exercise.id, objectifExistant, proposition)
+                }
+            }
+            if (rows.isEmpty()) {
+                finishInstance()
+            } else {
+                _uiState.value = _uiState.value.copy(propositionsProgression = rows)
+            }
+        }
+    }
+
+    fun annulerRecapProgression() {
+        _uiState.value = _uiState.value.copy(propositionsProgression = emptyList())
+    }
+
+    /** Applique les choix Oui/Non/Ajuster du récap puis clôture l'instance. */
+    fun validerPropositions(
+        decisions: Map<Long, ChoixValidation>,
+        ajustementsChargeKg: Map<Long, Float?>,
+    ) {
+        viewModelScope.launch {
+            val instance = _uiState.value.instance ?: return@launch
+            _uiState.value.propositionsProgression.forEach { row ->
+                if (row.proposition.statut == StatutExercice.NON_LOGGE) return@forEach
+                val existant = objectifProgressionDao.getBySeanceAndExercice(instance.seanceId, row.exerciceId)
+                when (decisions[row.exerciceSeanceId] ?: ChoixValidation.OUI) {
+                    ChoixValidation.OUI -> persisterObjectif(instance.seanceId, row.exerciceId, existant, row.proposition)
+                    ChoixValidation.NON -> persisterObjectif(
+                        instance.seanceId, row.exerciceId, existant,
+                        row.proposition.copy(
+                            nouvelleChargeCible = existant?.chargeCible,
+                            nouveauRepsCible = existant?.repsCible,
+                            nouvelleDureeCible = existant?.dureeCibleSec,
+                        ),
+                    )
+                    ChoixValidation.AJUSTER -> persisterObjectif(
+                        instance.seanceId, row.exerciceId, existant,
+                        row.proposition.copy(nouvelleChargeCible = ajustementsChargeKg[row.exerciceSeanceId] ?: row.proposition.nouvelleChargeCible),
+                    )
+                }
+            }
+            _uiState.value = _uiState.value.copy(propositionsProgression = emptyList())
+            finishInstance()
+        }
+    }
+
+    private suspend fun persisterObjectif(
+        seanceId: Long,
+        exerciceId: Long,
+        existant: ObjectifProgressionEntity?,
+        proposition: PropositionProgression,
+    ) {
+        objectifProgressionDao.upsert(
+            ObjectifProgressionEntity(
+                id = existant?.id ?: 0,
+                seanceId = seanceId,
+                exerciceId = exerciceId,
+                chargeCible = proposition.nouvelleChargeCible,
+                repsCible = proposition.nouveauRepsCible,
+                dureeCibleSec = proposition.nouvelleDureeCible,
+                compteurEchec = proposition.nouveauCompteurEchec,
+                derniereMaj = LocalDate.now(),
+            )
+        )
+    }
+
+    private fun cibleDepuis(objectif: ObjectifProgressionEntity?, es: ExerciceSeanceEntity): CibleExercice {
+        if (objectif != null) return CibleExercice(objectif.chargeCible, objectif.repsCible, objectif.dureeCibleSec)
+        val repsTemplate = es.repsCibles.toIntOrNull()
+        return if (es.repsType == RepsType.DURATION) CibleExercice(chargeKg = null, reps = null, dureeSec = repsTemplate)
+        else CibleExercice(chargeKg = parseChargeKg(parseChargeLabel(es.chargeCible)), reps = repsTemplate, dureeSec = null)
+    }
+
+    private fun seriesCompletesPourEvaluation(exerciceSeanceId: Long, state: InstanceExecuteUiState): List<SerieRealiseeEntity> =
+        state.seriesParExercice[exerciceSeanceId]?.filter { it.isCompleted }?.map {
+            SerieRealiseeEntity(
+                instanceSeanceId = instanceId,
+                exerciceSeanceId = exerciceSeanceId,
+                numeroSerie = it.numeroSerie,
+                repsRealisees = it.repsRealisees,
+                chargeKg = it.chargeKg,
+                chargeLabel = it.chargeLabel,
+                rpe = it.rpe,
+                notes = it.notes,
+                isCompleted = true,
+            )
+        } ?: emptyList()
+
     fun finishInstance() {
         countdownJob?.cancel()
         countdownJob = null
@@ -877,6 +1037,7 @@ class InstanceExecuteViewModel @Inject constructor(
             instanceSeanceDao.updateCompletion(instanceId, true, LocalDateTime.now(), durationSec)
             _uiState.value = _uiState.value.copy(isCompleted = true, circuitMode = null)
             activeSessionManager.endSession()
+            _finishedEvent.emit(Unit)
         }
     }
 }

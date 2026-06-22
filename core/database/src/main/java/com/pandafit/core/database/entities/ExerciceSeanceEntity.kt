@@ -83,4 +83,26 @@ data class ExerciceSeanceEntity(
     // Exercice bilatéral (ex. gainage latéral) : G puis D enchaînés à chaque round
     @ColumnInfo(name = "is_bilateral")
     val isBilateral: Boolean = false,
+
+    // Surcharge progressive — config structurelle, dupliquée sur les copies d'instance comme reps_cibles/charge_cible
+    @ColumnInfo(name = "progression_activee")
+    val progressionActivee: Boolean = false,
+
+    @ColumnInfo(name = "systeme_progression")
+    val systemeProgression: SystemeProgression? = null,
+
+    @ColumnInfo(name = "reps_min")
+    val repsMin: Int? = null,
+
+    @ColumnInfo(name = "reps_max")
+    val repsMax: Int? = null,
+
+    @ColumnInfo(name = "increment_kg")
+    val incrementKg: Float? = null,
+
+    @ColumnInfo(name = "increment_duree_sec")
+    val incrementDureeSec: Int = 5,
+
+    @ColumnInfo(name = "seuil_deload")
+    val seuilDeload: Int = 3,
 )

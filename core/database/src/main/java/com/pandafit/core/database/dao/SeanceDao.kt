@@ -32,10 +32,10 @@ interface SeanceDao {
     @Query("SELECT * FROM seances ORDER BY updated_at DESC")
     fun observeAll(): Flow<List<SeanceEntity>>
 
-    @Query("SELECT * FROM seances WHERE seance_category = :category ORDER BY updated_at DESC")
+    @Query("SELECT * FROM seances WHERE seance_category = :category AND is_archived = 0 ORDER BY updated_at DESC")
     fun observeByCategory(category: SeanceCategory): Flow<List<SeanceEntity>>
 
-    @Query("SELECT * FROM seances WHERE seance_category != 'STRENGTH' ORDER BY updated_at DESC")
+    @Query("SELECT * FROM seances WHERE seance_category != 'STRENGTH' AND is_archived = 0 ORDER BY updated_at DESC")
     fun observeAllWarmups(): Flow<List<SeanceEntity>>
 
     @Query("SELECT * FROM seances WHERE id = :id")

@@ -46,6 +46,9 @@ interface InstanceSeanceDao {
     @Query("SELECT * FROM instances_seance WHERE seance_id = :seanceId ORDER BY date DESC")
     fun observeForSeance(seanceId: Long): Flow<List<InstanceSeanceEntity>>
 
+    @Query("SELECT COUNT(*) FROM instances_seance WHERE seance_id = :seanceId")
+    suspend fun countForSeance(seanceId: Long): Int
+
     @Transaction
     @Query("SELECT * FROM instances_seance WHERE seance_id = :seanceId AND date < :beforeDate ORDER BY date DESC LIMIT 1")
     suspend fun getPreviousInstanceWithSeries(seanceId: Long, beforeDate: LocalDate): InstanceWithSeries?

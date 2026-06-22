@@ -12,6 +12,7 @@ import com.pandafit.core.database.dao.CustomBreathingMethodDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
+import com.pandafit.core.database.dao.ObjectifProgressionDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.SeanceDao
@@ -25,6 +26,7 @@ import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.core.database.entities.ExerciseSetEntity
 import com.pandafit.core.database.entities.GpsTrackPointEntity
 import com.pandafit.core.database.entities.InstanceSeanceEntity
+import com.pandafit.core.database.entities.ObjectifProgressionEntity
 import com.pandafit.core.database.entities.RunRepeatEntity
 import com.pandafit.core.database.entities.RunStepEntity
 import com.pandafit.core.database.entities.SeanceEntity
@@ -50,8 +52,9 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         GpsTrackPointEntity::class,
         BreathingSessionEntity::class,
         CustomBreathingMethodEntity::class,
+        ObjectifProgressionEntity::class,
     ],
-    version = 20,
+    version = 22,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -67,6 +70,7 @@ abstract class PandaFitDatabase : RoomDatabase() {
     abstract fun gpsTrackPointDao(): GpsTrackPointDao
     abstract fun breathingSessionDao(): BreathingSessionDao
     abstract fun customBreathingMethodDao(): CustomBreathingMethodDao
+    abstract fun objectifProgressionDao(): ObjectifProgressionDao
 
     companion object {
         const val DATABASE_NAME = "pandafit.db"
@@ -224,6 +228,43 @@ abstract class PandaFitDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE gps_track_points ADD COLUMN timestamp_ms INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE gps_track_points ADD COLUMN speed_mps REAL")
                 db.execSQL("ALTER TABLE gps_track_points ADD COLUMN accuracy_m REAL")
+            }
+        }
+
+        // v20 → v21 : module de surcharge progressive — config sur exercices_seance + table objectifs_progression
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN progression_activee INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN systeme_progression TEXT")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN reps_min INTEGER")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN reps_max INTEGER")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN increment_kg REAL")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN increment_duree_sec INTEGER NOT NULL DEFAULT 5")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN seuil_deload INTEGER NOT NULL DEFAULT 3")
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `objectifs_progression` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `seance_id` INTEGER NOT NULL,
+                        `exercise_id` INTEGER NOT NULL,
+                        `charge_cible` REAL,
+                        `reps_cible` INTEGER,
+                        `duree_cible_sec` INTEGER,
+                        `compteur_echec` INTEGER NOT NULL,
+                        `derniere_maj` TEXT,
+                        FOREIGN KEY(`seance_id`) REFERENCES `seances`(`id`) ON DELETE CASCADE,
+                        FOREIGN KEY(`exercise_id`) REFERENCES `exercises`(`id`) ON DELETE RESTRICT
+                    )"""
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_objectifs_progression_seance_id_exercise_id ON objectifs_progression(seance_id, exercise_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_objectifs_progression_exercise_id ON objectifs_progression(exercise_id)")
+            }
+        }
+
+        // v21 → v22 : archivage des séances types (au lieu de la suppression cascade qui effaçait
+        // l'historique des instances déjà réalisées)
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE seances ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
             }
         }
 

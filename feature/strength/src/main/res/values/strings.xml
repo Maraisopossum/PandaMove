@@ -12,6 +12,7 @@
     <string name="common_delete_cd">Supprimer</string>
     <string name="common_navigate_back_cd">Retour</string>
     <string name="common_duplicate_cd">Dupliquer</string>
+    <string name="common_close_cd">Fermer</string>
     <string name="common_search_label">Rechercher</string>
     <string name="common_notes_label">Notes</string>
     <string name="common_seance_name_label">Nom de la séance</string>
@@ -114,6 +115,37 @@
     <string name="seance_create_inline_comment_label">Commentaire :</string>
     <string name="seance_create_bilateral_label">Bilatéral (G + D)</string>
     <string name="seance_create_bilateral_description">À chaque round : côté G, puis côté D</string>
+    <string name="seance_create_progression_label">Surcharge progressive</string>
+    <string name="seance_create_progression_description">Le module propose une montée à la clôture</string>
+    <string name="seance_create_progression_description_off">Désactivée — touche pour activer</string>
+    <string name="seance_create_duplicate_cd">Dupliquer</string>
+    <string name="seance_create_quickadd_placeholder">Rechercher ou ajouter un exercice…</string>
+    <string name="seance_create_quickadd_tag">Bibliothèque</string>
+    <string name="seance_create_badge_bilateral">G + D</string>
+    <string name="seance_create_summary_separator">·</string>
+    <string name="seance_create_progression_not_applicable">Surcharge progressive non applicable sur un exercice d\'échauffement/activation.</string>
+    <string name="seance_create_progression_system_lineaire">Linéaire</string>
+    <string name="seance_create_progression_system_double">Double</string>
+    <string name="seance_create_progression_system_temporelle">Temporelle</string>
+    <string name="seance_create_progression_reps_range">Plage de reps</string>
+    <string name="seance_create_progression_increment_kg">Incrément (kg)</string>
+    <string name="seance_create_progression_increment_duree">Incrément (s)</string>
+    <string name="seance_create_progression_deload">Deload après</string>
+    <string name="seance_create_progression_deload_suffix">%1$d échecs</string>
+    <string name="progression_recap_title">Progression</string>
+    <string name="progression_recap_subtitle">%1$d exercice(s) prêt(s) à progresser</string>
+    <string name="progression_recap_choice_oui">Oui</string>
+    <string name="progression_recap_choice_non">Non, garder</string>
+    <string name="progression_recap_choice_ajuster">Ajuster</string>
+    <string name="progression_recap_non_logge">Non loggé — aucune série enregistrée cette fois-ci</string>
+    <string name="progression_recap_sans_marge">Cible atteinte mais RPE élevé — pas de marge, cible maintenue</string>
+    <string name="progression_recap_propose_charge">Proposer %1$.1f kg</string>
+    <string name="progression_recap_propose_reps">Proposer %1$d reps</string>
+    <string name="progression_recap_propose_reps_charge">Proposer %1$d reps @ %2$.1f kg</string>
+    <string name="progression_recap_propose_duree">Proposer %1$d s</string>
+    <string name="progression_recap_ajuster_label">Nouvelle charge (kg)</string>
+    <string name="seance_detail_progression_badge">↗ Progression</string>
+    <string name="seance_detail_progression_next">Prochaine cible : %1$s</string>
     <string name="seance_create_warmup_picker_title">Choisir un échauffement</string>
     <string name="seance_create_warmup_picker_empty">Aucun échauffement disponible.</string>
     <string name="seance_create_exercise_picker_title">Ajouter des exercices</string>
@@ -139,6 +171,16 @@
     <string name="seance_detail_table_header_reps">REPS</string>
     <string name="seance_detail_table_header_charge">CHARGE</string>
     <string name="seance_detail_table_header_rest">REPOS</string>
+    <string name="seance_detail_subtitle">Séance type</string>
+    <string name="seance_detail_stat_exercices">exercices</string>
+    <string name="seance_detail_stat_progression">en progression</string>
+    <string name="seance_detail_stat_series">séries</string>
+    <string name="seance_detail_stat_duree">~min est.</string>
+    <string name="seance_detail_bilateral_badge">G+D</string>
+    <string name="seance_detail_start_button">Démarrer la séance</string>
+    <string name="seance_detail_delete_instance_cd">Supprimer l\'instance</string>
+    <string name="seance_detail_rest_label">repos %1$s</string>
+    <string name="seance_detail_bloc_rest_label">inter %1$s · fin round %2$s</string>
 
     <!-- ══════════════════════════════════════════════════════
          StrengthWorkoutDetailScreen (ancien écran workout)

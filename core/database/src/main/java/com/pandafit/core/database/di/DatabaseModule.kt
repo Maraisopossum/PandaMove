@@ -8,6 +8,7 @@ import com.pandafit.core.database.dao.CustomBreathingMethodDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
+import com.pandafit.core.database.dao.ObjectifProgressionDao
 import com.pandafit.core.database.dao.SeanceDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
@@ -50,6 +51,8 @@ object DatabaseModule {
                 PandaFitDatabase.MIGRATION_17_18,
                 PandaFitDatabase.MIGRATION_18_19,
                 PandaFitDatabase.MIGRATION_19_20,
+                PandaFitDatabase.MIGRATION_20_21,
+                PandaFitDatabase.MIGRATION_21_22,
             )
             .build()
 
@@ -82,5 +85,8 @@ object DatabaseModule {
 
     @Provides
     fun provideCustomBreathingMethodDao(db: PandaFitDatabase): CustomBreathingMethodDao = db.customBreathingMethodDao()
+
+    @Provides
+    fun provideObjectifProgressionDao(db: PandaFitDatabase): ObjectifProgressionDao = db.objectifProgressionDao()
 
 }

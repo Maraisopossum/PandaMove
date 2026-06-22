@@ -5,10 +5,13 @@ import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
 import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.core.database.entities.InstanceSeanceEntity
+import com.pandafit.core.database.entities.ObjectifProgressionEntity
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SeanceCategory
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.entities.SerieRealiseeEntity
+import com.pandafit.core.database.entities.SystemeProgression
+import com.pandafit.core.database.progression.PropositionProgression
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import java.time.LocalDate
 
@@ -113,6 +116,14 @@ data class ExerciceDraft(
     val avertissement: String = "",
     // Exercice bilatéral : G et D alternent à chaque round (S1G+S1D, S2G+S2D…)
     val isBilateral: Boolean = false,
+    // Surcharge progressive
+    val progressionActivee: Boolean = false,
+    val systemeProgression: SystemeProgression? = null,
+    val repsMin: Int? = null,
+    val repsMax: Int? = null,
+    val incrementKg: Float? = null,
+    val incrementDureeSec: Int = 5,
+    val seuilDeload: Int = 3,
 )
 
 // ===== Détail (lecture seule) =====
@@ -123,6 +134,9 @@ data class SeanceDetailUiState(
     val blocs: List<BlocSeanceEntity> = emptyList(),
     val exercices: List<ExerciceSeanceWithExercise> = emptyList(),
     val instances: List<InstanceSeanceEntity> = emptyList(),
+    // Surcharge progressive — clé = exercise_id (catalogue)
+    val objectifsParExercice: Map<Long, ObjectifProgressionEntity> = emptyMap(),
+    val tendanceParExercice: Map<Long, List<Float>> = emptyMap(),
     val error: String? = null,
 ) {
     fun exercicesForBloc(blocId: Long?): List<ExerciceSeanceWithExercise> =
@@ -171,6 +185,7 @@ data class InstanceExecuteUiState(
     val exerciceNotesLocal: Map<Long, String> = emptyMap(),
     val circuitMode: CircuitPhase? = null,   // non-null = mode circuit actif
     val countdownSeconds: Int = 0,           // 3/2/1 avant démarrage, 0 = inactif
+    val propositionsProgression: List<PropositionAffichee> = emptyList(), // récap à la clôture, non-vide = dialog visible
     val error: String? = null,
 ) {
     fun seriesForExercice(exerciceId: Long): List<SerieRealiseeState> =
@@ -198,6 +213,17 @@ data class InstanceExecuteUiState(
         }
     }
 }
+
+// ===== Récap progression à la clôture =====
+
+enum class ChoixValidation { OUI, NON, AJUSTER }
+
+data class PropositionAffichee(
+    val exerciceSeanceId: Long,
+    val exerciceId: Long,
+    val exerciceName: String,
+    val proposition: PropositionProgression,
+)
 
 data class SerieRealiseeState(
     val id: Long = 0,

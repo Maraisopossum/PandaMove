@@ -1,7 +1,6 @@
 package com.pandafit.feature.strength.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,10 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,34 +34,33 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.LaunchedEffect
 import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
 import com.pandafit.core.database.entities.InstanceSeanceEntity
+import com.pandafit.core.database.entities.ObjectifProgressionEntity
+import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
-import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
+import com.pandafit.designsystem.theme.PandaOrange
 import com.pandafit.designsystem.theme.PandaPurple
+import com.pandafit.designsystem.theme.PandaPurpleDark
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.strength.R
 import com.pandafit.feature.strength.model.formatRepsDisplay
@@ -80,6 +82,10 @@ fun SeanceDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
+    LaunchedEffect(Unit) {
+        viewModel.navigateToInstance.collect { onNavigateToInstance(it) }
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -94,27 +100,40 @@ fun SeanceDetailScreen(
                 },
             )
         },
+        bottomBar = {
+            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Button(
+                    onClick = viewModel::startNow,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = PandaPurple),
+                ) {
+                    Text(stringResource(R.string.seance_detail_start_button), fontWeight = FontWeight.Bold)
+                }
+            }
+        },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         if (uiState.isLoading) { PandaLoadingIndicator(); return@Scaffold }
 
+        val totalSeries = uiState.exercices.sumOf { it.exerciceSeance.nombreSeriesPrevues }
+        val totalProgression = uiState.exercices.count { it.exerciceSeance.progressionActivee }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 80.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             item {
-                SeanceHeaderCard(
+                SeanceHeroCard(
                     nom = uiState.seance?.nom ?: "",
-                    groupesMusculaires = uiState.seance?.groupesMusculaires ?: emptyList(),
+                    nombreExercices = uiState.exercices.size,
+                    nombreProgression = totalProgression,
+                    nombreSeries = totalSeries,
                     dureeEstimeeMin = uiState.seance?.dureeEstimeeMin ?: 0,
-                    notes = uiState.seance?.notes ?: "",
                 )
             }
 
-            item { TableHeader() }
-
             // Interleave libres et blocs selon leurs positions réelles (même logique que buildOrderedExercises)
-            data class OrderedEntry(val pos: Int, val libre: com.pandafit.core.database.relations.ExerciceSeanceWithExercise? = null, val bloc: com.pandafit.core.database.entities.BlocSeanceEntity? = null)
+            data class OrderedEntry(val pos: Int, val libre: ExerciceSeanceWithExercise? = null, val bloc: BlocSeanceEntity? = null)
             val orderedEntries = buildList {
                 uiState.exercicesSansBloc.forEach { ex -> add(OrderedEntry(ex.exerciceSeance.position, libre = ex)) }
                 uiState.blocs.forEach { bloc -> add(OrderedEntry(bloc.position, bloc = bloc)) }
@@ -123,18 +142,13 @@ fun SeanceDetailScreen(
             orderedEntries.forEach { entry ->
                 if (entry.libre != null) {
                     item(key = "ex_${entry.libre.exerciceSeance.id}") {
-                        ExerciceTableReadRow(entry.libre)
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        ExerciceCard(ex = entry.libre, objectif = uiState.objectifsParExercice[entry.libre.exercise.id])
                     }
                 } else if (entry.bloc != null) {
                     val exercicesBloc = uiState.exercicesForBloc(entry.bloc.id)
-                    item(key = "bloc_${entry.bloc.id}") { BlocSectionHeader(bloc = entry.bloc) }
+                    item(key = "bloc_${entry.bloc.id}") { BlocBand(bloc = entry.bloc) }
                     items(exercicesBloc, key = { "ex_${it.exerciceSeance.id}" }) { ex ->
-                        val c = blocColor(entry.bloc.type)
-                        Box(modifier = Modifier.fillMaxWidth().background(c.copy(alpha = 0.04f))) {
-                            ExerciceTableReadRow(ex, bloc = entry.bloc)
-                        }
-                        HorizontalDivider(color = c.copy(alpha = 0.15f))
+                        ExerciceCard(ex = ex, bloc = entry.bloc, objectif = uiState.objectifsParExercice[ex.exercise.id])
                     }
                 }
             }
@@ -142,7 +156,12 @@ fun SeanceDetailScreen(
             if (uiState.instances.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(16.dp))
-                    Text(stringResource(R.string.seance_detail_instances_section_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 16.dp))
+                    Text(
+                        stringResource(R.string.seance_detail_instances_section_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
                 items(uiState.instances, key = { "inst_${it.id}" }) { instance ->
@@ -158,114 +177,250 @@ fun SeanceDetailScreen(
                 }
             }
 
-            item { Spacer(Modifier.height(80.dp)) }
+            item { Spacer(Modifier.height(8.dp)) }
         }
     }
 }
 
-// ===== Sélecteur multi-dates =====
-
-// ===== Composants de lecture =====
+// ===== Hero =====
 
 @Composable
-private fun SeanceHeaderCard(nom: String, groupesMusculaires: List<String>, dureeEstimeeMin: Int, notes: String) {
-    PandaCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(nom, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            if (groupesMusculaires.isNotEmpty()) {
-                Text(groupesMusculaires.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
-            }
-            if (notes.isNotBlank()) {
-                Spacer(Modifier.height(6.dp))
-                Text(notes, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-}
-
-@Composable
-private fun TableHeader() {
-    Row(
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)).padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+private fun SeanceHeroCard(
+    nom: String,
+    nombreExercices: Int,
+    nombreProgression: Int,
+    nombreSeries: Int,
+    dureeEstimeeMin: Int,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(
+                Brush.linearGradient(listOf(PandaPurple, PandaPurpleDark)),
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(16.dp),
     ) {
-        Text(stringResource(R.string.seance_detail_table_header_exercise), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(3f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.seance_detail_table_header_sets), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.seance_detail_table_header_reps), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.9f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.seance_detail_table_header_charge), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.1f), color = PandaSubtext, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.seance_detail_table_header_rest), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f), color = PandaSubtext, fontWeight = FontWeight.Bold)
+        Column {
+            Text(nom, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(
+                stringResource(R.string.seance_detail_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.85f),
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                HeroStat(nombreExercices.toString(), stringResource(R.string.seance_detail_stat_exercices), Modifier.weight(1f))
+                HeroStat(nombreProgression.toString(), stringResource(R.string.seance_detail_stat_progression), Modifier.weight(1f))
+                HeroStat(nombreSeries.toString(), stringResource(R.string.seance_detail_stat_series), Modifier.weight(1f))
+                HeroStat("~$dureeEstimeeMin", stringResource(R.string.seance_detail_stat_duree), Modifier.weight(1f))
+            }
+        }
     }
 }
 
 @Composable
-private fun BlocSectionHeader(bloc: BlocSeanceEntity) {
+private fun HeroStat(valeur: String, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(11.dp))
+            .padding(vertical = 9.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(valeur, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    }
+}
+
+// ===== Bande de bloc =====
+
+@Composable
+private fun BlocBand(bloc: BlocSeanceEntity) {
     val color = blocColor(bloc.type)
+    val meta = when (bloc.type) {
+        BlocType.SUPERSET, BlocType.CIRCUIT -> stringResource(
+            R.string.seance_detail_bloc_rest_label,
+            formatRest(bloc.tempsReposInterSec),
+            formatRest(bloc.tempsReposFinRoundSec),
+        )
+        else -> null
+    }
     Row(
-        modifier = Modifier.fillMaxWidth().background(color.copy(alpha = 0.06f)).padding(start = 4.dp, top = 8.dp, bottom = 4.dp, end = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(color.copy(alpha = 0.08f), RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(modifier = Modifier.width(4.dp).height(36.dp).background(color))
-        Spacer(Modifier.width(12.dp))
-        Column {
-            Text(text = bloc.nom.uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = color)
-            if (bloc.description.isNotBlank()) Text(bloc.description, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
-            if (bloc.type == BlocType.SUPERSET || bloc.type == BlocType.CIRCUIT) {
-                Text("Inter: ${formatRest(bloc.tempsReposInterSec)} · Fin round: ${formatRest(bloc.tempsReposFinRoundSec)}", style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.8f))
+        Box(modifier = Modifier.width(3.dp).height(28.dp).background(color))
+        Spacer(Modifier.width(8.dp))
+        Icon(blocTypeIcon(bloc.type), null, tint = color, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            bloc.nom.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            modifier = Modifier.weight(1f),
+        )
+        if (meta != null) {
+            Text(meta, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.85f), fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 0.dp, top = 8.dp, end = 10.dp, bottom = 8.dp))
+        } else {
+            Spacer(Modifier.width(10.dp))
+        }
+    }
+}
+
+// ===== Carte exercice unifiée =====
+
+@Composable
+private fun ExerciceCard(
+    ex: ExerciceSeanceWithExercise,
+    bloc: BlocSeanceEntity? = null,
+    objectif: ObjectifProgressionEntity?,
+) {
+    val e = ex.exerciceSeance
+    val estDuree = e.repsType == RepsType.DURATION
+    val enProgression = e.progressionActivee
+    val hideExerciceRepos = bloc != null && (bloc.type == BlocType.SUPERSET || bloc.type == BlocType.CIRCUIT)
+
+    val repsLabel = when {
+        estDuree -> "${objectif?.dureeCibleSec ?: e.repsCibles.toIntOrNull() ?: 0}s"
+        objectif?.repsCible != null -> objectif.repsCible.toString()
+        e.repsMin != null && e.repsMax != null -> "${e.repsMin}–${e.repsMax}"
+        else -> formatRepsDisplay(e.repsCibles, e.repsType)
+    }
+    val chargeLabel = objectif?.chargeCible?.let { "%.1f kg".format(it) }
+        ?: e.chargeCible.ifBlank { stringResource(R.string.common_empty_dash) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (enProgression) PandaPurple.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(1.dp),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                e.supersetGroupe?.let { sg ->
+                    Text(sg, style = MaterialTheme.typography.labelSmall, color = PandaOrange, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 4.dp))
+                }
+                Text(
+                    ex.exercise.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (enProgression) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.seance_detail_progression_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PandaPurple,
+                    )
+                }
+                if (e.isBilateral) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.seance_detail_bilateral_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PandaOrange.copy(alpha = 0.9f),
+                    )
+                }
+            }
+            if (e.equipement.isNotBlank()) {
+                Text(e.equipement, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("${e.nombreSeriesPrevues} × $repsLabel", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Text("@ $chargeLabel", style = MaterialTheme.typography.bodyMedium, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
+                if (!hideExerciceRepos && e.tempsReposSec > 0) {
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        stringResource(R.string.seance_detail_rest_label, formatRest(e.tempsReposSec)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PandaSubtext,
+                    )
+                }
+            }
+            if (e.avertissement.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text("⚠️ ${e.avertissement}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            }
+            if (enProgression) {
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(color = PandaPurple.copy(alpha = 0.25f))
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    e.systemeProgression?.let { systeme ->
+                        ConfigPill(systeme.name.lowercase().replaceFirstChar { it.uppercase() })
+                    }
+                    val incrementLabel = if (estDuree) "+${e.incrementDureeSec}s" else e.incrementKg?.let { "+${if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString()} kg" }
+                    incrementLabel?.let { ConfigPill(it) }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ExerciceTableReadRow(ex: ExerciceSeanceWithExercise, bloc: BlocSeanceEntity? = null) {
-    val e = ex.exerciceSeance
-    val hideExerciceRepos = bloc != null && (bloc.type == BlocType.SUPERSET || bloc.type == BlocType.CIRCUIT)
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Column(modifier = Modifier.weight(3f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                e.supersetGroupe?.let { sg ->
-                    Text(sg, style = MaterialTheme.typography.labelSmall, color = Color(0xFFE65100), fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 4.dp))
-                }
-                Text(ex.exercise.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-            if (e.equipement.isNotBlank()) Text(e.equipement, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
-            if (e.avertissement.isNotBlank()) Text("⚠️ ${e.avertissement}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-        }
-        Text(
-            if (e.isBilateral) "${e.nombreSeriesPrevues}×G+D" else e.nombreSeriesPrevues.toString(),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.weight(0.6f),
-            fontWeight = FontWeight.SemiBold,
-            color = PandaPurple,
-        )
-        Text(formatRepsDisplay(e.repsCibles, e.repsType), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.9f))
-        Text(e.chargeCible.ifBlank { stringResource(R.string.common_empty_dash) }, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.1f))
-        Text(if (!hideExerciceRepos && e.tempsReposSec > 0) formatRest(e.tempsReposSec) else "—", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.8f), color = PandaPurple)
-    }
+private fun ConfigPill(label: String) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = PandaPurple,
+        modifier = Modifier
+            .background(PandaPurple.copy(alpha = 0.1f), RoundedCornerShape(7.dp))
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    )
 }
+
+// ===== Instances =====
 
 @Composable
 private fun InstanceItem(instance: InstanceSeanceEntity, onClick: () -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier) {
     val formatter = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH)
     Card(
-        modifier = modifier.fillMaxWidth().border(
-            width = if (instance.isCompleted) 0.dp else 1.dp,
-            color = PandaPurple.copy(alpha = 0.3f),
-            shape = MaterialTheme.shapes.medium,
-        ),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(if (instance.isCompleted) 0.dp else 1.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(0.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(12.dp),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(if (instance.isCompleted) Icons.Default.CheckCircle else Icons.Default.PlayArrow, null, tint = if (instance.isCompleted) PandaPurple.copy(alpha = 0.6f) else PandaPurple, modifier = Modifier.padding(end = 8.dp))
-            Text(instance.date.format(formatter).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .background(if (instance.isCompleted) PandaPurple else PandaPurple.copy(alpha = 0.12f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (instance.isCompleted) Icons.Default.CheckCircle else Icons.Default.PlayArrow,
+                    null,
+                    tint = if (instance.isCompleted) Color.White else PandaPurple,
+                    modifier = Modifier.size(15.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                instance.date.format(formatter).replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Delete, stringResource(R.string.seance_detail_delete_instance_cd), modifier = Modifier.size(16.dp), tint = PandaSubtext)
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = PandaSubtext)
         }
     }
 }

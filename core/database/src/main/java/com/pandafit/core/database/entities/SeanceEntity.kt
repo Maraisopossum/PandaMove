@@ -32,4 +32,9 @@ data class SeanceEntity(
 
     @ColumnInfo(name = "updated_at")
     val updatedAt: LocalDateTime = LocalDateTime.now(),
+
+    // Masquée de la liste "Séances types" mais conservée en base : supprimer le template
+    // ne doit jamais effacer l'historique des instances déjà réalisées (cascade FK).
+    @ColumnInfo(name = "is_archived")
+    val isArchived: Boolean = false,
 )

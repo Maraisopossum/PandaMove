@@ -3,7 +3,10 @@ package com.pandafit.feature.strength.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,7 +28,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -33,7 +41,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
@@ -51,9 +61,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -83,14 +97,17 @@ import com.pandafit.core.database.entities.BlocType
 import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SeanceEntity
+import com.pandafit.core.database.entities.SystemeProgression
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaTopBar
+import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaOrange
 import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.strength.model.BlocDraft
 import com.pandafit.feature.strength.model.ExerciceDraft
 import com.pandafit.feature.strength.model.SeanceItem
+import com.pandafit.feature.strength.model.formatRepsDisplay
 import com.pandafit.feature.strength.viewmodel.SeanceCreateViewModel
 
 @Composable
@@ -115,7 +132,6 @@ fun SeanceCreateScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isInstanceEdit = viewModel.isInstanceEdit
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(seanceCategoryOverride) {
         if (seanceCategoryOverride != null) {
@@ -135,24 +151,6 @@ fun SeanceCreateScreen(
                 warmups = uiState.availableWarmups,
                 onSelect = { viewModel.addWarmupToSeance(it.id) },
                 onDismiss = viewModel::hideWarmupPicker,
-            )
-        }
-    }
-
-    if (uiState.showExercisePicker) {
-        ModalBottomSheet(onDismissRequest = viewModel::hideExercisePicker, sheetState = sheetState) {
-            ExercicePickerSheet(
-                exercises = viewModel.filteredPickerExercises(),
-                query = uiState.exercisePickerQuery,
-                onQueryChange = viewModel::updatePickerQuery,
-                selectedGroup = uiState.pickerGroupFilter,
-                onGroupChange = viewModel::setPickerGroupFilter,
-                onlyAvailable = uiState.pickerOnlyAvailable,
-                onToggleOnlyAvailable = viewModel::togglePickerOnlyAvailable,
-                multiSelectedIds = uiState.multiSelectedIds,
-                onToggleMultiSelect = { viewModel.toggleExerciseMultiSelect(it.id) },
-                onConfirm = viewModel::confirmMultiSelection,
-                onDismiss = viewModel::hideExercisePicker,
             )
         }
     }
@@ -213,6 +211,29 @@ fun SeanceCreateScreen(
                 }
             }
 
+            // Barre de recherche / ajout rapide d'exercice (remplace le bouton "+ Exercice" en bas)
+            item {
+                QuickAddBar(onClick = viewModel::showExercisePickerFree)
+            }
+
+            if (uiState.showExercisePicker && uiState.pickerTargetItemIndex == -1) {
+                item {
+                    ExercicePickerSheet(
+                        exercises = viewModel.filteredPickerExercises(),
+                        query = uiState.exercisePickerQuery,
+                        onQueryChange = viewModel::updatePickerQuery,
+                        selectedGroup = uiState.pickerGroupFilter,
+                        onGroupChange = viewModel::setPickerGroupFilter,
+                        onlyAvailable = uiState.pickerOnlyAvailable,
+                        onToggleOnlyAvailable = viewModel::togglePickerOnlyAvailable,
+                        multiSelectedIds = uiState.multiSelectedIds,
+                        onToggleMultiSelect = { viewModel.toggleExerciseMultiSelect(it.id) },
+                        onConfirm = viewModel::confirmMultiSelection,
+                        onDismiss = viewModel::hideExercisePicker,
+                    )
+                }
+            }
+
             // Bouton d'ajout d'échauffement (template uniquement, pas en mode instance)
             // TODO: masqué temporairement — à réactiver quand la section Échauffement sera prête
 //            if (!isInstanceEdit) {
@@ -242,6 +263,7 @@ fun SeanceCreateScreen(
                         totalItems = uiState.items.size,
                         onUpdate = { viewModel.updateFreeExercice(index, it) },
                         onDelete = { viewModel.removeItem(index) },
+                        onDuplicate = { viewModel.duplicateFreeExercice(index) },
                         onMoveUp = { viewModel.moveItemUp(index) },
                         onMoveDown = { viewModel.moveItemDown(index) },
                     )
@@ -256,29 +278,117 @@ fun SeanceCreateScreen(
                         onAddExercice = { viewModel.showExercisePicker(index) },
                         onUpdateExercice = { eIdx, ex -> viewModel.updateExerciceInBloc(index, eIdx, ex) },
                         onRemoveExercice = { eIdx -> viewModel.removeExerciceFromBloc(index, eIdx) },
+                        onDuplicateExercice = { eIdx -> viewModel.duplicateExerciceInBloc(index, eIdx) },
                         onMoveExerciceUp = { eIdx -> viewModel.moveExerciceInBloc(index, eIdx, -1) },
                         onMoveExerciceDown = { eIdx -> viewModel.moveExerciceInBloc(index, eIdx, +1) },
+                        pickerContent = if (uiState.showExercisePicker && uiState.pickerTargetItemIndex == index) {
+                            {
+                                ExercicePickerSheet(
+                                    exercises = viewModel.filteredPickerExercises(),
+                                    query = uiState.exercisePickerQuery,
+                                    onQueryChange = viewModel::updatePickerQuery,
+                                    selectedGroup = uiState.pickerGroupFilter,
+                                    onGroupChange = viewModel::setPickerGroupFilter,
+                                    onlyAvailable = uiState.pickerOnlyAvailable,
+                                    onToggleOnlyAvailable = viewModel::togglePickerOnlyAvailable,
+                                    multiSelectedIds = uiState.multiSelectedIds,
+                                    onToggleMultiSelect = { viewModel.toggleExerciseMultiSelect(it.id) },
+                                    onConfirm = viewModel::confirmMultiSelection,
+                                    onDismiss = viewModel::hideExercisePicker,
+                                )
+                            }
+                        } else null,
                     )
                 }
             }
 
-            // Boutons d'ajout
+            // Bouton d'ajout de bloc (l'ajout d'exercice libre se fait via la barre de recherche en haut)
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    TextButton(
-                        onClick = viewModel::showExercisePickerFree,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp), tint = PandaPurple)
-                        Text(stringResource(R.string.seance_create_add_exercice_button), color = PandaPurple)
-                    }
-                    AddBlocRow(onAdd = { type -> viewModel.addBloc(type) }, modifier = Modifier.weight(1f))
-                }
+                AddBlocRow(onAdd = { type -> viewModel.addBloc(type) }, modifier = Modifier.fillMaxWidth())
             }
 
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
+}
+
+// ===== Barre de recherche / ajout rapide =====
+
+@Composable
+private fun QuickAddBar(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.5.dp, PandaPurple.copy(alpha = 0.4f)),
+        shape = RoundedCornerShape(13.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Search, null, tint = PandaPurple, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                stringResource(R.string.seance_create_quickadd_placeholder),
+                style = MaterialTheme.typography.bodyMedium,
+                color = PandaSubtext,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                stringResource(R.string.seance_create_quickadd_tag),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = PandaPurple,
+                modifier = Modifier
+                    .background(PandaPurple.copy(alpha = 0.12f), RoundedCornerShape(7.dp))
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+            )
+        }
+    }
+}
+
+// ===== Badges =====
+
+@Composable
+private fun ProgressionBadge(modifier: Modifier = Modifier) {
+    Text(
+        stringResource(R.string.seance_detail_progression_badge),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = PandaPurple,
+        modifier = modifier
+            .background(PandaPurple.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+            .border(1.dp, PandaPurple.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+private fun BilateralBadge(modifier: Modifier = Modifier) {
+    Text(
+        stringResource(R.string.seance_create_badge_bilateral),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = PandaOrange,
+        modifier = modifier
+            .background(PandaOrange.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
+}
+
+/** Résumé en une ligne affiché carte repliée, ex. "3 × 8–12 · 20 kg". */
+@Composable
+private fun exerciceSummaryLine(exercice: ExerciceDraft): String {
+    val sep = stringResource(R.string.seance_create_summary_separator)
+    val reps = when {
+        exercice.systemeProgression == SystemeProgression.DOUBLE && exercice.repsMin != null && exercice.repsMax != null ->
+            "${exercice.repsMin}–${exercice.repsMax}"
+        else -> formatRepsDisplay(exercice.repsCibles, exercice.repsType)
+    }
+    val parts = mutableListOf("${exercice.nombreSeriesPrevues} × $reps")
+    if (exercice.chargeCible.isNotBlank()) parts.add(exercice.chargeCible)
+    return parts.joinToString(" $sep ")
 }
 
 // ===== Carte d'exercice libre =====
@@ -290,50 +400,128 @@ private fun FreeExerciceCard(
     totalItems: Int,
     onUpdate: (ExerciceDraft) -> Unit,
     onDelete: () -> Unit,
+    onDuplicate: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
 ) {
+    var expanded by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(exercice.exercise.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                if (index > 0) {
-                    IconButton(onClick = onMoveUp, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.seance_create_move_up_cd), modifier = Modifier.size(18.dp))
+            ExerciceCardHeader(
+                exercice = exercice,
+                expanded = expanded,
+                onToggleExpanded = { expanded = !expanded },
+            )
+            AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        IntStepperField(
+                            label = stringResource(R.string.seance_create_field_series),
+                            value = exercice.nombreSeriesPrevues,
+                            onValueChange = { onUpdate(exercice.copy(nombreSeriesPrevues = it)) },
+                            min = 1,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IntStepperField(
+                            label = stringResource(R.string.seance_create_field_rest),
+                            value = exercice.tempsReposSec,
+                            onValueChange = { onUpdate(exercice.copy(tempsReposSec = it)) },
+                            min = 0, step = 15,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
-                }
-                if (index < totalItems - 1) {
-                    IconButton(onClick = onMoveDown, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.seance_create_move_down_cd), modifier = Modifier.size(18.dp))
-                    }
-                }
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                    ExerciceFields(exercice = exercice, onUpdate = onUpdate)
+                    ExerciceCardFooter(
+                        onDuplicate = onDuplicate,
+                        canMoveUp = index > 0,
+                        canMoveDown = index < totalItems - 1,
+                        onMoveUp = onMoveUp,
+                        onMoveDown = onMoveDown,
+                        onDelete = onDelete,
+                    )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                IntStepperField(
-                    label = stringResource(R.string.seance_create_field_series),
-                    value = exercice.nombreSeriesPrevues,
-                    onValueChange = { onUpdate(exercice.copy(nombreSeriesPrevues = it)) },
-                    min = 1,
-                    modifier = Modifier.weight(1f),
-                )
-                IntStepperField(
-                    label = stringResource(R.string.seance_create_field_rest),
-                    value = exercice.tempsReposSec,
-                    onValueChange = { onUpdate(exercice.copy(tempsReposSec = it)) },
-                    min = 0, step = 15,
-                    modifier = Modifier.weight(1f),
-                )
+        }
+    }
+}
+
+// ===== En-tête / pied de carte communs (repli/déplie) =====
+
+@Composable
+private fun ExerciceCardHeader(
+    exercice: ExerciceDraft,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggleExpanded),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.size(30.dp).background(PandaPurple.copy(alpha = 0.12f), RoundedCornerShape(9.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(15.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(exercice.exercise.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (exercice.progressionActivee) ProgressionBadge()
+                if (exercice.isBilateral) BilateralBadge()
+                Text(exerciceSummaryLine(exercice), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
             }
-            ExerciceFields(exercice = exercice, onUpdate = onUpdate)
+        }
+        Icon(
+            if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+            stringResource(R.string.seance_create_expand_toggle_cd),
+            tint = PandaSubtext,
+        )
+    }
+}
+
+@Composable
+private fun ExerciceCardFooter(
+    onDuplicate: () -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = onDuplicate, modifier = Modifier.weight(1f), contentPadding = PaddingValues(8.dp)) {
+            Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(stringResource(R.string.seance_create_duplicate_cd), style = MaterialTheme.typography.labelSmall)
+        }
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp)),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.seance_create_move_up_cd), modifier = Modifier.size(18.dp))
+            }
+            IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.seance_create_move_down_cd), modifier = Modifier.size(18.dp))
+            }
+        }
+        OutlinedButton(
+            onClick = onDelete,
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+        ) {
+            Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(stringResource(R.string.common_delete_cd), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -352,8 +540,10 @@ private fun BlocCard(
     onAddExercice: () -> Unit,
     onUpdateExercice: (Int, ExerciceDraft) -> Unit,
     onRemoveExercice: (Int) -> Unit,
+    onDuplicateExercice: (Int) -> Unit = {},
     onMoveExerciceUp: (Int) -> Unit = {},
     onMoveExerciceDown: (Int) -> Unit = {},
+    pickerContent: (@Composable () -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(true) }
     val accentColor = blocColor(bloc.type)
@@ -369,6 +559,8 @@ private fun BlocCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.width(3.dp).height(24.dp).background(accentColor))
                     Spacer(Modifier.width(8.dp))
+                    Icon(blocTypeIcon(bloc.type), null, tint = accentColor, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
                     OutlinedTextField(
                         value = bloc.nom,
                         onValueChange = { onUpdate(bloc.copy(nom = it)) },
@@ -437,6 +629,7 @@ private fun BlocCard(
                         blocType = bloc.type,
                         onUpdate = { onUpdateExercice(eIdx, it) },
                         onDelete = { onRemoveExercice(eIdx) },
+                        onDuplicate = { onDuplicateExercice(eIdx) },
                         canMoveUp = eIdx > 0,
                         canMoveDown = eIdx < bloc.exercices.size - 1,
                         onMoveUp = { onMoveExerciceUp(eIdx) },
@@ -446,6 +639,10 @@ private fun BlocCard(
                 TextButton(onClick = onAddExercice, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp), tint = accentColor)
                     Text(stringResource(R.string.seance_create_bloc_add_exercice_button), color = accentColor)
+                }
+                if (pickerContent != null) {
+                    Spacer(Modifier.height(4.dp))
+                    pickerContent()
                 }
             }
         }
@@ -460,6 +657,7 @@ private fun ExerciceCard(
     blocType: BlocType?,
     onUpdate: (ExerciceDraft) -> Unit,
     onDelete: () -> Unit,
+    onDuplicate: () -> Unit = {},
     canMoveUp: Boolean = false,
     canMoveDown: Boolean = false,
     onMoveUp: () -> Unit = {},
@@ -468,6 +666,7 @@ private fun ExerciceCard(
     val showRepos = blocType == null || blocType == BlocType.ECHAUFFEMENT || blocType == BlocType.ACTIVATION || blocType == BlocType.RECUPERATION
     // Pour les circuits, le nombre de séries est centralisé dans l'en-tête du bloc — on le masque ici
     val showSeries = blocType != BlocType.CIRCUIT
+    var expanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 4.dp),
@@ -475,45 +674,44 @@ private fun ExerciceCard(
         elevation = CardDefaults.cardElevation(1.dp),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(exercice.exercise.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                if (canMoveUp) {
-                    IconButton(onClick = onMoveUp, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.seance_create_move_up_cd), modifier = Modifier.size(18.dp))
+            ExerciceCardHeader(
+                exercice = exercice,
+                expanded = expanded,
+                onToggleExpanded = { expanded = !expanded },
+            )
+            AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        if (showSeries) {
+                            IntStepperField(
+                                label = stringResource(R.string.seance_create_field_series),
+                                value = exercice.nombreSeriesPrevues,
+                                onValueChange = { onUpdate(exercice.copy(nombreSeriesPrevues = it)) },
+                                min = 1,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (showRepos) {
+                            IntStepperField(
+                                label = stringResource(R.string.seance_create_field_rest),
+                                value = exercice.tempsReposSec,
+                                onValueChange = { onUpdate(exercice.copy(tempsReposSec = it)) },
+                                min = 0, step = 15,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
-                }
-                if (canMoveDown) {
-                    IconButton(onClick = onMoveDown, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.seance_create_move_down_cd), modifier = Modifier.size(18.dp))
-                    }
-                }
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, stringResource(R.string.common_delete_cd), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                if (showSeries) {
-                    IntStepperField(
-                        label = stringResource(R.string.seance_create_field_series),
-                        value = exercice.nombreSeriesPrevues,
-                        onValueChange = { onUpdate(exercice.copy(nombreSeriesPrevues = it)) },
-                        min = 1,
-                        modifier = Modifier.weight(1f),
+                    ExerciceFields(exercice = exercice, onUpdate = onUpdate, blocType = blocType)
+                    ExerciceCardFooter(
+                        onDuplicate = onDuplicate,
+                        canMoveUp = canMoveUp,
+                        canMoveDown = canMoveDown,
+                        onMoveUp = onMoveUp,
+                        onMoveDown = onMoveDown,
+                        onDelete = onDelete,
                     )
                 }
-                if (showRepos) {
-                    IntStepperField(
-                        label = stringResource(R.string.seance_create_field_rest),
-                        value = exercice.tempsReposSec,
-                        onValueChange = { onUpdate(exercice.copy(tempsReposSec = it)) },
-                        min = 0, step = 15,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
             }
-            ExerciceFields(exercice = exercice, onUpdate = onUpdate, blocType = blocType)
         }
     }
 }
@@ -559,12 +757,20 @@ private fun ExerciceFields(
                 selected = exercice.repsType == RepsType.REPS,
                 onClick = { onUpdate(exercice.copy(repsType = RepsType.REPS)) },
                 label = { Text(stringResource(R.string.seance_create_reps_type_reps)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = PandaGreen.copy(alpha = 0.15f),
+                    selectedLabelColor = PandaGreen,
+                ),
                 modifier = Modifier.weight(1f),
             )
             FilterChip(
                 selected = exercice.repsType == RepsType.DURATION,
                 onClick = { onUpdate(exercice.copy(repsType = RepsType.DURATION)) },
                 label = { Text(stringResource(R.string.seance_create_reps_type_duration)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = PandaPurple.copy(alpha = 0.15f),
+                    selectedLabelColor = PandaPurple,
+                ),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -650,6 +856,158 @@ private fun ExerciceFields(
             }
         }
     }
+
+    // Surcharge progressive — non applicable sur échauffement/activation (bible §0.3)
+    if (blocType != BlocType.ECHAUFFEMENT && blocType != BlocType.ACTIVATION) {
+        ProgressionConfigSection(exercice = exercice, onUpdate = onUpdate)
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(11.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Remove, null, tint = PandaSubtext, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                stringResource(R.string.seance_create_progression_not_applicable),
+                style = MaterialTheme.typography.labelSmall,
+                color = PandaSubtext,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressionConfigSection(
+    exercice: ExerciceDraft,
+    onUpdate: (ExerciceDraft) -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (exercice.progressionActivee) PandaPurple.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                RoundedCornerShape(12.dp),
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(28.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.AutoMirrored.Filled.TrendingUp, null, tint = PandaPurple, modifier = Modifier.size(15.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(stringResource(R.string.seance_create_progression_label), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (exercice.progressionActivee) stringResource(R.string.seance_create_progression_description)
+                else stringResource(R.string.seance_create_progression_description_off),
+                style = MaterialTheme.typography.labelSmall,
+                color = PandaSubtext,
+            )
+        }
+        Switch(
+            checked = exercice.progressionActivee,
+            onCheckedChange = { checked ->
+                onUpdate(
+                    if (checked) {
+                        exercice.copy(
+                            progressionActivee = true,
+                            systemeProgression = exercice.systemeProgression ?: SystemeProgression.DOUBLE,
+                            repsMin = exercice.repsMin ?: 8,
+                            repsMax = exercice.repsMax ?: 12,
+                            incrementKg = exercice.incrementKg ?: 2.5f,
+                        )
+                    } else {
+                        exercice.copy(progressionActivee = false)
+                    }
+                )
+            },
+            colors = SwitchDefaults.colors(checkedTrackColor = PandaPurple),
+        )
+    }
+
+    if (exercice.progressionActivee) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(PandaPurple.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+                .border(1.dp, PandaPurple.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                FilterChip(
+                    selected = exercice.systemeProgression == SystemeProgression.LINEAIRE,
+                    onClick = { onUpdate(exercice.copy(systemeProgression = SystemeProgression.LINEAIRE)) },
+                    label = { Text(stringResource(R.string.seance_create_progression_system_lineaire)) },
+                    modifier = Modifier.weight(1f),
+                )
+                FilterChip(
+                    selected = exercice.systemeProgression == SystemeProgression.DOUBLE,
+                    onClick = { onUpdate(exercice.copy(systemeProgression = SystemeProgression.DOUBLE)) },
+                    label = { Text(stringResource(R.string.seance_create_progression_system_double)) },
+                    modifier = Modifier.weight(1f),
+                )
+                FilterChip(
+                    selected = exercice.systemeProgression == SystemeProgression.TEMPORELLE,
+                    onClick = { onUpdate(exercice.copy(systemeProgression = SystemeProgression.TEMPORELLE)) },
+                    label = { Text(stringResource(R.string.seance_create_progression_system_temporelle)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            if (exercice.systemeProgression == SystemeProgression.DOUBLE) {
+                Column {
+                    Text(stringResource(R.string.seance_create_progression_reps_range), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        IntStepperField(
+                            label = "",
+                            value = exercice.repsMin ?: 8,
+                            onValueChange = { onUpdate(exercice.copy(repsMin = it)) },
+                            min = 1,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text("→", color = PandaSubtext)
+                        IntStepperField(
+                            label = "",
+                            value = exercice.repsMax ?: 12,
+                            onValueChange = { onUpdate(exercice.copy(repsMax = it)) },
+                            min = 1,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            if (exercice.systemeProgression == SystemeProgression.TEMPORELLE) {
+                NumberStepper(
+                    label = stringResource(R.string.seance_create_progression_increment_duree),
+                    value = exercice.incrementDureeSec,
+                    onValueChange = { onUpdate(exercice.copy(incrementDureeSec = it)) },
+                    min = 1, step = 5,
+                )
+            } else {
+                FloatStepperField(
+                    label = stringResource(R.string.seance_create_progression_increment_kg),
+                    value = exercice.incrementKg ?: 2.5f,
+                    onValueChange = { onUpdate(exercice.copy(incrementKg = it)) },
+                    min = 0.5f, step = 0.5f,
+                )
+            }
+
+            IntStepperField(
+                label = stringResource(R.string.seance_create_progression_deload),
+                value = exercice.seuilDeload,
+                onValueChange = { onUpdate(exercice.copy(seuilDeload = it)) },
+                min = 1,
+            )
+        }
+    }
 }
 
 // ===== WarmupPickerSheet =====
@@ -706,14 +1064,25 @@ fun IntStepperField(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { if (value - step >= min) onValueChange(value - step) }, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(14.dp))
+        if (label.isNotEmpty()) Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp)),
+        ) {
+            IconButton(onClick = { if (value - step >= min) onValueChange(value - step) }, modifier = Modifier.size(34.dp)) {
+                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(14.dp), tint = PandaPurple)
             }
-            Text(value.toString(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 4.dp))
-            IconButton(onClick = { onValueChange(value + step) }, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Add, "+", modifier = Modifier.size(14.dp))
+            Text(
+                value.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = { onValueChange(value + step) }, modifier = Modifier.size(34.dp)) {
+                Icon(Icons.Default.Add, "+", modifier = Modifier.size(14.dp), tint = PandaPurple)
             }
         }
     }
@@ -731,13 +1100,60 @@ fun NumberStepper(
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
         Spacer(Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp)),
+        ) {
             IconButton(onClick = { if (value - step >= min) onValueChange(value - step) }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(14.dp), tint = PandaPurple)
             }
-            Text("${value}s", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text(
+                "${value}s",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.weight(1f),
+            )
             IconButton(onClick = { onValueChange(value + step) }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Add, "+", modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Add, "+", modifier = Modifier.size(14.dp), tint = PandaPurple)
+            }
+        }
+    }
+}
+
+@Composable
+fun FloatStepperField(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    min: Float = 0f,
+    step: Float = 0.5f,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+        Spacer(Modifier.height(4.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp)),
+        ) {
+            IconButton(onClick = { if (value - step >= min) onValueChange(value - step) }, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(14.dp), tint = PandaPurple)
+            }
+            val display = if (value == value.toInt().toFloat()) "${value.toInt()} kg" else "$value kg"
+            Text(
+                display,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = { onValueChange(value + step) }, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Add, "+", modifier = Modifier.size(14.dp), tint = PandaPurple)
             }
         }
     }
@@ -774,6 +1190,11 @@ private fun ExercicePickerSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.5.dp, PandaPurple.copy(alpha = 0.4f)),
+    ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // En-tête
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -789,6 +1210,9 @@ private fun ExercicePickerSheet(
                         onClick = onConfirm,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                     ) { Text(stringResource(R.string.seance_create_exercise_picker_confirm_button, multiSelectedIds.size)) }
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, stringResource(R.string.common_close_cd))
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -844,7 +1268,7 @@ private fun ExercicePickerSheet(
                 modifier = Modifier.padding(16.dp),
             )
         } else {
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                 items(exercises, key = { it.id }) { exercise ->
                     val isSelected = exercise.id in multiSelectedIds
                     val primaryGroup = muscleToGroup(exercise.effectivePrimary)
@@ -882,6 +1306,7 @@ private fun ExercicePickerSheet(
             }
         }
     }
+    }
 }
 
 fun blocColor(type: BlocType) = when (type) {
@@ -890,4 +1315,12 @@ fun blocColor(type: BlocType) = when (type) {
     BlocType.SUPERSET -> Color(0xFFE65100)
     BlocType.CIRCUIT -> Color(0xFF00838F)
     BlocType.RECUPERATION -> Color(0xFF2E7D32)
+}
+
+fun blocTypeIcon(type: BlocType) = when (type) {
+    BlocType.ECHAUFFEMENT -> Icons.Default.Whatshot
+    BlocType.ACTIVATION -> Icons.Default.SelfImprovement
+    BlocType.SUPERSET -> Icons.Default.Bolt
+    BlocType.CIRCUIT -> Icons.Default.FitnessCenter
+    BlocType.RECUPERATION -> Icons.Default.SelfImprovement
 }
