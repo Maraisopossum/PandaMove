@@ -1,10 +1,13 @@
 package com.pandafit.feature.strength.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -146,9 +149,17 @@ fun SeanceDetailScreen(
                     }
                 } else if (entry.bloc != null) {
                     val exercicesBloc = uiState.exercicesForBloc(entry.bloc.id)
-                    item(key = "bloc_${entry.bloc.id}") { BlocBand(bloc = entry.bloc) }
-                    items(exercicesBloc, key = { "ex_${it.exerciceSeance.id}" }) { ex ->
-                        ExerciceCard(ex = ex, bloc = entry.bloc, objectif = uiState.objectifsParExercice[ex.exercise.id])
+                    item(key = "bloc_${entry.bloc.id}") {
+                        BlocGroupFrame(bloc = entry.bloc) {
+                            exercicesBloc.forEach { ex ->
+                                ExerciceCard(
+                                    ex = ex,
+                                    bloc = entry.bloc,
+                                    objectif = uiState.objectifsParExercice[ex.exercise.id],
+                                    dense = true,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -233,11 +244,26 @@ private fun HeroStat(valeur: String, label: String, modifier: Modifier = Modifie
     }
 }
 
-// ===== Bande de bloc =====
+// ===== Cadre de bloc — titre + exercices du bloc regroupés dans un seul cadre coloré =====
 
 @Composable
-private fun BlocBand(bloc: BlocSeanceEntity) {
+private fun BlocGroupFrame(bloc: BlocSeanceEntity, content: @Composable ColumnScope.() -> Unit) {
     val color = blocColor(bloc.type)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .border(BorderStroke(1.5.dp, color.copy(alpha = 0.4f)), RoundedCornerShape(16.dp))
+            .padding(8.dp),
+    ) {
+        BlocGroupHeader(bloc = bloc, color = color)
+        Spacer(Modifier.height(6.dp))
+        content()
+    }
+}
+
+@Composable
+private fun BlocGroupHeader(bloc: BlocSeanceEntity, color: Color) {
     val meta = when (bloc.type) {
         BlocType.SUPERSET, BlocType.CIRCUIT -> stringResource(
             R.string.seance_detail_bloc_rest_label,
@@ -249,12 +275,10 @@ private fun BlocBand(bloc: BlocSeanceEntity) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .background(color.copy(alpha = 0.08f), RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)),
+            .background(color.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(modifier = Modifier.width(3.dp).height(28.dp).background(color))
-        Spacer(Modifier.width(8.dp))
         Icon(blocTypeIcon(bloc.type), null, tint = color, modifier = Modifier.size(15.dp))
         Spacer(Modifier.width(8.dp))
         Text(
@@ -265,9 +289,7 @@ private fun BlocBand(bloc: BlocSeanceEntity) {
             modifier = Modifier.weight(1f),
         )
         if (meta != null) {
-            Text(meta, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.85f), fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 0.dp, top = 8.dp, end = 10.dp, bottom = 8.dp))
-        } else {
-            Spacer(Modifier.width(10.dp))
+            Text(meta, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.85f), fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -279,6 +301,7 @@ private fun ExerciceCard(
     ex: ExerciceSeanceWithExercise,
     bloc: BlocSeanceEntity? = null,
     objectif: ObjectifProgressionEntity?,
+    dense: Boolean = false,
 ) {
     val e = ex.exerciceSeance
     val estDuree = e.repsType == RepsType.DURATION
@@ -295,10 +318,17 @@ private fun ExerciceCard(
         ?: e.chargeCible.ifBlank { stringResource(R.string.common_empty_dash) }
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = if (dense) 0.dp else 16.dp, vertical = if (dense) 3.dp else 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (enProgression) PandaPurple.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(1.dp),
+        border = BorderStroke(
+            1.dp,
+            when {
+                enProgression -> PandaPurple.copy(alpha = 0.3f)
+                dense -> Color.Transparent
+                else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            },
+        ),
+        elevation = CardDefaults.cardElevation(if (dense) 0.dp else 1.dp),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

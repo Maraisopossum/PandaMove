@@ -1,6 +1,8 @@
 package com.pandafit.feature.strength.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -425,7 +427,8 @@ fun InstanceReportScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(bgColor, RoundedCornerShape(10.dp)),
+                                .background(bgColor, RoundedCornerShape(10.dp))
+                                .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(10.dp)),
                         ) {
                             // Nom exercice
                             Text(
@@ -720,7 +723,8 @@ internal fun ReportPrintContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(bgColor, RoundedCornerShape(10.dp)),
+                        .background(bgColor, RoundedCornerShape(10.dp))
+                        .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(10.dp)),
                 ) {
                     Text(
                         ex.exercise.name,
@@ -862,7 +866,7 @@ private fun generateHtmlReport(
   .kpi .label { font-size: 11px; color: #888; display: block; }
   .table-header { display: flex; background: #f0f0f0; border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 700; color: #888; margin-bottom: 6px; gap: 4px; }
   .bloc-header { font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; }
-  .exercise { background: white; border-radius: 10px; margin-bottom: 6px; overflow: hidden; }
+  .exercise { background: white; border-radius: 10px; margin-bottom: 6px; overflow: hidden; border: 1px solid #dddddd; }
   .exercise-name { font-size: 13px; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid #eee; }
   .serie { display: flex; gap: 4px; padding: 5px 8px; font-size: 12px; align-items: center; }
   .serie:nth-child(even) { background: #fafafa; }
@@ -911,9 +915,10 @@ private fun generateHtmlReport(
             sb.append("""</div>""")
         }
 
+        val exerciseBorderColor = if ((isSuperset || isEchauffement) && group.bloc != null) blocColorHex(group.bloc.type) else "#dddddd"
         group.exercices.forEach { ex ->
             val series = seriesMap[ex.exerciceSeance.id] ?: emptyList()
-            sb.append("""<div class="exercise">""")
+            sb.append("""<div class="exercise" style="border-color:$exerciseBorderColor">""")
             sb.append("""<div class="exercise-name">${escHtml(ex.exercise.name)}</div>""")
             series.forEach { serie ->
                 val cls = if (!serie.isCompleted) " skipped" else ""
