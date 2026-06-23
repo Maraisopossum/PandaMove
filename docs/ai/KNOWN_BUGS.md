@@ -78,3 +78,17 @@
 - `repsRealisees` pour DURATION = secondes, non des répétitions
 - Impact : tonnage ET totalReps doivent ignorer ces séries (traiter comme 0)
 - Source : `ExerciceSeanceEntity.repsType` (via `ExerciceMapping` dans `InstanceSeanceDao`)
+
+### Deload (surcharge progressive) — proposé, jamais imposé
+- `prepareFinish()` (`InstanceExecuteViewModel.kt`) ne doit JAMAIS appeler `persisterObjectif()`
+  directement quand `proposition.deload == true` — toujours router vers `rows` (récap
+  `ProgressionRecapDialog`, Oui/Non/Ajuster)
+- Seuls les échecs simples (`deload == false`, cible maintenue) sont persistés silencieusement
+- Si un futur refactor du `when` dans `prepareFinish()` regroupe à nouveau ECHEC/ECHEC_MARQUE sans
+  vérifier `.deload`, le deload redevient silencieux — piège à surveiller
+
+### chargesAtteignables vs pasMateriel — précédence dans calculerIncrementQualitatif
+- `ProgressionEngine.calculerIncrementQualitatif()` snappe sur `chargesAtteignables` (inventaire réel,
+  bible §4.3) si non vide ; sinon retombe sur `pasMateriel`/`incrementKg` (legacy, catégorie MACHINE)
+- Ne jamais passer les deux en supposant qu'un seul est lu silencieusement : `chargesAtteignables` a
+  toujours la priorité dès qu'il est non vide, même si `pasMateriel` est également renseigné

@@ -98,6 +98,7 @@ import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.entities.SystemeProgression
+import com.pandafit.core.database.entities.TypeExercice
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaGreen
@@ -879,6 +880,7 @@ private fun ExerciceFields(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProgressionConfigSection(
     exercice: ExerciceDraft,
@@ -980,6 +982,36 @@ private fun ProgressionConfigSection(
                             min = 1,
                             modifier = Modifier.weight(1f),
                         )
+                    }
+                }
+            }
+
+            if (exercice.systemeProgression != SystemeProgression.TEMPORELLE) {
+                Column {
+                    Text(
+                        stringResource(R.string.seance_create_progression_type_exercice_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PandaSubtext,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        val typeLabels = mapOf(
+                            TypeExercice.COMPOSE_BAS to R.string.seance_create_progression_type_compose_bas,
+                            TypeExercice.COMPOSE_HAUT to R.string.seance_create_progression_type_compose_haut,
+                            TypeExercice.ISOLATION to R.string.seance_create_progression_type_isolation,
+                            TypeExercice.MACHINE to R.string.seance_create_progression_type_machine,
+                            TypeExercice.PDC to R.string.seance_create_progression_type_pdc,
+                        )
+                        typeLabels.forEach { (type, labelRes) ->
+                            FilterChip(
+                                selected = exercice.typeExercice == type,
+                                onClick = { onUpdate(exercice.copy(typeExercice = type)) },
+                                label = { Text(stringResource(labelRes), style = MaterialTheme.typography.labelSmall) },
+                            )
+                        }
                     }
                 }
             }

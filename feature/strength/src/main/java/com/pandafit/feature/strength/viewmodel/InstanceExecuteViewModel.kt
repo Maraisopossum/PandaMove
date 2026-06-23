@@ -4,6 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.ActiveSessionManager
+import com.pandafit.core.database.catalog.EquipmentCategory
+import com.pandafit.core.database.catalog.EquipmentInventaire
+import com.pandafit.core.database.catalog.EquipmentRepository
+import com.pandafit.core.database.catalog.chargesAtteignablesPour
+import com.pandafit.core.database.catalog.rawEquipmentToCategory
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.ObjectifProgressionDao
 import com.pandafit.core.database.dao.SeanceDao
@@ -35,6 +40,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -46,6 +52,7 @@ class InstanceExecuteViewModel @Inject constructor(
     private val seanceDao: SeanceDao,
     private val instanceSeanceDao: InstanceSeanceDao,
     private val objectifProgressionDao: ObjectifProgressionDao,
+    private val equipmentRepository: EquipmentRepository,
     val activeSessionManager: ActiveSessionManager,
 ) : ViewModel() {
 
@@ -918,14 +925,30 @@ class InstanceExecuteViewModel @Inject constructor(
         }
     }
 
+    /** Pas simple (catégories sans inventaire structuré, ex. MACHINE) — bible §4.3. */
+    private fun resolvePasMateriel(equipment: List<String>, pasParCategorie: Map<EquipmentCategory, Float>): Float? {
+        val categories = equipment.mapNotNull { rawEquipmentToCategory(it) }
+        return categories.mapNotNull { pasParCategorie[it] }.minOrNull()
+    }
+
+    /** Union des charges réellement composables avec l'inventaire déclaré pour cet exercice (bible §4.3). */
+    private fun resolveChargesAtteignables(equipment: List<String>, inventaire: EquipmentInventaire): List<Float>? {
+        val categories = equipment.mapNotNull { rawEquipmentToCategory(it) }
+        val charges = categories.flatMap { inventaire.chargesAtteignablesPour(it) ?: emptyList() }
+        return charges.distinct().sorted().ifEmpty { null }
+    }
+
     // ===== Surcharge progressive — clôture =====
 
-    /** Évalue chaque exercice en progression_activee, applique silencieusement les échecs/deload,
-     * et prépare le récap (succès + anomalies) pour validation utilisateur avant de clôturer. */
+    /** Évalue chaque exercice en progression_activee, applique silencieusement les échecs simples
+     * (cible maintenue), et prépare le récap (succès + deload proposé + anomalies) pour validation
+     * utilisateur avant de clôturer. Le deload n'est jamais imposé : c'est une proposition. */
     fun prepareFinish() {
         viewModelScope.launch {
             val state = _uiState.value
             val instance = state.instance ?: return@launch
+            val pasParCategorie = equipmentRepository.pasParCategorie.first()
+            val inventaire = equipmentRepository.inventaire.first()
             val rows = mutableListOf<PropositionAffichee>()
             state.exercices.forEach { exWithEx ->
                 val es = exWithEx.exerciceSeance
@@ -933,11 +956,16 @@ class InstanceExecuteViewModel @Inject constructor(
                 val objectifExistant = objectifProgressionDao.getBySeanceAndExercice(instance.seanceId, exWithEx.exercise.id)
                 val cible = cibleDepuis(objectifExistant, es)
                 val series = seriesCompletesPourEvaluation(es.id, state)
-                val proposition = evaluerExercice(es, cible, objectifExistant?.compteurEchec ?: 0, series, es.isBilateral)
-                when (proposition.statut) {
-                    StatutExercice.SUCCES, StatutExercice.SUCCES_SANS_MARGE, StatutExercice.NON_LOGGE ->
+                val pasMateriel = resolvePasMateriel(exWithEx.exercise.equipment, pasParCategorie)
+                val chargesAtteignables = resolveChargesAtteignables(exWithEx.exercise.equipment, inventaire)
+                val proposition = evaluerExercice(es, cible, objectifExistant?.compteurEchec ?: 0, series, es.isBilateral, pasMateriel, chargesAtteignables)
+                when {
+                    proposition.statut == StatutExercice.SUCCES ||
+                        proposition.statut == StatutExercice.SUCCES_SANS_MARGE ||
+                        proposition.statut == StatutExercice.NON_LOGGE ||
+                        proposition.deload ->
                         rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition))
-                    StatutExercice.ECHEC, StatutExercice.ECHEC_MARQUE ->
+                    else ->
                         persisterObjectif(instance.seanceId, exWithEx.exercise.id, objectifExistant, proposition)
                 }
             }

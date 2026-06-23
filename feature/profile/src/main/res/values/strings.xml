@@ -57,6 +57,29 @@
     <string name="equipment_description">Sélectionne le matériel que tu as à disposition. Les exercices seront filtrés en conséquence.</string>
     <string name="equipment_select_all">Tout sélectionner</string>
     <string name="equipment_deselect_all">Tout désélectionner</string>
+    <string name="equipment_pas_label">Pas (kg)</string>
+    <string name="equipment_configure_cd">Configurer</string>
+    <string name="equipment_charges_count">%1$d charges déclarées</string>
+    <string name="equipment_charges_none">Aucune charge déclarée</string>
+    <string name="equipment_dialog_save">Enregistrer</string>
+    <string name="equipment_dialog_cancel">Annuler</string>
+    <string name="equipment_plage_title_kettlebell">Kettlebell modulable</string>
+    <string name="equipment_plage_title_cable">Poulie / câble</string>
+    <string name="equipment_plage_min">Min (kg)</string>
+    <string name="equipment_plage_max">Max (kg)</string>
+    <string name="equipment_plage_pas">Pas (kg)</string>
+    <string name="equipment_barre_title">Barre et disques</string>
+    <string name="equipment_barre_poids">Poids de la barre (kg)</string>
+    <string name="equipment_disques_label">Disques disponibles</string>
+    <string name="equipment_disque_row">%1$s kg × %2$d</string>
+    <string name="equipment_disque_add_cd">Ajouter une paire</string>
+    <string name="equipment_disque_remove_cd">Retirer cette denomination</string>
+    <string name="equipment_disque_custom_placeholder">Autre poids (kg)</string>
+    <string name="equipment_halteres_title">Haltères</string>
+    <string name="equipment_halteres_fixes_label">Poids fixes possédés</string>
+    <string name="equipment_halteres_fixes_add_placeholder">Ajouter un poids (kg)</string>
+    <string name="equipment_halteres_chargeable_label">Haltères chargeables (disques)</string>
+    <string name="equipment_halteres_poignee_poids">Poids de la poignée à vide (kg)</string>
 
     <!-- Exercise catalog strings -->
     <string name="exercise_catalog_title">Catalogue d\'exercices</string>

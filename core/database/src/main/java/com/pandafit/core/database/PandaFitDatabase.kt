@@ -54,7 +54,7 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         CustomBreathingMethodEntity::class,
         ObjectifProgressionEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -265,6 +265,14 @@ abstract class PandaFitDatabase : RoomDatabase() {
         val MIGRATION_21_22 = object : Migration(21, 22) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE seances ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v22 → v23 : incrément qualitatif (bible §4.1-§4.3) — type d'exercice et % cible
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN type_exercice TEXT")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN increment_pct REAL")
             }
         }
 

@@ -127,6 +127,12 @@
     <string name="seance_create_progression_system_lineaire">Linéaire</string>
     <string name="seance_create_progression_system_double">Double</string>
     <string name="seance_create_progression_system_temporelle">Temporelle</string>
+    <string name="seance_create_progression_type_exercice_label">Type d\'exercice</string>
+    <string name="seance_create_progression_type_compose_bas">Composé bas</string>
+    <string name="seance_create_progression_type_compose_haut">Composé haut</string>
+    <string name="seance_create_progression_type_isolation">Isolation</string>
+    <string name="seance_create_progression_type_machine">Machine</string>
+    <string name="seance_create_progression_type_pdc">Poids du corps</string>
     <string name="seance_create_progression_reps_range">Plage de reps</string>
     <string name="seance_create_progression_increment_kg">Incrément (kg)</string>
     <string name="seance_create_progression_increment_duree">Incrément (s)</string>
@@ -139,6 +145,7 @@
     <string name="progression_recap_choice_ajuster">Ajuster</string>
     <string name="progression_recap_non_logge">Non loggé — aucune série enregistrée cette fois-ci</string>
     <string name="progression_recap_sans_marge">Cible atteinte mais RPE élevé — pas de marge, cible maintenue</string>
+    <string name="progression_recap_deload_label">Échecs répétés — deload proposé (-10%)</string>
     <string name="progression_recap_propose_charge">Proposer %1$.1f kg</string>
     <string name="progression_recap_propose_reps">Proposer %1$d reps</string>
     <string name="progression_recap_propose_reps_charge">Proposer %1$d reps @ %2$.1f kg</string>

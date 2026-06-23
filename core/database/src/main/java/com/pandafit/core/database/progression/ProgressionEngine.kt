@@ -4,6 +4,7 @@ import com.pandafit.core.database.entities.ExerciceSeanceEntity
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SerieRealiseeEntity
 import com.pandafit.core.database.entities.SystemeProgression
+import com.pandafit.core.database.entities.TypeExercice
 
 /** Logique pure de la bible de progression (support/prog/bible-progression.md, §2.3). */
 enum class StatutExercice { SUCCES, SUCCES_SANS_MARGE, ECHEC, ECHEC_MARQUE, NON_LOGGE }
@@ -35,12 +36,17 @@ private const val RPE_SANS_MARGE = 9f
 
 private const val POURCENTAGE_DELOAD = 0.10f
 
+// Plafond de saut : ne jamais proposer une hausse de charge > 10% en une fois (bible §4.5).
+private const val PLAFOND_SAUT_PCT = 0.10f
+
 fun evaluerExercice(
     config: ExerciceSeanceEntity,
     cible: CibleExercice,
     compteurEchecActuel: Int,
     seriesRealisees: List<SerieRealiseeEntity>,
     isBilateral: Boolean,
+    pasMateriel: Float? = null,
+    chargesAtteignables: List<Float>? = null,
 ): PropositionProgression {
     if (seriesRealisees.isEmpty()) {
         return PropositionProgression(
@@ -63,7 +69,7 @@ fun evaluerExercice(
         evaluerSeries(config, cible, seriesRealisees)
     }
 
-    return appliquerCompteurEtDeload(config, cible, resultat, compteurEchecActuel)
+    return appliquerCompteurEtDeload(config, cible, resultat, compteurEchecActuel, pasMateriel, chargesAtteignables)
 }
 
 private data class ResultatBrut(val statut: StatutExercice, val rpeMoyen: Float?)
@@ -133,6 +139,8 @@ private fun appliquerCompteurEtDeload(
     cible: CibleExercice,
     resultat: ResultatBrut,
     compteurEchecActuel: Int,
+    pasMateriel: Float? = null,
+    chargesAtteignables: List<Float>? = null,
 ): PropositionProgression {
     return when (resultat.statut) {
         StatutExercice.NON_LOGGE -> PropositionProgression(
@@ -144,7 +152,7 @@ private fun appliquerCompteurEtDeload(
             deload = false,
         )
 
-        StatutExercice.SUCCES -> proposerMontee(config, cible, compteurEchecActuel = 0)
+        StatutExercice.SUCCES -> proposerMontee(config, cible, compteurEchecActuel = 0, pasMateriel = pasMateriel, chargesAtteignables = chargesAtteignables)
 
         StatutExercice.SUCCES_SANS_MARGE -> PropositionProgression(
             statut = StatutExercice.SUCCES_SANS_MARGE,
@@ -174,7 +182,18 @@ private fun appliquerCompteurEtDeload(
     }
 }
 
-private fun proposerMontee(config: ExerciceSeanceEntity, cible: CibleExercice, compteurEchecActuel: Int): PropositionProgression {
+private fun proposerMontee(
+    config: ExerciceSeanceEntity,
+    cible: CibleExercice,
+    compteurEchecActuel: Int,
+    pasMateriel: Float? = null,
+    chargesAtteignables: List<Float>? = null,
+): PropositionProgression {
+    fun nouvelleCharge(): Float {
+        val charge = cible.chargeKg ?: 0f
+        return charge + calculerIncrementQualitatif(charge, config.typeExercice, config.incrementPct, pasMateriel, chargesAtteignables, config.incrementKg)
+    }
+
     return when (config.systemeProgression) {
         SystemeProgression.TEMPORELLE -> {
             PropositionProgression(
@@ -189,7 +208,7 @@ private fun proposerMontee(config: ExerciceSeanceEntity, cible: CibleExercice, c
         SystemeProgression.LINEAIRE -> {
             PropositionProgression(
                 statut = StatutExercice.SUCCES,
-                nouvelleChargeCible = arrondirIncrement((cible.chargeKg ?: 0f) + (config.incrementKg ?: 0f), config.incrementKg),
+                nouvelleChargeCible = nouvelleCharge(),
                 nouveauRepsCible = cible.reps,
                 nouvelleDureeCible = cible.dureeSec,
                 nouveauCompteurEchec = compteurEchecActuel,
@@ -202,7 +221,7 @@ private fun proposerMontee(config: ExerciceSeanceEntity, cible: CibleExercice, c
             if (repsMax != null && repsMin != null && (cible.reps ?: repsMax) >= repsMax) {
                 PropositionProgression(
                     statut = StatutExercice.SUCCES,
-                    nouvelleChargeCible = arrondirIncrement((cible.chargeKg ?: 0f) + (config.incrementKg ?: 0f), config.incrementKg),
+                    nouvelleChargeCible = nouvelleCharge(),
                     nouveauRepsCible = repsMin,
                     nouvelleDureeCible = cible.dureeSec,
                     nouveauCompteurEchec = compteurEchecActuel,
@@ -220,6 +239,45 @@ private fun proposerMontee(config: ExerciceSeanceEntity, cible: CibleExercice, c
             }
         }
     }
+}
+
+/**
+ * Incrément qualitatif (bible §4.2/§4.3) : `max(pas_matériel, charge × %cible)`, plafonné à +10%
+ * (§4.5). Deux modes :
+ * - `chargesAtteignables` non vide (inventaire réel déclaré) : snapping exact sur la charge la plus
+ *   proche réellement composable avec ce matériel (`arrondir_a_charge_realisable`, §4.3).
+ * - Sinon : pas simple (`pasMateriel`, ex. MACHINE) ou incrément manuel — comportement legacy
+ *   inchangé pour ne pas régresser les exercices sans inventaire structuré.
+ * Chemin totalement legacy (ni type d'exercice, ni pas, ni charges connues) : incrément manuel brut.
+ */
+fun calculerIncrementQualitatif(
+    chargeActuelle: Float,
+    typeExercice: TypeExercice?,
+    incrementPctOverride: Float?,
+    pasMateriel: Float?,
+    chargesAtteignables: List<Float>?,
+    incrementKgManuel: Float?,
+): Float {
+    if (typeExercice == null && pasMateriel == null && chargesAtteignables.isNullOrEmpty()) {
+        return incrementKgManuel ?: 0f
+    }
+
+    val pct = incrementPctOverride ?: typeExercice?.pourcentageCibleDefault ?: 0f
+
+    if (!chargesAtteignables.isNullOrEmpty()) {
+        val candidatsSuperieurs = chargesAtteignables.filter { it > chargeActuelle }.sorted()
+        val pasEstime = candidatsSuperieurs.firstOrNull()?.minus(chargeActuelle) ?: (incrementKgManuel ?: 0f)
+        val brut = maxOf(pasEstime, chargeActuelle * pct)
+        val plafondSaut = (chargeActuelle * PLAFOND_SAUT_PCT).coerceAtLeast(pasEstime)
+        val cibleBrute = chargeActuelle + brut.coerceAtMost(plafondSaut)
+        val nouvelleCharge = candidatsSuperieurs.minByOrNull { kotlin.math.abs(it - cibleBrute) } ?: chargeActuelle
+        return nouvelleCharge - chargeActuelle
+    }
+
+    val pasEffectif = pasMateriel ?: incrementKgManuel
+    val brut = maxOf(pasEffectif ?: 0f, chargeActuelle * pct)
+    val plafondSaut = (chargeActuelle * PLAFOND_SAUT_PCT).coerceAtLeast(pasEffectif ?: 0f)
+    return arrondirIncrement(brut.coerceAtMost(plafondSaut), pasEffectif)
 }
 
 private fun proposerDeload(config: ExerciceSeanceEntity, cible: CibleExercice): PropositionProgression {

@@ -1,8 +1,8 @@
-# PandaMove — Contexte compact IA (v20)
+# PandaMove — Contexte compact IA (v23)
 > Charge ce fichier en premier. Il remplace PROJECT_CONTEXT_MIN + AI_INDEX + ROOM_SCHEMA en une seule lecture.
 
 ## App
-Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, timer) · MVVM+UDF · Hilt · Room schema v20 · minSdk 31
+Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, timer) · MVVM+UDF · Hilt · Room schema v23 · minSdk 31
 
 ## Modules
 ```
@@ -11,9 +11,11 @@ app/
                  RunningTrackingService (ForegroundService GPS, @AndroidEntryPoint)
   navigation/    PandaFitNavHost.kt · PandaFitDestination.kt
 core/
-  database/      PandaFitDatabase (v20) · DAOs · entities · migrations 3→20
+  database/      PandaFitDatabase (v23) · DAOs · entities · migrations 3→23
                  ActiveSessionManager (@Singleton, StateFlow chrono)
                  catalog/GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
+                 catalog/EquipmentRepository (@Singleton, inventaire matériel réel — voir section dédiée)
+                 progression/ProgressionEngine (moteur pur — incrément qualitatif bible §4)
   designsystem/  PandaCard · PandaTopBar · AssignSessionDialogs · theme/
   common/        normalizeSearch()
 feature/
@@ -58,6 +60,10 @@ seances          id | nom | seance_category | groupes_musculaires | duree_estime
 blocs_seance     id | seance_id | nom | type | position | instance_seance_id(NULL=template)
 exercices_seance id | seance_id | exercise_id | bloc_id | position | reps_type(REPS|DURATION)
                  | instance_seance_id(NULL=template)  ← isolation v13
+                 | progression_activee | systeme_progression | reps_min | reps_max | increment_kg
+                 | seuil_deload | type_exercice(COMPOSE_BAS|COMPOSE_HAUT|ISOLATION|MACHINE|PDC) | increment_pct  ← v21/v23
+objectifs_progression id | seance_id | exercise_id | charge_cible | reps_cible | duree_cible_sec
+                 | compteur_echec | derniere_maj   ← objectif courant (bible §0.1), v21
 instances_seance id | seance_id | date | is_completed | completed_at | duration_seconds
 series_realisees id | instance_seance_id | exercice_seance_id | numero_serie
                  | reps_realisees(⚠=secondes si DURATION) | charge_kg | charge_label | is_completed
@@ -88,6 +94,19 @@ GpsTrackingRepository : @Singleton dans core/database/catalog/
   → Haversine pour distance, gain altitude cumulé
 RunningExecuteViewModel : liveTrackState, startGpsTracking(), stopGpsTracking(), finishWorkout() auto-remplit
 RunningWorkoutExecuteScreen : GpsTrackBlock composable (OSMDroid MapView 250dp + stats overlay + Start/Stop)
+```
+
+## Surcharge progressive — incrément qualitatif (v23)
+```
+ProgressionEngine.calculerIncrementQualitatif() : max(pas_matériel, charge×%cible), plafond +10%
+  → inventaire structuré déclaré (Haltères/Barre/Kettlebell/Câble) : snapping exact sur la charge
+    réellement composable — EquipmentInventory.kt (DisquesConfig combinatoire, PlageConfig min/max/pas,
+    HalteresConfig fixes+chargeables), résolu via EquipmentRepository.inventaire (DataStore JSON)
+  → sinon : pas simple (MACHINE) ou incrementKg manuel — comportement legacy inchangé
+TypeExercice (COMPOSE_BAS|COMPOSE_HAUT|ISOLATION|MACHINE|PDC) sur ExerciceSeanceEntity → %cible par défaut
+InstanceExecuteViewModel.resolveChargesAtteignables() : union des catégories d'équipement de l'exercice
+  (rawEquipmentToCategory sur ExerciseEntity.equipment) → liste triée passée à evaluerExercice()
+Deload (-10% après échecs répétés) : PROPOSÉ via ProgressionRecapDialog (Oui/Non/Ajuster), jamais imposé
 ```
 
 ## Isolation template/instance (critique v13)

@@ -11,6 +11,7 @@ import com.pandafit.core.database.entities.SeanceCategory
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.entities.SerieRealiseeEntity
 import com.pandafit.core.database.entities.SystemeProgression
+import com.pandafit.core.database.entities.TypeExercice
 import com.pandafit.core.database.progression.PropositionProgression
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import java.time.LocalDate
@@ -124,6 +125,7 @@ data class ExerciceDraft(
     val incrementKg: Float? = null,
     val incrementDureeSec: Int = 5,
     val seuilDeload: Int = 3,
+    val typeExercice: TypeExercice? = null,
 )
 
 // ===== Détail (lecture seule) =====

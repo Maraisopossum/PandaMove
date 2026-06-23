@@ -1,4 +1,4 @@
-# Room Schema — Version condensée (v20)
+# Room Schema — Version condensée (v23)
 
 ## Tables principales
 
@@ -21,12 +21,23 @@ id PK | seance_id FK | exercise_id FK | bloc_id FK(NULL) | superset_groupe | pos
 | nombre_series_prevues | reps_cibles | reps_type (REPS|DURATION) ← clé tonnage
 | charge_cible | tempo | temps_repos_sec | consigne_cle | equipement | avertissement
 | instance_seance_id FK(NULL)   ← NULL = exercice template, non-null = copie liée à une instance (v13)
+| is_bilateral                                              ← ajouté migration v18→v19
+| progression_activee | systeme_progression (LINEAIRE|DOUBLE|TEMPORELLE)
+| reps_min | reps_max | increment_kg | increment_duree_sec | seuil_deload  ← ajoutés migration v20→v21
+| type_exercice (COMPOSE_BAS|COMPOSE_HAUT|ISOLATION|MACHINE|PDC) | increment_pct  ← ajoutés migration v22→v23
 ```
 
 ### `instances_seance` → `InstanceSeanceEntity`
 ```
 id PK | seance_id FK | date | notes | is_completed | completed_at | duration_seconds | created_at
 ```
+
+### `objectifs_progression` → `ObjectifProgressionEntity` (v21)
+```
+id PK | seance_id FK | exercice_id FK | charge_cible | reps_cible | duree_cible_sec
+| compteur_echec | derniere_maj
+```
+Objectif courant par exercice (bible §0.1) — lu à l'activation d'une instance, jamais figé dans le template.
 
 ### `series_realisees` → `SerieRealiseeEntity`
 ```
@@ -112,4 +123,7 @@ ExerciceMapping(id, exerciseId, repsType)  // getExerciceMappingsForSeances()
 | v11 → v12 | `ALTER TABLE run_steps ADD COLUMN results_json TEXT NOT NULL DEFAULT ''` |
 | v12 → v13 | `ALTER TABLE blocs_seance ADD COLUMN instance_seance_id INTEGER` + idem sur `exercices_seance` + index |
 | v19 → v20 | `ALTER TABLE gps_track_points ADD COLUMN timestamp_ms INTEGER NOT NULL DEFAULT 0` + `speed_mps REAL` + `accuracy_m REAL` |
-| Prochaine | v20 → v21 — incrémenter `version =` dans `PandaFitDatabase.kt` + ajouter dans `DatabaseModule.addMigrations()` |
+| v20 → v21 | Module surcharge progressive : `progression_activee`, `systeme_progression`, `reps_min`, `reps_max`, `increment_kg`, `increment_duree_sec`, `seuil_deload` sur `exercices_seance` + table `objectifs_progression` |
+| v21 → v22 | `ALTER TABLE seances ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0` (archivage au lieu de suppression cascade) |
+| v22 → v23 | Incrément qualitatif (bible §4.1-§4.3) : `ALTER TABLE exercices_seance ADD COLUMN type_exercice TEXT` + `increment_pct REAL` |
+| Prochaine | v23 → v24 — incrémenter `version =` dans `PandaFitDatabase.kt` + ajouter dans `DatabaseModule.addMigrations()` |

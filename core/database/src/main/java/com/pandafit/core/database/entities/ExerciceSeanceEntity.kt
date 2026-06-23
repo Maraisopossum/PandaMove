@@ -105,4 +105,12 @@ data class ExerciceSeanceEntity(
 
     @ColumnInfo(name = "seuil_deload")
     val seuilDeload: Int = 3,
+
+    // Détermine le %cible par défaut de l'incrément qualitatif (bible §4.1) — null = chemin legacy
+    @ColumnInfo(name = "type_exercice")
+    val typeExercice: TypeExercice? = null,
+
+    // Override optionnel du %cible (sinon TypeExercice.pourcentageCibleDefault) — bible §4.2
+    @ColumnInfo(name = "increment_pct")
+    val incrementPct: Float? = null,
 )

@@ -94,6 +94,7 @@ class SeanceCreateViewModel @Inject constructor(
                 incrementKg = e.exerciceSeance.incrementKg,
                 incrementDureeSec = e.exerciceSeance.incrementDureeSec,
                 seuilDeload = e.exerciceSeance.seuilDeload,
+                typeExercice = e.exerciceSeance.typeExercice,
             )
 
             // Reconstruire la liste unifiée en ordre global (position)
@@ -581,6 +582,7 @@ private fun toEntity(seanceId: Long, blocId: Long?, position: Int, d: ExerciceDr
         incrementKg = d.incrementKg,
         incrementDureeSec = d.incrementDureeSec,
         seuilDeload = d.seuilDeload,
+        typeExercice = d.typeExercice,
     )
 
 fun BlocType.defaultName() = when (this) {

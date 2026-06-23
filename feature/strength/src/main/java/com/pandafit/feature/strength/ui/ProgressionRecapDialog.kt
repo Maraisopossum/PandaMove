@@ -31,8 +31,9 @@ import com.pandafit.feature.strength.R
 import com.pandafit.feature.strength.model.ChoixValidation
 import com.pandafit.feature.strength.model.PropositionAffichee
 
-// Récap unique à la clôture (bible §2.6) — une ligne par exercice en succès, Oui/Non/Ajuster.
-// Les anomalies (NON_LOGGE) s'affichent en lecture seule. Échecs/deload déjà appliqués silencieusement.
+// Récap unique à la clôture (bible §2.6) — une ligne par exercice en succès OU en deload proposé,
+// Oui/Non/Ajuster. Les anomalies (NON_LOGGE) s'affichent en lecture seule. Les échecs simples (cible
+// maintenue, pas de deload) sont déjà appliqués silencieusement, hors de ce récap.
 @Composable
 fun ProgressionRecapDialog(
     propositions: List<PropositionAffichee>,
@@ -105,6 +106,14 @@ private fun ProgressionRecapRow(
                 color = PandaSubtext,
             )
             return@Column
+        }
+
+        if (row.proposition.deload) {
+            Text(
+                stringResource(R.string.progression_recap_deload_label),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
         }
 
         val propositionLabel = when {

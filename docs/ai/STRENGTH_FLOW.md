@@ -146,6 +146,33 @@ seanceDao.insertSeance(full.seance.copy(id=0, nom="${nom} (copie)"))
 // Copie exercices avec nouveau seanceId + nouveau blocId mappé
 ```
 
+## Surcharge progressive — incrément qualitatif (bible §4)
+Pipeline complet : `support/prog/bible-progression.md` (spec), `support/prog/rapport-analyse-progression.md`
+(écarts spec/implémentation, mis à jour à chaque itération).
+
+```
+ProgressionEngine.evaluerExercice() → appliquerCompteurEtDeload() → proposerMontee()
+  → calculerIncrementQualitatif(chargeActuelle, typeExercice, incrementPctOverride,
+                                 pasMateriel, chargesAtteignables, incrementKgManuel)
+```
+- `TypeExercice` (`COMPOSE_BAS|COMPOSE_HAUT|ISOLATION|MACHINE|PDC`) sur `ExerciceSeanceEntity` →
+  détermine le `%cible` par défaut (5% / 2.5% / 2% / 0% / 0%), éditable via `incrementPct` (override,
+  pas encore exposé en UI — réservé à un futur réglage avancé).
+- Deux modes de calcul :
+  - **`chargesAtteignables` non vide** (inventaire matériel réel déclaré dans "Mon matériel" — voir
+    `PROFILE_FLOW.md`) → snapping exact sur la charge la plus proche réellement composable, jamais une
+    valeur arbitraire.
+  - **Sinon** (catégorie `MACHINE` ou exercice sans équipement reconnu) → pas simple
+    (`pasMateriel`) ou `incrementKg` manuel saisi dans `SeanceCreateScreen` — comportement historique.
+- Plafond +10% (bible §4.5) appliqué dans les deux modes, jamais descendu sous le pas/charge minimum.
+- `InstanceExecuteViewModel.resolveChargesAtteignables()` résout l'inventaire pour un exercice via
+  `ExerciseEntity.equipment` → `rawEquipmentToCategory()` → union des charges des catégories matchées.
+
+⚠ Deload (-10% après échecs répétés, seuil `seuilDeload`) : **proposé**, jamais appliqué silencieusement.
+`prepareFinish()` route toute proposition avec `proposition.deload == true` vers le récap
+(`ProgressionRecapDialog`, Oui/Non/Ajuster) — seuls les échecs simples (cible maintenue) sont persistés
+sans interaction.
+
 ## Points sensibles
 - `ExerciceDraft.position` ≠ index de sauvegarde → position sauvegardée = `eIdx` dans `forEachIndexed`
 - `SeanceFull.exercices` non ordonnée (Room @Relation) → toujours `.sortedBy { position }`
