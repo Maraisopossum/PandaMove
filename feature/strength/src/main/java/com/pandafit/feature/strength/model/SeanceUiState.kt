@@ -75,6 +75,7 @@ data class SeanceCreateUiState(
     val pickerGroupFilter: MuscleGroup? = null,
     val pickerOnlyAvailable: Boolean = false,
     val userEquipment: Set<com.pandafit.core.database.catalog.EquipmentCategory> = emptySet(),
+    val userInventaire: com.pandafit.core.database.catalog.EquipmentInventaire = com.pandafit.core.database.catalog.EquipmentInventaire(),
     val seanceCategory: SeanceCategory = SeanceCategory.STRENGTH,
     val availableWarmups: List<SeanceEntity> = emptyList(),
     val showWarmupPicker: Boolean = false,
@@ -264,6 +265,7 @@ data class PropositionAffichee(
     val exerciceId: Long,
     val exerciceName: String,
     val proposition: PropositionProgression,
+    val chargesAtteignables: List<Float> = emptyList(),
 )
 
 data class SerieRealiseeState(

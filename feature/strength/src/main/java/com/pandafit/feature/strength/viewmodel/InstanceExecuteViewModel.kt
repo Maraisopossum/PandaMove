@@ -7,7 +7,7 @@ import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.catalog.EquipmentCategory
 import com.pandafit.core.database.catalog.EquipmentInventaire
 import com.pandafit.core.database.catalog.EquipmentRepository
-import com.pandafit.core.database.catalog.chargesAtteignablesPour
+import com.pandafit.core.database.catalog.chargesAtteignablesPourEquipement
 import com.pandafit.core.database.catalog.rawEquipmentToCategory
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.ObjectifProgressionDao
@@ -956,11 +956,8 @@ class InstanceExecuteViewModel @Inject constructor(
     }
 
     /** Union des charges réellement composables avec l'inventaire déclaré pour cet exercice (bible §4.3). */
-    private fun resolveChargesAtteignables(equipment: List<String>, inventaire: EquipmentInventaire): List<Float>? {
-        val categories = equipment.mapNotNull { rawEquipmentToCategory(it) }
-        val charges = categories.flatMap { inventaire.chargesAtteignablesPour(it) ?: emptyList() }
-        return charges.distinct().sorted().ifEmpty { null }
-    }
+    private fun resolveChargesAtteignables(equipment: List<String>, inventaire: EquipmentInventaire): List<Float>? =
+        inventaire.chargesAtteignablesPourEquipement(equipment).ifEmpty { null }
 
     // ===== Surcharge progressive — clôture =====
 
@@ -988,7 +985,7 @@ class InstanceExecuteViewModel @Inject constructor(
                         proposition.statut == StatutExercice.SUCCES_SANS_MARGE ||
                         proposition.statut == StatutExercice.NON_LOGGE ||
                         proposition.deload ->
-                        rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition))
+                        rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition, chargesAtteignables ?: emptyList()))
                     else ->
                         persisterObjectif(instance.seanceId, exWithEx.exercise.id, objectifExistant, proposition)
                 }

@@ -151,6 +151,8 @@
     <string name="progression_recap_propose_reps_charge">Proposer %1$d reps @ %2$.1f kg</string>
     <string name="progression_recap_propose_duree">Proposer %1$d s</string>
     <string name="progression_recap_ajuster_label">Nouvelle charge (kg)</string>
+    <string name="charge_non_composable_hint">Pas composable avec ton matériel — le plus proche est %1$s</string>
+    <string name="charge_non_composable_arrondir">Arrondir</string>
     <string name="seance_detail_progression_badge">↗ Progression</string>
     <string name="seance_detail_progression_next">Prochaine cible : %1$s</string>
     <string name="seance_create_warmup_picker_title">Choisir un échauffement</string>

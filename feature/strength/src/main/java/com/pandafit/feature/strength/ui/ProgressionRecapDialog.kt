@@ -157,11 +157,16 @@ private fun ProgressionRecapRow(
         if (choix == ChoixValidation.AJUSTER) {
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
-                value = ajustementChargeKg?.toString() ?: "",
+                value = ajustementChargeKg?.let { formatKgValue(it) } ?: "",
                 onValueChange = { onAjustementChange(it.toFloatOrNull()) },
                 label = { Text(stringResource(R.string.progression_recap_ajuster_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+            )
+            ChargeComposabiliteHint(
+                chargeKg = ajustementChargeKg,
+                chargesAtteignables = row.chargesAtteignables,
+                onArrondir = onAjustementChange,
             )
         }
     }

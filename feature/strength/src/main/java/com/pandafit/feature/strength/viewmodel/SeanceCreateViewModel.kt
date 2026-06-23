@@ -299,6 +299,11 @@ class SeanceCreateViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(userEquipment = equipment)
             }
         }
+        viewModelScope.launch {
+            equipmentRepository.inventaire.collect { inventaire ->
+                _uiState.value = _uiState.value.copy(userInventaire = inventaire)
+            }
+        }
     }
 
     fun updateExerciceInBloc(itemIndex: Int, exerciceIndex: Int, updated: ExerciceDraft) {

@@ -62,3 +62,17 @@ fun EquipmentInventaire.chargesAtteignablesPour(category: EquipmentCategory): Li
     EquipmentCategory.CABLE -> cable?.chargesAtteignables()
     else -> null
 }
+
+/** Union des charges réellement composables pour les catégories matchant cet équipement déclaré
+ * (bible §4.3). Remplace la logique dupliquée dans InstanceExecuteViewModel.resolveChargesAtteignables. */
+fun EquipmentInventaire.chargesAtteignablesPourEquipement(equipment: List<String>): List<Float> {
+    val categories = equipment.mapNotNull { rawEquipmentToCategory(it) }
+    return categories.flatMap { chargesAtteignablesPour(it) ?: emptyList() }.distinct().sorted()
+}
+
+/** Charge la plus proche réellement composable si [chargeKg] n'en fait pas partie ; null si déjà
+ * composable (epsilon flottant) ou si l'inventaire ne contraint pas cette catégorie. */
+fun List<Float>.chargeNonComposableHint(chargeKg: Float, epsilon: Float = 0.01f): Float? {
+    if (isEmpty() || any { kotlin.math.abs(it - chargeKg) < epsilon }) return null
+    return minByOrNull { kotlin.math.abs(it - chargeKg) }
+}
