@@ -42,8 +42,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
+
+// Format produit par certains exports antérieurs à la normalisation ISO de DataExportManager
+// (LocalDateTime.toString()) — repli pour ne pas perdre createdAt/updatedAt/completedAt à l'import.
+private val LEGACY_DATETIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+
+private fun parseDateTimeFlexible(raw: String): LocalDateTime? =
+    runCatching { LocalDateTime.parse(raw) }.getOrNull()
+        ?: runCatching { LocalDateTime.parse(raw, LEGACY_DATETIME_FORMATTER) }.getOrNull()
 
 data class ImportResult(
     val imported: Int = 0,
@@ -192,12 +201,8 @@ class DataImportManager @Inject constructor(
                             seanceCategory = runCatching {
                                 SeanceCategory.valueOf(template.seance.seanceCategory)
                             }.getOrDefault(SeanceCategory.STRENGTH),
-                            createdAt = runCatching {
-                                LocalDateTime.parse(template.seance.createdAt)
-                            }.getOrDefault(LocalDateTime.now()),
-                            updatedAt = runCatching {
-                                LocalDateTime.parse(template.seance.updatedAt)
-                            }.getOrDefault(LocalDateTime.now()),
+                            createdAt = parseDateTimeFlexible(template.seance.createdAt) ?: LocalDateTime.now(),
+                            updatedAt = parseDateTimeFlexible(template.seance.updatedAt) ?: LocalDateTime.now(),
                         )
                     )
                     if (seanceResult == -1L) { skipped++; continue }
@@ -280,13 +285,9 @@ class DataImportManager @Inject constructor(
                                 .getOrDefault(LocalDate.now()),
                             notes = session.instance.notes,
                             isCompleted = session.instance.isCompleted,
-                            completedAt = session.instance.completedAt?.let {
-                                runCatching { LocalDateTime.parse(it) }.getOrNull()
-                            },
+                            completedAt = session.instance.completedAt?.let { parseDateTimeFlexible(it) },
                             durationSeconds = session.instance.durationSeconds,
-                            createdAt = runCatching {
-                                LocalDateTime.parse(session.instance.createdAt)
-                            }.getOrDefault(LocalDateTime.now()),
+                            createdAt = parseDateTimeFlexible(session.instance.createdAt) ?: LocalDateTime.now(),
                         )
                     )
                     if (instResult == -1L) { skipped++; continue }
@@ -403,15 +404,11 @@ class DataImportManager @Inject constructor(
                         name = w.name, notes = w.notes, objective = w.objective,
                         scheduledDate = runCatching { LocalDate.parse(w.scheduledDate) }
                             .getOrDefault(LocalDate.now()),
-                        createdAt = runCatching { LocalDateTime.parse(w.createdAt) }
-                            .getOrDefault(LocalDateTime.now()),
-                        updatedAt = runCatching { LocalDateTime.parse(w.updatedAt) }
-                            .getOrDefault(LocalDateTime.now()),
+                        createdAt = parseDateTimeFlexible(w.createdAt) ?: LocalDateTime.now(),
+                        updatedAt = parseDateTimeFlexible(w.updatedAt) ?: LocalDateTime.now(),
                         // ?: false — corrige les null des exports v2.0
                         isCompleted = w.isCompleted ?: false,
-                        completedAt = w.completedAt?.let {
-                            runCatching { LocalDateTime.parse(it) }.getOrNull()
-                        },
+                        completedAt = w.completedAt?.let { parseDateTimeFlexible(it) },
                         durationMinutes = w.durationMinutes, tags = w.tags,
                         colorHex = w.colorHex,
                         isTemplate = w.isTemplate ?: false,
@@ -514,14 +511,10 @@ class DataImportManager @Inject constructor(
                         name = w.name, notes = w.notes, objective = w.objective,
                         scheduledDate = runCatching { LocalDate.parse(w.scheduledDate) }
                             .getOrDefault(LocalDate.now()),
-                        createdAt = runCatching { LocalDateTime.parse(w.createdAt) }
-                            .getOrDefault(LocalDateTime.now()),
-                        updatedAt = runCatching { LocalDateTime.parse(w.updatedAt) }
-                            .getOrDefault(LocalDateTime.now()),
+                        createdAt = parseDateTimeFlexible(w.createdAt) ?: LocalDateTime.now(),
+                        updatedAt = parseDateTimeFlexible(w.updatedAt) ?: LocalDateTime.now(),
                         isCompleted = w.isCompleted ?: false,
-                        completedAt = w.completedAt?.let {
-                            runCatching { LocalDateTime.parse(it) }.getOrNull()
-                        },
+                        completedAt = w.completedAt?.let { parseDateTimeFlexible(it) },
                         durationMinutes = w.durationMinutes, tags = w.tags,
                         colorHex = w.colorHex,
                         isTemplate = w.isTemplate ?: false,
