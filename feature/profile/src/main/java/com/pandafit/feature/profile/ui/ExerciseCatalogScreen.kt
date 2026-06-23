@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -318,6 +320,7 @@ private fun EditExerciseDialog(
     onDismiss: () -> Unit,
 ) {
     val exercise = state.exercise ?: return
+    val maxDialogHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -327,71 +330,75 @@ private fun EditExerciseDialog(
             tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                .heightIn(max = maxDialogHeight),
         ) {
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Text(
                     stringResource(R.string.exercise_catalog_edit_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
+                Spacer(Modifier.height(16.dp))
 
-                // Nom verrouillé — identifiant stable
-                Column {
-                    Text(
-                        stringResource(R.string.exercise_catalog_name_locked),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = PandaSubtext,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        exercise.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // Nom verrouillé — identifiant stable
+                    Column {
+                        Text(
+                            stringResource(R.string.exercise_catalog_name_locked),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PandaSubtext,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            exercise.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
 
-                HorizontalDivider()
+                    HorizontalDivider()
 
-                // Type d'exercice
-                Column {
-                    Text(
-                        stringResource(R.string.exercise_catalog_type_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = PandaSubtext,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("" to stringResource(R.string.exercise_catalog_type_undefined), "Mono" to stringResource(R.string.exercise_catalog_type_mono), "Pluri" to stringResource(R.string.exercise_catalog_type_pluri)).forEach { (value, label) ->
-                            FilterChip(
-                                selected = state.exerciseType == value,
-                                onClick = { onTypeSelect(value) },
-                                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                            )
+                    // Type d'exercice
+                    Column {
+                        Text(
+                            stringResource(R.string.exercise_catalog_type_label),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PandaSubtext,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("" to stringResource(R.string.exercise_catalog_type_undefined), "Mono" to stringResource(R.string.exercise_catalog_type_mono), "Pluri" to stringResource(R.string.exercise_catalog_type_pluri)).forEach { (value, label) ->
+                                FilterChip(
+                                    selected = state.exerciseType == value,
+                                    onClick = { onTypeSelect(value) },
+                                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                                )
+                            }
                         }
                     }
+
+                    // Muscles
+                    MusclePickerSection(
+                        selectedMuscles = state.muscles,
+                        onToggle = onMuscleToggle,
+                    )
+
+                    // Équipement
+                    EquipmentPickerSection(
+                        selectedEquipment = state.equipment,
+                        onToggle = onEquipmentToggle,
+                    )
                 }
-
-                // Muscles
-                MusclePickerSection(
-                    selectedMuscles = state.muscles,
-                    onToggle = onMuscleToggle,
-                )
-
-                // Équipement
-                EquipmentPickerSection(
-                    selectedEquipment = state.equipment,
-                    onToggle = onEquipmentToggle,
-                )
 
                 // Boutons
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
