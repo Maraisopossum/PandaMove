@@ -307,6 +307,17 @@
     <!-- Historique -->
     <string name="instance_execute_history_title">Historique</string>
 
+    <!-- Bandeau de progression live -->
+    <string name="instance_execute_progression_banner_label">en progression</string>
+    <string name="instance_execute_progression_unlock_charge">Fais %1$d reps sur les %2$d séries pour débloquer %3$s</string>
+    <string name="instance_execute_progression_next_reps">Fais %1$d reps sur les %2$d séries → %3$d reps la prochaine fois</string>
+    <string name="instance_execute_progression_next_charge_lineaire">Fais %1$d reps sur les %2$d séries pour passer à %3$s</string>
+    <string name="instance_execute_progression_next_duree">Tiens %1$ds sur les %2$d séries → %3$ds la prochaine fois</string>
+    <string name="instance_execute_progression_unlock_count">🔓 %1$d/%2$d</string>
+
+    <!-- Sélecteur RPE en puces -->
+    <string name="instance_execute_rpe_chip_label">RPE · effort perçu (optionnel)</string>
+
     <!-- Overlay countdown 3-2-1 -->
     <string name="instance_execute_countdown_ready">Prêt ?</string>
 

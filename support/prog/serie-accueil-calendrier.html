@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Série d'activités — Accueil & Calendrier optimisés</title>
+<style>
+  :root{
+    --ink:#1f2030; --muted:#8a8a9c; --line:#ececf3;
+    --purple:#6c4dd6; --purple-soft:#f1edfb; --purple-mid:#cabdf2;
+    --run:#2e9e5b; --run-soft:#e7f6ee;
+    --bike:#2f6fd6; --bike-soft:#e8f0fc;
+    --renfo:#6c4dd6; --renfo-soft:#f1edfb;
+    --rando:#dd8e22; --rando-soft:#fdf1de;
+    --flame1:#ff7a45; --flame2:#ffb02e;
+    --bg:#f5f4f8; --card:#fff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#e9e6f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);padding:24px 14px 50px;display:flex;flex-direction:column;align-items:center;gap:16px}
+  .intro{max-width:880px;width:100%;font-size:12.5px;color:#55556a;line-height:1.55;text-align:center}
+  .intro b{color:var(--purple)}
+  .deck{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:900px}
+  .col{width:412px;max-width:100%}
+  .vlabel{text-align:center;margin-bottom:10px}
+  .vlabel .vt{font-size:14px;font-weight:800;color:var(--purple)}
+  .vlabel .vd{font-size:11.5px;color:#6a6a80;margin-top:3px;line-height:1.4;padding:0 8px}
+
+  .phone{background:var(--bg);border-radius:30px;box-shadow:0 20px 60px rgba(30,20,70,.22);overflow:hidden;border:1px solid #dcd7ec}
+  .status{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font-size:11.5px;color:#9a9aaa;background:#fff}
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px;background:#fff}
+  .hdr .nm{font-size:21px;font-weight:800}
+  .hdr .mn{font-size:19px;color:#444}
+
+  .scroll{max-height:78vh;overflow-y:auto;padding:0 15px 30px}
+  .scroll::-webkit-scrollbar{width:0}
+
+  /* ===== STREAK WIDGET (shared component) ===== */
+  .streak{background:linear-gradient(135deg,#2a2640,#3b3458);border-radius:17px;padding:15px 16px;color:#fff;margin:10px 0 14px;position:relative;overflow:hidden}
+  .streak::before{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;background:radial-gradient(circle,rgba(255,122,69,.35),transparent 70%)}
+  .streak-top{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+  .flame{width:46px;height:46px;border-radius:14px;background:linear-gradient(160deg,var(--flame2),var(--flame1));display:grid;place-items:center;font-size:22px;font-weight:800;flex-shrink:0;box-shadow:0 4px 14px rgba(255,122,69,.45)}
+  .streak-txt{flex:1}
+  .streak-txt .big{font-size:16px;font-weight:800;line-height:1.15}
+  .streak-txt .sub{font-size:11.5px;opacity:.78;margin-top:2px}
+  .streak-share{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:13px;color:#fff;flex-shrink:0}
+
+  .week-strip{display:flex;justify-content:space-between;margin-top:13px;position:relative;z-index:1}
+  .wd{text-align:center;flex:1}
+  .wd .wl{font-size:10px;color:rgba(255,255,255,.5);font-weight:700;margin-bottom:6px}
+  .wd .wc{width:30px;height:30px;border-radius:50%;margin:0 auto;display:grid;place-items:center;font-size:13px;border:1.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.35)}
+  .wd.today .wc{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
+  .wd .wc.r{background:var(--run);border-color:var(--run);color:#fff}
+  .wd .wc.b{background:var(--bike);border-color:var(--bike);color:#fff}
+  .wd .wc.f{background:var(--renfo);border-color:var(--renfo);color:#fff}
+  .wd .wc.h{background:var(--rando);border-color:var(--rando);color:#fff}
+
+  /* ===== HOME ===== */
+  .greet{font-size:21px;font-weight:800;margin-top:4px}
+  .greet-sub{font-size:13px;color:var(--muted);margin-top:2px;margin-bottom:4px}
+
+  .fact{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 13px;margin:10px 0 0}
+  .fact .fi{font-size:20px}
+  .fact .ft{font-size:12.5px;line-height:1.45;color:#4a4a5e}
+  .fact .ft b{color:var(--purple)}
+
+  .week-mini{display:flex;gap:9px;margin:14px 0}
+  .wm{flex:1;background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 8px;text-align:center}
+  .wm .v{font-size:17px;font-weight:800}
+  .wm .l{font-size:10px;color:var(--muted);margin-top:2px}
+
+  .sec-h{font-size:11px;font-weight:800;letter-spacing:.4px;color:var(--muted);text-transform:uppercase;margin:16px 0 9px}
+
+  .today-card{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--renfo);border-radius:14px;padding:13px 14px}
+  .today-card .ti{width:42px;height:42px;border-radius:11px;background:var(--renfo-soft);color:var(--renfo);display:grid;place-items:center;font-size:19px}
+  .today-card .tt{flex:1}
+  .today-card .tn{font-weight:700;font-size:15px}
+  .today-card .td{font-size:12px;color:var(--muted);margin-top:1px}
+  .today-card .play{width:36px;height:36px;border-radius:50%;background:var(--renfo);color:#fff;display:grid;place-items:center;font-size:14px}
+
+  .acts{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+  .acts::-webkit-scrollbar{height:0}
+  .act{flex-shrink:0;width:118px;border-radius:16px;padding:13px 12px;position:relative;overflow:hidden;color:#fff}
+  .act .ai{font-size:22px}
+  .act .an{font-weight:800;font-size:13.5px;margin-top:24px}
+  .act .as{font-size:10.5px;opacity:.85;margin-top:2px}
+  .act .flag{position:absolute;top:9px;right:9px;font-size:13px;background:rgba(255,255,255,.25);border-radius:7px;padding:2px 6px;font-weight:800}
+  .act.run{background:linear-gradient(160deg,#3cb579,var(--run))}
+  .act.bike{background:linear-gradient(160deg,#4f8ce0,var(--bike))}
+  .act.renfo{background:linear-gradient(160deg,#8a6ee8,var(--renfo))}
+  .act.rando{background:linear-gradient(160deg,#eda73f,var(--rando))}
+
+  /* ===== CALENDAR ===== */
+  .chips{display:flex;gap:8px;margin:8px 0 4px;overflow-x:auto}
+  .chips::-webkit-scrollbar{height:0}
+  .chip{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:22px;border:1.6px solid;font-weight:700;font-size:13px;background:#fff}
+  .chip.run{color:var(--run);border-color:var(--run)}
+  .chip.bike{color:var(--bike);border-color:var(--bike)}
+  .chip.renfo{color:var(--renfo);border-color:var(--renfo)}
+  .chip.rando{color:var(--rando);border-color:var(--rando)}
+  .chip.off{opacity:.4}
+
+  .monthnav{display:flex;align-items:center;justify-content:space-between;margin:16px 0 10px}
+  .monthnav .mt{font-size:18px;font-weight:800}
+  .monthnav button{border:none;background:#fff;border:1px solid var(--line);width:30px;height:30px;border-radius:9px;font-size:14px;color:#666;cursor:pointer}
+
+  .grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+  .grid7 .dh{font-size:10.5px;font-weight:700;color:var(--muted);padding-bottom:7px}
+  .daycell{padding:9px 0;border-radius:12px;position:relative;font-size:13.5px;font-weight:600;color:#444}
+  .daycell .dots{display:flex;justify-content:center;gap:2.5px;margin-top:4px;height:5px}
+  .dots i{width:5px;height:5px;border-radius:50%;display:inline-block}
+  .daycell.today{background:var(--run);color:#fff;font-weight:800}
+  .daycell.today .dots i{background:#fff!important}
+  .daycell.muted{color:#cac8d6}
+
+  .daydetail{margin-top:16px}
+  .dd-h{font-size:14px;font-weight:800;margin-bottom:9px}
+  .dd-card{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px}
+  .dd-card .di{width:38px;height:38px;border-radius:10px;background:var(--renfo-soft);color:var(--renfo);display:grid;place-items:center;font-size:17px}
+  .dd-card .dn{flex:1;font-weight:700;font-size:14px}
+  .dd-card .icns{display:flex;gap:7px}
+  .dd-card .icns span{width:30px;height:30px;border-radius:9px;background:#f4f3f8;display:grid;place-items:center;font-size:13px;color:#777}
+  .dd-card .icns .done{background:var(--run-soft);color:var(--run)}
+  .dd-card .icns .del{background:#fdecea;color:#d2543b}
+
+  .notes{max-width:900px;width:100%;display:flex;flex-direction:column;gap:8px}
+  .nn{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:12px;color:#4a4a5e;line-height:1.5;display:flex;gap:9px}
+  .nn .ni{width:20px;height:20px;border-radius:6px;background:var(--purple-soft);color:var(--purple);display:grid;place-items:center;font-weight:800;font-size:11px;flex-shrink:0}
+  .nn b{color:var(--purple)}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  Module <b>série d'activités</b> (façon Strava, dans tes couleurs) intégré à l'accueil et au calendrier — pour qu'il raconte la même histoire aux deux endroits plutôt que d'être recréé séparément. Le widget reprend tes 4 couleurs de discipline existantes (course verte, vélo bleu, renfo violet, rando ambre).
+</div>
+
+<div class="deck">
+
+  <!-- ============ ACCUEIL ============ -->
+  <div class="col">
+    <div class="vlabel"><div class="vt">Accueil optimisé</div><div class="vd">Série en tête, bilan hebdo cohérent (plus de tirets), activités uniformisées et dans l'ordre du calendrier.</div></div>
+    <div class="phone">
+      <div class="status"><span>06:25</span><span>59 ▮</span></div>
+      <div class="hdr"><span class="nm">PandaMove</span><span class="mn">☰</span></div>
+      <div class="scroll">
+
+        <div class="greet">Bonjour 👋</div>
+        <div class="greet-sub">Prêt pour ta prochaine activité ?</div>
+
+        <!-- STREAK -->
+        <div class="streak">
+          <div class="streak-top">
+            <div class="flame">🔥<span style="font-size:13px;margin-left:1px">9</span></div>
+            <div class="streak-txt">
+              <div class="big">9 semaines de série</div>
+              <div class="sub">52 activités enregistrées</div>
+            </div>
+            <div class="streak-share">⤴</div>
+          </div>
+          <div class="week-strip">
+            <div class="wd today"><div class="wl">L</div><div class="wc f">🏋</div></div>
+            <div class="wd"><div class="wl">M</div><div class="wc">·</div></div>
+            <div class="wd"><div class="wl">M</div><div class="wc">·</div></div>
+            <div class="wd"><div class="wl">J</div><div class="wc">·</div></div>
+            <div class="wd"><div class="wl">V</div><div class="wc">·</div></div>
+            <div class="wd"><div class="wl">S</div><div class="wc">·</div></div>
+            <div class="wd"><div class="wl">D</div><div class="wc">·</div></div>
+          </div>
+        </div>
+
+        <div class="fact"><span class="fi">🐼</span><div class="ft"><b>Le saviez-vous —</b> le cerveau du panda représente à peine 0,1 % de son poids corporel. Fonctionnel, pas ostentatoire.</div></div>
+
+        <div class="sec-h">Cette semaine</div>
+        <div class="week-mini">
+          <div class="wm"><div class="v">1</div><div class="l">Séance</div></div>
+          <div class="wm"><div class="v">0 km</div><div class="l">Course</div></div>
+          <div class="wm"><div class="v">1h15</div><div class="l">Durée</div></div>
+        </div>
+
+        <div class="sec-h">Séance du jour</div>
+        <div class="today-card">
+          <span class="ti">🏋</span>
+          <div class="tt"><div class="tn">Bas du corps</div><div class="td">Lundi 22 juin · Cycle A</div></div>
+          <span class="play">▶</span>
+        </div>
+
+        <div class="sec-h">Mes activités</div>
+        <div class="acts">
+          <div class="act run"><span class="flag">🔥</span><span class="ai">🏃</span><div class="an">Course</div><div class="as">Aucun run récent</div></div>
+          <div class="act bike"><span class="ai">🚴</span><div class="an">Vélo</div><div class="as">il y a 9 jours</div></div>
+          <div class="act renfo"><span class="flag">🔥</span><span class="ai">🏋</span><div class="an">Renfort</div><div class="as">aujourd'hui</div></div>
+          <div class="act rando"><span class="ai">🥾</span><div class="an">Rando</div><div class="as">Aucune sortie</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CALENDRIER ============ -->
+  <div class="col">
+    <div class="vlabel"><div class="vt">Calendrier optimisé</div><div class="vd">Puce « Rando » réparée (le texte vertical cassé devient une vraie pastille), série compacte sous les filtres, jour sélectionné enrichi d'un statut.</div></div>
+    <div class="phone">
+      <div class="status"><span>11:13</span><span>59 ▮</span></div>
+      <div class="hdr"><span class="nm" style="font-size:19px">Calendrier</span><span class="mn">☰</span></div>
+      <div class="scroll">
+
+        <div class="chips">
+          <span class="chip run">🏃 Running</span>
+          <span class="chip bike">🚴 Vélo</span>
+          <span class="chip renfo">🏋 Renfort</span>
+          <span class="chip rando">🥾 Rando</span>
+        </div>
+
+        <!-- compact streak -->
+        <div class="streak" style="padding:11px 14px;margin:12px 0 6px">
+          <div class="streak-top" style="gap:10px">
+            <div class="flame" style="width:36px;height:36px;font-size:17px">🔥<span style="font-size:11px">9</span></div>
+            <div class="streak-txt"><div class="big" style="font-size:13.5px">9 semaines de série</div></div>
+            <div class="streak-txt" style="flex:0;text-align:right"><div class="sub" style="margin:0;font-size:11px">52 activités</div></div>
+          </div>
+        </div>
+
+        <div class="monthnav">
+          <button>‹</button>
+          <span class="mt">Juin 2026</span>
+          <button>›</button>
+        </div>
+
+        <div class="grid7">
+          <div class="dh">L</div><div class="dh">M</div><div class="dh">M</div><div class="dh">J</div><div class="dh">V</div><div class="dh">S</div><div class="dh">D</div>
+
+          <div class="daycell muted"></div>
+          <div class="daycell">1<div class="dots"><i style="background:var(--run)"></i></div></div>
+          <div class="daycell">2<div class="dots"></div></div>
+          <div class="daycell">3<div class="dots"><i style="background:var(--run)"></i></div></div>
+          <div class="daycell">4<div class="dots"></div></div>
+          <div class="daycell">5<div class="dots"></div></div>
+          <div class="daycell">6<div class="dots"></div></div>
+
+          <div class="daycell">7<div class="dots"><i style="background:var(--run)"></i></div></div>
+          <div class="daycell">8<div class="dots"><i style="background:var(--renfo)"></i></div></div>
+          <div class="daycell">9<div class="dots"><i style="background:var(--run)"></i></div></div>
+          <div class="daycell">10<div class="dots"></div></div>
+          <div class="daycell">11<div class="dots"><i style="background:var(--run)"></i></div></div>
+          <div class="daycell">12<div class="dots"><i style="background:var(--renfo)"></i></div></div>
+          <div class="daycell">13<div class="dots"><i style="background:var(--bike)"></i><i style="background:var(--run)"></i></div></div>
+
+          <div class="daycell">14<div class="dots"></div></div>
+          <div class="daycell">15<div class="dots"><i style="background:var(--run)"></i></div></div>
+          <div class="daycell">16<div class="dots"></div></div>
+          <div class="daycell">17<div class="dots"><i style="background:var(--run)"></i><i style="background:var(--renfo)"></i></div></div>
+          <div class="daycell">18<div class="dots"></div></div>
+          <div class="daycell">19<div class="dots"></div></div>
+          <div class="daycell">20<div class="dots"><i style="background:var(--renfo)"></i></div></div>
+
+          <div class="daycell">21<div class="dots"><i style="background:var(--run)"></i></div></div>
+          <div class="daycell today">22<div class="dots"><i></i></div></div>
+          <div class="daycell">23<div class="dots"></div></div>
+          <div class="daycell">24<div class="dots"></div></div>
+          <div class="daycell">25<div class="dots"></div></div>
+          <div class="daycell">26<div class="dots"></div></div>
+          <div class="daycell">27<div class="dots"></div></div>
+
+          <div class="daycell">28<div class="dots"></div></div>
+          <div class="daycell">29<div class="dots"></div></div>
+          <div class="daycell">30<div class="dots"></div></div>
+        </div>
+
+        <div class="daydetail">
+          <div class="dd-h">Lundi 22 juin</div>
+          <div class="dd-card">
+            <span class="di">🏋</span>
+            <span class="dn">Bas du corps</span>
+            <div class="icns"><span class="done">✓</span><span>📅</span><span>▶</span><span class="del">🗑</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="notes">
+  <div class="nn"><span class="ni">1</span><div><b>Une série, deux écrans.</b> Le widget flamme + semaine apparaît en grand sur l'accueil et en version compacte sous les filtres du calendrier — même donnée, même logique, pas deux compteurs qui pourraient diverger.</div></div>
+  <div class="nn"><span class="ni">2</span><div><b>Comptage par semaine active</b> (≥1 activité, toute discipline confondue), comme Strava : plus motivant qu'un streak quotidien strict, et cohérent avec ton rythme de garde 24h/72h qui empêche un rythme journalier régulier.</div></div>
+  <div class="nn"><span class="ni">3</span><div><b>Bilan hebdo sans tirets.</b> « Course — » devient « Course 0 km » : zéro est un vrai chiffre, le tiret ressemblait à un bug de données manquantes.</div></div>
+  <div class="nn"><span class="ni">4</span><div><b>Activités uniformisées et ordonnées</b> comme les filtres du calendrier (Course, Vélo, Renfort, Rando), même style de carte pour les quatre — fini le mélange illustration détaillée (vélo) / silhouette vide (course).</div></div>
+  <div class="nn"><span class="ni">5</span><div><b>Puce « Rando » réparée.</b> Le texte vertical lettre par lettre dans ta capture est un bug d'affichage (probablement un conteneur trop étroit) ; ici c'est une pastille horizontale identique aux trois autres.</div></div>
+  <div class="nn"><span class="ni">6</span><div><b>Badge 🔥 sur les cartes d'activité</b> qui contribuent à la série en cours (ici Course et Renfort) — donne une raison de toucher chaque carte plutôt que de juste informer.</div></div>
+</div>
+
+</body>
+</html>

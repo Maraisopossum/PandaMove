@@ -261,6 +261,18 @@ class ProgressionEngineTest {
     }
 
     @Test
+    fun `increment qualitatif - cible sous le plancher matériel retombe sur l'incrément manuel`() {
+        // Barre EZ cataloguée "Barre" générique : la barre olympique déclarée (20 kg + disques) pèse
+        // déjà plus que la cible courante (ex. EZ bar réelle plus légère) -> snapper proposerait un
+        // saut au plancher matériel (+8 kg) au lieu de l'incrément configuré (+2.5 kg).
+        val increment = calculerIncrementQualitatif(
+            chargeActuelle = 12f, typeExercice = TypeExercice.ISOLATION, incrementPctOverride = null,
+            pasMateriel = null, chargesAtteignables = listOf(20f, 22.5f, 25f, 30f, 40f), incrementKgManuel = 2.5f,
+        )
+        assertEquals(2.5f, increment)
+    }
+
+    @Test
     fun `increment qualitatif - plafond 10pct snapping ecarte un candidat trop eloigne`() {
         // Charge 100 ; seul candidat supérieur est 140 (40% de hausse) -> bien au-delà du plafond +10% (110)
         // mais c'est le seul palier réalisable au-dessus de la charge actuelle : le moteur doit quand même

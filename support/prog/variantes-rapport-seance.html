@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Variantes — Consultation séance type</title>
+<style>
+  :root{
+    --ink:#1a1a2e; --muted:#8a8a9c; --line:#ece9f4;
+    --accent:#6c4dd6; --accent-soft:#f1edfb; --accent-mid:#cabdf2;
+    --orange:#ff7a45; --orange-soft:#fff1ea;
+    --green:#2e9e5b; --green-soft:#e7f6ee;
+    --warm:#fdf3ee; --lilac:#f6f3fc;
+    --bg:#ffffff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#e9e6f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);padding:26px 14px 60px}
+  .head{max-width:1180px;margin:0 auto 22px;text-align:center}
+  .head h1{font-size:19px;margin:0 0 6px;color:var(--accent)}
+  .head p{font-size:13px;color:#55556a;margin:0;line-height:1.5}
+  .deck{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1180px;margin:0 auto}
+  .col{width:340px;max-width:100%}
+  .vlabel{text-align:center;margin-bottom:12px}
+  .vlabel .vn{display:inline-block;font-size:11px;font-weight:700;color:var(--accent);background:#fff;border:1px solid var(--accent-mid);padding:4px 11px;border-radius:20px;letter-spacing:.4px}
+  .vlabel .vt{font-size:13.5px;font-weight:700;margin-top:8px}
+  .vlabel .vd{font-size:11.5px;color:#6a6a80;margin-top:3px;line-height:1.45;padding:0 6px}
+
+  .phone{background:var(--bg);border-radius:28px;box-shadow:0 18px 50px rgba(30,20,70,.22);overflow:hidden;border:1px solid #dcd7ec}
+  .status{display:flex;justify-content:space-between;align-items:center;padding:9px 18px 2px;font-size:11px;color:#9a9aaa}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:6px 14px 12px}
+  .top .t{font-weight:700;font-size:16px}
+  .ib{width:30px;height:30px;border-radius:9px;border:none;background:#efecf8;color:var(--accent);font-size:14px;cursor:pointer}
+  .meta{margin:0 14px 12px;background:#faf9fd;border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+  .meta .n{font-size:18px;font-weight:800}
+  .meta .c{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .body{padding:0 14px 18px;max-height:660px;overflow-y:auto}
+  .body::-webkit-scrollbar{width:0}
+
+  .blk{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.4px;padding:7px 0 7px 10px;border-left:3px solid;margin:14px 0 6px;border-radius:0 6px 6px 0}
+  .blk small{font-weight:500;font-size:10px;letter-spacing:0;opacity:.8;margin-left:2px}
+  .bw{color:#c9622f;border-color:var(--orange);background:var(--warm)}
+  .ba{color:var(--accent);border-color:var(--accent);background:var(--lilac)}
+  .bs{color:var(--orange);border-color:var(--orange);background:var(--orange-soft);flex-direction:column;align-items:flex-start;gap:1px}
+
+  /* ---------- VARIANT A : tableau augmenté ---------- */
+  .tbl-h{display:grid;grid-template-columns:1fr 42px 60px 58px;gap:6px;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 6px;font-weight:700}
+  .tbl-r{display:grid;grid-template-columns:1fr 42px 60px 58px;gap:6px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--line);font-size:13px}
+  .tbl-r .nm{font-weight:600;line-height:1.2}
+  .tbl-r .nm .gd{font-size:9.5px;color:#8a6d2f;background:#fbf3e0;padding:1px 5px;border-radius:5px;margin-left:4px;font-weight:700}
+  .tbl-r .se{color:var(--accent);font-weight:700}
+  .tbl-r .rp{font-weight:600}
+  .tbl-r .ch{font-weight:600}
+  .prog-row{position:relative}
+  .prog-row .nm::before{content:"↗";color:var(--accent);font-weight:800;margin-right:5px}
+  .next{display:block;font-size:9.5px;color:var(--green);font-weight:700;margin-top:1px}
+  .muted{color:#b7b2c8}
+
+  /* ---------- VARIANT B : cartes tendance ---------- */
+  .xc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:9px;box-shadow:0 1px 3px rgba(40,30,80,.05)}
+  .xc.prog{border-color:var(--accent-mid);background:linear-gradient(180deg,#fdfcff,#faf8ff)}
+  .xc-top{display:flex;align-items:center;gap:9px}
+  .xc-nm{font-weight:700;font-size:14px;flex:1;line-height:1.2}
+  .pbadge{font-size:9.5px;font-weight:800;color:#fff;background:var(--accent);padding:3px 8px;border-radius:20px;display:inline-flex;gap:3px;align-items:center}
+  .xc-stat{font-size:12.5px;color:#55556a;margin-top:7px;font-weight:600}
+  .xc-stat b{color:var(--ink)}
+  .sys{font-size:10px;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:6px;font-weight:700;margin-left:6px}
+  .trend{display:flex;align-items:flex-end;gap:4px;margin-top:10px;height:34px}
+  .bar{flex:1;background:var(--accent-mid);border-radius:3px 3px 0 0;position:relative;opacity:.55}
+  .bar.last{background:var(--accent);opacity:1}
+  .bar.next{background:var(--green);opacity:1;border:1.5px dashed #fff;outline:1.5px dashed var(--green)}
+  .trend-lbl{display:flex;gap:4px;margin-top:4px}
+  .trend-lbl span{flex:1;text-align:center;font-size:9px;color:#9893ab;font-weight:600}
+  .trend-lbl span.nx{color:var(--green)}
+  .nextpill{margin-top:9px;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);background:var(--green-soft);padding:5px 10px;border-radius:9px}
+  .xc-simple{font-size:12.5px;color:#6a6a80;margin-top:6px;font-weight:500}
+
+  /* ---------- VARIANT C : condensé + résumé ---------- */
+  .summary{background:linear-gradient(135deg,#6c4dd6,#8a6ee8);border-radius:15px;padding:14px 15px;margin:0 14px 12px;color:#fff}
+  .summary .big{font-size:13px;font-weight:600;opacity:.85}
+  .summary .stats{display:flex;gap:10px;margin-top:10px}
+  .summary .st{flex:1;background:rgba(255,255,255,.16);border-radius:10px;padding:9px;text-align:center}
+  .summary .st .v{font-size:19px;font-weight:800;line-height:1}
+  .summary .st .l{font-size:9.5px;opacity:.85;margin-top:3px}
+  .summary .nextline{margin-top:11px;font-size:11.5px;background:rgba(255,255,255,.16);border-radius:9px;padding:8px 10px;display:flex;align-items:center;gap:6px}
+  .cr{display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid var(--line)}
+  .cr .cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .cr .cnm{flex:1;font-size:13.5px;font-weight:600}
+  .cr.off .cnm{color:#a5a0b5;font-weight:500}
+  .cr .cval{font-size:12px;color:#6a6a80;font-weight:600}
+  .cr .cp{font-size:9.5px;color:var(--accent);font-weight:800;margin-left:7px}
+  .cr.off .cval{color:#bdb8cc}
+
+  .legend{max-width:1180px;margin:26px auto 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .legend .l{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-size:12px;color:#4a4a5e;max-width:360px;line-height:1.5}
+  .legend .l b{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>Consultation de séance type — 3 variantes</h1>
+  <p>Vue lecture seule (distincte de l'encodage). Chaque variante surface la progression différemment : la plage de reps, le badge ↗, la prochaine cible.</p>
+</div>
+
+<div class="deck">
+
+  <!-- ============ VARIANT A ============ -->
+  <div class="col">
+    <div class="vlabel">
+      <span class="vn">VARIANTE A</span>
+      <div class="vt">Tableau augmenté</div>
+      <div class="vd">Évolution minimale de ton écran actuel. Plage de reps + flèche ↗ + prochaine charge sous la charge actuelle.</div>
+    </div>
+    <div class="phone">
+      <div class="status"><span>22:27</span><span>87 ▮</span></div>
+      <div class="top"><button class="ib">‹</button><span class="t">Bas du corps</span><button class="ib">✎</button></div>
+      <div class="meta"><div class="n">Bas du corps</div><div class="c">Cycle A</div></div>
+      <div class="body">
+
+        <div class="blk bw">🔥 ÉCHAUFFEMENT</div>
+        <div class="tbl-h"><span>Exercice</span><span>Sér</span><span>Reps</span><span>Charge</span></div>
+        <div class="tbl-r"><span class="nm">Tibial raises</span><span class="se">3</span><span class="rp">20</span><span class="ch muted">PDC</span></div>
+        <div class="tbl-r"><span class="nm">Clam shell <span class="gd">G+D</span></span><span class="se">3</span><span class="rp">15</span><span class="ch muted">—</span></div>
+        <div class="tbl-r"><span class="nm">Bird dog</span><span class="se">2</span><span class="rp">10</span><span class="ch muted">—</span></div>
+
+        <div class="blk bs"><span>⚡ SUPERSET</span><small>Inter 30 s · Fin round 3 min</small></div>
+        <div class="tbl-r prog-row"><span class="nm">Squat gobelet</span><span class="se">3</span><span class="rp">8–12</span><span class="ch">20<span class="next">→ 22,5</span></span></div>
+        <div class="tbl-r prog-row"><span class="nm">Nordic curl</span><span class="se">3</span><span class="rp">5</span><span class="ch muted">PDC</span></div>
+
+        <div class="blk bs"><span>⚡ SUPERSET</span><small>Inter 20 s · Fin round 1 min</small></div>
+        <div class="tbl-r prog-row"><span class="nm">Fente haltères</span><span class="se">3</span><span class="rp">8–12</span><span class="ch">9<span class="next">→ 11</span></span></div>
+        <div class="tbl-r"><span class="nm">Gainage latéral <span class="gd">G+D</span></span><span class="se">3</span><span class="rp">25s</span><span class="ch muted">PDC</span></div>
+        <div class="tbl-r prog-row"><span class="nm">Mollets assis</span><span class="se">3</span><span class="rp">12–15</span><span class="ch">50<span class="next">→ 55</span></span></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VARIANT B ============ -->
+  <div class="col">
+    <div class="vlabel">
+      <span class="vn">VARIANTE B</span>
+      <div class="vt">Cartes avec tendance</div>
+      <div class="vd">Chaque exercice en carte. Mini-graphe des dernières charges + prochaine cible mise en avant. Idéal pour suivre la progression dans le temps.</div>
+    </div>
+    <div class="phone">
+      <div class="status"><span>22:27</span><span>87 ▮</span></div>
+      <div class="top"><button class="ib">‹</button><span class="t">Bas du corps</span><button class="ib">✎</button></div>
+      <div class="meta"><div class="n">Bas du corps</div><div class="c">Cycle A</div></div>
+      <div class="body">
+
+        <div class="blk bs"><span>⚡ SUPERSET</span><small>Inter 30 s · Fin round 3 min</small></div>
+
+        <div class="xc prog">
+          <div class="xc-top"><span class="xc-nm">Squat gobelet</span><span class="pbadge">↗ Prog</span></div>
+          <div class="xc-stat"><b>3 × 8–12</b> @ 20 kg <span class="sys">Double</span></div>
+          <div class="trend">
+            <div class="bar" style="height:55%"></div>
+            <div class="bar" style="height:70%"></div>
+            <div class="bar last" style="height:80%"></div>
+            <div class="bar next" style="height:95%"></div>
+          </div>
+          <div class="trend-lbl"><span>17,5</span><span>20</span><span>20</span><span class="nx">22,5</span></div>
+          <div class="nextpill">⤴ Prochaine cible : 3 × 8 @ 22,5 kg</div>
+        </div>
+
+        <div class="xc">
+          <div class="xc-top"><span class="xc-nm">Nordic curl</span></div>
+          <div class="xc-simple">3 × 5 · PDC · excentrique seul</div>
+        </div>
+
+        <div class="blk bs"><span>⚡ SUPERSET</span><small>Inter 20 s · Fin round 1 min</small></div>
+
+        <div class="xc prog">
+          <div class="xc-top"><span class="xc-nm">Mollets assis machine</span><span class="pbadge">↗ Prog</span></div>
+          <div class="xc-stat"><b>3 × 12–15</b> @ 50 kg <span class="sys">Linéaire</span></div>
+          <div class="trend">
+            <div class="bar" style="height:60%"></div>
+            <div class="bar" style="height:75%"></div>
+            <div class="bar last" style="height:85%"></div>
+            <div class="bar next" style="height:100%"></div>
+          </div>
+          <div class="trend-lbl"><span>40</span><span>45</span><span>50</span><span class="nx">55</span></div>
+          <div class="nextpill">⤴ Prochaine cible : 3 × 12 @ 55 kg</div>
+        </div>
+
+        <div class="xc">
+          <div class="xc-top"><span class="xc-nm">Gainage latéral</span></div>
+          <div class="xc-simple">3 × 25 s · G+D · PDC</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VARIANT C ============ -->
+  <div class="col">
+    <div class="vlabel">
+      <span class="vn">VARIANTE C</span>
+      <div class="vt">Condensé + résumé</div>
+      <div class="vd">Bandeau de synthèse en haut (combien d'exercices progressent, prochaine montée). Liste dense, les exercices en progression ressortent, les autres s'effacent.</div>
+    </div>
+    <div class="phone">
+      <div class="status"><span>22:27</span><span>87 ▮</span></div>
+      <div class="top"><button class="ib">‹</button><span class="t">Bas du corps</span><button class="ib">✎</button></div>
+
+      <div class="summary">
+        <div class="big">Bas du corps · Cycle A</div>
+        <div class="stats">
+          <div class="st"><div class="v">9</div><div class="l">exercices</div></div>
+          <div class="st"><div class="v">4</div><div class="l">en progression</div></div>
+          <div class="st"><div class="v">3,2 T</div><div class="l">dernier tonnage</div></div>
+        </div>
+        <div class="nextline">⤴ Prochaine montée : <b style="margin-left:3px">Squat +2,5 kg</b></div>
+      </div>
+
+      <div class="body" style="padding-top:0">
+        <div class="blk bw">🔥 ÉCHAUFFEMENT</div>
+        <div class="cr off"><span class="cdot" style="background:#e0c4b3"></span><span class="cnm">Tibial raises</span><span class="cval">3 × 20</span></div>
+        <div class="cr off"><span class="cdot" style="background:#e0c4b3"></span><span class="cnm">Clam shell</span><span class="cval">3 × 15</span></div>
+        <div class="cr off"><span class="cdot" style="background:#e0c4b3"></span><span class="cnm">Bird dog</span><span class="cval">2 × 10</span></div>
+
+        <div class="blk ba">🎯 ACTIVATION</div>
+        <div class="cr off"><span class="cdot" style="background:var(--accent-mid)"></span><span class="cnm">Wall sit iso</span><span class="cval">2 × 45 s</span></div>
+        <div class="cr off"><span class="cdot" style="background:var(--accent-mid)"></span><span class="cnm">Calf raise iso</span><span class="cval">2 × 45 s</span></div>
+
+        <div class="blk bs"><span>⚡ SUPERSETS</span></div>
+        <div class="cr"><span class="cdot" style="background:var(--accent)"></span><span class="cnm">Squat gobelet</span><span class="cval">3 × 8–12 @ 20</span><span class="cp">↗</span></div>
+        <div class="cr off"><span class="cdot" style="background:#d8d3e6"></span><span class="cnm">Nordic curl</span><span class="cval">3 × 5</span></div>
+        <div class="cr"><span class="cdot" style="background:var(--accent)"></span><span class="cnm">Hip thrust machine</span><span class="cval">3 × 10–12</span><span class="cp">↗</span></div>
+        <div class="cr"><span class="cdot" style="background:var(--accent)"></span><span class="cnm">Fente haltères</span><span class="cval">3 × 8–12 @ 9</span><span class="cp">↗</span></div>
+        <div class="cr off"><span class="cdot" style="background:#d8d3e6"></span><span class="cnm">Gainage latéral</span><span class="cval">3 × 25 s</span></div>
+        <div class="cr"><span class="cdot" style="background:var(--accent)"></span><span class="cnm">Mollets assis</span><span class="cval">3 × 12–15 @ 50</span><span class="cp">↗</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="l"><b>A — Tableau augmenté.</b> Le moins de friction : tu gardes ton écran, on ajoute juste plage de reps, ↗ et prochaine charge. Migration la plus simple côté Claude Code.</div>
+  <div class="l"><b>B — Cartes tendance.</b> Le plus motivant : on voit la charge grimper séance après séance. Demande de stocker l'historique des cibles par exercice.</div>
+  <div class="l"><b>C — Condensé + résumé.</b> Le plus rapide à lire : synthèse en tête, exercices de travail en avant, accessoires estompés. Bon pour un coup d'œil avant la séance.</div>
+</div>
+
+</body>
+</html>

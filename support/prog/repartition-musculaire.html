@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Répartition musculaire — HeatMap & Araignée</title>
+<style>
+  :root{
+    --ink:#1f2030; --muted:#8a8a9c; --line:#ececf3;
+    --purple:#6c4dd6; --purple-soft:#f1edfb; --purple-mid:#cabdf2;
+    --orange:#ff7a45;
+    --grey:#b8b4c6;
+    --bg:#f5f4f8; --card:#fff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#e9e6f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);padding:24px 14px 50px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .intro{max-width:420px;width:100%;font-size:12.5px;color:#55556a;line-height:1.55}
+  .intro b{color:var(--purple)}
+
+  .phone{width:420px;max-width:100%;background:var(--bg);border-radius:30px;box-shadow:0 20px 60px rgba(30,20,70,.22);overflow:hidden;border:1px solid #dcd7ec}
+  .status{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font-size:11.5px;color:#9a9aaa;background:#fff}
+  .hdr{display:flex;align-items:center;gap:12px;padding:6px 16px 12px;background:#fff}
+  .hdr .bk{font-size:20px;color:#444;background:none;border:none;cursor:pointer}
+  .hdr .t{font-size:18px;font-weight:800;flex:1;text-align:center}
+  .hdr .ic{width:32px;height:32px;border-radius:9px;border:none;background:#efecf5;color:#666;font-size:14px;cursor:pointer}
+
+  .scroll{max-height:80vh;overflow-y:auto;padding:14px}
+  .scroll::-webkit-scrollbar{width:0}
+
+  .period{width:100%;background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px;text-align:center;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:12px}
+  .period .cv{color:var(--muted);font-size:13px;margin-left:6px}
+
+  /* segmented toggle */
+  .seg{display:flex;background:#eceaf3;border-radius:13px;padding:4px;gap:4px;margin-bottom:14px}
+  .seg button{flex:1;border:none;background:none;padding:10px 0;font-size:13.5px;font-weight:700;color:#8a85a0;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .seg button.on{background:#fff;color:var(--purple);box-shadow:0 1px 3px rgba(40,30,80,.1)}
+
+  .view{display:none}
+  .view.on{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+
+  /* HEATMAP */
+  .hm-figs{display:flex;justify-content:center;gap:18px}
+  .hm-fig{text-align:center}
+  .hm-fig .cap{font-size:11.5px;font-weight:700;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.4px}
+  .zone{stroke:#fff;stroke-width:1.2;transition:fill .2s}
+  .body-out{fill:none;stroke:#e2def0;stroke-width:1.4}
+  /* legend */
+  .heat-leg{display:flex;align-items:center;gap:9px;margin-top:16px;justify-content:center}
+  .heat-leg .lt{font-size:10.5px;color:var(--muted);font-weight:700}
+  .heat-leg .scale{display:flex;gap:3px}
+  .heat-leg .sc{width:30px;height:11px;border-radius:3px}
+  .hm-list{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .hm-row{display:flex;align-items:center;gap:10px;padding:6px 0}
+  .hm-row .sw{width:13px;height:13px;border-radius:4px;flex-shrink:0}
+  .hm-row .mn{flex:1;font-size:13px;font-weight:600}
+  .hm-row .mv{font-size:12px;color:var(--muted);font-weight:700}
+  .hm-row .tag{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px;margin-left:7px}
+  .tag-hot{background:#ffe9df;color:var(--orange)}
+  .tag-low{background:#fff7ed;color:#c9881f}
+
+  /* RADAR */
+  .radar-wrap{display:flex;justify-content:center;padding:4px 0}
+  .radar-leg{display:flex;justify-content:center;gap:20px;margin-top:6px}
+  .radar-leg .rl{display:flex;align-items:center;gap:6px;font-size:12px;color:#6a6a80;font-weight:600}
+  .radar-leg .rl .d{width:11px;height:11px;border-radius:50%}
+  .radar-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.45}
+  .radar-note b{color:var(--purple)}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sc{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px}
+  .sc .l{font-size:13px;color:#6a6a80;font-weight:600}
+  .sc .v{font-size:22px;font-weight:800;margin-top:4px}
+  .sc .d{font-size:11.5px;font-weight:800;margin-top:6px;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:7px}
+  .d.up{color:#1f9d57;background:#e7f6ee}
+  .d.down{color:#d2543b;background:#fbe9e4}
+  .d.flat{color:#8a8a9c;background:#f0f0f4}
+
+  .notes{max-width:420px;width:100%;display:flex;flex-direction:column;gap:8px}
+  .nn{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:12px;color:#4a4a5e;line-height:1.5;display:flex;gap:9px}
+  .nn .ni{width:20px;height:20px;border-radius:6px;background:var(--purple-soft);color:var(--purple);display:grid;place-items:center;font-weight:800;font-size:11px;flex-shrink:0}
+  .nn b{color:var(--purple)}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  Deux visualisations de la <b>répartition musculaire</b> dans l'identité claire de l'app : une <b>HeatMap corporelle</b> (face + dos, intensité = volume) et un <b>diagramme araignée</b> (actuelle vs précédente). Bascule entre les deux, survole les zones.
+</div>
+
+<div class="phone">
+  <div class="status"><span>21:30</span><span>91 ▮</span></div>
+  <div class="hdr">
+    <button class="bk">‹</button>
+    <span class="t">Répartition musculaire</span>
+    <button class="ic">↑</button>
+  </div>
+
+  <div class="scroll">
+
+    <div class="period">Les 30 derniers jours <span class="cv">▾</span></div>
+
+    <div class="seg">
+      <button class="on" onclick="show('heat',this)">🔥 HeatMap</button>
+      <button onclick="show('radar',this)">🕸 Araignée</button>
+    </div>
+
+    <!-- ===================== HEATMAP ===================== -->
+    <div class="view on" id="heat">
+      <div class="panel">
+        <div class="hm-figs">
+          <!-- FRONT -->
+          <div class="hm-fig">
+            <svg width="130" height="290" viewBox="0 0 160 360">
+              <!-- silhouette outline -->
+              <path class="body-out" d="M80 8 q16 0 16 16 q0 12 -4 18 q14 4 22 14 q6 16 6 34 l0 40 q10 30 8 64 l-6 0 q-4 -28 -10 -46 l0 56 q2 40 -2 78 l-12 0 q-4 -34 -6 -64 q-2 30 -6 64 l-12 0 q-4 -38 -2 -78 l0 -56 q-6 18 -10 46 l-6 0 q-2 -34 8 -64 l0 -40 q0 -18 6 -34 q8 -10 22 -14 q-4 -6 -4 -18 q0 -16 16 -16z"/>
+              <!-- head -->
+              <ellipse class="zone" cx="80" cy="24" rx="17" ry="19" fill="#efeaf7"/>
+              <!-- épaules / deltoids -->
+              <ellipse class="zone" cx="48" cy="92" rx="16" ry="15" data-m="Épaules"/>
+              <ellipse class="zone" cx="112" cy="92" rx="16" ry="15" data-m="Épaules"/>
+              <!-- torse / pecs -->
+              <path class="zone" data-m="Torse" d="M62 84 q18 -8 36 0 q4 22 -4 34 q-14 8 -28 0 q-8 -12 -4 -34z"/>
+              <!-- bras (biceps) -->
+              <rect class="zone" data-m="Bras" x="30" y="98" width="16" height="52" rx="8"/>
+              <rect class="zone" data-m="Bras" x="114" y="98" width="16" height="52" rx="8"/>
+              <!-- avant-bras -->
+              <rect class="zone" data-m="Bras" x="28" y="150" width="13" height="46" rx="6"/>
+              <rect class="zone" data-m="Bras" x="119" y="150" width="13" height="46" rx="6"/>
+              <!-- tronc / abs -->
+              <rect class="zone" data-m="Tronc" x="64" y="120" width="32" height="56" rx="11"/>
+              <!-- jambes / quads -->
+              <path class="zone" data-m="Jambes" d="M62 182 q12 -6 16 0 l-2 70 q-8 6 -14 0z"/>
+              <path class="zone" data-m="Jambes" d="M98 182 q-12 -6 -16 0 l2 70 q8 6 14 0z"/>
+              <!-- mollets -->
+              <path class="zone" data-m="Jambes" d="M62 256 q8 -4 14 0 l-4 64 q-4 4 -8 0z"/>
+              <path class="zone" data-m="Jambes" d="M98 256 q-8 -4 -14 0 l4 64 q4 4 8 0z"/>
+            </svg>
+            <div class="cap">Face</div>
+          </div>
+          <!-- BACK -->
+          <div class="hm-fig">
+            <svg width="130" height="290" viewBox="0 0 160 360">
+              <path class="body-out" d="M80 8 q16 0 16 16 q0 12 -4 18 q14 4 22 14 q6 16 6 34 l0 40 q10 30 8 64 l-6 0 q-4 -28 -10 -46 l0 56 q2 40 -2 78 l-12 0 q-4 -34 -6 -64 q-2 30 -6 64 l-12 0 q-4 -38 -2 -78 l0 -56 q-6 18 -10 46 l-6 0 q-2 -34 8 -64 l0 -40 q0 -18 6 -34 q8 -10 22 -14 q-4 -6 -4 -18 q0 -16 16 -16z"/>
+              <ellipse class="zone" cx="80" cy="24" rx="17" ry="19" fill="#efeaf7"/>
+              <!-- épaules arrière -->
+              <ellipse class="zone" cx="48" cy="92" rx="16" ry="15" data-m="Épaules"/>
+              <ellipse class="zone" cx="112" cy="92" rx="16" ry="15" data-m="Épaules"/>
+              <!-- dos (lats + haut du dos) -->
+              <path class="zone" data-m="Dos" d="M60 82 q20 -6 40 0 q6 30 0 52 q-20 10 -40 0 q-6 -22 0 -52z"/>
+              <!-- triceps -->
+              <rect class="zone" data-m="Bras" x="30" y="98" width="16" height="52" rx="8"/>
+              <rect class="zone" data-m="Bras" x="114" y="98" width="16" height="52" rx="8"/>
+              <rect class="zone" data-m="Bras" x="28" y="150" width="13" height="46" rx="6"/>
+              <rect class="zone" data-m="Bras" x="119" y="150" width="13" height="46" rx="6"/>
+              <!-- lombaires / tronc -->
+              <rect class="zone" data-m="Tronc" x="66" y="134" width="28" height="40" rx="10"/>
+              <!-- fessiers (jambes group) -->
+              <path class="zone" data-m="Jambes" d="M62 176 q18 -8 36 0 q4 16 -2 26 q-16 8 -32 0 q-6 -10 -2 -26z"/>
+              <!-- ischios -->
+              <path class="zone" data-m="Jambes" d="M62 204 q12 -4 16 0 l-2 50 q-8 4 -14 0z"/>
+              <path class="zone" data-m="Jambes" d="M98 204 q-12 -4 -16 0 l2 50 q8 4 14 0z"/>
+              <!-- mollets -->
+              <path class="zone" data-m="Jambes" d="M62 256 q8 -4 14 0 l-4 64 q-4 4 -8 0z"/>
+              <path class="zone" data-m="Jambes" d="M98 256 q-8 -4 -14 0 l4 64 q4 4 8 0z"/>
+            </svg>
+            <div class="cap">Dos</div>
+          </div>
+        </div>
+
+        <div class="heat-leg">
+          <span class="lt">Faible</span>
+          <div class="scale">
+            <div class="sc" style="background:#f0ecf9"></div>
+            <div class="sc" style="background:#d9c9f2"></div>
+            <div class="sc" style="background:#ab8ae8"></div>
+            <div class="sc" style="background:#6c4dd6"></div>
+            <div class="sc" style="background:#ff7a45"></div>
+          </div>
+          <span class="lt">Élevé</span>
+        </div>
+
+        <div class="hm-list" id="hmlist"></div>
+      </div>
+    </div>
+
+    <!-- ===================== RADAR ===================== -->
+    <div class="view" id="radar">
+      <div class="panel">
+        <div class="radar-wrap"><svg id="radarsvg" width="320" height="300" viewBox="0 0 320 300"></svg></div>
+        <div class="radar-leg">
+          <span class="rl"><span class="d" style="background:#6c4dd6"></span>Actuelle</span>
+          <span class="rl"><span class="d" style="background:#b8b4c6"></span>Précédente</span>
+        </div>
+        <div class="radar-note">Surface <b>en hausse</b> sur Dos et Tronc · <b>en recul</b> sur Jambes vs la période précédente.</div>
+      </div>
+    </div>
+
+    <!-- stats cards -->
+    <div class="stats">
+      <div class="sc"><div class="l">Entraînements</div><div class="v">8</div><div class="d up">↑ +1</div></div>
+      <div class="sc"><div class="l">Durée</div><div class="v">7h12</div><div class="d up">↑ 8%</div></div>
+      <div class="sc"><div class="l">Volume</div><div class="v">27,6 T</div><div class="d up">↑ 11%</div></div>
+      <div class="sc"><div class="l">Séries</div><div class="v">264</div><div class="d up">↑ 6%</div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="notes">
+  <div class="nn"><span class="ni">1</span><div><b>HeatMap face + dos.</b> Chaque groupe se colore selon le volume du mois : violet = beaucoup, orange = pic, lilas pâle = délaissé. On repère un déséquilibre d'un coup d'œil.</div></div>
+  <div class="nn"><span class="ni">2</span><div><b>Échelle dans tes couleurs.</b> Le dégradé reprend le violet de l'app et réserve l'orange (couleur superset) au groupe le plus sollicité.</div></div>
+  <div class="nn"><span class="ni">3</span><div><b>Araignée actuelle vs précédente.</b> Même principe que le modèle, mais en thème clair : aire violette pleine pour la période en cours, contour gris pour la précédente.</div></div>
+  <div class="nn"><span class="ni">4</span><div><b>Cohérent avec les stats.</b> Mêmes deltas, mêmes groupes (Dos, Torse, Tronc, Épaules, Bras, Jambes) : la HeatMap et l'araignée racontent la même histoire que la page Statistiques.</div></div>
+</div>
+
+<script>
+  // ---- données (30 derniers jours), 0..1 ----
+  const muscles = {
+    Tronc:   {v:0.95, series:48, label:"Abdos / tronc"},
+    Dos:     {v:0.75, series:26, label:"Dos"},
+    Torse:   {v:0.55, series:26, label:"Torse / pectoraux"},
+    Bras:    {v:0.45, series:21, label:"Bras"},
+    Jambes:  {v:0.35, series:21, label:"Jambes"},
+    "Épaules":{v:0.30, series:18, label:"Épaules"},
+  };
+  const prev = { Dos:0.6, Torse:0.5, Tronc:0.8, "Épaules":0.35, Bras:0.4, Jambes:0.45 };
+
+  function heatColor(v){
+    if(v>=0.85) return "#ff7a45";
+    if(v>=0.65) return "#6c4dd6";
+    if(v>=0.45) return "#ab8ae8";
+    if(v>=0.25) return "#d9c9f2";
+    return "#f0ecf9";
+  }
+
+  // paint body zones
+  document.querySelectorAll('.zone[data-m]').forEach(z=>{
+    const m=z.getAttribute('data-m');
+    if(muscles[m]) z.setAttribute('fill', heatColor(muscles[m].v));
+  });
+
+  // build list sorted desc
+  const list=document.getElementById('hmlist');
+  Object.entries(muscles).sort((a,b)=>b[1].v-a[1].v).forEach(([k,o])=>{
+    const hot=o.v>=0.85, low=o.v<0.4;
+    const pct=Math.round(o.v*  (48/0.95)); // approx % from series
+    const row=document.createElement('div');row.className='hm-row';
+    row.innerHTML=`<span class="sw" style="background:${heatColor(o.v)}"></span>
+      <span class="mn">${o.label}</span>
+      <span class="mv">${o.series} séries</span>
+      ${hot?'<span class="tag tag-hot">le + sollicité</span>':''}
+      ${low?'<span class="tag tag-low">à renforcer</span>':''}`;
+    list.appendChild(row);
+  });
+
+  // ---- radar ----
+  const axes=[
+    {n:"Dos",a:120},{n:"Torse",a:60},{n:"Tronc",a:0},
+    {n:"Épaules",a:-60},{n:"Bras",a:-120},{n:"Jambes",a:180}
+  ];
+  const cx=160, cy=150, R=95;
+  const NS="http://www.w3.org/2000/svg";
+  const svg=document.getElementById('radarsvg');
+  const pt=(ang,r)=>[cx+r*Math.cos(ang*Math.PI/180), cy - r*Math.sin(ang*Math.PI/180)];
+
+  // grid rings
+  for(let ring=1;ring<=4;ring++){
+    const r=R*ring/4;
+    let d="";
+    axes.forEach((ax,i)=>{const [x,y]=pt(ax.a,r);d+=(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1)+" ";});
+    d+="Z";
+    const p=document.createElementNS(NS,"path");
+    p.setAttribute("d",d);p.setAttribute("fill","none");
+    p.setAttribute("stroke","#e6e2f0");p.setAttribute("stroke-width","1");
+    svg.appendChild(p);
+  }
+  // axis lines + labels
+  axes.forEach(ax=>{
+    const [x,y]=pt(ax.a,R);
+    const l=document.createElementNS(NS,"line");
+    l.setAttribute("x1",cx);l.setAttribute("y1",cy);l.setAttribute("x2",x);l.setAttribute("y2",y);
+    l.setAttribute("stroke","#e6e2f0");l.setAttribute("stroke-width","1");svg.appendChild(l);
+    const [lx,ly]=pt(ax.a,R+22);
+    const t=document.createElementNS(NS,"text");
+    t.setAttribute("x",lx);t.setAttribute("y",ly+4);
+    t.setAttribute("text-anchor","middle");t.setAttribute("font-size","12.5");
+    t.setAttribute("font-weight","700");t.setAttribute("fill","#6a6a80");
+    t.textContent=ax.n;svg.appendChild(t);
+  });
+  // polygon helper
+  function poly(vals,fill,stroke,sw,fillop){
+    let d="";
+    axes.forEach((ax,i)=>{const [x,y]=pt(ax.a,R*(vals[ax.n]||0));d+=(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1)+" ";});
+    d+="Z";
+    const p=document.createElementNS(NS,"path");
+    p.setAttribute("d",d);p.setAttribute("fill",fill);p.setAttribute("fill-opacity",fillop);
+    p.setAttribute("stroke",stroke);p.setAttribute("stroke-width",sw);
+    p.setAttribute("stroke-linejoin","round");svg.appendChild(p);
+    // vertices
+    axes.forEach(ax=>{const [x,y]=pt(ax.a,R*(vals[ax.n]||0));
+      const c=document.createElementNS(NS,"circle");
+      c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",stroke==="#6c4dd6"?"3.5":"0");
+      c.setAttribute("fill",stroke);svg.appendChild(c);});
+  }
+  const cur={}; Object.keys(muscles).forEach(k=>cur[k]=muscles[k].v);
+  poly(prev,"#b8b4c6","#b8b4c6","1.5",0.0);   // previous = outline
+  poly(cur,"#6c4dd6","#6c4dd6","2",0.22);      // current = filled
+
+  // toggle
+  function show(id,btn){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+    document.getElementById(id).classList.add('on');
+    document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+  }
+</script>
+</body>
+</html>

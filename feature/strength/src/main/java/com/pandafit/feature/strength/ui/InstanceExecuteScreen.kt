@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -81,6 +82,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -102,8 +104,12 @@ import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaHighlight
 import com.pandafit.designsystem.theme.PandaHighlightBorder
+import com.pandafit.designsystem.theme.PandaPurple
+import com.pandafit.designsystem.theme.PandaPurpleDark
 import com.pandafit.designsystem.theme.PandaSubtext
+import com.pandafit.feature.strength.model.BannerMode
 import com.pandafit.feature.strength.model.CircuitPhase
+import com.pandafit.feature.strength.model.ProgressionBanner
 import com.pandafit.feature.strength.model.SerieRealiseeState
 import com.pandafit.feature.strength.R
 import com.pandafit.feature.strength.viewmodel.InstanceExecuteViewModel
@@ -272,10 +278,12 @@ fun InstanceExecuteScreen(
     fun moveFocusNext() {
         val cell = focusedCell ?: return
         applyBuffer(cell, inputBuffer)
+        // RPE n'est plus saisi au clavier — sélecteur de puces dédié (voir RpeChipRow) — la chaîne
+        // de saisie s'arrête donc à REPOS.
         val nextCol = when (cell.column) {
             SerieColumn.REPS -> SerieColumn.KG
             SerieColumn.KG -> SerieColumn.REPOS
-            SerieColumn.REPOS -> SerieColumn.RPE
+            SerieColumn.REPOS -> null
             SerieColumn.RPE -> null
         }
         if (nextCol != null) {
@@ -489,6 +497,13 @@ fun InstanceExecuteScreen(
                 }
 
                 if (activeExercice != null && activeExerciceId != null) {
+                    // Bandeau de progression live (maquette signature seance-en-direct.html)
+                    uiState.progressionBanner(activeExerciceId)?.let { banner ->
+                        item {
+                            ProgressionLiveBanner(banner = banner, exerciceName = activeExercice.exercise.name)
+                        }
+                    }
+
                     // Consigne de l'exercice (depuis le template)
                     val consigne = activeExercice.exerciceSeance.consigneCle.trim()
                     if (consigne.isNotBlank()) {
@@ -664,17 +679,19 @@ fun InstanceExecuteScreen(
                             focusedCell = focusedCell,
                             inputBuffer = inputBuffer,
                             onCellTap = { col ->
-                                if (!serie.isCompleted) {
+                                // RPE n'ouvre plus le clavier — sélecteur de puces dédié (RpeChipRow)
+                                if (!serie.isCompleted && col != SerieColumn.RPE) {
                                     focusedCell?.let { applyBuffer(it, inputBuffer) }
                                     // Toujours vider pour que l'utilisateur puisse saisir directement
                                     // (la valeur existante reste dans seriesDraft et sera utilisée si on ne tape rien)
-                                    inputBuffer = when (col) {
-                                        SerieColumn.RPE -> seriesDraft[activeExerciceId]?.get(serie.numeroSerie)?.rpe ?: ""
-                                        else -> ""
-                                    }
+                                    inputBuffer = ""
                                     keyboardController?.hide()
                                     focusedCell = CellFocus(activeExerciceId, serie.numeroSerie, col)
                                 }
+                            },
+                            onRpePick = { rpeValue ->
+                                focusedCell?.let { applyBuffer(it, inputBuffer) }
+                                applyBuffer(CellFocus(activeExerciceId, serie.numeroSerie, SerieColumn.RPE), rpeValue.toString())
                             },
                             onFait = {
                                 if (serie.isCompleted) viewModel.unvalidateSerie(activeExerciceId, serie.numeroSerie)
@@ -1160,6 +1177,76 @@ private fun ExerciceNavBadge(
     }
 }
 
+// ===== Bandeau de progression live =====
+
+@Composable
+private fun ProgressionLiveBanner(banner: ProgressionBanner, exerciceName: String) {
+    val total = banner.totalSeries.coerceAtLeast(1)
+    val progress = (banner.seriesReussies.toFloat() / total).coerceIn(0f, 1f)
+    val goalText = when (banner.mode) {
+        BannerMode.UNLOCK_CHARGE -> stringResource(
+            R.string.instance_execute_progression_unlock_charge,
+            banner.cibleReps ?: 0, banner.totalSeries, formatKg(banner.nouvelleChargeKg ?: 0f),
+        )
+        BannerMode.NEXT_REPS -> stringResource(
+            R.string.instance_execute_progression_next_reps,
+            banner.cibleReps ?: 0, banner.totalSeries, banner.nouveauRepsCible ?: 0,
+        )
+        BannerMode.NEXT_CHARGE_LINEAIRE -> stringResource(
+            R.string.instance_execute_progression_next_charge_lineaire,
+            banner.cibleReps ?: 0, banner.totalSeries, formatKg(banner.nouvelleChargeKg ?: 0f),
+        )
+        BannerMode.NEXT_DUREE -> stringResource(
+            R.string.instance_execute_progression_next_duree,
+            banner.cibleDureeSec ?: 0, banner.totalSeries, banner.nouvelleDureeCibleSec ?: 0,
+        )
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .background(
+                Brush.linearGradient(listOf(PandaPurple, PandaPurpleDark)),
+                RoundedCornerShape(15.dp),
+            )
+            .padding(horizontal = 15.dp, vertical = 13.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("↗", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(
+                "$exerciceName · ${stringResource(R.string.instance_execute_progression_banner_label)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.92f),
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Spacer(Modifier.height(5.dp))
+        Text(goalText, style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.Bold, lineHeight = 18.sp)
+        Spacer(Modifier.height(11.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(
+                stringResource(R.string.instance_execute_progression_unlock_count, banner.seriesReussies, banner.totalSeries),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(7.dp)
+                    .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(4.dp)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .fillMaxHeight()
+                        .background(Color.White, RoundedCornerShape(4.dp)),
+                )
+            }
+        }
+    }
+}
+
 // ===== Commentaires =====
 
 @Composable
@@ -1224,6 +1311,7 @@ private fun SerieRow(
     focusedCell: CellFocus?,
     inputBuffer: String,
     onCellTap: (SerieColumn) -> Unit,
+    onRpePick: (Int) -> Unit,
     onFait: () -> Unit,
 ) {
     val exerciceId = exercice.exerciceSeance.id
@@ -1287,12 +1375,48 @@ private fun SerieRow(
             SerieColumn.entries.forEach { col ->
                 val (value, isGrayed) = cellContent(col)
                 val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell?.serieNum == num && focusedCell?.column == col
-                SerieCell(value = value, isFocused = isFocused, isGrayed = isGrayed, enabled = !isCompleted, onTap = { onCellTap(col) }, modifier = Modifier.weight(weights[col] ?: 1f))
+                // RPE : lecture seule, saisi via le sélecteur de puces (RpeChipRow) ci-dessous, pas le clavier.
+                val cellEnabled = !isCompleted && col != SerieColumn.RPE
+                SerieCell(value = value, isFocused = isFocused, isGrayed = isGrayed, enabled = cellEnabled, onTap = { onCellTap(col) }, modifier = Modifier.weight(weights[col] ?: 1f))
             }
             Box(modifier = Modifier.width(32.dp), contentAlignment = Alignment.Center) {
                 IconButton(onClick = onFait, modifier = Modifier.size(28.dp)) {
                     Icon(if (isCompleted) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle, stringResource(R.string.instance_execute_serie_validate_cd), tint = if (isCompleted) Color.Red else PandaSubtext, modifier = Modifier.size(22.dp))
                 }
+            }
+        }
+    }
+    if (isCurrentSerie && !isCompleted) {
+        val selectedRpe = draft.rpe.ifBlank { null }
+        RpeChipRow(selectedRpe = selectedRpe, onPick = onRpePick)
+    }
+}
+
+@Composable
+private fun RpeChipRow(selectedRpe: String?, onPick: (Int) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(11.dp))
+            .padding(horizontal = 11.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.instance_execute_rpe_chip_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = PandaSubtext,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+            (7..10).forEach { value ->
+                val isSelected = selectedRpe == value.toString()
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onPick(value) },
+                    label = { Text("$value", style = MaterialTheme.typography.labelMedium) },
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }

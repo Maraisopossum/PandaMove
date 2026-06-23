@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Séance en direct — maquette</title>
+<style>
+  :root{
+    --ink:#1a1a2e; --muted:#8a8a9c; --line:#e9e6f0;
+    --accent:#6c4dd6; --accent-soft:#f1edfb; --accent-mid:#cabdf2;
+    --orange:#e85d1f; --orange-soft:#fdeee; --orange-ring:#e85d1f;
+    --green:#2e9e5b; --green-soft:#e7f6ee;
+    --amber:#c9881f;
+    --bg:#f4f3f7; --card:#ffffff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#e9e6f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);padding:24px 14px 50px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .intro{max-width:420px;width:100%;font-size:12.5px;color:#55556a;line-height:1.55}
+  .intro b{color:var(--accent)}
+
+  .phone{width:420px;max-width:100%;background:var(--bg);border-radius:30px;box-shadow:0 20px 60px rgba(30,20,70,.22);overflow:hidden;border:1px solid #dcd7ec;position:relative}
+  .status{display:flex;justify-content:space-between;align-items:center;padding:9px 18px 4px;background:#fff}
+  .status .cup{background:#7a1414;color:#fff;font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;display:inline-flex;gap:5px;align-items:center}
+  .status .bat{font-size:11.5px;color:#555;font-weight:600}
+
+  .hdr{display:flex;align-items:center;gap:10px;padding:6px 14px 12px;background:#fff}
+  .hdr .bk{font-size:20px;color:var(--ink);background:none;border:none;cursor:pointer}
+  .hdr .ttl{flex:1}
+  .hdr .ttl .t{font-weight:800;font-size:17px;line-height:1.1}
+  .hdr .ttl .s{font-size:12px;color:var(--muted)}
+  .hdr .chrono{background:#efecf5;color:#555;font-weight:700;font-size:13px;padding:6px 11px;border-radius:20px}
+  .hdr .ed{width:32px;height:32px;border-radius:9px;border:none;background:#efecf5;color:#666;cursor:pointer;font-size:14px}
+  .hdr .fin{background:var(--green);color:#fff;border:none;border-radius:22px;padding:9px 18px;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(46,158,91,.3)}
+
+  .scroll{max-height:78vh;overflow-y:auto;padding:12px 14px 40px}
+  .scroll::-webkit-scrollbar{width:0}
+
+  /* carousel */
+  .carou{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
+  .carou::-webkit-scrollbar{height:0}
+  .grp{display:flex;gap:6px;border:2px solid;border-radius:16px;padding:10px 12px 8px;flex-shrink:0;background:#fff}
+  .grp.super{border-color:var(--orange-ring)}
+  .grp.warm{border-color:#f0a35e}
+  .grp.act{border-color:var(--accent)}
+  .ex-chip{width:78px;text-align:center}
+  .ex-chip .circ{width:54px;height:54px;border-radius:50%;margin:0 auto 5px;display:grid;place-items:center;font-size:11px;font-weight:800;background:var(--orange-soft);color:var(--orange)}
+  .ex-chip.on .circ{background:var(--orange);color:#fff}
+  .ex-chip .lbl{font-size:11px;color:#888;line-height:1.15;font-weight:600}
+  .ex-chip.on .lbl{color:var(--orange);font-weight:800}
+  .ex-chip .dot{width:16px;height:2.5px;background:var(--orange);border-radius:2px;margin:4px auto 0}
+
+  /* progression banner (signature) */
+  .pbanner{background:linear-gradient(135deg,#6c4dd6,#8a6ee8);border-radius:15px;padding:13px 15px;color:#fff;margin-bottom:12px}
+  .pbanner .pb-top{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.92;font-weight:600}
+  .pbanner .pb-goal{font-size:14.5px;font-weight:800;margin-top:5px;line-height:1.35}
+  .pbanner .pb-goal u{text-decoration:none;background:rgba(255,255,255,.22);padding:1px 7px;border-radius:6px}
+  .pbanner .pb-track{display:flex;align-items:center;gap:7px;margin-top:11px}
+  .pbanner .pb-bar{flex:1;height:7px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden}
+  .pbanner .pb-fill{height:100%;width:33%;background:#fff;border-radius:4px}
+  .pbanner .pb-cnt{font-size:11.5px;font-weight:800}
+
+  /* objectif line */
+  .obj{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin-bottom:6px}
+  .obj .oi{width:26px;height:26px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:14px}
+  .obj .ot{flex:1;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700}
+  .obj .ov{font-size:14px;font-weight:800}
+  .obj .ov small{font-weight:600;color:var(--muted);font-size:11px;margin-left:4px}
+
+  /* superset tag */
+  .sstag{display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:800;color:var(--orange);background:var(--orange-soft);border-left:3px solid var(--orange);border-radius:0 8px 8px 0;padding:7px 11px;margin:12px 0 10px}
+  .sstag small{font-weight:500;opacity:.85;letter-spacing:0}
+
+  /* sets table */
+  .shead{display:grid;grid-template-columns:26px 1fr 1fr 70px 40px;gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;padding:2px 4px 6px}
+  .srow{display:grid;grid-template-columns:26px 1fr 1fr 70px 40px;gap:8px;align-items:center;padding:7px 4px}
+  .srow .num{font-weight:800;color:var(--orange);font-size:15px}
+  .fld{height:46px;border-radius:11px;border:1.5px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;position:relative}
+  .fld small{position:absolute;top:4px;left:8px;font-size:8.5px;font-weight:700;color:#bbb;letter-spacing:.3px}
+  .fld.prefill{color:#9a95ab}              /* valeur pré-remplie, pas encore confirmée */
+  .fld.done{background:var(--green-soft);border-color:#bfe6cd;color:var(--ink)}
+  .fld.beat{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+  .rpe-mini{height:46px;border-radius:11px;border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;color:#9a95ab}
+  .rpe-mini.set{background:#fff;border-color:var(--accent-mid);color:var(--accent)}
+  .chk{width:40px;height:40px;border-radius:50%;border:2px solid #cfcad e;background:none;display:grid;place-items:center;cursor:pointer;color:#c4bfd0;font-size:18px}
+  .chk.on{background:var(--green);border-color:var(--green);color:#fff}
+
+  .srow.active{background:#fff;border:1.5px solid var(--accent-mid);border-radius:14px;box-shadow:0 2px 8px rgba(108,77,214,.1);padding:9px 6px;margin:2px 0}
+  .srow.pending{opacity:.5}
+
+  /* inline rest timer */
+  .resttick{grid-column:2 / 5;display:flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #f4dcc0;border-radius:10px;padding:7px 11px;margin-top:2px}
+  .resttick .rt-ic{color:var(--orange);font-size:14px}
+  .resttick .rt-tx{font-size:12px;font-weight:700;color:#a86a2a;flex:1}
+  .resttick .rt-time{font-size:15px;font-weight:800;color:var(--orange);font-variant-numeric:tabular-nums}
+  .resttick .rt-skip{font-size:11px;font-weight:700;color:#a86a2a;background:#fceede;border:none;padding:5px 9px;border-radius:7px;cursor:pointer}
+
+  /* RPE quick selector for active set */
+  .rpebar{grid-column:1 / 6;margin-top:8px;background:#faf8ff;border:1px dashed var(--accent-mid);border-radius:11px;padding:9px 11px}
+  .rpebar .rl{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);font-weight:800;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+  .rpebar .rl span{font-weight:500;color:#9a93ad;text-transform:none;letter-spacing:0}
+  .rpebar .rchips{display:flex;gap:6px}
+  .rpebar .rc{flex:1;padding:8px 0;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:800;font-size:13px;color:#8a82a6;cursor:pointer;text-align:center}
+  .rpebar .rc.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .setbtns{display:flex;gap:10px;margin:14px 0 4px}
+  .setbtns button{flex:1;border:1.5px solid;background:#fff;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer}
+  .setbtns .sup{color:#c0392b;border-color:#f1d3cf}
+  .setbtns .add{color:var(--orange);border-color:#f3d4bf}
+
+  /* historique */
+  .hist{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+  .hist .hh{font-size:13px;font-weight:800;color:#6a6a80;margin-bottom:10px}
+  .hist .hlast{background:#fff;border:1.5px solid var(--accent-mid);border-radius:12px;padding:11px 13px;margin-bottom:9px}
+  .hist .hlast .hl-t{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);font-weight:800}
+  .hist .hlast .hl-v{font-size:15px;font-weight:800;margin-top:2px}
+  .hist .hl-row{display:flex;justify-content:space-between;font-size:13px;color:#8a8a9c;padding:6px 4px;border-bottom:1px solid var(--line)}
+  .hist .hl-row b{color:#6a6a80;font-weight:700}
+
+  /* FABs */
+  .fab{position:absolute;bottom:16px;width:54px;height:54px;border-radius:18px;display:grid;place-items:center;font-size:22px;box-shadow:0 6px 18px rgba(0,0,0,.15);border:none;cursor:pointer}
+  .fab.l{left:16px;background:#e7f6ee;color:var(--green)}
+  .fab.r{right:16px;background:var(--accent-soft);color:var(--accent)}
+
+  .notes{max-width:420px;width:100%;display:flex;flex-direction:column;gap:8px}
+  .nn{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:12px;color:#4a4a5e;line-height:1.5;display:flex;gap:9px}
+  .nn .ni{width:20px;height:20px;border-radius:6px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:800;font-size:11px;flex-shrink:0}
+  .nn b{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  Maquette de la <b>séance en direct</b>. Objectif explicite + champs pré-remplis confirmables en un tap, bandeau « à battre » qui pilote la progression, repos auto inline, RPE rapide, historique lisible. <b>Touche les ✓ et les RPE</b> — c'est interactif.
+</div>
+
+<div class="phone">
+  <div class="status">
+    <span class="cup">▶ Coupe du monde</span>
+    <span class="bat">90 ▮</span>
+  </div>
+
+  <div class="hdr">
+    <button class="bk">‹</button>
+    <div class="ttl"><div class="t">Bas du corps</div><div class="s">Cycle A</div></div>
+    <span class="chrono" id="chrono">00:08</span>
+    <button class="ed">✎</button>
+    <button class="fin">FINIR ✓</button>
+  </div>
+
+  <div class="scroll">
+
+    <!-- carousel -->
+    <div class="carou">
+      <div class="grp act"><div class="ex-chip"><div class="circ">QUAD</div><div class="lbl">Wall sit iso</div></div></div>
+      <div class="grp super">
+        <div class="ex-chip on"><div class="circ">QUAD</div><div class="lbl">Squat gobelet</div><div class="dot"></div></div>
+        <div class="ex-chip"><div class="circ">ISCH</div><div class="lbl">Nordic curl</div></div>
+      </div>
+      <div class="grp super">
+        <div class="ex-chip"><div class="circ">FESS</div><div class="lbl">Hip thrust</div></div>
+        <div class="ex-chip"><div class="circ">TIB</div><div class="lbl">Tibial raises</div></div>
+      </div>
+    </div>
+
+    <!-- progression banner -->
+    <div class="pbanner">
+      <div class="pb-top">↗ <span>Squat gobelet · en progression</span></div>
+      <div class="pb-goal">Dernière fois 3×11 @ 20 kg. Fais <u>12 reps</u> sur les 3 séries pour débloquer <u>22,5 kg</u>.</div>
+      <div class="pb-track">
+        <span class="pb-cnt">🔓 1/3</span>
+        <div class="pb-bar"><div class="pb-fill" id="unlockfill"></div></div>
+        <span class="pb-cnt">objectif 12</span>
+      </div>
+    </div>
+
+    <!-- objectif -->
+    <div class="obj">
+      <span class="oi">🎯</span>
+      <span class="ot">Objectif du jour</span>
+      <span class="ov">3 × 8–12 <small>@ 20 kg · repos 30 s</small></span>
+    </div>
+
+    <div class="sstag">⚡ SUPERSET <small>· Inter 30 s · Round 3 min</small></div>
+
+    <div class="shead"><span>#</span><span>Reps</span><span>Kg</span><span>RPE</span><span></span></div>
+
+    <!-- série 1 : validée, a battu l'objectif -->
+    <div class="srow">
+      <span class="num">1</span>
+      <div class="fld beat"><small>REPS</small>12</div>
+      <div class="fld done"><small>KG</small>20</div>
+      <div class="rpe-mini set">8</div>
+      <button class="chk on">✓</button>
+    </div>
+    <div class="srow"><div class="resttick">
+      <span class="rt-ic">⏱</span><span class="rt-tx">Repos en cours</span>
+      <span class="rt-time" id="rest">0:17</span>
+      <button class="rt-skip" onclick="skipRest()">Passer</button>
+    </div></div>
+
+    <!-- série 2 : active, pré-remplie -->
+    <div class="srow active" id="s2">
+      <span class="num">2</span>
+      <div class="fld prefill"><small>REPS</small>11</div>
+      <div class="fld prefill"><small>KG</small>20</div>
+      <div class="rpe-mini">–</div>
+      <button class="chk" onclick="validate(2)">✓</button>
+      <div class="rpebar">
+        <div class="rl">RPE <span>· effort perçu (optionnel)</span></div>
+        <div class="rchips">
+          <button class="rc" onclick="pickRpe(this)">7</button>
+          <button class="rc" onclick="pickRpe(this)">8</button>
+          <button class="rc" onclick="pickRpe(this)">9</button>
+          <button class="rc" onclick="pickRpe(this)">10</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- série 3 : en attente -->
+    <div class="srow pending">
+      <span class="num">3</span>
+      <div class="fld prefill"><small>REPS</small>11</div>
+      <div class="fld prefill"><small>KG</small>20</div>
+      <div class="rpe-mini">–</div>
+      <button class="chk">✓</button>
+    </div>
+
+    <div class="setbtns">
+      <button class="sup">Supprimer</button>
+      <button class="add">+ Ajouter une série</button>
+    </div>
+
+    <!-- historique -->
+    <div class="hist">
+      <div class="hh">Historique — Squat gobelet</div>
+      <div class="hlast">
+        <div class="hl-t">⤴ à battre — dernière séance</div>
+        <div class="hl-v">20 juin · 3 × 11 @ 20 kg</div>
+      </div>
+      <div class="hl-row"><span>12 juin</span><b>3 × 10 @ 20 kg</b></div>
+      <div class="hl-row"><span>4 juin</span><b>3 × 10 @ 14 kg</b></div>
+      <div class="hl-row"><span>27 mai</span><b>4 × 10 @ 14 kg</b></div>
+    </div>
+
+  </div>
+
+  <button class="fab l">🏋</button>
+  <button class="fab r">⏱</button>
+</div>
+
+<div class="notes">
+  <div class="nn"><span class="ni">1</span><div><b>Objectif explicite + pré-remplissage.</b> La cible est affichée en clair ; chaque série arrive pré-remplie (gris) et se confirme d'un tap sur ✓. On n'édite que si on a fait différent.</div></div>
+  <div class="nn"><span class="ni">2</span><div><b>Bandeau « à battre ».</b> Indique quoi atteindre pour débloquer la montée, et suit la progression série par série (1/3). Prépare la validation au FINIR.</div></div>
+  <div class="nn"><span class="ni">3</span><div><b>Repos auto inline.</b> Le chrono démarre à la validation d'une série, sous la ligne concernée — plus besoin d'ouvrir le timer.</div></div>
+  <div class="nn"><span class="ni">4</span><div><b>RPE rapide.</b> Sélecteur 7–10 au tap sur la série active, clairement optionnel. Repos retiré du tableau (c'est une consigne, pas une saisie).</div></div>
+  <div class="nn"><span class="ni">5</span><div><b>Historique lisible.</b> Dernière séance mise en avant comme référence à battre, le reste en liste propre. FINIR en vert (action positive, ouvre le récap de progression).</div></div>
+</div>
+
+<script>
+  // rest timer
+  let rest=17;
+  const restEl=document.getElementById('rest');
+  const ri=setInterval(()=>{
+    if(rest<=0){restEl.textContent="Au suivant !";restEl.style.fontSize="13px";clearInterval(ri);return;}
+    rest--;const m=Math.floor(rest/60),s=String(rest%60).padStart(2,'0');
+    restEl.textContent=m+":"+s;
+  },1000);
+  function skipRest(){rest=0;restEl.textContent="Au suivant !";restEl.style.fontSize="13px";clearInterval(ri);}
+
+  function pickRpe(b){
+    b.parentElement.querySelectorAll('.rc').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    const mini=document.querySelector('#s2 .rpe-mini');
+    mini.textContent=b.textContent;mini.classList.add('set');
+  }
+
+  function validate(n){
+    const row=document.getElementById('s'+n);
+    const chk=row.querySelector('.chk');
+    chk.classList.toggle('on');
+    const flds=row.querySelectorAll('.fld');
+    if(chk.classList.contains('on')){
+      flds.forEach(f=>{f.classList.remove('prefill');
+        if(f.querySelector('small').textContent==='REPS') f.classList.add('beat'); else f.classList.add('done');});
+      // bump unlock tracker
+      document.getElementById('unlockfill').style.width='66%';
+      document.querySelector('.pb-track .pb-cnt').textContent='🔓 2/3';
+    }else{
+      flds.forEach(f=>{f.classList.add('prefill');f.classList.remove('beat','done');});
+      document.getElementById('unlockfill').style.width='33%';
+      document.querySelector('.pb-track .pb-cnt').textContent='🔓 1/3';
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maquette — Encodage séance avec progression</title>
+<style>
+  :root{
+    --ink:#1a1a2e; --muted:#7c7c8f; --line:#e8e5f2;
+    --accent:#6c4dd6; --accent-soft:#f1edfb; --accent-mid:#cabdf2;
+    --orange:#ff7a45; --orange-soft:#fff1ea;
+    --green:#2e9e5b; --green-soft:#e7f6ee;
+    --warm:#fdf3ee; --lilac:#f4f1fb;
+    --card:#ffffff; --bg:#f6f4fb;
+    --radius:16px; --shadow:0 1px 3px rgba(40,30,80,.06),0 6px 20px rgba(40,30,80,.05);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#e9e6f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);padding:24px 12px;display:flex;flex-direction:column;align-items:center;gap:18px}
+  .intro{max-width:430px;width:100%;font-size:13px;color:#55556a;line-height:1.5}
+  .intro b{color:var(--accent)}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;max-width:430px;width:100%;margin-bottom:2px}
+  .legend span{font-size:11px;padding:4px 9px;border-radius:20px;background:#fff;border:1px solid var(--line);color:#55556a;display:inline-flex;align-items:center;gap:5px}
+  .dot{width:8px;height:8px;border-radius:50%}
+
+  /* phone */
+  .phone{width:430px;max-width:100%;background:var(--bg);border-radius:30px;box-shadow:0 20px 60px rgba(30,20,70,.22);overflow:hidden;border:1px solid #dcd7ec}
+  .status{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 2px;font-size:12px;color:#9a9aaa}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 14px}
+  .topbar .title{font-size:18px;font-weight:700}
+  .icon-btn{width:34px;height:34px;border-radius:11px;border:none;background:#efecf8;color:var(--accent);font-size:16px;display:grid;place-items:center;cursor:pointer}
+  .scroll{max-height:78vh;overflow-y:auto;padding:0 14px 90px}
+  .scroll::-webkit-scrollbar{width:0}
+
+  /* meta fields */
+  .field{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px}
+  .field label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:2px}
+  .field .val{font-size:15px;font-weight:600}
+
+  /* QUICK ADD bar (new) */
+  .quickadd{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--accent-mid);border-radius:13px;padding:11px 13px;margin:4px 0 16px;box-shadow:var(--shadow);cursor:pointer}
+  .quickadd .q-ic{color:var(--accent);font-size:17px}
+  .quickadd .q-txt{font-size:14px;color:#6a6a80;flex:1}
+  .quickadd .q-tag{font-size:10px;color:var(--accent);background:var(--accent-soft);padding:3px 7px;border-radius:7px;font-weight:600}
+
+  /* block header */
+  .block-h{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:11px;margin:14px 0 10px;font-weight:700;font-size:13.5px;letter-spacing:.3px}
+  .block-h .b-ic{margin-left:auto;display:flex;gap:6px}
+  .block-h .b-ic button{border:none;background:rgba(255,255,255,.6);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:13px;color:inherit}
+  .bh-warm{background:var(--warm);color:#c9622f;border:1px solid #f4e2d8}
+  .bh-act{background:var(--lilac);color:var(--accent);border:1px solid #e6def7}
+  .bh-super{background:var(--orange-soft);color:var(--orange);border:1px solid #f8ddd0}
+  .bh-super small{display:block;font-weight:500;font-size:10.5px;color:#c98a6e;letter-spacing:0}
+
+  /* exercise card */
+  .ex{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:11px;box-shadow:var(--shadow);overflow:hidden}
+  .ex-head{display:flex;align-items:center;gap:10px;padding:13px 13px}
+  .grip{color:#cfcad e;cursor:grab;font-size:15px;color:#cbc6dc;letter-spacing:-2px}
+  .ex-ic{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:15px;flex-shrink:0}
+  .ex-name{font-weight:700;font-size:15px;flex:1;line-height:1.2}
+  .ex-sum{font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:500;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .chev{background:none;border:none;color:#b3aec9;font-size:15px;cursor:pointer;padding:4px;transition:transform .2s}
+  .ex.open .chev{transform:rotate(180deg)}
+
+  .badge-prog{font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;border:1px solid var(--accent-mid)}
+  .badge-bi{font-size:10px;font-weight:600;color:#8a6d2f;background:#fbf3e0;padding:2px 7px;border-radius:20px}
+
+  .ex-body{display:none;padding:0 13px 14px;border-top:1px solid var(--line)}
+  .ex.open .ex-body{display:block}
+
+  .row{display:flex;gap:10px;margin-top:12px}
+  .ctrl{flex:1}
+  .ctrl label{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:5px;display:block}
+  .stepper{display:flex;align-items:center;background:#f5f3fb;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .stepper button{border:none;background:none;width:34px;height:38px;font-size:17px;color:var(--accent);cursor:pointer}
+  .stepper .num{flex:1;text-align:center;font-weight:700;font-size:15px}
+  .input{background:#f5f3fb;border:1px solid var(--line);border-radius:10px;height:38px;display:flex;align-items:center;padding:0 12px;font-weight:600;font-size:14px}
+  .input.ph{color:#b7b2c8;font-weight:500}
+
+  /* reps/duree segmented */
+  .seg{display:flex;background:#f0eef7;border-radius:10px;padding:3px;gap:3px}
+  .seg button{flex:1;border:none;background:none;padding:7px 0;font-size:12.5px;font-weight:600;color:#9893ab;border-radius:8px;cursor:pointer}
+  .seg button.on-r{background:var(--green-soft);color:var(--green)}
+  .seg button.on-d{background:#ece5fb;color:var(--accent)}
+
+  /* PROGRESSION toggle + panel (signature) */
+  .prog-toggle{display:flex;align-items:center;gap:11px;margin-top:14px;padding:11px 12px;border-radius:12px;background:linear-gradient(180deg,#f7f3ff,#f2ecfd);border:1px solid var(--accent-mid)}
+  .prog-toggle .pt-ic{width:28px;height:28px;border-radius:8px;background:#fff;color:var(--accent);display:grid;place-items:center;font-size:15px;box-shadow:0 1px 2px rgba(108,77,214,.18)}
+  .prog-toggle .pt-tx{flex:1}
+  .prog-toggle .pt-tx b{font-size:13.5px}
+  .prog-toggle .pt-tx small{display:block;font-size:11px;color:#8a82a6;margin-top:1px}
+  .switch{width:46px;height:27px;border-radius:20px;background:#d8d2ea;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .switch.on{background:var(--accent)}
+  .switch.on::after{left:22px}
+
+  .prog-panel{display:none;margin-top:9px;padding:13px;border-radius:12px;background:#faf8ff;border:1px dashed var(--accent-mid)}
+  .prog-panel.show{display:block;animation:drop .22s ease}
+  @keyframes drop{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+  .pp-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);font-weight:700;margin:0 0 7px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
+  .chip{font-size:12px;padding:7px 12px;border-radius:20px;border:1px solid var(--line);background:#fff;color:#6a6a80;cursor:pointer;font-weight:600}
+  .chip.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .chip.type.sel{background:var(--ink);border-color:var(--ink)}
+  .pp-grid{display:flex;gap:9px;margin-bottom:12px}
+  .pp-grid .ctrl label{color:#8a82a6}
+  .range-box{display:flex;align-items:center;gap:6px}
+  .range-box .dash{color:#b7b2c8;font-weight:700}
+  .auto-tag{font-size:10px;color:var(--green);background:var(--green-soft);padding:2px 6px;border-radius:6px;font-weight:700;margin-left:6px}
+  .pp-note{font-size:11px;color:#8a82a6;line-height:1.45;background:#fff;border-radius:9px;padding:9px 10px;border:1px solid var(--line)}
+  .pp-note b{color:var(--accent)}
+
+  .prog-na{margin-top:14px;padding:10px 12px;border-radius:11px;background:#f3f1f7;border:1px dashed #d8d3e6;display:flex;align-items:center;gap:9px;color:#9a93ad;font-size:11.5px}
+  .prog-na .na-ic{font-size:14px}
+
+  .ex-foot{display:flex;gap:8px;margin-top:13px}
+  .ex-foot button{flex:1;border:1px solid var(--line);background:#fbfaff;border-radius:10px;padding:8px;font-size:11.5px;font-weight:600;color:#6a6a80;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
+  .ex-foot .del{color:#c0392b;border-color:#f1d9d6;background:#fdf4f3}
+
+  .add-ex{width:100%;border:1.5px dashed var(--accent-mid);background:#faf8ff;color:var(--accent);border-radius:12px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;margin:2px 0 6px}
+
+  .save{position:sticky;bottom:0;margin:0 -14px;padding:12px 16px;background:linear-gradient(180deg,rgba(246,244,251,0),var(--bg) 30%);display:flex;gap:10px}
+  .save .s-main{flex:1;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(108,77,214,.35)}
+  .callouts{max-width:430px;width:100%;display:flex;flex-direction:column;gap:9px}
+  .co{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;color:#4a4a5e}
+  .co b{color:var(--accent)}
+  .co .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:11px;margin-right:7px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  Maquette d'encodage — <b>l'option progression vit dans chaque carte d'exercice</b>, repliée par défaut, désactivée pour échauffement/activation. Touche les cartes pour les déplier, et le bouton <b>Surcharge progressive</b> pour révéler la config. Tout est cliquable.
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:#c9622f"></i>Échauffement</span>
+  <span><i class="dot" style="background:#6c4dd6"></i>Activation</span>
+  <span><i class="dot" style="background:#ff7a45"></i>Superset</span>
+  <span><i class="dot" style="background:#2e9e5b"></i>Reps</span>
+</div>
+
+<div class="phone">
+  <div class="status"><span>22:27</span><span>87 ▮</span></div>
+  <div class="topbar">
+    <button class="icon-btn">‹</button>
+    <span class="title">Modifier la séance</span>
+    <button class="icon-btn">✓</button>
+  </div>
+
+  <div class="scroll">
+
+    <div class="field"><label>Nom de la séance</label><div class="val">Bas du corps</div></div>
+    <div class="field"><label>Cycle</label><div class="val">Cycle A</div></div>
+
+    <!-- NEW: quick add -->
+    <div class="quickadd" onclick="event.stopPropagation()">
+      <span class="q-ic">⌕</span>
+      <span class="q-txt">Rechercher ou ajouter un exercice…</span>
+      <span class="q-tag">Bibliothèque</span>
+    </div>
+
+    <!-- ÉCHAUFFEMENT -->
+    <div class="block-h bh-warm">
+      🔥 ÉCHAUFFEMENT
+      <span class="b-ic"><button>⌄</button><button>🗑</button></span>
+    </div>
+
+    <!-- collapsed warmup card -->
+    <div class="ex" id="ex1">
+      <div class="ex-head" onclick="toggle('ex1')">
+        <span class="grip">⠿</span>
+        <span class="ex-ic">↑</span>
+        <div style="flex:1">
+          <div class="ex-name">Tibial raises</div>
+          <div class="ex-sum">3 × 20 · PDC · repos 30 s</div>
+        </div>
+        <button class="chev">⌄</button>
+      </div>
+      <div class="ex-body">
+        <div class="row">
+          <div class="ctrl"><label>Séries</label>
+            <div class="stepper"><button>−</button><span class="num">3</span><button>+</button></div></div>
+          <div class="ctrl"><label>Repos (s)</label>
+            <div class="stepper"><button>−</button><span class="num">30</span><button>+</button></div></div>
+        </div>
+        <div class="row">
+          <div class="ctrl"><label>Mesure</label>
+            <div class="seg"><button class="on-r">Reps</button><button>Durée</button></div></div>
+          <div class="ctrl"><label>Reps</label><div class="input">20</div></div>
+        </div>
+        <div class="row">
+          <div class="ctrl"><label>Charge</label><div class="input ph">PDC</div></div>
+          <div class="ctrl"><label>Commentaire</label><div class="input ph">—</div></div>
+        </div>
+        <!-- progression NOT applicable -->
+        <div class="prog-na">
+          <span class="na-ic">⊘</span>
+          <span>Surcharge progressive <b>non applicable</b> sur un exercice d'échauffement.</span>
+        </div>
+        <div class="ex-foot">
+          <button>⧉ Dupliquer</button>
+          <button>⇅ Déplacer</button>
+          <button class="del">🗑 Supprimer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUPERSET -->
+    <div class="block-h bh-super">
+      <div>⚡ SUPERSET <small>Inter 30 s · Fin round 3 min</small></div>
+      <span class="b-ic"><button>⌄</button><button>🗑</button></span>
+    </div>
+
+    <!-- WORK card OPEN with progression ON (the star) -->
+    <div class="ex open" id="ex2">
+      <div class="ex-head" onclick="toggle('ex2')">
+        <span class="grip">⠿</span>
+        <span class="ex-ic">🏋</span>
+        <div style="flex:1">
+          <div class="ex-name">Squat gobelet</div>
+          <div class="ex-sum">
+            <span class="badge-prog">↗ Progression</span>
+            3 × 8–12 · 20 kg
+          </div>
+        </div>
+        <button class="chev">⌄</button>
+      </div>
+      <div class="ex-body">
+        <div class="row">
+          <div class="ctrl"><label>Séries</label>
+            <div class="stepper"><button>−</button><span class="num">3</span><button>+</button></div></div>
+          <div class="ctrl"><label>Repos (s)</label>
+            <div class="stepper"><button>−</button><span class="num">90</span><button>+</button></div></div>
+        </div>
+        <div class="row">
+          <div class="ctrl"><label>Mesure</label>
+            <div class="seg"><button class="on-r">Reps</button><button>Durée</button></div></div>
+          <div class="ctrl"><label>Charge (kg)</label><div class="input">20</div></div>
+        </div>
+
+        <!-- toggle -->
+        <div class="prog-toggle">
+          <span class="pt-ic">↗</span>
+          <div class="pt-tx"><b>Surcharge progressive</b><small>Le module propose une montée à la clôture</small></div>
+          <div class="switch on" onclick="toggleProg('p2',this)"></div>
+        </div>
+
+        <!-- panel -->
+        <div class="prog-panel show" id="p2">
+          <p class="pp-label">Système de progression</p>
+          <div class="chips">
+            <button class="chip">Linéaire</button>
+            <button class="chip sel">Double</button>
+            <button class="chip">Volume</button>
+            <button class="chip">Densité</button>
+            <button class="chip">RPE</button>
+          </div>
+
+          <div class="pp-grid">
+            <div class="ctrl">
+              <label>Plage de reps</label>
+              <div class="range-box">
+                <div class="stepper" style="flex:1"><button>−</button><span class="num">8</span><button>+</button></div>
+                <span class="dash">→</span>
+                <div class="stepper" style="flex:1"><button>−</button><span class="num">12</span><button>+</button></div>
+              </div>
+            </div>
+          </div>
+
+          <p class="pp-label">Type d'exercice <span class="auto-tag">définit l'incrément</span></p>
+          <div class="chips">
+            <button class="chip type sel">Composé bas</button>
+            <button class="chip type">Composé haut</button>
+            <button class="chip type">Isolation</button>
+            <button class="chip type">Machine</button>
+            <button class="chip type">PDC</button>
+          </div>
+
+          <div class="pp-grid">
+            <div class="ctrl"><label>Incrément <span class="auto-tag">auto</span></label>
+              <div class="stepper"><button>−</button><span class="num">+2,5 kg</span><button>+</button></div></div>
+            <div class="ctrl"><label>Deload après</label>
+              <div class="stepper"><button>−</button><span class="num">3 échecs</span><button>+</button></div></div>
+          </div>
+
+          <div class="pp-note">
+            À la clôture : si <b>3×12 @ 20 kg</b> validé → propose <b>3×8 @ 22,5 kg</b>. Sinon reps +1. La cible se propage aux séances futures non réalisées.
+          </div>
+        </div>
+
+        <div class="ex-foot">
+          <button>⧉ Dupliquer</button>
+          <button>⇅ Déplacer</button>
+          <button class="del">🗑 Supprimer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORK card collapsed, progression OFF -->
+    <div class="ex" id="ex3">
+      <div class="ex-head" onclick="toggle('ex3')">
+        <span class="grip">⠿</span>
+        <span class="ex-ic">🏋</span>
+        <div style="flex:1">
+          <div class="ex-name">Nordic curl</div>
+          <div class="ex-sum"><span class="badge-bi">G + D</span> 3 × 5 · PDC · excentrique</div>
+        </div>
+        <button class="chev">⌄</button>
+      </div>
+      <div class="ex-body">
+        <div class="row">
+          <div class="ctrl"><label>Séries</label>
+            <div class="stepper"><button>−</button><span class="num">3</span><button>+</button></div></div>
+          <div class="ctrl"><label>Repos (s)</label>
+            <div class="stepper"><button>−</button><span class="num">90</span><button>+</button></div></div>
+        </div>
+        <div class="row">
+          <div class="ctrl"><label>Mesure</label>
+            <div class="seg"><button class="on-r">Reps</button><button>Durée</button></div></div>
+          <div class="ctrl"><label>Reps</label><div class="input">5</div></div>
+        </div>
+        <div class="prog-toggle">
+          <span class="pt-ic">↗</span>
+          <div class="pt-tx"><b>Surcharge progressive</b><small>Désactivée — touche pour activer</small></div>
+          <div class="switch" onclick="toggleProg('p3',this)"></div>
+        </div>
+        <div class="prog-panel" id="p3">
+          <p class="pp-label">Système de progression</p>
+          <div class="chips">
+            <button class="chip">Linéaire</button>
+            <button class="chip sel">Double</button>
+            <button class="chip">Volume</button>
+            <button class="chip">Densité</button>
+            <button class="chip">RPE</button>
+          </div>
+          <p class="pp-label">Type d'exercice <span class="auto-tag">définit l'incrément</span></p>
+          <div class="chips">
+            <button class="chip type">Composé bas</button>
+            <button class="chip type">Composé haut</button>
+            <button class="chip type">Isolation</button>
+            <button class="chip type">Machine</button>
+            <button class="chip type sel">PDC</button>
+          </div>
+          <div class="pp-note">Pour un exercice au poids du corps : progression en <b>reps</b>, puis lest, puis variante plus difficile.</div>
+        </div>
+        <div class="ex-foot">
+          <button>⧉ Dupliquer</button>
+          <button>⇅ Déplacer</button>
+          <button class="del">🗑 Supprimer</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="add-ex">+ Ajouter un exercice au superset</button>
+
+    <div class="save"><button class="s-main">Enregistrer la séance</button></div>
+  </div>
+</div>
+
+<div class="callouts">
+  <div class="co"><span class="n">1</span><b>Progression intégrée par exercice</b> — un interrupteur dans chaque carte, replié par défaut, qui révèle système + plage de reps + type + incrément. Désactivé d'office sur échauffement/activation.</div>
+  <div class="co"><span class="n">2</span><b>Incrément auto</b> — choisir le type d'exercice pré-remplit l'incrément (composé bas → +5, haut → +2,5, isolation → reps d'abord). Modifiable.</div>
+  <div class="co"><span class="n">3</span><b>Cartes repliables</b> — chaque exercice se résume en une ligne (3 × 8–12 · 20 kg · ↗). Fini le scroll interminable ; on déplie seulement ce qu'on édite.</div>
+  <div class="co"><span class="n">4</span><b>Encodage accéléré</b> — barre de recherche/bibliothèque en haut, duplication d'un exercice, poignée de glissement pour réordonner, badges G+D et ↗ visibles sans déplier.</div>
+</div>
+
+<script>
+  function toggle(id){
+    const el=document.getElementById(id);
+    if(event.target.closest('.switch')||event.target.closest('.chip')||event.target.closest('button.chev')&&false){return;}
+    el.classList.toggle('open');
+  }
+  function toggleProg(panelId,sw){
+    event.stopPropagation();
+    sw.classList.toggle('on');
+    const p=document.getElementById(panelId);
+    const card=sw.closest('.ex');
+    const sub=sw.querySelector('.pt-tx small');
+    if(sw.classList.contains('on')){
+      p.classList.add('show');
+      if(sub)sub.textContent='Le module propose une montée à la clôture';
+      // add badge if missing
+      if(!card.querySelector('.badge-prog')){
+        const sumEl=card.querySelector('.ex-sum');
+        const b=document.createElement('span');b.className='badge-prog';b.innerHTML='↗ Progression';
+        sumEl.insertBefore(b,sumEl.firstChild);
+      }
+    }else{
+      p.classList.remove('show');
+      if(sub)sub.textContent='Désactivée — touche pour activer';
+      const b=card.querySelector('.badge-prog');if(b)b.remove();
+    }
+  }
+  // chips selection
+  document.querySelectorAll('.chips').forEach(group=>{
+    group.querySelectorAll('.chip').forEach(c=>{
+      c.addEventListener('click',e=>{
+        e.stopPropagation();
+        group.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+        c.classList.add('sel');
+      });
+    });
+  });
+  // stepper visual
+  document.querySelectorAll('.stepper').forEach(s=>{
+    s.addEventListener('click',e=>e.stopPropagation());
+  });
+  // segmented
+  document.querySelectorAll('.seg').forEach(s=>{
+    const btns=s.querySelectorAll('button');
+    btns.forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      btns.forEach(x=>x.classList.remove('on-r','on-d'));
+      b.classList.add(b.textContent==='Reps'?'on-r':'on-d');
+    }));
+  });
+</script>
+</body>
+</html>

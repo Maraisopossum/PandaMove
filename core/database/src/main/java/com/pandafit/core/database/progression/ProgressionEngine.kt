@@ -85,6 +85,19 @@ private fun piorerResultat(a: ResultatBrut, b: ResultatBrut): ResultatBrut {
     return if (rang(a.statut) >= rang(b.statut)) a else b
 }
 
+/** Une série isolée atteint-elle la cible (reps/durée @ charge) ? Bible §2.2 — réutilisée pour
+ * l'évaluation à la clôture (evaluerSeries) et pour le tracker live (bandeau de progression). */
+fun serieReussie(config: ExerciceSeanceEntity, cible: CibleExercice, serie: SerieRealiseeEntity): Boolean {
+    if (config.repsType == RepsType.DURATION) {
+        val dureeCible = cible.dureeSec ?: return true
+        return (serie.repsRealisees ?: 0) >= dureeCible
+    }
+    val repsCible = cible.reps ?: return true
+    val repsOk = (serie.repsRealisees ?: 0) >= repsCible
+    val chargeOk = cible.chargeKg == null || (serie.chargeKg ?: 0f) >= cible.chargeKg
+    return repsOk && chargeOk
+}
+
 private fun evaluerSeries(
     config: ExerciceSeanceEntity,
     cible: CibleExercice,
@@ -95,16 +108,7 @@ private fun evaluerSeries(
     val estDuree = config.repsType == RepsType.DURATION
     val total = series.size
 
-    fun serieReussie(s: SerieRealiseeEntity): Boolean {
-        if (estDuree) {
-            val dureeCible = cible.dureeSec ?: return true
-            return (s.repsRealisees ?: 0) >= dureeCible
-        }
-        val repsCible = cible.reps ?: return true
-        val repsOk = (s.repsRealisees ?: 0) >= repsCible
-        val chargeOk = cible.chargeKg == null || (s.chargeKg ?: 0f) >= cible.chargeKg
-        return repsOk && chargeOk
-    }
+    fun serieReussie(s: SerieRealiseeEntity): Boolean = serieReussie(config, cible, s)
 
     fun ecartRelatif(s: SerieRealiseeEntity): Float {
         return if (estDuree) {
@@ -182,7 +186,10 @@ private fun appliquerCompteurEtDeload(
     }
 }
 
-private fun proposerMontee(
+/** Que proposerait-on en cas de succès complet ? Fonction pure, sans effet de bord — utilisée par
+ * l'arbre de décision à la clôture (statut déjà SUCCES) et en lecture seule par le bandeau de
+ * progression live (preview "ce qui se passerait si toutes les séries restantes réussissent"). */
+fun proposerMontee(
     config: ExerciceSeanceEntity,
     cible: CibleExercice,
     compteurEchecActuel: Int,
@@ -265,6 +272,14 @@ fun calculerIncrementQualitatif(
     val pct = incrementPctOverride ?: typeExercice?.pourcentageCibleDefault ?: 0f
 
     if (!chargesAtteignables.isNullOrEmpty()) {
+        // La cible actuelle est sous le plancher réellement composable avec cet inventaire (ex. une
+        // barre EZ catégorisée "Barre" générique alors que la barre olympique déclarée pèse déjà plus
+        // que la cible) : la combinatoire matériel ne s'applique pas à ce point de départ, qui n'a
+        // jamais fait partie de l'ensemble atteignable. Snapper forcerait un saut disproportionné
+        // (le plancher matériel, pas un vrai "pas") — on retombe sur l'incrément manuel configuré.
+        if (chargeActuelle < chargesAtteignables.min()) {
+            return incrementKgManuel ?: pasMateriel ?: 0f
+        }
         val candidatsSuperieurs = chargesAtteignables.filter { it > chargeActuelle }.sorted()
         val pasEstime = candidatsSuperieurs.firstOrNull()?.minus(chargeActuelle) ?: (incrementKgManuel ?: 0f)
         val brut = maxOf(pasEstime, chargeActuelle * pct)

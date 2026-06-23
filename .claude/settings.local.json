@@ -119,7 +119,8 @@
       "Bash(./gradlew :feature:running:compileDebugKotlin)",
       "PowerShell(./gradlew :feature:running:compileDebugKotlin)",
       "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; ./gradlew :feature:running:compileDebugKotlin)",
-      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; ./gradlew :app:assembleDebug)"
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; ./gradlew :app:assembleDebug)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

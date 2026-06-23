@@ -22,6 +22,7 @@ import com.pandafit.core.database.progression.CibleExercice
 import com.pandafit.core.database.progression.PropositionProgression
 import com.pandafit.core.database.progression.StatutExercice
 import com.pandafit.core.database.progression.evaluerExercice
+import com.pandafit.core.database.progression.proposerMontee
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.core.database.relations.SeanceFull
 import com.pandafit.feature.strength.model.ChoixValidation
@@ -127,6 +128,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 figerCible = instance.isCompleted,
                 exercices = buildOrderedExercicesFromLists(seanceDao.getExercicesForInstance(instanceId), blocs),
             )
+            val progressionPreview = calculerProgressionPreview(instance.seanceId, exercices)
 
             // Historique cross-séance par exercise_id (pas seance_id ni exercice_seance_id)
             val historiqueComplet = mutableMapOf<Long, MutableList<Pair<LocalDate, List<SerieRealiseeEntity>>>>()
@@ -226,6 +228,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 seriesParExercice = seriesParExercice,
                 historiqueComplet = historiqueComplet,
                 isCompleted = instance.isCompleted,
+                progressionPreview = progressionPreview,
             )
 
             val alreadyActive = activeSessionManager.activeInstanceId.value == instanceId
@@ -922,6 +925,27 @@ class InstanceExecuteViewModel @Inject constructor(
             seanceDao.deleteBlocsForInstance(instanceId)
             seanceDao.deleteExercicesForInstance(instanceId)
             instanceSeanceDao.deleteInstance(inst)
+        }
+    }
+
+    /** Preview "ce qui se passerait si toutes les séries restantes réussissent" pour chaque exercice
+     * en progression_activee — alimente le bandeau de progression live (lecture seule, aucune écriture
+     * en DB, contrairement à prepareFinish() qui clôture réellement la séance). */
+    private suspend fun calculerProgressionPreview(
+        seanceId: Long,
+        exercices: List<ExerciceSeanceWithExercise>,
+    ): Map<Long, PropositionProgression> {
+        val candidats = exercices.filter { it.exerciceSeance.progressionActivee }
+        if (candidats.isEmpty()) return emptyMap()
+        val pasParCategorie = equipmentRepository.pasParCategorie.first()
+        val inventaire = equipmentRepository.inventaire.first()
+        return candidats.associate { exWithEx ->
+            val es = exWithEx.exerciceSeance
+            val objectif = objectifProgressionDao.getBySeanceAndExercice(seanceId, exWithEx.exercise.id)
+            val cible = cibleDepuis(objectif, es)
+            val pasMateriel = resolvePasMateriel(exWithEx.exercise.equipment, pasParCategorie)
+            val chargesAtteignables = resolveChargesAtteignables(exWithEx.exercise.equipment, inventaire)
+            es.id to proposerMontee(es, cible, 0, pasMateriel, chargesAtteignables)
         }
     }
 

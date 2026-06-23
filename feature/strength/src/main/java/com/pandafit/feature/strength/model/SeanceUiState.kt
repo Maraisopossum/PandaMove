@@ -12,7 +12,9 @@ import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.entities.SerieRealiseeEntity
 import com.pandafit.core.database.entities.SystemeProgression
 import com.pandafit.core.database.entities.TypeExercice
+import com.pandafit.core.database.progression.CibleExercice
 import com.pandafit.core.database.progression.PropositionProgression
+import com.pandafit.core.database.progression.serieReussie
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import java.time.LocalDate
 
@@ -188,10 +190,47 @@ data class InstanceExecuteUiState(
     val circuitMode: CircuitPhase? = null,   // non-null = mode circuit actif
     val countdownSeconds: Int = 0,           // 3/2/1 avant démarrage, 0 = inactif
     val propositionsProgression: List<PropositionAffichee> = emptyList(), // récap à la clôture, non-vide = dialog visible
+    // Preview "si succès complet" par exercice en progression_activee — calculé une fois au chargement
+    // (nécessite l'inventaire matériel, cf. InstanceExecuteViewModel.calculerProgressionPreview).
+    val progressionPreview: Map<Long, PropositionProgression> = emptyMap(),
     val error: String? = null,
 ) {
     fun seriesForExercice(exerciceId: Long): List<SerieRealiseeState> =
         seriesParExercice[exerciceId] ?: emptyList()
+
+    /** Bandeau de progression live (bible §2.3 — maquette signature `seance-en-direct.html`) :
+     * cible courante + nombre de séries déjà validées qui l'atteignent, parmi celles prévues.
+     * Dérivation pure, zéro IO — réutilise [serieReussie] (ProgressionEngine) au lieu de dupliquer
+     * la condition de réussite. */
+    fun progressionBanner(exerciceId: Long): ProgressionBanner? {
+        val es = exercices.find { it.exerciceSeance.id == exerciceId }?.exerciceSeance ?: return null
+        if (!es.progressionActivee) return null
+        val preview = progressionPreview[exerciceId] ?: return null
+        val cible = CibleExercice(
+            chargeKg = parseChargeKg(parseChargeLabel(es.chargeCible)),
+            reps = es.repsCibles.toIntOrNull(),
+            dureeSec = es.repsCibles.toIntOrNull().takeIf { es.repsType == RepsType.DURATION },
+        )
+        val series = seriesForExercice(exerciceId)
+        val reussies = series.count { it.isCompleted && serieReussie(es, cible, it.toEntity()) }
+        val repsMax = es.repsMax
+        val mode = when {
+            es.systemeProgression == SystemeProgression.TEMPORELLE -> BannerMode.NEXT_DUREE
+            es.systemeProgression == SystemeProgression.LINEAIRE -> BannerMode.NEXT_CHARGE_LINEAIRE
+            repsMax != null && (cible.reps ?: 0) >= repsMax -> BannerMode.UNLOCK_CHARGE
+            else -> BannerMode.NEXT_REPS
+        }
+        return ProgressionBanner(
+            mode = mode,
+            cibleReps = cible.reps,
+            cibleDureeSec = cible.dureeSec,
+            totalSeries = series.size,
+            seriesReussies = reussies,
+            nouvelleChargeKg = preview.nouvelleChargeCible,
+            nouveauRepsCible = preview.nouveauRepsCible,
+            nouvelleDureeCibleSec = preview.nouvelleDureeCible,
+        )
+    }
 
     fun isExerciceComplete(exerciceId: Long): Boolean {
         val exercice = exercices.find { it.exerciceSeance.id == exerciceId } ?: return false
@@ -238,6 +277,30 @@ data class SerieRealiseeState(
     val isPreFilled: Boolean = false,
     // "G" ou "D" pour les exercices bilatéraux, "" sinon
     val notes: String = "",
+) {
+    /** Mapper pur (pas d'IO) vers l'entité Room — uniquement pour satisfaire la signature de
+     * [serieReussie] depuis une dérivation synchrone du UiState (bandeau live). */
+    fun toEntity(): SerieRealiseeEntity = SerieRealiseeEntity(
+        id = id, instanceSeanceId = 0, exerciceSeanceId = 0,
+        numeroSerie = numeroSerie, repsRealisees = repsRealisees,
+        chargeKg = chargeKg, chargeLabel = chargeLabel, rpe = rpe,
+        isCompleted = isCompleted, notes = notes,
+    )
+}
+
+// ===== Bandeau de progression live (maquette seance-en-direct.html) =====
+
+enum class BannerMode { UNLOCK_CHARGE, NEXT_REPS, NEXT_CHARGE_LINEAIRE, NEXT_DUREE }
+
+data class ProgressionBanner(
+    val mode: BannerMode,
+    val cibleReps: Int?,
+    val cibleDureeSec: Int?,
+    val totalSeries: Int,
+    val seriesReussies: Int,
+    val nouvelleChargeKg: Float?,
+    val nouveauRepsCible: Int?,
+    val nouvelleDureeCibleSec: Int?,
 )
 
 // ===== Helpers d'affichage =====

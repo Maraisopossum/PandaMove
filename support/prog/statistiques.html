@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistiques — maquette</title>
+<style>
+  :root{
+    --ink:#1f2030; --muted:#8a8a9c; --line:#ececf3;
+    --purple:#6c4dd6; --purple-soft:#f1edfb;
+    --green:#2e9e5b; --green-soft:#e7f6ee;
+    --blue:#2f6fd6; --blue-soft:#e8f0fc;
+    --teal:#1fa89a; --teal-soft:#e3f6f3;
+    --up:#1f9d57; --down:#d2543b;
+    --bg:#f5f4f8; --card:#fff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#e9e6f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);padding:24px 14px 50px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .intro{max-width:420px;width:100%;font-size:12.5px;color:#55556a;line-height:1.55}
+  .intro b{color:var(--purple)}
+
+  .phone{width:420px;max-width:100%;background:var(--bg);border-radius:30px;box-shadow:0 20px 60px rgba(30,20,70,.22);overflow:hidden;border:1px solid #dcd7ec}
+  .status{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;font-size:11.5px;color:#9a9aaa;background:#fff}
+  .hdr{display:flex;align-items:center;gap:12px;padding:6px 16px 12px;background:#fff}
+  .hdr .mn{font-size:20px;color:#444}
+  .hdr .t{font-size:20px;font-weight:800;flex:1;text-align:center;margin-right:30px}
+
+  .scroll{max-height:80vh;overflow-y:auto;padding:0 14px 40px}
+  .scroll::-webkit-scrollbar{width:0}
+
+  /* sticky controls */
+  .sticky{position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:5}
+  .period{display:flex;gap:7px;margin-bottom:10px}
+  .period button{flex:1;padding:8px 0;border-radius:11px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:13px;color:#8a8a9c;cursor:pointer}
+  .period button.on{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+  .tabs{display:flex;gap:6px;overflow-x:auto}
+  .tabs::-webkit-scrollbar{height:0}
+  .tabs button{flex-shrink:0;padding:7px 14px;border-radius:20px;border:none;background:#fff;border:1px solid var(--line);font-weight:700;font-size:12.5px;color:#8a8a9c;cursor:pointer}
+  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* global KPIs with delta */
+  .kpis{display:flex;gap:9px;margin:6px 0 4px}
+  .kpi{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+  .kpi .v{font-size:19px;font-weight:800;line-height:1}
+  .kpi .l{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .kpi .d{font-size:10.5px;font-weight:800;margin-top:5px;display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:7px}
+  .d.up{color:var(--up);background:var(--green-soft)}
+  .d.down{color:var(--down);background:#fbe9e4}
+  .d.flat{color:#8a8a9c;background:#f0f0f4}
+
+  .section-h{display:flex;align-items:center;gap:10px;margin:20px 0 11px}
+  .section-h .si{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:16px}
+  .section-h .st{font-size:17px;font-weight:800}
+  .si-prog{background:linear-gradient(135deg,#6c4dd6,#8a6ee8);color:#fff}
+  .si-renfo{background:var(--purple-soft);color:var(--purple)}
+  .si-run{background:var(--green-soft);color:var(--green)}
+  .si-bike{background:var(--blue-soft);color:var(--blue)}
+  .si-resp{background:var(--teal-soft);color:var(--teal)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+
+  /* HERO progression */
+  .prog-hero{background:linear-gradient(135deg,#6c4dd6,#8a6ee8);border-radius:18px;padding:16px;color:#fff;margin-bottom:10px}
+  .prog-hero .ph-top{display:flex;align-items:baseline;gap:8px}
+  .prog-hero .ph-big{font-size:30px;font-weight:800;letter-spacing:-.5px}
+  .prog-hero .ph-lbl{font-size:13px;opacity:.9;font-weight:600}
+  .prog-hero .ph-sub{font-size:12px;opacity:.85;margin-top:2px}
+  .prog-hero .ph-list{margin-top:13px;display:flex;flex-direction:column;gap:7px}
+  .prog-hero .pr{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.15);border-radius:10px;padding:9px 11px}
+  .prog-hero .pr .pn{flex:1;font-size:13px;font-weight:600}
+  .prog-hero .pr .pv{font-size:13.5px;font-weight:800}
+  .prog-hero .pr .pa{font-size:14px}
+
+  /* stat grid */
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px 6px}
+  .gc{text-align:center}
+  .gc .v{font-size:17px;font-weight:800;line-height:1}
+  .gc .l{font-size:10px;color:var(--muted);margin-top:3px}
+  .gc .dd{font-size:9.5px;font-weight:800;margin-top:3px}
+  .gc .dd.up{color:var(--up)} .gc .dd.down{color:var(--down)} .gc .dd.flat{color:#9a9aaa}
+
+  .divider{height:1px;background:var(--line);margin:13px 0}
+
+  /* weekly bars */
+  .wk{margin-top:4px}
+  .wk-h{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:9px;display:flex;justify-content:space-between}
+  .bars{display:flex;align-items:flex-end;gap:7px;height:74px}
+  .bar{flex:1;border-radius:5px 5px 0 0;position:relative;display:flex;justify-content:center;align-items:flex-start;padding-top:3px}
+  .bar .bv{font-size:9px;font-weight:800;color:#fff}
+  .bar.last{outline:2px solid rgba(0,0,0,.06)}
+  .bars-x{display:flex;gap:7px;margin-top:5px}
+  .bars-x span{flex:1;text-align:center;font-size:9.5px;color:#a5a5b5;font-weight:600}
+  .avgline{font-size:10.5px;color:var(--muted);margin-top:7px;font-weight:600}
+  .avgline b{color:var(--ink)}
+
+  /* equivalent (single, signature) */
+  .equiv{display:flex;align-items:center;gap:11px;background:#faf9fd;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-top:11px}
+  .equiv .ee{font-size:26px}
+  .equiv .et{flex:1}
+  .equiv .et .ev{font-size:15px;font-weight:800}
+  .equiv .et .el{font-size:11px;color:var(--muted)}
+
+  /* imbalance / répartition */
+  .rep-row{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .rep-row .rn{font-size:12.5px;font-weight:600;width:88px}
+  .rep-row .rbar{flex:1;height:8px;background:#eceaf4;border-radius:5px;overflow:hidden}
+  .rep-row .rfill{height:100%;background:var(--purple);border-radius:5px}
+  .rep-row .rv{font-size:11px;color:var(--muted);font-weight:700;width:74px;text-align:right}
+  .flag{display:flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #f3ddc0;border-radius:11px;padding:10px 12px;margin-top:8px;font-size:12px;color:#9a6a26;line-height:1.4}
+  .flag b{color:#b8731f}
+
+  /* empty state */
+  .empty{background:var(--teal-soft);border:1px dashed #a9ddd6;border-radius:16px;padding:20px 16px;text-align:center}
+  .empty .ee{font-size:30px}
+  .empty .et{font-size:14px;font-weight:700;margin-top:8px;color:#157a6f}
+  .empty .es{font-size:12px;color:#4c8c84;margin-top:4px;line-height:1.45}
+  .empty .eb{margin-top:13px;background:var(--teal);color:#fff;border:none;border-radius:11px;padding:11px 20px;font-weight:800;font-size:13px;cursor:pointer}
+
+  .notes{max-width:420px;width:100%;display:flex;flex-direction:column;gap:8px}
+  .nn{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:12px;color:#4a4a5e;line-height:1.5;display:flex;gap:9px}
+  .nn .ni{width:20px;height:20px;border-radius:6px;background:var(--purple-soft);color:var(--purple);display:grid;place-items:center;font-weight:800;font-size:11px;flex-shrink:0}
+  .nn b{color:var(--purple)}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  Maquette des <b>statistiques</b>. La progression passe en tête (le payoff du système), chaque chiffre porte un <b>delta vs période précédente</b>, les équivalents sont réduits à un seul par discipline, des onglets d'ancrage évitent le scroll, et la respiration vide devient une invitation.
+</div>
+
+<div class="phone">
+  <div class="status"><span>06:25</span><span>88 ▮</span></div>
+  <div class="hdr"><span class="mn">☰</span><span class="t">Statistiques</span></div>
+
+  <div class="scroll">
+
+    <div class="sticky">
+      <div class="period">
+        <button>7j</button><button class="on">30j</button><button>3m</button><button>1an</button>
+      </div>
+      <div class="tabs">
+        <button class="on">Tout</button>
+        <button>↗ Progrès</button>
+        <button>Renfo</button>
+        <button>Course</button>
+        <button>Vélo</button>
+        <button>Respi</button>
+      </div>
+    </div>
+
+    <!-- global KPIs w/ deltas -->
+    <div class="kpis">
+      <div class="kpi"><div class="v">23/25</div><div class="l">Séances</div><div class="d up">↑ +3</div></div>
+      <div class="kpi"><div class="v">17h23</div><div class="l">Durée</div><div class="d up">↑ 8%</div></div>
+      <div class="kpi"><div class="v">92%</div><div class="l">Complétion</div><div class="d flat">= </div></div>
+    </div>
+
+    <!-- HERO progression -->
+    <div class="section-h"><span class="si si-prog">↗</span><span class="st">Progressions</span></div>
+    <div class="prog-hero">
+      <div class="ph-top"><span class="ph-big">+18,5 kg</span><span class="ph-lbl">de charge gagnée ce mois</span></div>
+      <div class="ph-sub">5 exercices en progression · 1 à l'arrêt</div>
+      <div class="ph-list">
+        <div class="pr"><span class="pa">💪</span><span class="pn">Développé couché barre</span><span class="pv">+10,0 kg</span></div>
+        <div class="pr"><span class="pa">🦵</span><span class="pn">Squat gobelet</span><span class="pv">+5,0 kg</span></div>
+        <div class="pr"><span class="pa">🏋</span><span class="pn">Mollets assis machine</span><span class="pv">+5,0 kg</span></div>
+        <div class="pr"><span class="pa">⏸</span><span class="pn" style="opacity:.8">Tibial raises — à l'arrêt</span><span class="pv">0 kg</span></div>
+      </div>
+    </div>
+
+    <!-- RENFORCEMENT -->
+    <div class="section-h"><span class="si si-renfo">🏋</span><span class="st">Renforcement</span></div>
+    <div class="card">
+      <div class="grid3">
+        <div class="gc"><div class="v">7/8</div><div class="l">Séances</div><div class="dd up">↑ +1</div></div>
+        <div class="gc"><div class="v">264</div><div class="l">Séries</div><div class="dd up">↑ 6%</div></div>
+        <div class="gc"><div class="v">27,6 T</div><div class="l">Tonnage</div><div class="dd up">↑ 11%</div></div>
+        <div class="gc"><div class="v">1947</div><div class="l">Reps</div><div class="dd up">↑ 4%</div></div>
+        <div class="gc"><div class="v">58 min</div><div class="l">Durée moy.</div><div class="dd flat">=</div></div>
+        <div class="gc"><div class="v">Gainage L.</div><div class="l">Exo phare · 26 s.</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="wk">
+        <div class="wk-h"><span>Tonnage par semaine</span><span>27,6 T total</span></div>
+        <div class="bars">
+          <div class="bar" style="height:58%;background:#b6a3ec"><span class="bv">5,8</span></div>
+          <div class="bar" style="height:70%;background:#9c82e4"><span class="bv">6,4</span></div>
+          <div class="bar" style="height:64%;background:#9c82e4"><span class="bv">6,1</span></div>
+          <div class="bar last" style="height:88%;background:#6c4dd6"><span class="bv">7,2</span></div>
+        </div>
+        <div class="bars-x"><span>S22</span><span>S23</span><span>S24</span><span>S25</span></div>
+        <div class="avgline">Tendance <b>↑ en hausse</b> · moy. 6,4 T/sem</div>
+      </div>
+
+      <div class="equiv">
+        <span class="ee">🐼</span>
+        <div class="et"><div class="ev">394 pandas soulevés</div><div class="el">Ton tonnage en équivalents</div></div>
+      </div>
+    </div>
+
+    <!-- répartition + imbalance -->
+    <div class="card">
+      <div class="wk-h" style="margin-bottom:12px"><span>Répartition musculaire</span><span>taux 87%</span></div>
+      <div class="rep-row"><span class="rn">Abdominaux</span><div class="rbar"><div class="rfill" style="width:90%"></div></div><span class="rv">18% · 48 s.</span></div>
+      <div class="rep-row"><span class="rn">Fessiers</span><div class="rbar"><div class="rfill" style="width:60%"></div></div><span class="rv">12% · 32 s.</span></div>
+      <div class="rep-row"><span class="rn">Grand dorsal</span><div class="rbar"><div class="rfill" style="width:45%"></div></div><span class="rv">9% · 26 s.</span></div>
+      <div class="rep-row"><span class="rn">Pectoraux</span><div class="rbar"><div class="rfill" style="width:45%"></div></div><span class="rv">9% · 26 s.</span></div>
+      <div class="rep-row"><span class="rn">Quadriceps</span><div class="rbar"><div class="rfill" style="width:35%"></div></div><span class="rv">7% · 21 s.</span></div>
+      <div class="rep-row"><span class="rn">Épaules</span><div class="rbar"><div class="rfill" style="width:30%"></div></div><span class="rv">6% · 18 s.</span></div>
+      <div class="flag">⚠️ <span><b>Déséquilibre :</b> quadriceps et épaules sous-travaillés vs le volume abdos. Pense à équilibrer le bas du corps.</span></div>
+    </div>
+
+    <!-- COURSE -->
+    <div class="section-h"><span class="si si-run">🏃</span><span class="st">Course à pieds</span></div>
+    <div class="card">
+      <div class="grid3">
+        <div class="gc"><div class="v">14/15</div><div class="l">Séances</div><div class="dd up">↑ +2</div></div>
+        <div class="gc"><div class="v">99,6 km</div><div class="l">Distance</div><div class="dd up">↑ 9%</div></div>
+        <div class="gc"><div class="v">6:06</div><div class="l">Allure moy.</div><div class="dd up">↑ 4 s/km</div></div>
+        <div class="gc"><div class="v">10h08</div><div class="l">Durée</div><div class="dd up">↑ 7%</div></div>
+        <div class="gc"><div class="v">151 bpm</div><div class="l">FC moy.</div><div class="dd flat">=</div></div>
+        <div class="gc"><div class="v">783 m</div><div class="l">Dénivelé +</div><div class="dd up">↑ 12%</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="wk">
+        <div class="wk-h"><span>Distance par semaine</span><span>99,6 km total</span></div>
+        <div class="bars">
+          <div class="bar" style="height:58%;background:#8fd3aa"><span class="bv">15</span></div>
+          <div class="bar" style="height:54%;background:#8fd3aa"><span class="bv">14</span></div>
+          <div class="bar" style="height:88%;background:#4fb87a"><span class="bv">23</span></div>
+          <div class="bar last" style="height:100%;background:#2e9e5b"><span class="bv">26</span></div>
+          <div class="bar" style="height:80%;background:#4fb87a"><span class="bv">21</span></div>
+        </div>
+        <div class="bars-x"><span>S21</span><span>S22</span><span>S23</span><span>S24</span><span>S25</span></div>
+        <div class="avgline">Volume <b>↑ +10%/sem</b> — attention au seuil de prudence</div>
+      </div>
+
+      <div class="equiv">
+        <span class="ee">🏔</span>
+        <div class="et"><div class="ev">16,3% du Mont Blanc en dénivelé</div><div class="el">Ta distance en équivalents</div></div>
+      </div>
+    </div>
+
+    <!-- VÉLO -->
+    <div class="section-h"><span class="si si-bike">🚴</span><span class="st">Vélo</span></div>
+    <div class="card">
+      <div class="grid3">
+        <div class="gc"><div class="v">2/2</div><div class="l">Séances</div><div class="dd flat">=</div></div>
+        <div class="gc"><div class="v">6,8 km</div><div class="l">Distance</div><div class="dd down">↓ nouveau</div></div>
+        <div class="gc"><div class="v">13,6</div><div class="l">Vit. moy km/h</div><div class="dd flat">=</div></div>
+      </div>
+      <div class="equiv">
+        <span class="ee">🇧🇪</span>
+        <div class="et"><div class="ev">2,15% d'un Paris→Bruxelles</div><div class="el">Ta distance en équivalents</div></div>
+      </div>
+    </div>
+
+    <!-- RESPIRATION empty state -->
+    <div class="section-h"><span class="si si-resp">🌬</span><span class="st">Respiration</span></div>
+    <div class="empty">
+      <div class="ee">🌬</div>
+      <div class="et">Aucune séance ce mois</div>
+      <div class="es">La cohérence cardiaque aide la récupération entre tes gardes. 5 min, 3 fois/jour suffisent.</div>
+      <button class="eb">Démarrer une séance</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="notes">
+  <div class="nn"><span class="ni">1</span><div><b>Progression en héros.</b> Charge totale gagnée + top exercices en tête, au lieu d'une note de 2 lignes. C'est le résultat visible du système de surcharge.</div></div>
+  <div class="nn"><span class="ni">2</span><div><b>Deltas partout.</b> Chaque chiffre se compare à la période précédente (↑/↓/=). Un 30j ne vaut que comparé au 30j d'avant.</div></div>
+  <div class="nn"><span class="ni">3</span><div><b>Onglets d'ancrage</b> (Tout/Progrès/Renfo/Course/Vélo/Respi) pour sauter sans scroller, et sélecteur de période rendu collant.</div></div>
+  <div class="nn"><span class="ni">4</span><div><b>Un seul équivalent par discipline</b> (le panda pour le renfo), au lieu de 3-4. Moins de bruit, même clin d'œil.</div></div>
+  <div class="nn"><span class="ni">5</span><div><b>Répartition qui alerte</b> sur les groupes sous-travaillés, courbe hebdo aussi pour le renfo (tonnage), et respiration vide transformée en invitation.</div></div>
+</div>
+
+</body>
+</html>
