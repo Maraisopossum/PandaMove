@@ -3,10 +3,12 @@ package com.pandafit.core.database.export
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import com.pandafit.core.database.catalog.EquipmentRepository
 import com.pandafit.core.database.dao.BreathingSessionDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
+import com.pandafit.core.database.dao.ObjectifProgressionDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.SeanceDao
@@ -35,6 +37,8 @@ class DataExportManager @Inject constructor(
     private val exerciseDao: ExerciseDao,
     private val gpsDao: GpsTrackPointDao,
     private val breathingSessionDao: BreathingSessionDao,
+    private val objectifProgressionDao: ObjectifProgressionDao,
+    private val equipmentRepository: EquipmentRepository,
 ) {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
 
@@ -92,6 +96,12 @@ class DataExportManager @Inject constructor(
                             tempsReposSec = e.tempsReposSec, consigneCle = e.consigneCle,
                             equipement = e.equipement, avertissement = e.avertissement,
                             isBilateral = e.isBilateral,
+                            progressionActivee = e.progressionActivee,
+                            systemeProgression = e.systemeProgression?.name,
+                            repsMin = e.repsMin, repsMax = e.repsMax,
+                            incrementKg = e.incrementKg, incrementDureeSec = e.incrementDureeSec,
+                            seuilDeload = e.seuilDeload,
+                            typeExercice = e.typeExercice?.name, incrementPct = e.incrementPct,
                         )
                     },
                 )
@@ -153,6 +163,12 @@ class DataExportManager @Inject constructor(
                         tempsReposSec = e.tempsReposSec, consigneCle = e.consigneCle,
                         equipement = e.equipement, avertissement = e.avertissement,
                         isBilateral = e.isBilateral,
+                        progressionActivee = e.progressionActivee,
+                        systemeProgression = e.systemeProgression?.name,
+                        repsMin = e.repsMin, repsMax = e.repsMax,
+                        incrementKg = e.incrementKg, incrementDureeSec = e.incrementDureeSec,
+                        seuilDeload = e.seuilDeload,
+                        typeExercice = e.typeExercice?.name, incrementPct = e.incrementPct,
                     )
                 },
             )
@@ -293,8 +309,37 @@ class DataExportManager @Inject constructor(
                 }
         } else emptyList()
 
+        // ── 6. Objectifs de progression (objectif courant par exercice, bible §0.1) ─────
+        val objectifsProgression = if (options.objectifsProgression) {
+            objectifProgressionDao.observeAll().first().map { o ->
+                ObjectifProgressionDto(
+                    id = o.id, seanceId = o.seanceId, exerciceId = o.exerciceId,
+                    exerciceName = exerciseNameMap[o.exerciceId] ?: "",
+                    chargeCible = o.chargeCible, repsCible = o.repsCible,
+                    dureeCibleSec = o.dureeCibleSec, compteurEchec = o.compteurEchec,
+                    derniereMaj = o.derniereMaj?.toString(),
+                )
+            }
+        } else emptyList()
+
+        // ── 7. Inventaire matériel "Mon matériel" ───────────────────────────────
+        val equipmentConfig = if (options.equipmentConfig) {
+            val selected = equipmentRepository.selectedEquipment.first()
+            val pas = equipmentRepository.pasParCategorie.first()
+            val inventaire = equipmentRepository.inventaire.first()
+            EquipmentConfigDto(
+                selectedCategories = selected.map { it.name },
+                pasParCategorie = pas.mapKeys { it.key.name },
+                halteres = inventaire.halteres,
+                barre = inventaire.barre,
+                kettlebell = inventaire.kettlebell,
+                cable = inventaire.cable,
+            )
+        } else null
+
         // ── Assemblage ────────────────────────────────────────────────────────
         val export = PandaMoveExport(
+            version = "3.2",
             exportDate = LocalDateTime.now().toString(),
             strengthTemplates = strengthTemplates,
             strengthSessions = strengthSessions,
@@ -306,6 +351,8 @@ class DataExportManager @Inject constructor(
             hikingSessions = hikingSessions,
             breathingSessions = breathingSessions,
             customExercises = customExercises,
+            objectifsProgression = objectifsProgression,
+            equipmentConfig = equipmentConfig,
         )
 
         val jsonStr = json.encodeToString(export)

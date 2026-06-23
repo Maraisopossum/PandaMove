@@ -11,26 +11,50 @@
 
 ## Format export
 Fichier JSON : `pandamove_export_YYYY-MM-DD.json`  
-Racine : `PandaMoveExport` avec 5 sections :
+Racine : `PandaMoveExport`, version **3.2** (`version` écrit explicitement par `DataExportManager`,
+auparavant codé en dur `"3.0"` malgré l'ajout de randonnée/respiration en v3.1) :
 ```json
 {
+  "version": "3.2",
   "exportDate": "...",
-  "strengthTemplates": [...],   // séances types renforcement
-  "strengthSessions": [...],    // instances terminées + séries
-  "runWorkouts": [...],         // workouts running/vélo avec repeats + steps
-  "customExercises": [...],     // exercices personnalisés (isCustom=true)
-  "statistics": { ... }         // snapshot stats calculé à l'export
+  "strengthTemplates": [...],      // séances types renforcement
+  "strengthSessions": { "completed": [...], "planned": [...] },
+  "runTemplates": [...], "runSessions": { ... },
+  "cyclingTemplates": [...], "cyclingSessions": { ... },
+  "hikingTemplates": [...], "hikingSessions": { ... },
+  "breathingSessions": [...],
+  "customExercises": [...],        // exercices personnalisés (isCustom=true)
+  "objectifsProgression": [...],   // objectif courant par exercice (ajouté v3.2)
+  "equipmentConfig": { ... }       // inventaire "Mon matériel" (ajouté v3.2)
 }
 ```
+
+### Surcharge progressive — ajouté v3.2
+`ExerciceDto` porte désormais les 9 champs de progression (`progressionActivee`, `systemeProgression`,
+`repsMin/Max`, `incrementKg`, `incrementDureeSec`, `seuilDeload`, `typeExercice`, `incrementPct`) —
+absents du format jusqu'ici malgré leur présence en DB depuis v21/v23 (un export/import effaçait
+silencieusement la config de progression d'une séance type).
+
+`objectifsProgression: List<ObjectifProgressionDto>` exporte la table `objectifs_progression`
+(objectif courant par exercice, bible §0.1 — charge/reps cible, compteur d'échecs). `exerciceName` est
+ajouté au DTO (absent de l'entité) pour permettre la résolution cross-device à l'import, comme
+`ExerciceDto.exerciceName`. Import via `ObjectifProgressionDao.upsert()` (clé `seanceId`+`exerciceId`,
+pas l'`id` — déjà idempotent, pas de logique IGNORE séparée à écrire).
+
+`equipmentConfig: EquipmentConfigDto?` exporte l'inventaire "Mon matériel" (`EquipmentRepository`,
+DataStore — hors Room, donc hors de portée du reste du pipeline). Réutilise directement
+`HalteresConfig`/`DisquesConfig`/`PlageConfig` de `EquipmentInventory.kt`. Import = écrasement direct
+du DataStore (restauration, pas de déduplication par id).
 
 ## DTOs principaux (@Serializable)
 ```
 PandaMoveExport
-  StrengthTemplateDto   → SeanceDto + List<BlocDto> + List<ExerciceDto>
-  StrengthSessionDto    → InstanceDto + List<SerieDto>
-  RunWorkoutDto         → WorkoutDto + List<RunRepeatDto> + List<RunStepDto>
+  StrengthTemplateDto       → SeanceDto + List<BlocDto> + List<ExerciceDto>
+  StrengthSessionDto        → InstanceDto + List<SerieDto>
+  RunWorkoutDto             → WorkoutDto + List<RunRepeatDto> + List<RunStepDto>
   CustomExerciseDto
-  StatsSnapshotDto      → totalStrengthSessions, totalRunSessions, totalDistanceKm
+  ObjectifProgressionDto    → objectif courant par exercice (v3.2)
+  EquipmentConfigDto        → HalteresConfig + DisquesConfig (barre) + PlageConfig (kettlebell/câble) (v3.2)
 ```
 
 ## Flux export

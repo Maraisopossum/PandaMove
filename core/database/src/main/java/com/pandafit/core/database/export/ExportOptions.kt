@@ -19,6 +19,8 @@ data class ExportOptions(
     val hikingPlanned: Boolean = true,
     val breathingSessions: Boolean = true,
     val customExercises: Boolean = true,
+    val objectifsProgression: Boolean = true,
+    val equipmentConfig: Boolean = true,
 ) {
     companion object {
         val ALL = ExportOptions()
@@ -29,6 +31,7 @@ data class ExportOptions(
             cyclingCompleted = false, cyclingPlanned = false,
             hikingCompleted = false, hikingPlanned = false,
             breathingSessions = false,
+            objectifsProgression = false,
         )
 
         val SESSIONS_ONLY = ExportOptions(
@@ -55,6 +58,8 @@ data class ImportOptions(
     val hikingSessions: Boolean = true,
     val breathingSessions: Boolean = true,
     val customExercises: Boolean = true,
+    val objectifsProgression: Boolean = true,
+    val equipmentConfig: Boolean = true,
 ) {
     companion object {
         val ALL = ImportOptions()
@@ -65,6 +70,7 @@ data class ImportOptions(
             cyclingSessions = false,
             hikingSessions = false,
             breathingSessions = false,
+            objectifsProgression = false,
         )
     }
 }

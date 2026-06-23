@@ -20,6 +20,9 @@ interface ObjectifProgressionDao {
     @Query("SELECT * FROM objectifs_progression WHERE seance_id = :seanceId")
     fun observeAllForSeance(seanceId: Long): Flow<List<ObjectifProgressionEntity>>
 
+    @Query("SELECT * FROM objectifs_progression")
+    fun observeAll(): Flow<List<ObjectifProgressionEntity>>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(objectif: ObjectifProgressionEntity): Long
 

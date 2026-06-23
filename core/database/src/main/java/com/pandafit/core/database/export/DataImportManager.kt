@@ -1,9 +1,13 @@
 package com.pandafit.core.database.export
 
+import com.pandafit.core.database.catalog.EquipmentCategory
+import com.pandafit.core.database.catalog.EquipmentRepository
+import com.pandafit.core.database.catalog.HalteresConfig
 import com.pandafit.core.database.dao.BreathingSessionDao
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
+import com.pandafit.core.database.dao.ObjectifProgressionDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.SeanceDao
@@ -16,6 +20,7 @@ import com.pandafit.core.database.entities.ExerciceSeanceEntity
 import com.pandafit.core.database.entities.ExerciseCategory
 import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.core.database.entities.InstanceSeanceEntity
+import com.pandafit.core.database.entities.ObjectifProgressionEntity
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.RunEndType
 import com.pandafit.core.database.entities.RunEndUnit
@@ -26,6 +31,8 @@ import com.pandafit.core.database.entities.RunTargetType
 import com.pandafit.core.database.entities.SeanceCategory
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.entities.SerieRealiseeEntity
+import com.pandafit.core.database.entities.SystemeProgression
+import com.pandafit.core.database.entities.TypeExercice
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import kotlinx.coroutines.Dispatchers
@@ -108,6 +115,8 @@ class DataImportManager @Inject constructor(
     private val exerciseDao: ExerciseDao,
     private val gpsDao: GpsTrackPointDao,
     private val breathingSessionDao: BreathingSessionDao,
+    private val objectifProgressionDao: ObjectifProgressionDao,
+    private val equipmentRepository: EquipmentRepository,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -238,6 +247,17 @@ class DataImportManager @Inject constructor(
                                 tempsReposSec = ex.tempsReposSec, consigneCle = ex.consigneCle,
                                 equipement = ex.equipement, avertissement = ex.avertissement,
                                 isBilateral = ex.isBilateral,
+                                progressionActivee = ex.progressionActivee,
+                                systemeProgression = ex.systemeProgression?.let {
+                                    runCatching { SystemeProgression.valueOf(it) }.getOrNull()
+                                },
+                                repsMin = ex.repsMin, repsMax = ex.repsMax,
+                                incrementKg = ex.incrementKg, incrementDureeSec = ex.incrementDureeSec,
+                                seuilDeload = ex.seuilDeload,
+                                typeExercice = ex.typeExercice?.let {
+                                    runCatching { TypeExercice.valueOf(it) }.getOrNull()
+                                },
+                                incrementPct = ex.incrementPct,
                             )
                         )
                         if (r > 0) imported++ else skipped++
@@ -317,6 +337,17 @@ class DataImportManager @Inject constructor(
                                 tempsReposSec = ex.tempsReposSec, consigneCle = ex.consigneCle,
                                 equipement = ex.equipement, avertissement = ex.avertissement,
                                 isBilateral = ex.isBilateral,
+                                progressionActivee = ex.progressionActivee,
+                                systemeProgression = ex.systemeProgression?.let {
+                                    runCatching { SystemeProgression.valueOf(it) }.getOrNull()
+                                },
+                                repsMin = ex.repsMin, repsMax = ex.repsMax,
+                                incrementKg = ex.incrementKg, incrementDureeSec = ex.incrementDureeSec,
+                                seuilDeload = ex.seuilDeload,
+                                typeExercice = ex.typeExercice?.let {
+                                    runCatching { TypeExercice.valueOf(it) }.getOrNull()
+                                },
+                                incrementPct = ex.incrementPct,
                             )
                         )
                         if (r > 0) imported++ else skipped++
@@ -547,6 +578,58 @@ class DataImportManager @Inject constructor(
                                 .getOrDefault(java.time.LocalDate.now()),
                         )
                     )
+                    imported++
+                } catch (_: Exception) {
+                    errors++
+                }
+            }
+        }
+
+        // ── 8. Objectifs de progression (objectif courant par exercice, bible §0.1) ─────
+        if (options.objectifsProgression) {
+            for (o in export.objectifsProgression) {
+                val resolvedExerciceId = if (exerciseIdSet.contains(o.exerciceId)) {
+                    o.exerciceId
+                } else {
+                    val fallback = if (o.exerciceName.isNotBlank()) exerciseNameToId[o.exerciceName] else null
+                    if (fallback == null) { errors++; continue }
+                    fallback
+                }
+                try {
+                    objectifProgressionDao.upsert(
+                        ObjectifProgressionEntity(
+                            seanceId = o.seanceId, exerciceId = resolvedExerciceId,
+                            chargeCible = o.chargeCible, repsCible = o.repsCible,
+                            dureeCibleSec = o.dureeCibleSec, compteurEchec = o.compteurEchec,
+                            derniereMaj = o.derniereMaj?.let {
+                                runCatching { LocalDate.parse(it) }.getOrNull()
+                            },
+                        )
+                    )
+                    imported++
+                } catch (_: Exception) {
+                    errors++
+                }
+            }
+        }
+
+        // ── 9. Inventaire matériel "Mon matériel" (restauration = écrasement) ───────────
+        if (options.equipmentConfig) {
+            export.equipmentConfig?.let { config ->
+                try {
+                    val categories = config.selectedCategories
+                        .mapNotNull { name -> EquipmentCategory.entries.find { it.name == name } }
+                        .toSet()
+                    equipmentRepository.setEquipment(categories)
+                    config.pasParCategorie.forEach { (name, pas) ->
+                        EquipmentCategory.entries.find { it.name == name }?.let {
+                            equipmentRepository.setPas(it, pas)
+                        }
+                    }
+                    equipmentRepository.setHalteresConfig(config.halteres ?: HalteresConfig())
+                    config.barre?.let { equipmentRepository.setBarreConfig(it) }
+                    config.kettlebell?.let { equipmentRepository.setKettlebellConfig(it) }
+                    config.cable?.let { equipmentRepository.setCableConfig(it) }
                     imported++
                 } catch (_: Exception) {
                     errors++

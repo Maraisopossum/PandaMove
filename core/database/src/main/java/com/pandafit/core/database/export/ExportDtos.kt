@@ -1,5 +1,8 @@
 package com.pandafit.core.database.export
 
+import com.pandafit.core.database.catalog.DisquesConfig
+import com.pandafit.core.database.catalog.HalteresConfig
+import com.pandafit.core.database.catalog.PlageConfig
 import kotlinx.serialization.Serializable
 
 // ── Racine v3.0 ───────────────────────────────────────────────────────────────
@@ -32,6 +35,10 @@ data class PandaMoveExport(
     val breathingSessions: List<BreathingSessionDto> = emptyList(),
     // ── Exercices personnalisés
     val customExercises: List<CustomExerciseDto> = emptyList(),
+    // ── Surcharge progressive : objectif courant par exercice (ajouté v3.2)
+    val objectifsProgression: List<ObjectifProgressionDto> = emptyList(),
+    // ── Inventaire matériel "Mon matériel" (ajouté v3.2)
+    val equipmentConfig: EquipmentConfigDto? = null,
 )
 
 // ── Renforcement ───────────────────────────────────────────────────────────────
@@ -95,6 +102,16 @@ data class ExerciceDto(
     val equipement: String = "",
     val avertissement: String = "",
     val isBilateral: Boolean = false,
+    // Surcharge progressive — config structurelle (ajoutés v3.2, présents en DB depuis v21/v23)
+    val progressionActivee: Boolean = false,
+    val systemeProgression: String? = null,
+    val repsMin: Int? = null,
+    val repsMax: Int? = null,
+    val incrementKg: Float? = null,
+    val incrementDureeSec: Int = 5,
+    val seuilDeload: Int = 3,
+    val typeExercice: String? = null,
+    val incrementPct: Float? = null,
 )
 
 @Serializable
@@ -229,6 +246,34 @@ data class BreathingSessionDto(
     val cyclesCompleted: Int,
     val durationSeconds: Int,
     val sessionDate: String,
+)
+
+// ── Surcharge progressive : objectif courant (bible §0.1) ─────────────────────
+
+@Serializable
+data class ObjectifProgressionDto(
+    val id: Long,
+    val seanceId: Long,
+    val exerciceId: Long,
+    // Absent de l'entité — ajouté pour permettre la résolution cross-device à l'import (cf. ExerciceDto.exerciceName)
+    val exerciceName: String = "",
+    val chargeCible: Float? = null,
+    val repsCible: Int? = null,
+    val dureeCibleSec: Int? = null,
+    val compteurEchec: Int = 0,
+    val derniereMaj: String? = null,
+)
+
+// ── Inventaire matériel "Mon matériel" ─────────────────────────────────────────
+
+@Serializable
+data class EquipmentConfigDto(
+    val selectedCategories: List<String> = emptyList(),
+    val pasParCategorie: Map<String, Float> = emptyMap(),
+    val halteres: HalteresConfig? = null,
+    val barre: DisquesConfig? = null,
+    val kettlebell: PlageConfig? = null,
+    val cable: PlageConfig? = null,
 )
 
 // ── Exercices personnalisés ───────────────────────────────────────────────────
