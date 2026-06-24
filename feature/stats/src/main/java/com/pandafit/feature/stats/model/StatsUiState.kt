@@ -14,6 +14,13 @@ data class StatsUiState(
     val cyclingDetail: CyclingDetailStats = CyclingDetailStats(),
     val breathingDetail: BreathingDetailStats = BreathingDetailStats(),
     val statsConfig: StatsConfig = StatsConfig(),
+    // Période précédente équivalente — alimente les deltas ↑/↓/= affichés à côté de chaque KPI
+    val previousRunningStats: SportStats = SportStats(),
+    val previousCyclingStats: SportStats = SportStats(),
+    val previousStrengthStats: SportStats = SportStats(),
+    val previousStrengthDetail: StrengthDetailStats = StrengthDetailStats(),
+    val previousRunningDetail: RunningDetailStats = RunningDetailStats(),
+    val previousCyclingDetail: CyclingDetailStats = CyclingDetailStats(),
     val error: String? = null,
 )
 
@@ -39,7 +46,10 @@ data class StrengthDetailStats(
     val topExercises: List<Pair<String, Int>> = emptyList(),
     val exerciseProgressions: List<ExerciseProgression> = emptyList(),
     val muscleBreakdown: List<MuscleGroupStat> = emptyList(),
+    val weeklyTonnage: List<WeeklyTonnage> = emptyList(),
 )
+
+data class WeeklyTonnage(val weekLabel: String, val tonnageKg: Double)
 
 data class ExerciseProgression(
     val exerciseName: String,

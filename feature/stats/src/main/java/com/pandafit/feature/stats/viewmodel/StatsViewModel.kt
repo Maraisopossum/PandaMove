@@ -37,6 +37,16 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 import javax.inject.Inject
 
+/** Snapshot des stats agrégées pour une plage de dates donnée (période courante OU précédente). */
+private data class RangeSnapshot(
+    val runningStats: SportStats,
+    val cyclingStats: SportStats,
+    val strengthStats: SportStats,
+    val runningDetail: RunningDetailStats,
+    val cyclingDetail: CyclingDetailStats,
+    val strengthDetail: StrengthDetailStats,
+)
+
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
@@ -65,72 +75,24 @@ class StatsViewModel @Inject constructor(
             try {
                 val statsConfig = statsPreferences.configFlow.first()
                 val today = LocalDate.now()
-                val startDate = when (period) {
-                    StatsPeriod.WEEK        -> today.minusWeeks(1)
-                    StatsPeriod.MONTH       -> today.minusMonths(1)
-                    StatsPeriod.THREE_MONTHS -> today.minusMonths(3)
-                    StatsPeriod.YEAR        -> today.minusYears(1)
-                }
+                val startDate = startDateFor(period, today)
+                val (prevStart, prevEnd) = previousRangeFor(period, startDate)
 
-                // ── Running / Cycling (WorkoutEntity) ────────────────────────
-                val workouts = workoutDao.observeByDateRange(startDate, today).first().filter { !it.isTemplate }
+                val current = loadRangeSnapshot(startDate, today)
+                val previous = loadRangeSnapshot(prevStart, prevEnd)
 
-                fun runningCyclingStats(type: WorkoutType): SportStats {
-                    val filtered = workouts.filter { it.workoutType == type }
-                    val completed = filtered.filter { it.isCompleted }
-                    val totalDist = completed.mapNotNull { it.resultDistanceKm }.sum()
-                    return SportStats(
-                        totalSessions = filtered.size,
-                        completedSessions = completed.size,
-                        totalDurationMinutes = completed.sumOf {
-                            it.resultDurationSec?.let { s -> s / 60 } ?: (it.durationMinutes ?: 0)
-                        },
-                        totalDistanceKm = if (totalDist > 0) totalDist else null,
-                        averageDurationMinutes = if (completed.isEmpty()) 0.0 else
-                            completed.sumOf { it.resultDurationSec?.let { s -> s / 60.0 } ?: (it.durationMinutes?.toDouble() ?: 0.0) } / completed.size,
-                        completionRate = if (filtered.isEmpty()) 0f else completed.size.toFloat() / filtered.size,
-                    )
-                }
-
-                // ── Running detail ────────────────────────────────────────────
-                val runningCompleted = workouts.filter { it.workoutType == WorkoutType.RUNNING && it.isCompleted }
-                val runningDetail = buildRunningDetail(runningCompleted, startDate, today)
-
-                // ── Cycling detail ────────────────────────────────────────────
-                val cyclingCompleted = workouts.filter { it.workoutType == WorkoutType.CYCLING && it.isCompleted }
-                val cyclingDetail = buildCyclingDetail(cyclingCompleted)
-
-                // ── Strength (InstanceSeanceEntity) ──────────────────────────
-                val plannedCount   = instanceSeanceDao.countInRange(startDate, today)
-                val instancesWithSeries = instanceSeanceDao.getCompletedWithSeriesInRange(startDate, today)
-                val exerciseStats  = instanceSeanceDao.getExerciseStatsFull(startDate, today)
-
-                val strengthStats = run {
-                    val completed = instancesWithSeries.size
-                    val durations = instancesWithSeries.map { it.instance.durationSeconds / 60 }
-                    val totalDurMin = durations.sum()
-                    SportStats(
-                        totalSessions = plannedCount,
-                        completedSessions = completed,
-                        totalDurationMinutes = totalDurMin,
-                        averageDurationMinutes = if (completed == 0) 0.0 else totalDurMin.toDouble() / completed,
-                        completionRate = if (plannedCount == 0) 0f else completed.toFloat() / plannedCount,
-                    )
-                }
-
-                val strengthDetail = buildStrengthDetail(
-                    plannedCount, instancesWithSeries, exerciseStats, startDate
-                )
-
-                // ── Respiration ───────────────────────────────────────────────
+                // ── Respiration (pas de comparaison période précédente) ──────────
                 val breathingSessions = breathingSessionDao.observeByDateRange(startDate, today).first()
                 val breathingDetail   = buildBreathingDetail(breathingSessions, startDate, today)
 
-                // ── Volume hebdomadaire ───────────────────────────────────────
+                // ── Volume quotidien — toujours les 7 derniers jours, indépendant de la période ──
+                val last7Start = today.minusDays(6)
+                val last7Workouts = workoutDao.observeByDateRange(last7Start, today).first().filter { !it.isTemplate }
+                val last7Strength = instanceSeanceDao.getCompletedWithSeriesInRange(last7Start, today)
                 val last7Days = (6 downTo 0).map { today.minusDays(it.toLong()) }
                 val weeklyVolume = last7Days.map { date ->
-                    val dayWorkouts = workouts.filter { it.scheduledDate == date }
-                    val dayStrength = instancesWithSeries.filter { it.instance.date == date }
+                    val dayWorkouts = last7Workouts.filter { it.scheduledDate == date }
+                    val dayStrength = last7Strength.filter { it.instance.date == date }
                     DayVolume(
                         dayLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.FRENCH),
                         runningMinutes = dayWorkouts.filter { it.workoutType == WorkoutType.RUNNING }
@@ -144,20 +106,102 @@ class StatsViewModel @Inject constructor(
                 _uiState.value = StatsUiState(
                     isLoading       = false,
                     period          = period,
-                    runningStats    = runningCyclingStats(WorkoutType.RUNNING),
-                    cyclingStats    = runningCyclingStats(WorkoutType.CYCLING),
-                    strengthStats   = strengthStats,
+                    runningStats    = current.runningStats,
+                    cyclingStats    = current.cyclingStats,
+                    strengthStats   = current.strengthStats,
                     weeklyVolume    = weeklyVolume,
-                    strengthDetail  = strengthDetail,
-                    runningDetail   = runningDetail,
-                    cyclingDetail   = cyclingDetail,
+                    strengthDetail  = current.strengthDetail,
+                    runningDetail   = current.runningDetail,
+                    cyclingDetail   = current.cyclingDetail,
                     breathingDetail = breathingDetail,
                     statsConfig     = statsConfig,
+                    previousRunningStats   = previous.runningStats,
+                    previousCyclingStats   = previous.cyclingStats,
+                    previousStrengthStats  = previous.strengthStats,
+                    previousStrengthDetail = previous.strengthDetail,
+                    previousRunningDetail  = previous.runningDetail,
+                    previousCyclingDetail  = previous.cyclingDetail,
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
+    }
+
+    private fun startDateFor(period: StatsPeriod, today: LocalDate): LocalDate = when (period) {
+        StatsPeriod.WEEK        -> today.minusWeeks(1)
+        StatsPeriod.MONTH       -> today.minusMonths(1)
+        StatsPeriod.THREE_MONTHS -> today.minusMonths(3)
+        StatsPeriod.YEAR        -> today.minusYears(1)
+    }
+
+    /** Plage précédente de même longueur, se terminant juste avant le début de la plage courante. */
+    private fun previousRangeFor(period: StatsPeriod, startDate: LocalDate): Pair<LocalDate, LocalDate> {
+        val prevEnd = startDate.minusDays(1)
+        val prevStart = when (period) {
+            StatsPeriod.WEEK        -> prevEnd.minusWeeks(1)
+            StatsPeriod.MONTH       -> prevEnd.minusMonths(1)
+            StatsPeriod.THREE_MONTHS -> prevEnd.minusMonths(3)
+            StatsPeriod.YEAR        -> prevEnd.minusYears(1)
+        }
+        return prevStart to prevEnd
+    }
+
+    // ── Snapshot agrégé pour une plage de dates (réutilisé période courante + précédente) ──────
+
+    private suspend fun loadRangeSnapshot(startDate: LocalDate, endDate: LocalDate): RangeSnapshot {
+        // ── Running / Cycling (WorkoutEntity) ────────────────────────
+        val workouts = workoutDao.observeByDateRange(startDate, endDate).first().filter { !it.isTemplate }
+
+        fun runningCyclingStats(type: WorkoutType): SportStats {
+            val filtered = workouts.filter { it.workoutType == type }
+            val completed = filtered.filter { it.isCompleted }
+            val totalDist = completed.mapNotNull { it.resultDistanceKm }.sum()
+            return SportStats(
+                totalSessions = filtered.size,
+                completedSessions = completed.size,
+                totalDurationMinutes = completed.sumOf {
+                    it.resultDurationSec?.let { s -> s / 60 } ?: (it.durationMinutes ?: 0)
+                },
+                totalDistanceKm = if (totalDist > 0) totalDist else null,
+                averageDurationMinutes = if (completed.isEmpty()) 0.0 else
+                    completed.sumOf { it.resultDurationSec?.let { s -> s / 60.0 } ?: (it.durationMinutes?.toDouble() ?: 0.0) } / completed.size,
+                completionRate = if (filtered.isEmpty()) 0f else completed.size.toFloat() / filtered.size,
+            )
+        }
+
+        val runningCompleted = workouts.filter { it.workoutType == WorkoutType.RUNNING && it.isCompleted }
+        val runningDetail = buildRunningDetail(runningCompleted, startDate, endDate)
+
+        val cyclingCompleted = workouts.filter { it.workoutType == WorkoutType.CYCLING && it.isCompleted }
+        val cyclingDetail = buildCyclingDetail(cyclingCompleted)
+
+        // ── Strength (InstanceSeanceEntity) ──────────────────────────
+        val plannedCount   = instanceSeanceDao.countInRange(startDate, endDate)
+        val instancesWithSeries = instanceSeanceDao.getCompletedWithSeriesInRange(startDate, endDate)
+        val exerciseStats  = instanceSeanceDao.getExerciseStatsFull(startDate, endDate)
+
+        val completed = instancesWithSeries.size
+        val durations = instancesWithSeries.map { it.instance.durationSeconds / 60 }
+        val totalDurMin = durations.sum()
+        val strengthStats = SportStats(
+            totalSessions = plannedCount,
+            completedSessions = completed,
+            totalDurationMinutes = totalDurMin,
+            averageDurationMinutes = if (completed == 0) 0.0 else totalDurMin.toDouble() / completed,
+            completionRate = if (plannedCount == 0) 0f else completed.toFloat() / plannedCount,
+        )
+
+        val strengthDetail = buildStrengthDetail(plannedCount, instancesWithSeries, exerciseStats, startDate)
+
+        return RangeSnapshot(
+            runningStats = runningCyclingStats(WorkoutType.RUNNING),
+            cyclingStats = runningCyclingStats(WorkoutType.CYCLING),
+            strengthStats = strengthStats,
+            runningDetail = runningDetail,
+            cyclingDetail = cyclingDetail,
+            strengthDetail = strengthDetail,
+        )
     }
 
     // ── Cycling detail ────────────────────────────────────────────────────────
@@ -357,6 +401,26 @@ class StatsViewModel @Inject constructor(
                 MuscleGroupStat(group, count, if (totalMuscle > 0) count / totalMuscle else 0f)
             }
 
+        // Tonnage hebdomadaire (même logique que la distance hebdo running/vélo)
+        val weekFields = WeekFields.of(Locale.FRENCH)
+        val weeklyTonnage = instancesWithSeries
+            .groupBy { inst ->
+                val d = inst.instance.date
+                "${d.get(weekFields.weekBasedYear())}-${d.get(weekFields.weekOfWeekBasedYear())}"
+            }
+            .entries
+            .sortedBy { it.key }
+            .takeLast(8)
+            .map { (_, insts) ->
+                val date = insts.first().instance.date
+                val label = "S${date.get(weekFields.weekOfWeekBasedYear())}"
+                val weekTonnage = insts.flatMap { it.series }.filter { it.isCompleted }.sumOf { s ->
+                    if (exerciceToRepsType[s.exerciceSeanceId] == RepsType.DURATION) 0.0
+                    else (s.chargeKg?.toDouble() ?: 0.0) * (s.repsRealisees ?: 0)
+                }
+                com.pandafit.feature.stats.model.WeeklyTonnage(label, weekTonnage)
+            }
+
         return StrengthDetailStats(
             plannedSessions = plannedCount,
             completedSessions = instancesWithSeries.size,
@@ -368,6 +432,7 @@ class StatsViewModel @Inject constructor(
             topExercises = topExercises,
             exerciseProgressions = progressions,
             muscleBreakdown = muscleBreakdown,
+            weeklyTonnage = weeklyTonnage,
         )
     }
 

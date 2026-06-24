@@ -82,25 +82,8 @@ fun StatsConfigScreen(
                                 DISTANCE_PRESETS.forEachIndexed { idx, preset ->
                                     PandaFilterChip(
                                         label = "${preset.emoji} ${preset.label}",
-                                        selected = config.runDist1Idx == idx,
-                                        onSelectedChange = { if (it) viewModel.setRunDist1(idx) },
-                                        selectedColor = PandaGreen,
-                                    )
-                                }
-                            }
-                        }
-
-                        ChipSection(
-                            title = stringResource(R.string.stats_config_distance2_title),
-                            subtitle = stringResource(R.string.stats_config_distance2_subtitle),
-                            color = PandaGreen,
-                        ) {
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                DISTANCE_PRESETS.forEachIndexed { idx, preset ->
-                                    PandaFilterChip(
-                                        label = "${preset.emoji} ${preset.label}",
-                                        selected = config.runDist2Idx == idx,
-                                        onSelectedChange = { if (it) viewModel.setRunDist2(idx) },
+                                        selected = config.runDistIdx == idx,
+                                        onSelectedChange = { if (it) viewModel.setRunDist(idx) },
                                         selectedColor = PandaGreen,
                                     )
                                 }
@@ -148,25 +131,8 @@ fun StatsConfigScreen(
                                 DISTANCE_PRESETS.forEachIndexed { idx, preset ->
                                     PandaFilterChip(
                                         label = "${preset.emoji} ${preset.label}",
-                                        selected = config.cycDist1Idx == idx,
-                                        onSelectedChange = { if (it) viewModel.setCycDist1(idx) },
-                                        selectedColor = PandaBlue,
-                                    )
-                                }
-                            }
-                        }
-
-                        ChipSection(
-                            title = stringResource(R.string.stats_config_distance2_title),
-                            subtitle = stringResource(R.string.stats_config_distance2_subtitle),
-                            color = PandaBlue,
-                        ) {
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                DISTANCE_PRESETS.forEachIndexed { idx, preset ->
-                                    PandaFilterChip(
-                                        label = "${preset.emoji} ${preset.label}",
-                                        selected = config.cycDist2Idx == idx,
-                                        onSelectedChange = { if (it) viewModel.setCycDist2(idx) },
+                                        selected = config.cycDistIdx == idx,
+                                        onSelectedChange = { if (it) viewModel.setCycDist(idx) },
                                         selectedColor = PandaBlue,
                                     )
                                 }
@@ -214,42 +180,8 @@ fun StatsConfigScreen(
                                 WEIGHT_PRESETS.forEachIndexed { idx, preset ->
                                     PandaFilterChip(
                                         label = "${preset.emoji} ${preset.label} (${preset.kg.toInt()} kg)",
-                                        selected = config.strWeight1Idx == idx,
-                                        onSelectedChange = { if (it) viewModel.setStrWeight1(idx) },
-                                        selectedColor = PandaPurple,
-                                    )
-                                }
-                            }
-                        }
-
-                        ChipSection(
-                            title = stringResource(R.string.stats_config_weight2_title),
-                            subtitle = stringResource(R.string.stats_config_weight2_subtitle),
-                            color = PandaPurple,
-                        ) {
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                WEIGHT_PRESETS.forEachIndexed { idx, preset ->
-                                    PandaFilterChip(
-                                        label = "${preset.emoji} ${preset.label} (${preset.kg.toInt()} kg)",
-                                        selected = config.strWeight2Idx == idx,
-                                        onSelectedChange = { if (it) viewModel.setStrWeight2(idx) },
-                                        selectedColor = PandaPurple,
-                                    )
-                                }
-                            }
-                        }
-
-                        ChipSection(
-                            title = stringResource(R.string.stats_config_weight3_title),
-                            subtitle = stringResource(R.string.stats_config_weight3_subtitle),
-                            color = PandaPurple,
-                        ) {
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                WEIGHT_PRESETS.forEachIndexed { idx, preset ->
-                                    PandaFilterChip(
-                                        label = "${preset.emoji} ${preset.label} (${preset.kg.toInt()} kg)",
-                                        selected = config.strWeight3Idx == idx,
-                                        onSelectedChange = { if (it) viewModel.setStrWeight3(idx) },
+                                        selected = config.strWeightIdx == idx,
+                                        onSelectedChange = { if (it) viewModel.setStrWeight(idx) },
                                         selectedColor = PandaPurple,
                                     )
                                 }

@@ -77,4 +77,22 @@
     <string name="stats_config_weight3_subtitle">Troisième équivalent de tonnage</string>
     <string name="stats_config_monument_title">Monument</string>
     <string name="stats_config_monument_subtitle">Référence de tonnage monumentale</string>
+
+    <!-- Onglets de filtrage -->
+    <string name="stats_tab_all">Tout</string>
+    <string name="stats_tab_strength">Renfo</string>
+    <string name="stats_tab_running">Course</string>
+    <string name="stats_tab_cycling">Vélo</string>
+    <string name="stats_tab_breathing">Respi</string>
+
+    <!-- Hero progression -->
+    <string name="stats_hero_title">Progressions</string>
+    <string name="stats_hero_gain_label">de charge gagnée sur la période</string>
+    <string name="stats_hero_subtitle">%1$d exercice(s) en progression · %2$d à l\'arrêt</string>
+    <string name="stats_hero_stalled">à l\'arrêt</string>
+    <string name="stats_hero_empty">Pas encore assez de données pour calculer une progression.</string>
+
+    <!-- Déséquilibre musculaire -->
+    <string name="stats_strength_imbalance_flag">⚠️ Déséquilibre : %1$s sous-travaillé(s) par rapport au volume global. Pense à rééquilibrer.</string>
+    <string name="stats_strength_weekly_tonnage">Tonnage par semaine</string>
 </resources>
