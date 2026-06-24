@@ -50,6 +50,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -149,6 +150,7 @@ fun InstanceExecuteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sessionSeconds by viewModel.sessionSeconds.collectAsStateWithLifecycle()
+    val isSessionActive by viewModel.isSessionActive.collectAsStateWithLifecycle()
     val restRemaining by viewModel.restRemaining.collectAsStateWithLifecycle()
     val exerciceRemaining by viewModel.exerciceRemaining.collectAsStateWithLifecycle()
     val lastManualTimerSeconds by viewModel.lastManualTimerSeconds.collectAsStateWithLifecycle()
@@ -458,6 +460,8 @@ fun InstanceExecuteScreen(
                 seanceName = uiState.seance?.nom ?: stringResource(R.string.instance_execute_seance_name_fallback),
                 cycleLabel = uiState.seance?.notes?.trim()?.takeIf { it.isNotBlank() },
                 sessionSeconds = sessionSeconds,
+                isSessionActive = isSessionActive,
+                onStartSession = viewModel::startSession,
                 restRemaining = restRemaining,
                 showPencilMenu = showPencilMenu,
                 showRestMenu = showRestMenu,
@@ -957,6 +961,8 @@ private fun InstanceExecuteTopBar(
     seanceName: String,
     cycleLabel: String?,
     sessionSeconds: Int,
+    isSessionActive: Boolean,
+    onStartSession: () -> Unit,
     restRemaining: Int,
     showPencilMenu: Boolean,
     showRestMenu: Boolean,
@@ -987,8 +993,14 @@ private fun InstanceExecuteTopBar(
             IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_navigate_back_cd)) }
         },
         actions = {
-            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(end = 4.dp)) {
-                Text(sessionLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+            if (isSessionActive) {
+                Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(end = 4.dp)) {
+                    Text(sessionLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                }
+            } else {
+                FilledTonalButton(onClick = onStartSession, modifier = Modifier.padding(end = 4.dp)) {
+                    Text(stringResource(R.string.instance_execute_start_session))
+                }
             }
             if (restRemaining > 0) {
                 val restLabel = "${restRemaining / 60}:${(restRemaining % 60).toString().padStart(2, '0')}"

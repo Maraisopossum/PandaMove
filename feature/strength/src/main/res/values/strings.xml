@@ -260,6 +260,9 @@
     <!-- Fallback nom séance -->
     <string name="instance_execute_seance_name_fallback">Séance</string>
 
+    <!-- Démarrage du chrono de séance -->
+    <string name="instance_execute_start_session">Démarrer</string>
+
     <!-- Boutons de démarrage exercice -->
     <string name="instance_execute_start_circuit_button">Lancer le circuit</string>
     <string name="instance_execute_start_button">Démarrer</string>

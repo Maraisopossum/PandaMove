@@ -41,7 +41,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -63,6 +66,9 @@ class InstanceExecuteViewModel @Inject constructor(
 
     // Le chrono et le timer de repos sont gérés par ActiveSessionManager (survivent à la navigation)
     val sessionSeconds: StateFlow<Int> = activeSessionManager.sessionSeconds
+    val isSessionActive: StateFlow<Boolean> = activeSessionManager.activeInstanceId
+        .map { it == instanceId }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), activeSessionManager.activeInstanceId.value == instanceId)
     val restRemaining: StateFlow<Int> = activeSessionManager.restRemaining
     val restFinishedEvent: SharedFlow<Unit> = activeSessionManager.restFinishedEvent
     val restCountdownBeep: SharedFlow<Int> = activeSessionManager.restCountdownBeep
@@ -231,15 +237,28 @@ class InstanceExecuteViewModel @Inject constructor(
                 progressionPreview = progressionPreview,
             )
 
+            // Le chrono ne démarre que sur action explicite (bouton "Démarrer" ou 1ère série
+            // validée, cf. updateSerie) — sauf s'il était déjà actif, ou si des séries existent
+            // déjà (reprise d'une séance commencée sur un autre écran/appareil).
             val alreadyActive = activeSessionManager.activeInstanceId.value == instanceId
-            if (!instance.isCompleted) {
+            val hasSeriesDeja = seriesParExercice.values.any { series -> series.any { it.isCompleted } }
+            if (!instance.isCompleted && !alreadyActive && hasSeriesDeja) {
                 activeSessionManager.resumeSession(
                     instanceId = instanceId,
                     seanceName = seance?.nom ?: "",
-                    currentSeconds = if (alreadyActive) activeSessionManager.sessionSeconds.value else 0,
+                    currentSeconds = 0,
                 )
             }
         }
+    }
+
+    fun startSession() {
+        if (_uiState.value.isCompleted) return
+        activeSessionManager.resumeSession(
+            instanceId = instanceId,
+            seanceName = _uiState.value.seance?.nom ?: "",
+            currentSeconds = 0,
+        )
     }
 
     // Synchronise chargeCible/repsCibles de la copie d'instance avec l'objectif courant (table objectifs_progression)
