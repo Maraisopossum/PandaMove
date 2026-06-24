@@ -95,6 +95,7 @@ class SeanceCreateViewModel @Inject constructor(
                 incrementDureeSec = e.exerciceSeance.incrementDureeSec,
                 seuilDeload = e.exerciceSeance.seuilDeload,
                 typeExercice = e.exerciceSeance.typeExercice,
+                isBodyweight = e.exerciceSeance.isBodyweight,
             )
 
             // Reconstruire la liste unifiée en ordre global (position)
@@ -221,13 +222,14 @@ class SeanceCreateViewModel @Inject constructor(
         val targetIdx = state.pickerTargetItemIndex
 
         if (targetIdx < 0) {
-            items.add(SeanceItem.FreeExercise(ExerciceDraft(exercise = exercise)))
+            items.add(SeanceItem.FreeExercise(ExerciceDraft(exercise = exercise, isBodyweight = exercise.isBodyweight)))
         } else if (targetIdx in items.indices && items[targetIdx] is SeanceItem.Bloc) {
             val bloc = (items[targetIdx] as SeanceItem.Bloc).bloc
             val newExercice = ExerciceDraft(
                 exercise = exercise,
                 position = bloc.exercices.size,
                 repsType = if (bloc.type == BlocType.CIRCUIT) RepsType.DURATION else RepsType.REPS,
+                isBodyweight = exercise.isBodyweight,
             )
             items[targetIdx] = SeanceItem.Bloc(bloc.copy(exercices = bloc.exercices + newExercice))
         }
@@ -255,13 +257,14 @@ class SeanceCreateViewModel @Inject constructor(
         val targetIdx = state.pickerTargetItemIndex
         selected.forEach { exercise ->
             if (targetIdx < 0) {
-                items.add(SeanceItem.FreeExercise(ExerciceDraft(exercise = exercise)))
+                items.add(SeanceItem.FreeExercise(ExerciceDraft(exercise = exercise, isBodyweight = exercise.isBodyweight)))
             } else if (targetIdx in items.indices && items[targetIdx] is SeanceItem.Bloc) {
                 val bloc = (items[targetIdx] as SeanceItem.Bloc).bloc
                 val ex = ExerciceDraft(
                     exercise = exercise,
                     position = bloc.exercices.size,
                     repsType = if (bloc.type == BlocType.CIRCUIT) RepsType.DURATION else RepsType.REPS,
+                    isBodyweight = exercise.isBodyweight,
                 )
                 items[targetIdx] = SeanceItem.Bloc(bloc.copy(exercices = bloc.exercices + ex))
             }
@@ -588,6 +591,7 @@ private fun toEntity(seanceId: Long, blocId: Long?, position: Int, d: ExerciceDr
         incrementDureeSec = d.incrementDureeSec,
         seuilDeload = d.seuilDeload,
         typeExercice = d.typeExercice,
+        isBodyweight = d.isBodyweight,
     )
 
 fun BlocType.defaultName() = when (this) {

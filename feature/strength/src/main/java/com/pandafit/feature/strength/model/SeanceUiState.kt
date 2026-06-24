@@ -129,6 +129,8 @@ data class ExerciceDraft(
     val incrementDureeSec: Int = 5,
     val seuilDeload: Int = 3,
     val typeExercice: TypeExercice? = null,
+    // Hérité une fois de exercise.isBodyweight à l'ajout en séance, puis indépendant
+    val isBodyweight: Boolean = false,
 )
 
 // ===== Détail (lecture seule) =====

@@ -389,12 +389,16 @@ private fun BilateralBadge(modifier: Modifier = Modifier) {
 private fun exerciceSummaryLine(exercice: ExerciceDraft): String {
     val sep = stringResource(R.string.seance_create_summary_separator)
     val reps = when {
-        exercice.systemeProgression == SystemeProgression.DOUBLE && exercice.repsMin != null && exercice.repsMax != null ->
+        exercice.progressionActivee && exercice.systemeProgression == SystemeProgression.DOUBLE && exercice.repsMin != null && exercice.repsMax != null ->
             "${exercice.repsMin}–${exercice.repsMax}"
         else -> formatRepsDisplay(exercice.repsCibles, exercice.repsType)
     }
     val parts = mutableListOf("${exercice.nombreSeriesPrevues} × $reps")
-    if (exercice.chargeCible.isNotBlank()) parts.add(exercice.chargeCible)
+    if (exercice.isBodyweight) {
+        parts.add(stringResource(R.string.seance_create_progression_type_pdc_short))
+    } else if (exercice.chargeCible.isNotBlank()) {
+        parts.add(exercice.chargeCible)
+    }
     return parts.joinToString(" $sep ")
 }
 
@@ -941,7 +945,7 @@ private fun ProgressionConfigSection(
                             incrementKg = exercice.incrementKg ?: 2.5f,
                         )
                     } else {
-                        exercice.copy(progressionActivee = false)
+                        exercice.copy(progressionActivee = false, repsMin = null, repsMax = null)
                     }
                 )
             },
@@ -958,6 +962,26 @@ private fun ProgressionConfigSection(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Checkbox(
+                    checked = exercice.isBodyweight,
+                    onCheckedChange = { checked ->
+                        onUpdate(
+                            exercice.copy(
+                                isBodyweight = checked,
+                                typeExercice = if (checked) TypeExercice.PDC else exercice.typeExercice,
+                            )
+                        )
+                    },
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    stringResource(R.string.seance_create_progression_bodyweight_label),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                )
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 FilterChip(
                     selected = exercice.systemeProgression == SystemeProgression.LINEAIRE,
@@ -1002,7 +1026,13 @@ private fun ProgressionConfigSection(
                 }
             }
 
-            if (exercice.systemeProgression != SystemeProgression.TEMPORELLE) {
+            if (exercice.isBodyweight) {
+                Text(
+                    stringResource(R.string.seance_create_progression_type_pdc),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                )
+            } else if (exercice.systemeProgression != SystemeProgression.TEMPORELLE) {
                 Column {
                     Text(
                         stringResource(R.string.seance_create_progression_type_exercice_label),
@@ -1032,7 +1062,9 @@ private fun ProgressionConfigSection(
                 }
             }
 
-            if (exercice.systemeProgression == SystemeProgression.TEMPORELLE) {
+            if (exercice.isBodyweight) {
+                // Pas de charge pour un exercice au poids de corps — progression sur les reps puis les séries
+            } else if (exercice.systemeProgression == SystemeProgression.TEMPORELLE) {
                 NumberStepper(
                     label = stringResource(R.string.seance_create_progression_increment_duree),
                     value = exercice.incrementDureeSec,

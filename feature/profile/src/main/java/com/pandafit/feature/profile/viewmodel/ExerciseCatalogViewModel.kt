@@ -38,6 +38,7 @@ data class CreateDialogState(
     val name: String = "",
     val muscles: List<MuscleGroup> = emptyList(),
     val equipment: Set<EquipmentCategory> = emptySet(),
+    val isBodyweight: Boolean = false,
 )
 
 // ===== État du dialogue d'édition =====
@@ -48,6 +49,7 @@ data class EditDialogState(
     val muscles: List<MuscleGroup> = emptyList(),
     val equipment: Set<EquipmentCategory> = emptySet(),
     val exerciseType: String = "",
+    val isBodyweight: Boolean = false,
 )
 
 @HiltViewModel
@@ -67,6 +69,7 @@ class ExerciseCatalogViewModel @Inject constructor(
     private val _newName = MutableStateFlow("")
     private val _newMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
     private val _newEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
+    private val _newIsBodyweight = MutableStateFlow(false)
 
     // ===== Dialogue d'édition =====
     private val _showEdit = MutableStateFlow(false)
@@ -74,6 +77,7 @@ class ExerciseCatalogViewModel @Inject constructor(
     private val _editMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
     private val _editEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
     private val _editExerciseType = MutableStateFlow("")
+    private val _editIsBodyweight = MutableStateFlow(false)
 
     // StateFlow 1 : liste filtrée
     val listState: StateFlow<ExerciseListState> = combine(
@@ -122,8 +126,9 @@ class ExerciseCatalogViewModel @Inject constructor(
         _newName,
         _newMuscles,
         _newEquipment,
-    ) { show, name, muscles, equip ->
-        CreateDialogState(visible = show, name = name, muscles = muscles, equipment = equip)
+        _newIsBodyweight,
+    ) { show, name, muscles, equip, bodyweight ->
+        CreateDialogState(visible = show, name = name, muscles = muscles, equipment = equip, isBodyweight = bodyweight)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CreateDialogState())
 
     // StateFlow 3 : état du dialogue d'édition
@@ -133,8 +138,16 @@ class ExerciseCatalogViewModel @Inject constructor(
         _editMuscles,
         _editEquipment,
         _editExerciseType,
-    ) { show, target, muscles, equip, type ->
-        EditDialogState(visible = show, exercise = target, muscles = muscles, equipment = equip, exerciseType = type)
+        _editIsBodyweight,
+    ) { values ->
+        EditDialogState(
+            visible = values[0] as Boolean,
+            exercise = values[1] as ExerciseEntity?,
+            muscles = values[2] as List<MuscleGroup>,
+            equipment = values[3] as Set<EquipmentCategory>,
+            exerciseType = values[4] as String,
+            isBodyweight = values[5] as Boolean,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EditDialogState())
 
     // ===== Filtres =====
@@ -147,6 +160,7 @@ class ExerciseCatalogViewModel @Inject constructor(
         _newName.value = ""
         _newMuscles.value = emptyList()
         _newEquipment.value = emptySet()
+        _newIsBodyweight.value = false
         _showCreate.value = true
     }
     fun closeCreate() { _showCreate.value = false }
@@ -161,6 +175,7 @@ class ExerciseCatalogViewModel @Inject constructor(
         if (cat in current) current.remove(cat) else current.add(cat)
         _newEquipment.value = current
     }
+    fun toggleNewIsBodyweight() { _newIsBodyweight.value = !_newIsBodyweight.value }
 
     fun createCustomExercise() {
         val name = _newName.value.trim()
@@ -180,6 +195,7 @@ class ExerciseCatalogViewModel @Inject constructor(
                     muscleGroups = muscleLabels,
                     equipment = equipmentLabels,
                     isCustom = true,
+                    isBodyweight = _newIsBodyweight.value,
                 ),
             )
             _showCreate.value = false
@@ -203,6 +219,7 @@ class ExerciseCatalogViewModel @Inject constructor(
                 ?: rawEquipmentToCategory(raw)
         }.toSet()
         _editExerciseType.value = exercise.exerciseType
+        _editIsBodyweight.value = exercise.isBodyweight
         _showEdit.value = true
     }
 
@@ -221,6 +238,7 @@ class ExerciseCatalogViewModel @Inject constructor(
     }
 
     fun setEditExerciseType(type: String) { _editExerciseType.value = type }
+    fun toggleEditIsBodyweight() { _editIsBodyweight.value = !_editIsBodyweight.value }
 
     fun saveEdit() {
         val target = _editTarget.value ?: return
@@ -235,6 +253,7 @@ class ExerciseCatalogViewModel @Inject constructor(
                         ?: com.pandafit.core.database.entities.ExerciseCategory.OTHER,
                     equipment = _editEquipment.value.map { it.label },
                     exerciseType = _editExerciseType.value,
+                    isBodyweight = _editIsBodyweight.value,
                 )
             )
             _showEdit.value = false

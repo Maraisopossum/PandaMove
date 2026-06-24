@@ -16,6 +16,8 @@ data class PropositionProgression(
     val nouvelleDureeCible: Int?,
     val nouveauCompteurEchec: Int,
     val deload: Boolean,
+    // Proposition "ajout de série" (exercices au poids de corps au plafond de reps, bible §4.5 PDC)
+    val nouveauNombreSeries: Int? = null,
 )
 
 /** Cible courante, indépendante de sa source (objectif persisté ou valeur initiale du template). */
@@ -226,14 +228,26 @@ fun proposerMontee(
             val repsMax = config.repsMax
             val repsMin = config.repsMin
             if (repsMax != null && repsMin != null && (cible.reps ?: repsMax) >= repsMax) {
-                PropositionProgression(
-                    statut = StatutExercice.SUCCES,
-                    nouvelleChargeCible = nouvelleCharge(),
-                    nouveauRepsCible = repsMin,
-                    nouvelleDureeCible = cible.dureeSec,
-                    nouveauCompteurEchec = compteurEchecActuel,
-                    deload = false,
-                )
+                if (config.isBodyweight) {
+                    PropositionProgression(
+                        statut = StatutExercice.SUCCES,
+                        nouvelleChargeCible = cible.chargeKg,
+                        nouveauRepsCible = repsMin,
+                        nouvelleDureeCible = cible.dureeSec,
+                        nouveauCompteurEchec = compteurEchecActuel,
+                        deload = false,
+                        nouveauNombreSeries = config.nombreSeriesPrevues + 1,
+                    )
+                } else {
+                    PropositionProgression(
+                        statut = StatutExercice.SUCCES,
+                        nouvelleChargeCible = nouvelleCharge(),
+                        nouveauRepsCible = repsMin,
+                        nouvelleDureeCible = cible.dureeSec,
+                        nouveauCompteurEchec = compteurEchecActuel,
+                        deload = false,
+                    )
+                }
             } else {
                 PropositionProgression(
                     statut = StatutExercice.SUCCES,

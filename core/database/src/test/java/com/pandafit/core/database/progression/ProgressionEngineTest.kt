@@ -22,6 +22,8 @@ class ProgressionEngineTest {
         repsType: RepsType = RepsType.REPS,
         typeExercice: TypeExercice? = null,
         incrementPct: Float? = null,
+        isBodyweight: Boolean = false,
+        nombreSeriesPrevues: Int = 3,
     ) = ExerciceSeanceEntity(
         seanceId = 1,
         exerciceId = 1,
@@ -35,6 +37,8 @@ class ProgressionEngineTest {
         repsType = repsType,
         typeExercice = typeExercice,
         incrementPct = incrementPct,
+        isBodyweight = isBodyweight,
+        nombreSeriesPrevues = nombreSeriesPrevues,
     )
 
     private fun serie(numero: Int, reps: Int?, charge: Float? = null, rpe: Float? = null, cote: String = "") =
@@ -297,5 +301,66 @@ class ProgressionEngineTest {
 
         assertEquals(StatutExercice.SUCCES, proposition.statut)
         assertEquals(24f, proposition.nouvelleChargeCible)
+    }
+
+    // ===== Poids de corps (PDC) — progression reps puis séries, jamais de charge =====
+
+    @Test
+    fun `pdc - succes sous le haut de plage incremente les reps sans toucher aux series`() {
+        val cible = CibleExercice(chargeKg = null, reps = 10, dureeSec = null)
+        val series = listOf(serie(1, 11), serie(2, 11), serie(3, 11))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = true, nombreSeriesPrevues = 3),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(StatutExercice.SUCCES, proposition.statut)
+        assertEquals(11, proposition.nouveauRepsCible)
+        assertEquals(null, proposition.nouvelleChargeCible)
+        assertEquals(null, proposition.nouveauNombreSeries)
+    }
+
+    @Test
+    fun `pdc - succes au plafond de reps propose une serie en plus au lieu d'une charge`() {
+        val cible = CibleExercice(chargeKg = null, reps = 12, dureeSec = null)
+        val series = listOf(serie(1, 12), serie(2, 12), serie(3, 12))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = true, nombreSeriesPrevues = 3),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(StatutExercice.SUCCES, proposition.statut)
+        assertEquals(8, proposition.nouveauRepsCible)
+        assertEquals(null, proposition.nouvelleChargeCible)
+        assertEquals(4, proposition.nouveauNombreSeries)
+    }
+
+    @Test
+    fun `pdc - ajout de serie respecte le nombre de series deja eleve du template`() {
+        val cible = CibleExercice(chargeKg = null, reps = 12, dureeSec = null)
+        val series = listOf(serie(1, 12), serie(2, 12), serie(3, 12), serie(4, 12))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = true, nombreSeriesPrevues = 4),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(5, proposition.nouveauNombreSeries)
+    }
+
+    @Test
+    fun `non pdc au plafond de reps garde le comportement charge existant`() {
+        val cible = CibleExercice(chargeKg = 20f, reps = 12, dureeSec = null)
+        val series = listOf(serie(1, 12, 20f), serie(2, 12, 20f), serie(3, 12, 20f))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = false, nombreSeriesPrevues = 3),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(22.5f, proposition.nouvelleChargeCible)
+        assertEquals(null, proposition.nouveauNombreSeries)
     }
 }

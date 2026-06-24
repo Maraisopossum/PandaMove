@@ -55,4 +55,8 @@ data class ObjectifProgressionEntity(
 
     @ColumnInfo(name = "derniere_maj")
     val derniereMaj: LocalDate? = null,
+
+    // Proposition "ajout de série" (exercices au poids de corps au plafond de reps)
+    @ColumnInfo(name = "nombre_series_cible")
+    val nombreSeriesCible: Int? = null,
 )

@@ -113,4 +113,8 @@ data class ExerciceSeanceEntity(
     // Override optionnel du %cible (sinon TypeExercice.pourcentageCibleDefault) — bible §4.2
     @ColumnInfo(name = "increment_pct")
     val incrementPct: Float? = null,
+
+    // Hérité une fois depuis ExerciseEntity.isBodyweight à l'ajout en séance, puis indépendant
+    @ColumnInfo(name = "is_bodyweight")
+    val isBodyweight: Boolean = false,
 )

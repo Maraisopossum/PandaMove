@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -86,6 +88,7 @@ fun ExerciseCatalogScreen(
             onNameChange = viewModel::setNewName,
             onMuscleToggle = viewModel::toggleNewMuscle,
             onEquipmentToggle = viewModel::toggleNewEquipment,
+            onBodyweightToggle = viewModel::toggleNewIsBodyweight,
             onConfirm = viewModel::createCustomExercise,
             onDismiss = viewModel::closeCreate,
         )
@@ -96,6 +99,7 @@ fun ExerciseCatalogScreen(
             state = editDialogState,
             onMuscleToggle = viewModel::toggleEditMuscle,
             onEquipmentToggle = viewModel::toggleEditEquipment,
+            onBodyweightToggle = viewModel::toggleEditIsBodyweight,
             onTypeSelect = viewModel::setEditExerciseType,
             onConfirm = viewModel::saveEdit,
             onDismiss = viewModel::closeEdit,
@@ -272,6 +276,7 @@ private fun CreateExerciseDialog(
     onNameChange: (String) -> Unit,
     onMuscleToggle: (MuscleGroup) -> Unit,
     onEquipmentToggle: (EquipmentCategory) -> Unit,
+    onBodyweightToggle: () -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -298,6 +303,10 @@ private fun CreateExerciseDialog(
                     selectedEquipment = state.equipment,
                     onToggle = onEquipmentToggle,
                 )
+                BodyweightCheckbox(
+                    checked = state.isBodyweight,
+                    onToggle = onBodyweightToggle,
+                )
             }
         },
         confirmButton = {
@@ -315,6 +324,7 @@ private fun EditExerciseDialog(
     state: EditDialogState,
     onMuscleToggle: (MuscleGroup) -> Unit,
     onEquipmentToggle: (EquipmentCategory) -> Unit,
+    onBodyweightToggle: () -> Unit,
     onTypeSelect: (String) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -394,6 +404,11 @@ private fun EditExerciseDialog(
                         selectedEquipment = state.equipment,
                         onToggle = onEquipmentToggle,
                     )
+
+                    BodyweightCheckbox(
+                        checked = state.isBodyweight,
+                        onToggle = onBodyweightToggle,
+                    )
                 }
 
                 // Boutons
@@ -464,6 +479,24 @@ private fun MusclePickerSection(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun BodyweightCheckbox(
+    checked: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Spacer(Modifier.width(4.dp))
+        Text(
+            stringResource(R.string.exercise_catalog_bodyweight_label),
+            style = MaterialTheme.typography.labelMedium,
+        )
     }
 }
 

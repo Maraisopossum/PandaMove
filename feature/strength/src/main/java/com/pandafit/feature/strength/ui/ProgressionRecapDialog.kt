@@ -117,6 +117,8 @@ private fun ProgressionRecapRow(
         }
 
         val propositionLabel = when {
+            row.proposition.nouveauNombreSeries != null ->
+                stringResource(R.string.progression_recap_propose_serie, row.proposition.nouveauNombreSeries!!, row.proposition.nouveauRepsCible ?: 0)
             row.proposition.nouvelleDureeCible != null -> stringResource(R.string.progression_recap_propose_duree, row.proposition.nouvelleDureeCible!!)
             row.proposition.nouveauRepsCible != null && row.proposition.nouvelleChargeCible != null ->
                 stringResource(R.string.progression_recap_propose_reps_charge, row.proposition.nouveauRepsCible!!, row.proposition.nouvelleChargeCible!!)

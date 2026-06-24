@@ -44,6 +44,9 @@ data class ExerciseEntity(
 
     @ColumnInfo(name = "muscle_primary")
     val musclePrimary: String = "",  // Muscle 1 (pour filtrage/couleur rapide)
+
+    @ColumnInfo(name = "is_bodyweight")
+    val isBodyweight: Boolean = false,
 )
 
 /** Muscle principal fiable : muscleGroups[0] si disponible, sinon musclePrimary. */

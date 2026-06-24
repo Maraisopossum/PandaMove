@@ -133,6 +133,8 @@
     <string name="seance_create_progression_type_isolation">Isolation</string>
     <string name="seance_create_progression_type_machine">Machine</string>
     <string name="seance_create_progression_type_pdc">Poids du corps</string>
+    <string name="seance_create_progression_type_pdc_short">PDC</string>
+    <string name="seance_create_progression_bodyweight_label">Poids de corps — progression sur les reps puis les séries, jamais de charge</string>
     <string name="seance_create_progression_reps_range">Plage de reps</string>
     <string name="seance_create_progression_increment_kg">Incrément (kg)</string>
     <string name="seance_create_progression_increment_duree">Incrément (s)</string>
@@ -150,10 +152,12 @@
     <string name="progression_recap_propose_reps">Proposer %1$d reps</string>
     <string name="progression_recap_propose_reps_charge">Proposer %1$d reps @ %2$.1f kg</string>
     <string name="progression_recap_propose_duree">Proposer %1$d s</string>
+    <string name="progression_recap_propose_serie">Proposer +1 série (%1$d) — reps remis à %2$d</string>
     <string name="progression_recap_ajuster_label">Nouvelle charge (kg)</string>
     <string name="charge_non_composable_hint">Pas composable avec ton matériel — le plus proche est %1$s</string>
     <string name="charge_non_composable_arrondir">Arrondir</string>
     <string name="seance_detail_progression_badge">↗ Progression</string>
+    <string name="seance_detail_progression_increment_series">+ séries</string>
     <string name="seance_detail_progression_next">Prochaine cible : %1$s</string>
     <string name="seance_create_warmup_picker_title">Choisir un échauffement</string>
     <string name="seance_create_warmup_picker_empty">Aucun échauffement disponible.</string>

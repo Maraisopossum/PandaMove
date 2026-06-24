@@ -311,11 +311,13 @@ private fun ExerciceCard(
     val repsLabel = when {
         estDuree -> "${objectif?.dureeCibleSec ?: e.repsCibles.toIntOrNull() ?: 0}s"
         objectif?.repsCible != null -> objectif.repsCible.toString()
-        e.repsMin != null && e.repsMax != null -> "${e.repsMin}–${e.repsMax}"
+        enProgression && e.repsMin != null && e.repsMax != null -> "${e.repsMin}–${e.repsMax}"
         else -> formatRepsDisplay(e.repsCibles, e.repsType)
     }
-    val chargeLabel = objectif?.chargeCible?.let { "%.1f kg".format(it) }
-        ?: e.chargeCible.ifBlank { stringResource(R.string.common_empty_dash) }
+    val chargeLabel = when {
+        e.isBodyweight -> stringResource(R.string.seance_create_progression_type_pdc_short)
+        else -> objectif?.chargeCible?.let { "%.1f kg".format(it) } ?: e.chargeCible.ifBlank { null }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = if (dense) 0.dp else 16.dp, vertical = if (dense) 3.dp else 4.dp),
@@ -368,8 +370,10 @@ private fun ExerciceCard(
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Text("${e.nombreSeriesPrevues} × $repsLabel", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(8.dp))
-                Text("@ $chargeLabel", style = MaterialTheme.typography.bodyMedium, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
+                if (chargeLabel != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("@ $chargeLabel", style = MaterialTheme.typography.bodyMedium, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
+                }
                 if (!hideExerciceRepos && e.tempsReposSec > 0) {
                     Spacer(Modifier.weight(1f))
                     Text(
@@ -391,7 +395,11 @@ private fun ExerciceCard(
                     e.systemeProgression?.let { systeme ->
                         ConfigPill(systeme.name.lowercase().replaceFirstChar { it.uppercase() })
                     }
-                    val incrementLabel = if (estDuree) "+${e.incrementDureeSec}s" else e.incrementKg?.let { "+${if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString()} kg" }
+                    val incrementLabel = when {
+                        e.isBodyweight -> stringResource(R.string.seance_detail_progression_increment_series)
+                        estDuree -> "+${e.incrementDureeSec}s"
+                        else -> e.incrementKg?.let { "+${if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString()} kg" }
+                    }
                     incrementLabel?.let { ConfigPill(it) }
                 }
             }

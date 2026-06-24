@@ -350,7 +350,18 @@ class InstanceExecuteViewModel @Inject constructor(
             .filter { it.exerciceSeance.blocId == blocId }
             .sortedBy { it.exerciceSeance.position }
         val idxInBloc = exInBloc.indexOfFirst { it.exerciceSeance.id == exerciceId }
-        val isLastInBloc = idxInBloc == exInBloc.size - 1
+
+        // Un exercice du bloc peut avoir un nombre de séries différent des autres (ex. progression
+        // "+1 série" sur un exercice PDC en superset) — on ignore les exercices déjà à leur quota
+        // pour ne pas leur imposer un round supplémentaire non voulu.
+        fun estCompletDansBloc(ex: ExerciceSeanceWithExercise): Boolean {
+            val s = state.seriesParExercice[ex.exerciceSeance.id] ?: emptyList()
+            val mult = if (ex.exerciceSeance.isBilateral) 2 else 1
+            return s.size >= ex.exerciceSeance.nombreSeriesPrevues * mult && s.all { it.isCompleted }
+        }
+
+        val prochainNonComplet = exInBloc.drop(idxInBloc + 1).firstOrNull { !estCompletDansBloc(it) }
+        val isLastInBloc = prochainNonComplet == null
 
         // SUPERSET/CIRCUIT : alternance → naviguer après chaque série
         // Autres blocs (ECHAUFFEMENT, RECUPERATION) : naviguer seulement quand l'exercice est terminé
@@ -373,8 +384,8 @@ class InstanceExecuteViewModel @Inject constructor(
         }
 
         if (!isLastInBloc) {
-            // Exercice suivant dans le même bloc
-            val nextEx = exInBloc[idxInBloc + 1]
+            // Exercice suivant non complet dans le même bloc (saute ceux déjà à leur quota de séries)
+            val nextEx = prochainNonComplet!!
             val nextGlobalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == nextEx.exerciceSeance.id }
             if (nextGlobalIdx >= 0) _uiState.value = state.copy(activeExerciceIndex = nextGlobalIdx)
             val reposSec = reposOverrideSec ?: if (isAlternating) bloc.tempsReposInterSec else exercice.exerciceSeance.tempsReposSec
@@ -383,11 +394,7 @@ class InstanceExecuteViewModel @Inject constructor(
         }
 
         // ── Dernier exercice du bloc ──────────────────────────────────────────
-        val allBlocSeriesDone = exInBloc.all { ex ->
-            val s = state.seriesParExercice[ex.exerciceSeance.id] ?: emptyList()
-            val mult = if (ex.exerciceSeance.isBilateral) 2 else 1
-            s.size >= ex.exerciceSeance.nombreSeriesPrevues * mult && s.all { it.isCompleted }
-        }
+        val allBlocSeriesDone = exInBloc.all(::estCompletDansBloc)
 
         val lastBlocGlobalIdx = state.exercices.indexOfLast { it.exerciceSeance.blocId == blocId }
         val nextGroupIdx = lastBlocGlobalIdx + 1
@@ -402,8 +409,9 @@ class InstanceExecuteViewModel @Inject constructor(
                 if (reposSec > 0) startRestTimer(reposSec)
             }
         } else {
-            // Rounds restants (SUPERSET/CIRCUIT uniquement) → retour au premier du bloc
-            val firstEx = exInBloc.first()
+            // Rounds restants (SUPERSET/CIRCUIT uniquement) → retour au premier exercice du bloc
+            // pas encore à son quota de séries (saute ceux déjà terminés, ex. exercice PDC en avance)
+            val firstEx = exInBloc.firstOrNull { !estCompletDansBloc(it) } ?: exInBloc.first()
             val firstGlobalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == firstEx.exerciceSeance.id }
             if (firstGlobalIdx >= 0) _uiState.value = state.copy(activeExerciceIndex = firstGlobalIdx)
             val reposSec = reposOverrideSec ?: bloc.tempsReposFinRoundSec
@@ -1013,19 +1021,26 @@ class InstanceExecuteViewModel @Inject constructor(
                 if (row.proposition.statut == StatutExercice.NON_LOGGE) return@forEach
                 val existant = objectifProgressionDao.getBySeanceAndExercice(instance.seanceId, row.exerciceId)
                 when (decisions[row.exerciceSeanceId] ?: ChoixValidation.OUI) {
-                    ChoixValidation.OUI -> persisterObjectif(instance.seanceId, row.exerciceId, existant, row.proposition)
+                    ChoixValidation.OUI -> {
+                        persisterObjectif(instance.seanceId, row.exerciceId, existant, row.proposition)
+                        appliquerNouveauNombreSeries(row.exerciceSeanceId, row.proposition.nouveauNombreSeries)
+                    }
                     ChoixValidation.NON -> persisterObjectif(
                         instance.seanceId, row.exerciceId, existant,
                         row.proposition.copy(
                             nouvelleChargeCible = existant?.chargeCible,
                             nouveauRepsCible = existant?.repsCible,
                             nouvelleDureeCible = existant?.dureeCibleSec,
+                            nouveauNombreSeries = null,
                         ),
                     )
-                    ChoixValidation.AJUSTER -> persisterObjectif(
-                        instance.seanceId, row.exerciceId, existant,
-                        row.proposition.copy(nouvelleChargeCible = ajustementsChargeKg[row.exerciceSeanceId] ?: row.proposition.nouvelleChargeCible),
-                    )
+                    ChoixValidation.AJUSTER -> {
+                        persisterObjectif(
+                            instance.seanceId, row.exerciceId, existant,
+                            row.proposition.copy(nouvelleChargeCible = ajustementsChargeKg[row.exerciceSeanceId] ?: row.proposition.nouvelleChargeCible),
+                        )
+                        appliquerNouveauNombreSeries(row.exerciceSeanceId, row.proposition.nouveauNombreSeries)
+                    }
                 }
             }
             _uiState.value = _uiState.value.copy(propositionsProgression = emptyList())
@@ -1049,8 +1064,18 @@ class InstanceExecuteViewModel @Inject constructor(
                 dureeCibleSec = proposition.nouvelleDureeCible,
                 compteurEchec = proposition.nouveauCompteurEchec,
                 derniereMaj = LocalDate.now(),
+                nombreSeriesCible = proposition.nouveauNombreSeries,
             )
         )
+    }
+
+    /** Applique la proposition "ajout de série" (PDC au plafond de reps) sur le template de la séance. */
+    private suspend fun appliquerNouveauNombreSeries(exerciceSeanceId: Long, nouveauNombreSeries: Int?) {
+        if (nouveauNombreSeries == null) return
+        val exerciceSeance = _uiState.value.exercices
+            .find { it.exerciceSeance.id == exerciceSeanceId }
+            ?.exerciceSeance ?: return
+        seanceDao.updateExerciceSeance(exerciceSeance.copy(nombreSeriesPrevues = nouveauNombreSeries))
     }
 
     private fun cibleDepuis(objectif: ObjectifProgressionEntity?, es: ExerciceSeanceEntity): CibleExercice {
