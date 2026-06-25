@@ -665,6 +665,7 @@ fun InstanceExecuteScreen(
                         }
                         SeriesTableHeader(
                             repsLabel = if (activeExercice?.exerciceSeance?.repsType == RepsType.DURATION) stringResource(R.string.instance_execute_col_temps) else stringResource(R.string.instance_execute_col_reps),
+                            showRpe = activeExercice?.let { rpeApplicable(it, activeBloc) } ?: true,
                         )
                     }
 
@@ -1298,16 +1299,24 @@ private fun CommentaireSeanceSection(notes: String, onNotesChange: (String) -> U
 // ===== En-têtes tableau =====
 
 @Composable
-private fun SeriesTableHeader(repsLabel: String = "Reps") {
+private fun SeriesTableHeader(repsLabel: String = "Reps", showRpe: Boolean = true) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("#", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(24.dp))
         Text(repsLabel, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
         Text(stringResource(R.string.instance_execute_col_kg), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1.2f))
         Text(stringResource(R.string.instance_execute_col_rest), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
-        Text(stringResource(R.string.instance_execute_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(0.8f))
+        if (showRpe) {
+            Text(stringResource(R.string.instance_execute_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(0.8f))
+        }
         Spacer(modifier = Modifier.width(32.dp))
     }
 }
+
+/** Blocs sans RPE pertinent (échauffement/activation/récupération) — cf. blocColor / isEchauffement. */
+private fun BlocType.estSansRpe(): Boolean = this == BlocType.ECHAUFFEMENT || this == BlocType.ACTIVATION || this == BlocType.RECUPERATION
+
+private fun rpeApplicable(exercice: ExerciceSeanceWithExercise, activeBloc: BlocSeanceEntity?): Boolean =
+    activeBloc?.type?.estSansRpe() != true && exercice.exerciceSeance.repsType != RepsType.DURATION
 
 // ===== Ligne de série =====
 
@@ -1329,6 +1338,7 @@ private fun SerieRow(
     val exerciceId = exercice.exerciceSeance.id
     val isCompleted = serie.isCompleted
     val isSuperset = activeBloc != null && (activeBloc.type == BlocType.SUPERSET || activeBloc.type == BlocType.CIRCUIT)
+    val rpeApplicable = rpeApplicable(exercice, activeBloc)
 
     fun cellContent(col: SerieColumn): Pair<String, Boolean> {
         val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell.serieNum == num && focusedCell.column == col
@@ -1384,7 +1394,8 @@ private fun SerieRow(
         ) {
             Text(serieLabel, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color.Red, modifier = Modifier.width(24.dp))
             val weights = mapOf(SerieColumn.REPS to 1f, SerieColumn.KG to 1.2f, SerieColumn.REPOS to 1f, SerieColumn.RPE to 0.8f)
-            SerieColumn.entries.forEach { col ->
+            val columns = if (rpeApplicable) SerieColumn.entries else SerieColumn.entries.filter { it != SerieColumn.RPE }
+            columns.forEach { col ->
                 val (value, isGrayed) = cellContent(col)
                 val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell?.serieNum == num && focusedCell?.column == col
                 // RPE : lecture seule, saisi via le sélecteur de puces (RpeChipRow) ci-dessous, pas le clavier.
@@ -1398,7 +1409,7 @@ private fun SerieRow(
             }
         }
     }
-    if (isCurrentSerie && !isCompleted) {
+    if (isCurrentSerie && !isCompleted && rpeApplicable) {
         val selectedRpe = draft.rpe.ifBlank { null }
         RpeChipRow(selectedRpe = selectedRpe, onPick = onRpePick)
     }
@@ -1420,14 +1431,16 @@ private fun RpeChipRow(selectedRpe: String?, onPick: (Int) -> Unit) {
             color = PandaSubtext,
             modifier = Modifier.padding(end = 8.dp),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-            (7..10).forEach { value ->
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+        ) {
+            (1..10).forEach { value ->
                 val isSelected = selectedRpe == value.toString()
                 FilterChip(
                     selected = isSelected,
                     onClick = { onPick(value) },
                     label = { Text("$value", style = MaterialTheme.typography.labelMedium) },
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
