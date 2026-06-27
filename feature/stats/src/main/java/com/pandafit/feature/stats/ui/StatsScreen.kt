@@ -160,8 +160,8 @@ fun StatsScreen(
                 item { GlobalSummaryRow(uiState) }
             }
 
-            // Hero progression — mis en avant sur l'onglet "Tout"
-            if (selectedTab == StatsTab.TOUT) {
+            // Hero progression — mis en avant sur l'onglet "Tout" et l'onglet "Renfo"
+            if (selectedTab == StatsTab.TOUT || selectedTab == StatsTab.RENFO) {
                 item { ProgressionHeroCard(uiState.strengthDetail) }
             }
 
@@ -532,6 +532,7 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, previo
                             stringResource(R.string.stats_running_avg_pace), formatPace(detail.avgPaceMinPerKm),
                             if (previous.avgPaceMinPerKm > 0) deltaAbsoluteDouble(detail.avgPaceMinPerKm * 60, previous.avgPaceMinPerKm * 60, " s/km", 0) else null,
                             Modifier.weight(1f),
+                            invertColors = true,
                         )
                         StatItem(stringResource(R.string.stats_running_best_pace), formatPace(detail.bestPaceMinPerKm), null, Modifier.weight(1f))
                         StatItem(stringResource(R.string.stats_running_longest), if (detail.longestSessionKm > 0) "${"%.1f".format(detail.longestSessionKm)} km" else "—", null, Modifier.weight(1f))
@@ -540,7 +541,7 @@ private fun RunningSection(stats: SportStats, detail: RunningDetailStats, previo
                 if (detail.avgHrBpm > 0 || detail.maxHrBpm > 0 || detail.totalElevationM > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (detail.avgHrBpm > 0) StatItem(stringResource(R.string.stats_running_avg_hr), "${detail.avgHrBpm} bpm", if (previous.avgHrBpm > 0) deltaAbsoluteInt(detail.avgHrBpm, previous.avgHrBpm, " bpm") else null, Modifier.weight(1f))
+                        if (detail.avgHrBpm > 0) StatItem(stringResource(R.string.stats_running_avg_hr), "${detail.avgHrBpm} bpm", if (previous.avgHrBpm > 0) deltaAbsoluteInt(detail.avgHrBpm, previous.avgHrBpm, " bpm") else null, Modifier.weight(1f), invertColors = true)
                         else Spacer(Modifier.weight(1f))
                         if (detail.maxHrBpm > 0) StatItem(stringResource(R.string.stats_running_max_hr), "${detail.maxHrBpm} bpm", null, Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
@@ -727,7 +728,7 @@ private fun CyclingSection(stats: SportStats, detail: CyclingDetailStats, previo
                 if (detail.avgHrBpm > 0 || detail.maxHrBpm > 0 || detail.totalElevationM > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (detail.avgHrBpm > 0) StatItem(stringResource(R.string.stats_cycling_avg_hr), "${detail.avgHrBpm} bpm", null, Modifier.weight(1f))
+                        if (detail.avgHrBpm > 0) StatItem(stringResource(R.string.stats_cycling_avg_hr), "${detail.avgHrBpm} bpm", if (previous.avgHrBpm > 0) deltaAbsoluteInt(detail.avgHrBpm, previous.avgHrBpm, " bpm") else null, Modifier.weight(1f), invertColors = true)
                         else Spacer(Modifier.weight(1f))
                         if (detail.maxHrBpm > 0) StatItem(stringResource(R.string.stats_cycling_max_hr), "${detail.maxHrBpm} bpm", null, Modifier.weight(1f))
                         else Spacer(Modifier.weight(1f))
@@ -969,22 +970,22 @@ private fun StatMiniCard(label: String, value: String, delta: StatDelta?, color:
 }
 
 @Composable
-private fun StatItem(label: String, value: String, delta: StatDelta?, modifier: Modifier = Modifier) {
+private fun StatItem(label: String, value: String, delta: StatDelta?, modifier: Modifier = Modifier, invertColors: Boolean = false) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
         Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, maxLines = 1)
         if (delta != null) {
             Spacer(Modifier.height(2.dp))
-            DeltaChip(delta)
+            DeltaChip(delta, invertColors)
         }
     }
 }
 
 @Composable
-private fun DeltaChip(delta: StatDelta) {
+private fun DeltaChip(delta: StatDelta, invertColors: Boolean = false) {
     val color = when (delta.direction) {
-        DeltaDirection.UP -> Color(0xFF1F9D57)
-        DeltaDirection.DOWN -> Color(0xFFD2543B)
+        DeltaDirection.UP -> if (invertColors) Color(0xFFD2543B) else Color(0xFF1F9D57)
+        DeltaDirection.DOWN -> if (invertColors) Color(0xFF1F9D57) else Color(0xFFD2543B)
         DeltaDirection.FLAT -> PandaSubtext
     }
     Text(
