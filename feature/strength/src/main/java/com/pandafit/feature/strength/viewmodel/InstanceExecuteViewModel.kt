@@ -135,6 +135,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 exercices = buildOrderedExercicesFromLists(seanceDao.getExercicesForInstance(instanceId), blocs),
             )
             val progressionPreview = calculerProgressionPreview(instance.seanceId, exercices)
+            val equipmentInventaire = equipmentRepository.inventaire.first()
 
             // Historique cross-séance par exercise_id (pas seance_id ni exercice_seance_id)
             val historiqueComplet = mutableMapOf<Long, MutableList<Pair<LocalDate, List<SerieRealiseeEntity>>>>()
@@ -235,6 +236,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 historiqueComplet = historiqueComplet,
                 isCompleted = instance.isCompleted,
                 progressionPreview = progressionPreview,
+                equipmentInventaire = equipmentInventaire,
             )
 
             // Le chrono ne démarre que sur action explicite (bouton "Démarrer" ou 1ère série

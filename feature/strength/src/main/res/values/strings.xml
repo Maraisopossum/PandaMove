@@ -342,18 +342,19 @@
     <string name="instance_execute_plate_calculator_title">🏋️ Calculateur de disques</string>
     <string name="instance_execute_equipment_barre">Barre</string>
     <string name="instance_execute_equipment_haltere">Haltère</string>
-    <string name="instance_execute_bar_weight_label">Tige (kg)</string>
+    <string name="instance_execute_bar_weight_label">Barre (kg)</string>
     <string name="instance_execute_dumbbell_weight_label">Haltère vide (kg)</string>
     <string name="instance_execute_target_weight_label">Poids total (kg)</string>
     <string name="instance_execute_calculator_hint">Saisissez un poids cible</string>
-    <string name="instance_execute_calculator_bar_error">Poids de tige invalide</string>
+    <string name="instance_execute_calculator_bar_error">Poids de barre invalide</string>
     <string name="instance_execute_calculator_impossible">Impossible avec les disques standards</string>
+    <string name="instance_execute_calculator_approximate">%1$s kg impossible → %2$s kg avec votre matériel</string>
     <string name="instance_execute_calculator_per_side">Disques par côté</string>
     <string name="instance_execute_calculator_per_dumbbell">Disques par haltère</string>
-    <string name="instance_execute_calculator_no_plates_bar">Aucun disque — tige seule suffit</string>
+    <string name="instance_execute_calculator_no_plates_bar">Aucun disque — barre seule suffit</string>
     <string name="instance_execute_calculator_no_plates_dumbbell">Aucun disque — haltère seul suffit</string>
     <string name="instance_execute_calculator_detail_haltere">Haltère</string>
-    <string name="instance_execute_calculator_detail_bar">Tige</string>
+    <string name="instance_execute_calculator_detail_bar">Barre</string>
     <string name="instance_execute_calculator_detail_plates">Disques</string>
     <string name="instance_execute_calculator_detail_total">Total</string>
 

@@ -97,6 +97,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.pandafit.core.database.catalog.DisquesConfig
+import com.pandafit.core.database.catalog.EquipmentInventaire
+import com.pandafit.core.database.catalog.HalteresConfig
+import com.pandafit.core.database.catalog.chargesAtteignables
 import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
 import com.pandafit.core.database.entities.RepsType
@@ -813,6 +817,7 @@ fun InstanceExecuteScreen(
     if (showPlateCalculator) {
         PlateCalculatorSheet(
             initialTargetKg = calculatorInitialKg,
+            equipmentInventaire = uiState.equipmentInventaire,
             onDismiss = { showPlateCalculator = false },
         )
     }
@@ -1667,36 +1672,80 @@ private enum class PlateEquipment { BARRE, HALTERE }
 
 private val STANDARD_PLATE_VALUES = listOf(20f, 15f, 10f, 5f, 2.5f, 2f, 1.25f, 1f, 0.75f, 0.5f)
 
+private data class PlateCalculationResult(
+    val plates: List<Pair<Float, Int>>,
+    val actualKg: Float,
+    val isApproximate: Boolean,
+)
+
 /**
- * Calcule les disques à mettre de chaque côté pour atteindre [targetKg] avec une tige de [barKg].
- * Retourne null si le résultat est impossible, emptyList() si la tige seule suffit.
+ * Calcule les disques à mettre de chaque côté pour atteindre [targetKg] avec une barre de [barKg].
+ * [platesWithCounts] : liste (poids_disque, nb_max_par_côté) triée décroissante — si null, utilise les valeurs standard.
+ * [achievableCharges] : liste des charges réellement composables pour proposer la plus proche si exacte impossible.
+ * Retourne null si le résultat est totalement impossible (cible < barre, ou pas d'alternative proche).
  */
-private fun calculatePlatesPerSide(targetKg: Float, barKg: Float): List<Pair<Float, Int>>? {
+private fun calculatePlatesResult(
+    targetKg: Float,
+    barKg: Float,
+    platesWithCounts: List<Pair<Float, Int>>?,
+    achievableCharges: List<Float>?,
+): PlateCalculationResult? {
     val perSide = (targetKg - barKg) / 2f
-    if (perSide < -0.001f) return null // Cible inférieure à la tige
-    if (perSide < 0.001f) return emptyList()
-    var remaining = perSide
-    val result = mutableListOf<Pair<Float, Int>>()
-    for (plate in STANDARD_PLATE_VALUES) {
-        val count = kotlin.math.floor((remaining / plate + 0.001f).toDouble()).toInt()
-        if (count > 0) {
-            result.add(plate to count)
-            remaining -= plate * count
+    if (perSide < -0.001f) return null
+    if (perSide < 0.001f) return PlateCalculationResult(emptyList(), targetKg, false)
+
+    fun greedyFill(target: Float, plates: List<Pair<Float, Int>>): List<Pair<Float, Int>>? {
+        var remaining = target
+        val result = mutableListOf<Pair<Float, Int>>()
+        for ((plateKg, maxCount) in plates.sortedByDescending { it.first }) {
+            val count = minOf(
+                kotlin.math.floor((remaining / plateKg + 0.001f).toDouble()).toInt(),
+                maxCount,
+            )
+            if (count > 0) {
+                result.add(plateKg to count)
+                remaining -= plateKg * count
+            }
         }
+        return if (remaining > 0.05f) null else result
     }
-    return if (remaining > 0.05f) null else result
+
+    val effectivePlates = platesWithCounts
+        ?: STANDARD_PLATE_VALUES.map { it to Int.MAX_VALUE }
+
+    val exact = greedyFill(perSide, effectivePlates)
+    if (exact != null) return PlateCalculationResult(exact, targetKg, false)
+
+    // Exact impossible — chercher la charge composable la plus proche
+    val candidates = achievableCharges?.filter { it >= barKg }
+    val nearestKg = candidates?.minByOrNull { kotlin.math.abs(it - targetKg) } ?: return null
+    if (kotlin.math.abs(nearestKg - targetKg) < 0.01f) return null // même charge, déjà raté
+    val nearestPerSide = (nearestKg - barKg) / 2f
+    if (nearestPerSide < 0.001f) return PlateCalculationResult(emptyList(), nearestKg, true)
+    val approx = greedyFill(nearestPerSide, effectivePlates) ?: return null
+    return PlateCalculationResult(approx, nearestKg, true)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlateCalculatorSheet(
     initialTargetKg: Float?,
+    equipmentInventaire: EquipmentInventaire?,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var equipment by remember { mutableStateOf(PlateEquipment.BARRE) }
+
+    // Pré-remplissage barre depuis l'inventaire déclaré, sinon valeur par défaut
+    val defaultBarKgBarre = equipmentInventaire?.barre?.barreKg?.let {
+        if (it == it.toLong().toFloat()) it.toInt().toString() else it.toString()
+    } ?: "20"
+    val defaultBarKgHaltere = equipmentInventaire?.halteres?.chargeable?.barreKg?.let {
+        if (it == it.toLong().toFloat()) it.toInt().toString() else it.toString()
+    } ?: "2"
+
     var barInput by remember(equipment) {
-        mutableStateOf(if (equipment == PlateEquipment.BARRE) "20" else "2")
+        mutableStateOf(if (equipment == PlateEquipment.BARRE) defaultBarKgBarre else defaultBarKgHaltere)
     }
     var targetInput by remember(initialTargetKg) {
         mutableStateOf(initialTargetKg?.let { if (it == it.toLong().toFloat()) it.toInt().toString() else it.toString() } ?: "")
@@ -1704,7 +1753,26 @@ private fun PlateCalculatorSheet(
 
     val barKg = barInput.replace(",", ".").toFloatOrNull() ?: 0f
     val targetKg = targetInput.replace(",", ".").toFloatOrNull()
-    val plates = if (targetKg != null && barKg > 0f) calculatePlatesPerSide(targetKg, barKg) else null
+
+    // Résolution de l'inventaire selon le mode sélectionné
+    val platesWithCounts: List<Pair<Float, Int>>? = when (equipment) {
+        PlateEquipment.BARRE -> equipmentInventaire?.barre?.disques
+            ?.entries?.map { (kg, total) -> kg to (total / 2) }
+            ?.filter { it.second > 0 }
+            ?.takeIf { it.isNotEmpty() }
+        PlateEquipment.HALTERE -> equipmentInventaire?.halteres?.chargeable?.disques
+            ?.entries?.map { (kg, total) -> kg to (total / 2) }
+            ?.filter { it.second > 0 }
+            ?.takeIf { it.isNotEmpty() }
+    }
+    val achievableCharges: List<Float>? = when (equipment) {
+        PlateEquipment.BARRE -> equipmentInventaire?.barre?.chargesAtteignables()?.takeIf { it.isNotEmpty() }
+        PlateEquipment.HALTERE -> equipmentInventaire?.halteres?.chargeable?.chargesAtteignables()?.takeIf { it.isNotEmpty() }
+    }
+
+    val calcResult = if (targetKg != null && barKg > 0f)
+        calculatePlatesResult(targetKg, barKg, platesWithCounts, achievableCharges)
+    else null
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -1799,7 +1867,7 @@ private fun PlateCalculatorSheet(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                plates == null -> {
+                calcResult == null -> {
                     Text(
                         stringResource(R.string.instance_execute_calculator_impossible),
                         style = MaterialTheme.typography.bodyMedium,
@@ -1807,10 +1875,20 @@ private fun PlateCalculatorSheet(
                     )
                 }
                 else -> {
+                    if (calcResult.isApproximate) {
+                        val targetLabel = if (targetKg == targetKg.toLong().toFloat()) targetKg.toInt().toString() else targetKg.toString()
+                        val actualLabel = if (calcResult.actualKg == calcResult.actualKg.toLong().toFloat()) calcResult.actualKg.toInt().toString() else calcResult.actualKg.toString()
+                        Text(
+                            stringResource(R.string.instance_execute_calculator_approximate, targetLabel, actualLabel),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
                     PlateResultDisplay(
-                        plates = plates,
+                        plates = calcResult.plates,
                         barKg = barKg,
-                        targetKg = targetKg,
+                        targetKg = calcResult.actualKg,
                         isHaltere = equipment == PlateEquipment.HALTERE,
                     )
                 }

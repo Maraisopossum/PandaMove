@@ -1,5 +1,6 @@
 package com.pandafit.feature.strength.model
 
+import com.pandafit.core.database.catalog.EquipmentInventaire
 import com.pandafit.core.database.catalog.MuscleGroup
 import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
@@ -196,6 +197,7 @@ data class InstanceExecuteUiState(
     // Preview "si succès complet" par exercice en progression_activee — calculé une fois au chargement
     // (nécessite l'inventaire matériel, cf. InstanceExecuteViewModel.calculerProgressionPreview).
     val progressionPreview: Map<Long, PropositionProgression> = emptyMap(),
+    val equipmentInventaire: EquipmentInventaire? = null,
     val error: String? = null,
 ) {
     fun seriesForExercice(exerciceId: Long): List<SerieRealiseeState> =
