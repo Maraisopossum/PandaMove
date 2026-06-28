@@ -106,12 +106,10 @@ fun ProfileScreen(
         uri?.let { viewModel.onBackupFolderSelected(it) }
     }
 
-    // File picker for import
+    // File picker for import — lecture déportée dans le ViewModel (withContext IO)
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri ?: return@rememberLauncherForActivityResult
-        val content = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.readText()
-            ?: return@rememberLauncherForActivityResult
-        viewModel.importData(content)
+        viewModel.importDataFromUri(uri)
     }
 
     // Rename dialog

@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -59,25 +60,17 @@ class ExerciseCatalogViewModel @Inject constructor(
     @Suppress("UnusedPrivateMember") private val catalogRepository: CatalogRepository,
 ) : ViewModel() {
 
-    // ===== Filtres (dans le combine) =====
+    // ===== Filtres =====
     private val _query = MutableStateFlow("")
     private val _selectedGroup = MutableStateFlow<MuscleGroup?>(null)
     private val _onlyAvailable = MutableStateFlow(false)
 
-    // ===== Dialogue de création (combine séparé) =====
-    private val _showCreate = MutableStateFlow(false)
-    private val _newName = MutableStateFlow("")
-    private val _newMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
-    private val _newEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
-    private val _newIsBodyweight = MutableStateFlow(false)
+    // ===== Dialogues création / édition (état structuré, pas de combine) =====
+    private val _dialogState = MutableStateFlow(CreateDialogState())
+    val dialogState: StateFlow<CreateDialogState> = _dialogState.asStateFlow()
 
-    // ===== Dialogue d'édition =====
-    private val _showEdit = MutableStateFlow(false)
-    private val _editTarget = MutableStateFlow<ExerciseEntity?>(null)
-    private val _editMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
-    private val _editEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
-    private val _editExerciseType = MutableStateFlow("")
-    private val _editIsBodyweight = MutableStateFlow(false)
+    private val _editDialogState = MutableStateFlow(EditDialogState())
+    val editDialogState: StateFlow<EditDialogState> = _editDialogState.asStateFlow()
 
     // StateFlow 1 : liste filtrée
     val listState: StateFlow<ExerciseListState> = combine(
@@ -120,85 +113,49 @@ class ExerciseCatalogViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ExerciseListState())
 
-    // StateFlow 2 : état du dialogue de création
-    val dialogState: StateFlow<CreateDialogState> = combine(
-        _showCreate,
-        _newName,
-        _newMuscles,
-        _newEquipment,
-        _newIsBodyweight,
-    ) { show, name, muscles, equip, bodyweight ->
-        CreateDialogState(visible = show, name = name, muscles = muscles, equipment = equip, isBodyweight = bodyweight)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CreateDialogState())
-
-    // StateFlow 3 : état du dialogue d'édition
-    val editDialogState: StateFlow<EditDialogState> = combine(
-        _showEdit,
-        _editTarget,
-        _editMuscles,
-        _editEquipment,
-        _editExerciseType,
-        _editIsBodyweight,
-    ) { values ->
-        EditDialogState(
-            visible = values[0] as Boolean,
-            exercise = values[1] as ExerciseEntity?,
-            muscles = values[2] as List<MuscleGroup>,
-            equipment = values[3] as Set<EquipmentCategory>,
-            exerciseType = values[4] as String,
-            isBodyweight = values[5] as Boolean,
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EditDialogState())
-
     // ===== Filtres =====
     fun setQuery(q: String) { _query.value = q }
     fun setGroup(g: MuscleGroup?) { _selectedGroup.value = g }
     fun toggleOnlyAvailable() { _onlyAvailable.value = !_onlyAvailable.value }
 
     // ===== Dialogue création =====
-    fun openCreate() {
-        _newName.value = ""
-        _newMuscles.value = emptyList()
-        _newEquipment.value = emptySet()
-        _newIsBodyweight.value = false
-        _showCreate.value = true
-    }
-    fun closeCreate() { _showCreate.value = false }
-    fun setNewName(n: String) { _newName.value = n }
+    fun openCreate() { _dialogState.value = CreateDialogState(visible = true) }
+    fun closeCreate() { _dialogState.value = _dialogState.value.copy(visible = false) }
+    fun setNewName(n: String) { _dialogState.value = _dialogState.value.copy(name = n) }
     fun toggleNewMuscle(g: MuscleGroup) {
-        val current = _newMuscles.value.toMutableList()
+        val current = _dialogState.value.muscles.toMutableList()
         if (g in current) current.remove(g) else current.add(g)
-        _newMuscles.value = current
+        _dialogState.value = _dialogState.value.copy(muscles = current)
     }
     fun toggleNewEquipment(cat: EquipmentCategory) {
-        val current = _newEquipment.value.toMutableSet()
+        val current = _dialogState.value.equipment.toMutableSet()
         if (cat in current) current.remove(cat) else current.add(cat)
-        _newEquipment.value = current
+        _dialogState.value = _dialogState.value.copy(equipment = current)
     }
-    fun toggleNewIsBodyweight() { _newIsBodyweight.value = !_newIsBodyweight.value }
+    fun toggleNewIsBodyweight() {
+        _dialogState.value = _dialogState.value.copy(isBodyweight = !_dialogState.value.isBodyweight)
+    }
 
     fun createCustomExercise() {
-        val name = _newName.value.trim()
+        val state = _dialogState.value
+        val name = state.name.trim()
         if (name.isBlank()) return
-        val muscles = _newMuscles.value
+        val muscles = state.muscles
         val primaryGroup = muscles.firstOrNull()
-        val musclePrimary = primaryGroup?.label ?: ""
-        val muscleLabels = muscles.map { it.label }
-        val equipmentLabels = _newEquipment.value.map { it.label }
         viewModelScope.launch {
             exerciseDao.insertExercise(
                 ExerciseEntity(
                     name = name,
                     category = primaryGroup?.toExerciseCategory()
                         ?: com.pandafit.core.database.entities.ExerciseCategory.OTHER,
-                    musclePrimary = musclePrimary,
-                    muscleGroups = muscleLabels,
-                    equipment = equipmentLabels,
+                    musclePrimary = primaryGroup?.label ?: "",
+                    muscleGroups = muscles.map { it.label },
+                    equipment = state.equipment.map { it.label },
                     isCustom = true,
-                    isBodyweight = _newIsBodyweight.value,
+                    isBodyweight = state.isBodyweight,
                 ),
             )
-            _showCreate.value = false
+            _dialogState.value = _dialogState.value.copy(visible = false)
         }
     }
 
@@ -209,40 +166,47 @@ class ExerciseCatalogViewModel @Inject constructor(
 
     // ===== Dialogue édition =====
     fun openEdit(exercise: ExerciseEntity) {
-        _editTarget.value = exercise
-        _editMuscles.value = exercise.muscleGroups.map { raw ->
-            MuscleGroup.entries.find { it.label.equals(raw, ignoreCase = true) }
-                ?: muscleToGroup(raw)
-        }.distinct()
-        _editEquipment.value = exercise.equipment.mapNotNull { raw ->
-            EquipmentCategory.entries.find { it.label.equals(raw, ignoreCase = true) }
-                ?: rawEquipmentToCategory(raw)
-        }.toSet()
-        _editExerciseType.value = exercise.exerciseType
-        _editIsBodyweight.value = exercise.isBodyweight
-        _showEdit.value = true
+        _editDialogState.value = EditDialogState(
+            visible = true,
+            exercise = exercise,
+            muscles = exercise.muscleGroups.map { raw ->
+                MuscleGroup.entries.find { it.label.equals(raw, ignoreCase = true) }
+                    ?: muscleToGroup(raw)
+            }.distinct(),
+            equipment = exercise.equipment.mapNotNull { raw ->
+                EquipmentCategory.entries.find { it.label.equals(raw, ignoreCase = true) }
+                    ?: rawEquipmentToCategory(raw)
+            }.toSet(),
+            exerciseType = exercise.exerciseType,
+            isBodyweight = exercise.isBodyweight,
+        )
     }
 
-    fun closeEdit() { _showEdit.value = false }
+    fun closeEdit() { _editDialogState.value = _editDialogState.value.copy(visible = false) }
 
     fun toggleEditMuscle(g: MuscleGroup) {
-        val current = _editMuscles.value.toMutableList()
+        val current = _editDialogState.value.muscles.toMutableList()
         if (g in current) current.remove(g) else current.add(g)
-        _editMuscles.value = current
+        _editDialogState.value = _editDialogState.value.copy(muscles = current)
     }
 
     fun toggleEditEquipment(cat: EquipmentCategory) {
-        val current = _editEquipment.value.toMutableSet()
+        val current = _editDialogState.value.equipment.toMutableSet()
         if (cat in current) current.remove(cat) else current.add(cat)
-        _editEquipment.value = current
+        _editDialogState.value = _editDialogState.value.copy(equipment = current)
     }
 
-    fun setEditExerciseType(type: String) { _editExerciseType.value = type }
-    fun toggleEditIsBodyweight() { _editIsBodyweight.value = !_editIsBodyweight.value }
+    fun setEditExerciseType(type: String) {
+        _editDialogState.value = _editDialogState.value.copy(exerciseType = type)
+    }
+    fun toggleEditIsBodyweight() {
+        _editDialogState.value = _editDialogState.value.copy(isBodyweight = !_editDialogState.value.isBodyweight)
+    }
 
     fun saveEdit() {
-        val target = _editTarget.value ?: return
-        val muscles = _editMuscles.value
+        val state = _editDialogState.value
+        val target = state.exercise ?: return
+        val muscles = state.muscles
         val primaryGroup = muscles.firstOrNull()
         viewModelScope.launch {
             exerciseDao.updateExercise(
@@ -251,12 +215,12 @@ class ExerciseCatalogViewModel @Inject constructor(
                     musclePrimary = primaryGroup?.label ?: "",
                     category = primaryGroup?.toExerciseCategory()
                         ?: com.pandafit.core.database.entities.ExerciseCategory.OTHER,
-                    equipment = _editEquipment.value.map { it.label },
-                    exerciseType = _editExerciseType.value,
-                    isBodyweight = _editIsBodyweight.value,
+                    equipment = state.equipment.map { it.label },
+                    exerciseType = state.exerciseType,
+                    isBodyweight = state.isBodyweight,
                 )
             )
-            _showEdit.value = false
+            _editDialogState.value = _editDialogState.value.copy(visible = false)
         }
     }
 }

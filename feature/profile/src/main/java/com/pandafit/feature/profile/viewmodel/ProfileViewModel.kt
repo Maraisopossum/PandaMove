@@ -18,8 +18,10 @@ import com.pandafit.core.database.export.ImportResult
 import com.pandafit.core.database.worker.DriveBackupWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -214,10 +216,19 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun importData(jsonContent: String) {
+    fun importDataFromUri(uri: Uri) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.IMPORTING)
             try {
+                val jsonContent = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.readText()
+                } ?: run {
+                    _uiState.value = _uiState.value.copy(
+                        exportImportStatus = ExportImportStatus.ERROR,
+                        errorMessage = "Impossible de lire le fichier",
+                    )
+                    return@launch
+                }
                 val result = importManager.import(jsonContent)
                 _uiState.value = _uiState.value.copy(
                     exportImportStatus = ExportImportStatus.SUCCESS_IMPORT,
