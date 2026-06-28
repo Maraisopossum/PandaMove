@@ -15,6 +15,8 @@ import com.pandafit.core.database.entities.SystemeProgression
 import com.pandafit.core.database.entities.TypeExercice
 import com.pandafit.core.database.progression.CibleExercice
 import com.pandafit.core.database.progression.PropositionProgression
+import com.pandafit.core.database.progression.WarmupPalier
+import com.pandafit.core.database.progression.WarmupProtocole
 import com.pandafit.core.database.progression.serieReussie
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import java.time.LocalDate
@@ -199,6 +201,11 @@ data class InstanceExecuteUiState(
     val progressionPreview: Map<Long, PropositionProgression> = emptyMap(),
     val equipmentInventaire: EquipmentInventaire? = null,
     val error: String? = null,
+    // ── Montées en charge (éphémères, non persistées) ──
+    val warmupExerciceId: Long? = null,
+    val warmupProtocoleParExercice: Map<Long, WarmupProtocole> = emptyMap(),
+    val warmupPaliersParExercice: Map<Long, List<WarmupPalier>> = emptyMap(),
+    val warmupChronoSec: Int = 0,
 ) {
     fun seriesForExercice(exerciceId: Long): List<SerieRealiseeState> =
         seriesParExercice[exerciceId] ?: emptyList()

@@ -87,6 +87,19 @@
 - Si un futur refactor du `when` dans `prepareFinish()` regroupe à nouveau ECHEC/ECHEC_MARQUE sans
   vérifier `.deload`, le deload redevient silencieux — piège à surveiller
 
+### Historique cross-séance — même exercice dans deux blocs
+- **Contexte** : `getHistoriqueForExercise` filtre par `exercise_id` (catalogue), pas par `exercice_seance_id`
+- **Impact 1** : un exercice utilisé dans deux séances d'objectifs différents (ex. Squat Force 5×5 vs Volume 4×12) emprunte l'historique de l'autre séance pour le pré-remplissage — **uniquement quand `progressionActivee = false`** (si progression activée, la cible template prime, l'historique cross-séance est ignoré pour le pre-fill)
+- **Impact 2** : un même exercice dans deux blocs d'une même séance (ex. Développé couché en échauffement ET en superset) : la liste historique fusionnée des deux blocs est matchée par `numeroSerie`, sans distinction de bloc → pré-remplissage potentiellement inversé (charge échauffement ↔ charge travail)
+- **Décision** : archivé — cas rare en pratique, surcharge progressive masque l'impact 1
+- **Fix futur** : filtrer `getHistoriqueForExercise` par `exercice_seance_id` OU par `seanceId` selon le contexte voulu
+
+### Export JSON — version cosmétique, pas de dispatch à l'import
+- Le champ `version` dans `PandaMoveExport` est écrit mais **jamais lu** — l'import tente v3 en premier, puis v2 comme fallback structurel (shape du JSON), sans branching sur `version`
+- `ignoreUnknownKeys = true` + valeurs par défaut Kotlin gèrent les ajouts additifs (v3.1, v3.2) sans code supplémentaire
+- **Piège futur** : si un champ change de *sens* (unité, sémantique) sans être renommé, `ignoreUnknownKeys` ne protège pas — l'ancien champ sera silencieusement ignoré et l'import sera cassé sans erreur visible
+- **Action si ça arrive** : rendre `version` actionnable avec un `when (export.version)` dans `DataImportManager.import()` avant de merger le changement sémantique
+
 ### chargesAtteignables vs pasMateriel — précédence dans calculerIncrementQualitatif
 - `ProgressionEngine.calculerIncrementQualitatif()` snappe sur `chargesAtteignables` (inventaire réel,
   bible §4.3) si non vide ; sinon retombe sur `pasMateriel`/`incrementKg` (legacy, catégorie MACHINE)

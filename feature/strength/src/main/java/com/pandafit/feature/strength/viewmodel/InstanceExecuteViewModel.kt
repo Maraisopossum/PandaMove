@@ -21,6 +21,8 @@ import com.pandafit.core.database.entities.SerieRealiseeEntity
 import com.pandafit.core.database.progression.CibleExercice
 import com.pandafit.core.database.progression.PropositionProgression
 import com.pandafit.core.database.progression.StatutExercice
+import com.pandafit.core.database.progression.WarmupPalier
+import com.pandafit.core.database.progression.WarmupProtocole
 import com.pandafit.core.database.progression.evaluerExercice
 import com.pandafit.core.database.progression.proposerMontee
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
@@ -1120,6 +1122,76 @@ class InstanceExecuteViewModel @Inject constructor(
                 isCompleted = true,
             )
         } ?: emptyList()
+
+    // ===== Montées en charge =====
+
+    private var warmupChronoJob: Job? = null
+
+    fun openWarmupSheet(exerciceSeanceId: Long) {
+        val state = _uiState.value
+        val exWithEx = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId } ?: return
+        val bloc = exWithEx.exerciceSeance.blocId?.let { bid -> state.blocs.find { it.id == bid } }
+        if (bloc != null && bloc.type in listOf(BlocType.ECHAUFFEMENT, BlocType.ACTIVATION, BlocType.RECUPERATION)) return
+        val chargeObjectifKg = parseChargeKg(parseChargeLabel(exWithEx.exerciceSeance.chargeCible))
+            ?.takeIf { it > 0f } ?: return
+        val chargesAtteignables = state.equipmentInventaire
+            ?.let { resolveChargesAtteignables(exWithEx.exercise.equipment, it) }
+            ?: emptyList()
+        val protocole = state.warmupProtocoleParExercice[exerciceSeanceId]
+            ?: com.pandafit.core.database.progression.protocoleDefaut(exWithEx.exerciceSeance.typeExercice)
+            ?: WarmupProtocole.STANDARD
+        val paliers = com.pandafit.core.database.progression.calculerPaliers(chargeObjectifKg, protocole, chargesAtteignables)
+        _uiState.value = state.copy(
+            warmupExerciceId = exerciceSeanceId,
+            warmupProtocoleParExercice = state.warmupProtocoleParExercice + (exerciceSeanceId to protocole),
+            warmupPaliersParExercice = state.warmupPaliersParExercice + (exerciceSeanceId to paliers),
+            warmupChronoSec = 0,
+        )
+    }
+
+    fun closeWarmupSheet() {
+        warmupChronoJob?.cancel()
+        warmupChronoJob = null
+        _uiState.value = _uiState.value.copy(warmupExerciceId = null, warmupChronoSec = 0)
+    }
+
+    fun changeWarmupProtocole(exerciceSeanceId: Long, protocole: WarmupProtocole) {
+        val state = _uiState.value
+        val exWithEx = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId } ?: return
+        val chargeObjectifKg = parseChargeKg(parseChargeLabel(exWithEx.exerciceSeance.chargeCible)) ?: return
+        val chargesAtteignables = state.equipmentInventaire
+            ?.let { resolveChargesAtteignables(exWithEx.exercise.equipment, it) }
+            ?: emptyList()
+        val paliers = com.pandafit.core.database.progression.calculerPaliers(chargeObjectifKg, protocole, chargesAtteignables)
+        _uiState.value = state.copy(
+            warmupProtocoleParExercice = state.warmupProtocoleParExercice + (exerciceSeanceId to protocole),
+            warmupPaliersParExercice = state.warmupPaliersParExercice + (exerciceSeanceId to paliers),
+            warmupChronoSec = 0,
+        )
+        warmupChronoJob?.cancel()
+        warmupChronoJob = null
+    }
+
+    fun markWarmupPalierDone(exerciceSeanceId: Long, index: Int) {
+        val state = _uiState.value
+        val paliers = state.warmupPaliersParExercice[exerciceSeanceId]?.toMutableList() ?: return
+        if (index >= paliers.size) return
+        val palier = paliers[index]
+        paliers[index] = palier.copy(isDone = true)
+        warmupChronoJob?.cancel()
+        warmupChronoJob = viewModelScope.launch {
+            var remaining = palier.reposSec
+            while (remaining > 0) {
+                _uiState.value = _uiState.value.copy(warmupChronoSec = remaining)
+                delay(1000L)
+                remaining--
+            }
+            _uiState.value = _uiState.value.copy(warmupChronoSec = 0)
+        }
+        _uiState.value = state.copy(
+            warmupPaliersParExercice = state.warmupPaliersParExercice + (exerciceSeanceId to paliers),
+        )
+    }
 
     fun finishInstance() {
         countdownJob?.cancel()

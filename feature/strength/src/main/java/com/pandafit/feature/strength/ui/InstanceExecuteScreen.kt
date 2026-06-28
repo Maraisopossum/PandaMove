@@ -105,6 +105,8 @@ import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SerieRealiseeEntity
+import com.pandafit.core.database.progression.WarmupPalier
+import com.pandafit.core.database.progression.WarmupProtocole
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaHighlight
@@ -641,13 +643,30 @@ fun InstanceExecuteScreen(
                         }
                     }
 
+                    // ── Bouton montée en charge ──
+                    item {
+                        TextButton(
+                            onClick = { viewModel.openWarmupSheet(activeExerciceId!!) },
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp),
+                        ) {
+                            Text("⚡", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "Montée en charge",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = PandaPurple,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+
                     item {
                         Text(
                             stringResource(R.string.instance_execute_today_section_header),
                             style = MaterialTheme.typography.labelSmall,
                             color = PandaSubtext,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp),
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
                         )
                     }
                     item {
@@ -819,6 +838,19 @@ fun InstanceExecuteScreen(
             initialTargetKg = calculatorInitialKg,
             equipmentInventaire = uiState.equipmentInventaire,
             onDismiss = { showPlateCalculator = false },
+        )
+    }
+
+    // ── Montée en charge (bottom sheet) ──────────────────────────────────────
+    val warmupId = uiState.warmupExerciceId
+    if (warmupId != null) {
+        WarmupSetsSheet(
+            protocole = uiState.warmupProtocoleParExercice[warmupId],
+            paliers = uiState.warmupPaliersParExercice[warmupId] ?: emptyList(),
+            chronoSec = uiState.warmupChronoSec,
+            onProtocoleChange = { viewModel.changeWarmupProtocole(warmupId, it) },
+            onPalierDone = { viewModel.markWarmupPalierDone(warmupId, it) },
+            onDismiss = { viewModel.closeWarmupSheet() },
         )
     }
 }
@@ -2029,6 +2061,136 @@ private fun NumericKeyboard(activeColumn: SerieColumn?, onKey: (KeyAction) -> Un
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// ── Montée en charge ──────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WarmupSetsSheet(
+    protocole: WarmupProtocole?,
+    paliers: List<WarmupPalier>,
+    chronoSec: Int,
+    onProtocoleChange: (WarmupProtocole) -> Unit,
+    onPalierDone: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+        ) {
+            Text(
+                "Montée en charge",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Paliers calculés depuis la charge cible",
+                style = MaterialTheme.typography.bodySmall,
+                color = PandaSubtext,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            // Sélecteur de protocole
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WarmupProtocole.entries.forEach { p ->
+                    FilterChip(
+                        selected = protocole == p,
+                        onClick = { onProtocoleChange(p) },
+                        label = {
+                            Text(
+                                when (p) {
+                                    WarmupProtocole.DEBUTANT  -> "Débutant"
+                                    WarmupProtocole.STANDARD  -> "Standard"
+                                    WarmupProtocole.LOURD     -> "Lourd"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Liste des paliers
+            paliers.forEachIndexed { index, palier ->
+                val isActive = !palier.isDone && paliers.take(index).all { it.isDone }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .alpha(if (palier.isDone) 0.4f else 1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            "${palier.chargeLabel} × ${palier.reps} reps",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                        )
+                        Text(
+                            "Repos : ${formatRestSec(palier.reposSec)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PandaSubtext,
+                        )
+                    }
+                    if (palier.isDone) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    } else {
+                        FilledTonalButton(
+                            onClick = { onPalierDone(index) },
+                            enabled = isActive,
+                            modifier = Modifier.height(36.dp),
+                        ) {
+                            Text("✓ Fait", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+                if (index < paliers.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                }
+            }
+
+            // Chrono de repos inter-paliers
+            if (chronoSec > 0) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        formatRestSec(chronoSec),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text("Je suis déjà chaud", color = PandaSubtext)
             }
         }
     }
