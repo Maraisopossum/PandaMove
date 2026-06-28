@@ -23,6 +23,7 @@
     <string name="cycling_screen_fab_cd">Nouvelle séance</string>
     <string name="cycling_screen_fab_template">Séance type</string>
     <string name="cycling_screen_fab_direct">Séance directe</string>
+    <string name="cycling_screen_fab_planned">Planifier une séance</string>
     <string name="cycling_screen_section_templates">Séances types</string>
     <string name="cycling_screen_section_planned">Séances planifiées</string>
     <string name="cycling_screen_section_completed">Séances terminées</string>

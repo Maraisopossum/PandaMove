@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.dao.WorkoutBlockDao
 import com.pandafit.core.database.dao.WorkoutDao
+import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.feature.cycling.model.CyclingListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +39,8 @@ class CyclingListViewModel @Inject constructor(
                 CyclingListUiState(isLoading = false, templates = templates, planned = planned, completed = completed)
             }
             .catch { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
-            .collect { _uiState.value = it }
+            // Préserver quickStartWorkoutId : Room peut émettre entre l'insert et la mise à jour de l'état
+            .collect { newState -> _uiState.value = newState.copy(quickStartWorkoutId = _uiState.value.quickStartWorkoutId) }
         }
     }
 
@@ -84,6 +86,31 @@ class CyclingListViewModel @Inject constructor(
         )
         val blocks = blockDao.getByWorkout(templateId)
         blockDao.insertAll(blocks.map { it.copy(id = 0, workoutId = newId) })
+    }
+
+    /**
+     * "Séance directe" : crée une sortie vélo minimale et expose son ID via
+     * [CyclingListUiState.quickStartWorkoutId] pour naviguer directement vers l'exécution GPS.
+     */
+    fun quickStartDirectRide() {
+        viewModelScope.launch {
+            val now = LocalDateTime.now()
+            val workoutId = workoutDao.insert(
+                WorkoutEntity(
+                    workoutType   = WorkoutType.CYCLING,
+                    name          = "Sortie vélo libre",
+                    isTemplate    = false,
+                    scheduledDate = LocalDate.now(),
+                    createdAt     = now,
+                    updatedAt     = now,
+                )
+            )
+            _uiState.value = _uiState.value.copy(quickStartWorkoutId = workoutId)
+        }
+    }
+
+    fun onQuickStartHandled() {
+        _uiState.value = _uiState.value.copy(quickStartWorkoutId = null)
     }
 
     fun duplicateWorkout(id: Long) {

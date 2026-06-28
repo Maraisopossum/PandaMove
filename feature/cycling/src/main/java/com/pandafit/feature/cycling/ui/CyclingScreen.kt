@@ -54,6 +54,15 @@ fun CyclingScreen(
     viewModel: CyclingListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // "Séance directe" : la sortie libre est créée en base puis on bascule directement sur l'exécution GPS.
+    LaunchedEffect(uiState.quickStartWorkoutId) {
+        uiState.quickStartWorkoutId?.let { id ->
+            onNavigateToExecute(id)
+            viewModel.onQuickStartHandled()
+        }
+    }
+
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val isEmpty = uiState.templates.isEmpty() && uiState.planned.isEmpty() && uiState.completed.isEmpty()
 
@@ -181,7 +190,7 @@ fun CyclingScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.cycling_screen_fab_direct)) },
                             leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = PandaBlue, modifier = Modifier.size(18.dp)) },
-                            onClick = { showFabMenu = false; onNavigateToCreatePlanned() },
+                            onClick = { showFabMenu = false; viewModel.quickStartDirectRide() },
                         )
                     }
                 }

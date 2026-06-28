@@ -11,6 +11,7 @@ data class CyclingListUiState(
     val planned: List<WorkoutEntity> = emptyList(),
     val completed: List<WorkoutEntity> = emptyList(),
     val error: String? = null,
+    val quickStartWorkoutId: Long? = null,
 )
 
 data class CyclingDetailUiState(
