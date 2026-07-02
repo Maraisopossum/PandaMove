@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.core.database.entities.WorkoutType
+import com.pandafit.designsystem.components.DrawerSide
+import com.pandafit.designsystem.components.LocalDrawerSide
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.*
 import com.pandafit.feature.home.R
@@ -106,6 +108,8 @@ private fun HomeContent(
     restRemaining: Int = 0,
     scrollToTopKey: Int = 0,
 ) {
+    val drawerOnRight = LocalDrawerSide.current == DrawerSide.RIGHT
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -116,9 +120,18 @@ private fun HomeContent(
                         fontWeight = FontWeight.ExtraBold,
                     )
                 },
+                navigationIcon = {
+                    if (!drawerOnRight) {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.home_menu_cd))
+                        }
+                    }
+                },
                 actions = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.home_menu_cd))
+                    if (drawerOnRight) {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.home_menu_cd))
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
