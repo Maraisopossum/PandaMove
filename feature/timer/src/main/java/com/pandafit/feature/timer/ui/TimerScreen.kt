@@ -813,7 +813,7 @@ private fun StopwatchActiveContent(
             Text(
                 formatElapsedMs(uiState.elapsedMs),
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
-                fontWeight = FontWeight.Thin,
+                fontWeight = FontWeight.ExtraBold,
                 color = StopwatchColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -900,7 +900,7 @@ private fun CountdownActiveContent(
                         Text(stringResource(R.string.timer_finished), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CountdownColor)
                     } else {
                         val totalSec = remainingMs / 1000
-                        Text("${(totalSec / 60).toString().padStart(2, '0')}:${(totalSec % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.displayMedium.copy(fontSize = 60.sp), fontWeight = FontWeight.Bold, color = CountdownColor)
+                        Text("${(totalSec / 60).toString().padStart(2, '0')}:${(totalSec % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.displayMedium.copy(fontSize = 60.sp), fontWeight = FontWeight.ExtraBold, color = CountdownColor)
                         Text(if (uiState.isRunning) "en cours" else "en pause", style = MaterialTheme.typography.bodySmall, color = CountdownColor.copy(alpha = 0.6f))
                     }
                 }

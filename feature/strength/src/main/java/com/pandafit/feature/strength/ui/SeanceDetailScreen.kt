@@ -241,7 +241,7 @@ private fun HeroStat(valeur: String, label: String, modifier: Modifier = Modifie
             .padding(vertical = 9.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(valeur, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(valeur, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }

@@ -276,7 +276,7 @@ private fun ProgressionHeroCard(detail: StrengthDetailStats) {
                 Text(
                     "+${"%.1f".format(totalGain)} kg",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     color = Color.White,
                 )
                 Text(
@@ -959,7 +959,7 @@ private fun SectionHeader(title: String, icon: ImageVector, color: Color) {
 private fun StatMiniCard(label: String, value: String, delta: StatDelta?, color: Color, modifier: Modifier = Modifier) {
     PandaCard(modifier = modifier, containerColor = color.copy(alpha = 0.08f), elevation = 0.dp) {
         Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color)
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = color)
             Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
             if (delta != null) {
                 Spacer(Modifier.height(4.dp))
@@ -972,7 +972,7 @@ private fun StatMiniCard(label: String, value: String, delta: StatDelta?, color:
 @Composable
 private fun StatItem(label: String, value: String, delta: StatDelta?, modifier: Modifier = Modifier, invertColors: Boolean = false) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold, maxLines = 1)
         Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, maxLines = 1)
         if (delta != null) {
             Spacer(Modifier.height(2.dp))

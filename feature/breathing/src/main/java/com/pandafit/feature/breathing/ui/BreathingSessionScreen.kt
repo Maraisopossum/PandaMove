@@ -192,7 +192,7 @@ fun BreathingSessionScreen(
                         "$countdown",
                         style      = MaterialTheme.typography.displayLarge,
                         color      = Color.White,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                     )
                     phaseState.isActive -> {
                         val remainingSec = ((phaseState.phaseDurationMs - phaseState.phaseProgressMs + 999L) / 1_000L)
@@ -201,7 +201,7 @@ fun BreathingSessionScreen(
                             "$remainingSec",
                             style      = MaterialTheme.typography.headlineLarge,
                             color      = Color.White.copy(alpha = 0.85f),
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                         )
                     }
                 }
@@ -372,7 +372,7 @@ private fun BreathingCompletionScreen(
 @Composable
 private fun CompletionStat(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
         Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
     }
 }
