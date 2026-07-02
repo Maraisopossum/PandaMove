@@ -100,3 +100,13 @@ val PandaInfo            = PandaBlue
 // ── Utilitaires ───────────────────────────────────────────────────────────────
 val PandaWhite           = Color(0xFFFFFFFF)
 val PandaBlack           = Color(0xFF1A1A2E)
+
+// ── Mascotte — avatar mâle (vert néon) ────────────────────────────────────────
+val PandaMascotMaleAccent   = Color(0xFFB7F000)
+val PandaMascotMaleLight    = Color(0xFFDFFF45)
+val PandaMascotMaleDark     = Color(0xFF7CB800)
+
+// ── Mascotte — avatar femelle (rose) ──────────────────────────────────────────
+val PandaMascotFemaleAccent = Color(0xFFF45A9D)
+val PandaMascotFemaleLight  = Color(0xFFFF8BC0)
+val PandaMascotFemaleDark   = Color(0xFFC92F73)
