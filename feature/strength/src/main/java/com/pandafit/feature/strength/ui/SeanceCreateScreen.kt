@@ -314,7 +314,7 @@ fun SeanceCreateScreen(
                 AddBlocRow(onAdd = { type -> viewModel.addBloc(type) }, modifier = Modifier.fillMaxWidth())
             }
 
-            item { Spacer(Modifier.height(80.dp)) }
+            item { Spacer(Modifier.height(88.dp)) }
         }
     }
 }

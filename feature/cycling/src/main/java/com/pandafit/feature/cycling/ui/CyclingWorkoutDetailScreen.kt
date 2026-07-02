@@ -142,7 +142,7 @@ fun CyclingWorkoutDetailScreen(
                     onDelete = { viewModel.removeBlock(index) },
                 )
             }
-            item { Spacer(Modifier.height(80.dp)) }
+            item { Spacer(Modifier.height(88.dp)) }
         }
     }
 }

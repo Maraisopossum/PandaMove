@@ -218,7 +218,7 @@ private fun ExerciseGroupedList(
         return
     }
 
-    LazyColumn(contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 80.dp)) {
+    LazyColumn(contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 88.dp)) {
         if (listState.selectedGroup != null) {
             items(listState.exercises, key = { it.id }) { exercise ->
                 ExerciseCatalogRow(

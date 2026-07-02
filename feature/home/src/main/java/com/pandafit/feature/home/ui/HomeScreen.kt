@@ -141,7 +141,7 @@ private fun HomeContent(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding(),
-                bottom = 80.dp,
+                bottom = 88.dp,
             ),
         ) {
             // ── Salutation ──

@@ -23,6 +23,8 @@ fun PandaTopBar(
     onOpenDrawer: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     containerColor: Color = Color.Transparent,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    scrolledContainerColor: Color = MaterialTheme.colorScheme.surface,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     CenterAlignedTopAppBar(
@@ -48,7 +50,10 @@ fun PandaTopBar(
         scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = containerColor,
-            scrolledContainerColor = MaterialTheme.colorScheme.surface,
+            scrolledContainerColor = scrolledContainerColor,
+            titleContentColor = contentColor,
+            navigationIconContentColor = contentColor,
+            actionIconContentColor = contentColor,
         ),
     )
 }

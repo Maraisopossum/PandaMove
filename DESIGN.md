@@ -132,7 +132,7 @@ TopBar [couleur sport, titre blanc]
 └── LazyColumn
     ├── SectionTitle + [action secondaire]
     ├── PandaCard [bande gauche sport] × N
-    └── Spacer(80.dp)  ← espace pour FAB ou bottom nav
+    └── Spacer(88.dp)  ← espace pour FAB ou bottom nav
 ```
 
 ### Écran détail (ex. SeanceDetailScreen, RunningWorkoutReportScreen)
@@ -143,7 +143,7 @@ TopBar [couleur sport] + scrollBehavior exitUntilCollapsed
     ├── Card hero [fond teinté sport, métriques ExtraBold]
     ├── SectionTitle "Détail"
     ├── Rows / items
-    └── Spacer(80.dp)
+    └── Spacer(88.dp)
 ```
 
 ### Écran exécution (ex. InstanceExecuteScreen)
@@ -189,6 +189,34 @@ PandaCard(modifier = Modifier.fillMaxWidth().padding(md)) {
 
 ---
 
+## Mascotte — palette avatar
+
+Palette dédiée aux mascottes officielles PandaMove (avatar homme / avatar femme), **distincte** des
+couleurs de module sport ci-dessus. Source : `Color.kt`.
+
+| Token                    | Valeur    | Rôle                       |
+|--------------------------|-----------|----------------------------|
+| `PandaMascotMaleAccent`   | `#B7F000` | Mâle — vert néon (accent)  |
+| `PandaMascotMaleLight`    | `#DFFF45` | Mâle — highlight clair     |
+| `PandaMascotMaleDark`     | `#7CB800` | Mâle — ombre               |
+| `PandaMascotFemaleAccent` | `#F45A9D` | Femelle — rose vif (accent)|
+| `PandaMascotFemaleLight`  | `#FF8BC0` | Femelle — highlight clair  |
+| `PandaMascotFemaleDark`   | `#C92F73` | Femelle — ombre            |
+
+**Usage** : réservé aux écrans profil/avatar, onboarding, et éléments de gamification (badges,
+streak). **Jamais** sur une TopBar ou un CTA de module sport — ceux-ci gardent leur couleur
+d'identité (violet/vert/bleu/orange/kaki).
+
+**Contraste** : ces couleurs sont trop saturées pour du texte sur fond clair (ratio WCAG
+insuffisant sur blanc/`PandaBackground`). Utilisables en texte uniquement sur fond sombre
+(`#1E1E22` ou équivalent) ; sur fond clair, réserver aux accents graphiques (bandeaux, contours,
+icônes), jamais au texte.
+
+**Ne pas confondre** `PandaMascotMaleAccent` (`#B7F000`, vert néon chartreuse) avec `PandaGreen`
+(`#2E9E6B`, vert running) — deux verts de teinte différente, rôles différents (mascotte vs module).
+
+---
+
 ## Do's & Don'ts
 
 **✅ Faire**
@@ -196,8 +224,8 @@ PandaCard(modifier = Modifier.fillMaxWidth().padding(md)) {
 - Bande gauche 4dp sur les cartes dans un module sport
 - `fontWeight = FontWeight.ExtraBold` pour tous les chiffres-clés
 - `PandaSubtext` pour les métadonnées / labels secondaires
-- `contentPadding = PaddingValues(bottom = 80.dp)` sur toutes les LazyColumn
-- `Spacer(Modifier.height(80.dp))` en fin de liste si pas de contentPadding
+- `contentPadding = PaddingValues(bottom = 88.dp)` sur toutes les LazyColumn
+- `Spacer(Modifier.height(88.dp))` en fin de liste si pas de contentPadding
 
 **❌ Éviter**
 - `elevation = 0.dp` sur `PandaCard` (perd la profondeur sur fond blanc)
@@ -215,7 +243,7 @@ PandaCard(modifier = Modifier.fillMaxWidth().padding(md)) {
 - [ ] Les cartes principales ont une bande gauche colorée OU un fond teinté (pas les deux à > 50%)
 - [ ] Les chiffres-clés sont en `ExtraBold`, les labels secondaires en `PandaSubtext`
 - [ ] Les boutons CTA utilisent `sportColor` (pas `PandaPurple` dans running/vélo)
-- [ ] `contentPadding = PaddingValues(bottom = 80.dp)` présent sur les listes
+- [ ] `contentPadding = PaddingValues(bottom = 88.dp)` présent sur les listes
 - [ ] Aucune dp arbitraire non justifiée
 
 ---

@@ -90,7 +90,7 @@ import com.pandafit.feature.stats.R
 import com.pandafit.feature.stats.viewmodel.StatsViewModel
 
 private val BreathingTeal = Color(0xFF00897B)
-private val PandaPurpleLight = Color(0xFF8A6EE8)
+private val ProgressionGradientEnd = Color(0xFF8A6EE8)
 
 private enum class StatsTab { TOUT, RENFO, COURSE, VELO, RESPI }
 
@@ -120,7 +120,7 @@ fun StatsScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Sélecteur de période + onglets de filtrage — stickys en haut
@@ -268,7 +268,7 @@ private fun ProgressionHeroCard(detail: StrengthDetailStats) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Brush.linearGradient(listOf(PandaPurple, PandaPurpleLight)))
+            .background(Brush.linearGradient(listOf(PandaPurple, ProgressionGradientEnd)))
             .padding(16.dp),
     ) {
         Column {

@@ -947,7 +947,7 @@ private fun HiitActiveContent(uiState: TimerUiState, onPause: () -> Unit, onResu
     }.coerceAtLeast(1)
     val progress by animateFloatAsState(uiState.secondsLeft.toFloat() / totalPhaseSeconds.toFloat(), animationSpec = tween(800), label = "hiit_progress")
 
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 80.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
             Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Text(phaseLabel(phase), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = phaseColor)

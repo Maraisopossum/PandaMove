@@ -213,7 +213,7 @@ fun CalendarScreen(
         }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 80.dp),
+            contentPadding = PaddingValues(bottom = 88.dp),
         ) {
             // Filtres sport
             item {
