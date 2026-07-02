@@ -44,15 +44,17 @@ PandaTopBar(
 ```
 
 **Cartes dans un module sport** → bande gauche 4dp couleur sport + fond très légèrement teinté.
+Implémentation de référence : `PandaSportCard` (`core/designsystem/.../components/PandaSportCard.kt`)
+— ne pas réimplémenter ce pattern à la main (Card + bordure conditionnelle, badge rond, etc.),
+toujours passer par ce composant pour les cartes de liste d'un module sport.
 ```kotlin
-Box(
-    modifier = Modifier
-        .fillMaxWidth()
-        .background(sportColorLight.copy(alpha = 0.45f), shape = MaterialTheme.shapes.large)
+PandaSportCard(
+    accentColor = sportColor,
+    isSelected = isSelected,       // état sélection multi (tint plus fort, pas de bordure)
+    onClick = onClick,
+    onLongClick = onLongClick,
 ) {
-    // Bande gauche
-    Box(Modifier.width(4.dp).fillMaxHeight().background(sportColor))
-    // Contenu avec padding start = 12.dp + 4.dp
+    Row(modifier = Modifier.fillMaxWidth()) { /* contenu */ }
 }
 ```
 

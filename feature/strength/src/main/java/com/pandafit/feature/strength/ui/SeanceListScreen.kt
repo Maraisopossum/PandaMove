@@ -1,7 +1,5 @@
 package com.pandafit.feature.strength.ui
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,8 +25,6 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,6 +67,7 @@ import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
 import com.pandafit.designsystem.theme.PandaPurple
@@ -466,21 +463,17 @@ private fun SelectableSeanceTypeCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val borderColor = if (isSelected) PandaPurple else PandaPurple.copy(alpha = 0f)
-    val bgColor = if (isSelected) PandaPurple.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
-
-    Card(
+    PandaSportCard(
+        accentColor = PandaPurple,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .border(if (isSelected) 2.dp else 0.dp, borderColor, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {
@@ -537,26 +530,21 @@ private fun SelectableInstanceCard(
     onLongClick: () -> Unit,
 ) {
     val isCompleted = instance.isCompleted
-    val bgColor = when {
-        isSelected -> PandaPurple.copy(alpha = 0.1f)
-        else -> MaterialTheme.colorScheme.surface
-    }
     val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale.FRENCH)
     val dayName = instance.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.FRENCH).replaceFirstChar { it.uppercase() }
 
-    Card(
+    PandaSportCard(
+        accentColor = PandaPurple,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .alpha(if (isCompleted && !isSelectionMode) 0.75f else 1f)
-            .border(if (isSelected) 2.dp else 0.dp, PandaPurple, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .alpha(if (isCompleted && !isSelectionMode) 0.75f else 1f),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {

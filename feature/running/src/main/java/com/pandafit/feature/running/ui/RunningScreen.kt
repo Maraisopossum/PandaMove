@@ -1,8 +1,6 @@
 package com.pandafit.feature.running.ui
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,6 +36,7 @@ import com.pandafit.designsystem.components.AssignSingleDatePickerDialog
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
 import com.pandafit.designsystem.theme.PandaGreen
@@ -322,22 +321,18 @@ private fun RunWorkoutCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
-    val borderColor = if (isSelected) PandaGreen else PandaGreen.copy(alpha = 0f)
-    val bgColor = if (isSelected) PandaGreen.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
-
-    Card(
+    PandaSportCard(
+        accentColor = PandaGreen,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .alpha(alpha)
-            .border(if (isSelected) 2.dp else 0.dp, borderColor, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .alpha(alpha),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {

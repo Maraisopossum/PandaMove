@@ -1,8 +1,6 @@
 package com.pandafit.feature.cycling.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -313,22 +311,18 @@ private fun CyclingWorkoutCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
-    val borderColor = if (isSelected) PandaBlue else PandaBlue.copy(alpha = 0f)
-    val bgColor = if (isSelected) PandaBlue.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
-
-    Card(
+    PandaSportCard(
+        accentColor = PandaBlue,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .alpha(alpha)
-            .border(if (isSelected) 2.dp else 0.dp, borderColor, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .alpha(alpha),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {

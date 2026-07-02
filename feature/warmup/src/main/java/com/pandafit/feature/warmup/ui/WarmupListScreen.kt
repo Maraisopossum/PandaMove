@@ -14,8 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -39,6 +37,7 @@ import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaSubtext
@@ -132,14 +131,13 @@ fun WarmupListScreen(
 
 @Composable
 private fun WarmupCard(warmup: SeanceEntity, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
+    PandaSportCard(
+        accentColor = KalyptusGreen,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(1.dp),
+        onClick = onClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
