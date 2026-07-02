@@ -13,7 +13,9 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.pandafit.designsystem.theme.PandaFitTheme
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
@@ -48,7 +50,8 @@ class MainActivity : ComponentActivity() {
         intent?.getStringExtra(ActiveSessionService.EXTRA_ROUTE)?.let { NavigationRouter.navigate(it) }
 
         setContent {
-            PandaFitTheme {
+            val uiState by profileViewModel.uiState.collectAsStateWithLifecycle()
+            PandaFitTheme(darkTheme = uiState.isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

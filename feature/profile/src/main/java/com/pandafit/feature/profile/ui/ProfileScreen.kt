@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
@@ -278,6 +279,22 @@ fun ProfileScreen(
                             title = stringResource(R.string.profile_stats_config_title),
                             subtitle = stringResource(R.string.profile_stats_config_subtitle),
                             onClick = onNavigateToStatsConfig,
+                        )
+                    }
+                }
+            }
+
+            item {
+                Text(stringResource(R.string.profile_section_display), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+                PandaCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(4.dp)) {
+                        SettingsToggleRow(
+                            icon = Icons.Default.DarkMode,
+                            title = stringResource(R.string.profile_dark_mode_title),
+                            subtitle = stringResource(R.string.profile_dark_mode_subtitle),
+                            checked = uiState.isDarkMode,
+                            onCheckedChange = { viewModel.setDarkMode(it) },
                         )
                     }
                 }

@@ -41,6 +41,7 @@ data class ProfileUiState(
     val userName: String = "Sportif PandaMove",
     val gender: UserGender = UserGender.MALE,
     val soundOverrideSilent: Boolean = false,
+    val isDarkMode: Boolean = false,
     val exerciseCount: Int = 0,
     val exportImportStatus: ExportImportStatus = ExportImportStatus.IDLE,
     val csvRunningStatus: ExportImportStatus = ExportImportStatus.IDLE,
@@ -86,12 +87,14 @@ class ProfileViewModel @Inject constructor(
                 userPrefs.userNameFlow,
                 userPrefs.genderFlow,
                 userPrefs.soundOverrideSilentFlow,
+                userPrefs.isDarkModeFlow,
                 exerciseDao.observeAll().map { it.size },
-            ) { name, gender, soundOverride, count ->
+            ) { name, gender, soundOverride, isDarkMode, count ->
                 _uiState.value.copy(
                     userName = name.ifBlank { "Sportif PandaMove" },
                     gender = if (gender == "FEMALE") UserGender.FEMALE else UserGender.MALE,
                     soundOverrideSilent = soundOverride,
+                    isDarkMode = isDarkMode,
                     exerciseCount = count,
                 )
             }
@@ -113,6 +116,10 @@ class ProfileViewModel @Inject constructor(
 
     fun setSoundOverrideSilent(enabled: Boolean) {
         viewModelScope.launch { userPrefs.setSoundOverrideSilent(enabled) }
+    }
+
+    fun setDarkMode(enabled: Boolean) {
+        viewModelScope.launch { userPrefs.setDarkMode(enabled) }
     }
 
     fun clearStatus() {

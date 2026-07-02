@@ -37,6 +37,7 @@ object UserPreferencesDataStoreModule {
 private val KEY_USERNAME              = stringPreferencesKey("user_name")
 private val KEY_GENDER                = stringPreferencesKey("gender")
 private val KEY_SOUND_OVERRIDE_SILENT = booleanPreferencesKey("sound_override_silent")
+private val KEY_DARK_MODE             = booleanPreferencesKey("dark_mode")
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(
@@ -54,6 +55,10 @@ class UserPreferencesRepository @Inject constructor(
         prefs[KEY_SOUND_OVERRIDE_SILENT] ?: false
     }
 
+    val isDarkModeFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DARK_MODE] ?: false
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[KEY_USERNAME] = name }
     }
@@ -64,5 +69,9 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setSoundOverrideSilent(enabled: Boolean) {
         dataStore.edit { it[KEY_SOUND_OVERRIDE_SILENT] = enabled }
+    }
+
+    suspend fun setDarkMode(enabled: Boolean) {
+        dataStore.edit { it[KEY_DARK_MODE] = enabled }
     }
 }

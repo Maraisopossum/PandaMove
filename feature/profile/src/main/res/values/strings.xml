@@ -35,6 +35,9 @@
     <string name="profile_section_sounds">Sons</string>
     <string name="profile_sound_override_title">Sons en mode discret</string>
     <string name="profile_sound_override_subtitle">Les bips de timer sonnent même si le téléphone est en silencieux</string>
+    <string name="profile_section_display">Affichage</string>
+    <string name="profile_dark_mode_title">Thème sombre</string>
+    <string name="profile_dark_mode_subtitle">Applique un fond sombre à toute l\'application</string>
     <string name="profile_section_data">Données</string>
     <string name="profile_export_title">Exporter mes données</string>
     <string name="profile_export_in_progress">Export en cours…</string>

@@ -1,6 +1,7 @@
 package com.pandafit.designsystem.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -49,6 +50,42 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant         = PandaOutlineVariant,
 )
 
+private val DarkColorScheme = darkColorScheme(
+    // Violet — primaire (inchangé, suffisamment contrasté sur fond sombre)
+    primary                = PandaPurpleMid,
+    onPrimary              = PandaBlack,
+    primaryContainer       = PandaPurpleDark,
+    onPrimaryContainer     = PandaPurpleLight,
+
+    // Vert — running / succès
+    secondary              = PandaGreenMid,
+    onSecondary            = PandaBlack,
+    secondaryContainer     = PandaGreenDark,
+    onSecondaryContainer   = PandaGreenLight,
+
+    // Bleu — vélo / info
+    tertiary               = PandaBlue,
+    onTertiary             = PandaWhite,
+    tertiaryContainer      = PandaBlueDark,
+    onTertiaryContainer    = PandaBlueLight,
+
+    // Erreur — rouge
+    error                  = PandaRed,
+    onError                = PandaWhite,
+    errorContainer         = PandaRedDark,
+    onErrorContainer       = PandaRedLight,
+
+    // Fond & surfaces
+    background             = PandaBackgroundDark,
+    onBackground           = PandaOnBackgroundDark,
+    surface                = PandaSurfaceDark,
+    onSurface              = PandaOnSurfaceDark,
+    surfaceVariant         = PandaSurfaceVariantDark,
+    onSurfaceVariant       = PandaSubtextLight,
+    outline                = PandaOutlineVariant,
+    outlineVariant         = PandaSurfaceVariantDark,
+)
+
 // ══════════════════════════════════════════════════════════════════════════════
 // COULEURS ÉTENDUES — par sport/section
 // Accessibles via MaterialTheme.extendedColors.strength.primary etc.
@@ -85,13 +122,14 @@ val LocalPandaFitExtendedColors = staticCompositionLocalOf { defaultExtendedColo
 
 @Composable
 fun PandaFitTheme(
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalPandaFitExtendedColors provides defaultExtendedColors,
     ) {
         MaterialTheme(
-            colorScheme = LightColorScheme,
+            colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             typography  = PandaFitTypography,
             content     = content,
         )
