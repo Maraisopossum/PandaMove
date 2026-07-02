@@ -5,12 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutDao
-import com.pandafit.core.database.entities.RunEndType
-import com.pandafit.core.database.entities.RunEndUnit
-import com.pandafit.core.database.entities.RunStepEntity
-import com.pandafit.core.database.entities.RunStepType
-import com.pandafit.core.database.entities.RunTargetType
-import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.feature.running.model.RunningListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,7 +40,8 @@ class RunningListViewModel @Inject constructor(
                 RunningListUiState(isLoading = false, templates = templates, planned = planned, completed = completed)
             }
             .catch { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
-            .collect { _uiState.value = it }
+            // Préserver quickStartWorkoutId : Room peut émettre entre l'insert et la mise à jour de l'état
+            .collect { newState -> _uiState.value = newState.copy(quickStartWorkoutId = _uiState.value.quickStartWorkoutId) }
         }
     }
 
@@ -110,36 +105,13 @@ class RunningListViewModel @Inject constructor(
     }
 
     /**
-     * "Séance directe" : crée une séance minimale (une étape RUNNING sans limite réelle) et
-     * l'expose via [RunningListUiState.quickStartWorkoutId] pour que l'écran navigue directement
-     * vers l'exécution GPS, sans passer par l'éditeur de séance type.
+     * "Séance directe" : navigue vers l'exécution GPS en mode brouillon, sans créer de séance
+     * en base. La séance (+ son étape RUNNING libre) n'est créée qu'au tap "Démarrer" (voir
+     * [com.pandafit.feature.running.viewmodel.RunningExecuteViewModel]), pour éviter les lignes
+     * orphelines si l'utilisateur quitte sans avoir démarré le suivi GPS.
      */
     fun quickStartFreeRun() {
-        viewModelScope.launch {
-            val now = LocalDateTime.now()
-            val workoutId = workoutDao.insert(
-                WorkoutEntity(
-                    workoutType = WorkoutType.RUNNING,
-                    name = "Course libre",
-                    isTemplate = false,
-                    scheduledDate = LocalDate.now(),
-                    createdAt = now,
-                    updatedAt = now,
-                )
-            )
-            stepDao.insert(
-                RunStepEntity(
-                    workoutId = workoutId,
-                    position = 0,
-                    stepType = RunStepType.RUNNING,
-                    endType = RunEndType.DURATION,
-                    endValue = FREE_RUN_DURATION_SECONDS,
-                    endUnit = RunEndUnit.SECONDS,
-                    targetType = RunTargetType.NONE,
-                )
-            )
-            _uiState.value = _uiState.value.copy(quickStartWorkoutId = workoutId)
-        }
+        _uiState.value = _uiState.value.copy(quickStartWorkoutId = 0L)
     }
 
     /** À appeler une fois la navigation effectuée, pour ne pas redéclencher l'effet. */
@@ -182,10 +154,5 @@ class RunningListViewModel @Inject constructor(
                 )
             }
         }
-    }
-
-    companion object {
-        /** 6h : assez long pour ne jamais être atteint en usage normal, le coureur arrête manuellement. */
-        private const val FREE_RUN_DURATION_SECONDS = 6 * 3600
     }
 }

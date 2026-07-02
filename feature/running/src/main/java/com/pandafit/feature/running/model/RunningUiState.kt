@@ -69,6 +69,8 @@ sealed class RunItemDraft {
 data class RunningExecuteUiState(
     val isLoading: Boolean = true,
     val workout: WorkoutEntity? = null,
+    /** Id réel une fois la séance créée en base (créée seulement au tap "Démarrer" pour une séance directe). */
+    val workoutId: Long? = null,
     val freeSteps: List<FreeStepExecution> = emptyList(),
     val repeatBlocks: List<RunRepeatExecution> = emptyList(),
     val isCompleted: Boolean = false,

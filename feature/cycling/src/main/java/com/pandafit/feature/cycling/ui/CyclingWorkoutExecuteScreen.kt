@@ -100,7 +100,7 @@ fun CyclingWorkoutExecuteScreen(
     }
 
     LaunchedEffect(uiState.isCompleted) {
-        if (uiState.isCompleted) onNavigateToReport(workoutId)
+        if (uiState.isCompleted) onNavigateToReport(uiState.workoutId ?: workoutId)
     }
 
     LaunchedEffect(locationPermissionGranted) {

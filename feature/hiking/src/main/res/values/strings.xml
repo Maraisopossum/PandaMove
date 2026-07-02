@@ -52,4 +52,24 @@
     <string name="hiking_report_hr">FC moyenne</string>
     <string name="hiking_report_rpe">RPE</string>
     <string name="hiking_report_notes_title">Notes</string>
+
+    <!-- Randonnée directe (GPS live) -->
+    <string name="hiking_fab_seance_directe">Randonnée directe</string>
+    <string name="hiking_execute_title_fallback">Randonnée</string>
+    <string name="hiking_execute_navigate_back_cd">Retour</string>
+    <string name="hiking_execute_finish_button">Terminer</string>
+    <string name="hiking_execute_finish_dialog_title">Terminer la randonnée ?</string>
+    <string name="hiking_execute_finish_dialog_body">Les résultats seront enregistrés.</string>
+    <string name="hiking_execute_global_results_label">RÉSULTATS</string>
+    <string name="hiking_execute_cell_distance">Distance (km)</string>
+    <string name="hiking_execute_cell_time">Temps</string>
+    <string name="hiking_execute_cell_speed">Vitesse</string>
+    <string name="hiking_execute_cell_elevation">Dénivelé (m)</string>
+    <string name="hiking_execute_cell_hr_avg">FC moy</string>
+    <string name="hiking_execute_cell_hr_max">FC max</string>
+    <string name="hiking_execute_cell_rpe">RPE</string>
+    <string name="hiking_execute_cell_calories">Calories</string>
+    <string name="hiking_execute_session_note_label">NOTE DE SÉANCE</string>
+    <string name="hiking_execute_session_note_placeholder">Sensations, météo, parcours…</string>
+    <string name="hiking_execute_finish_seance_button">TERMINER LA RANDONNÉE</string>
 </resources>

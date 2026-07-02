@@ -78,6 +78,7 @@ import com.pandafit.feature.strength.ui.SeanceListScreen
 import com.pandafit.feature.breathing.ui.BreathingMethodCreateScreen
 import com.pandafit.feature.hiking.ui.HikingScreen
 import com.pandafit.feature.hiking.ui.HikingWorkoutDetailScreen
+import com.pandafit.feature.hiking.ui.HikingWorkoutExecuteScreen
 import com.pandafit.feature.hiking.ui.HikingWorkoutReportScreen
 import com.pandafit.feature.breathing.ui.BreathingMethodSelectionScreen
 import com.pandafit.feature.breathing.ui.BreathingSessionScreen
@@ -521,7 +522,20 @@ fun PandaFitNavHost() {
                 HikingScreen(
                     onNavigateToReport = { id -> navController.navigate(HikingRoutes.report(id)) },
                     onNavigateToEncode = { navController.navigate(HikingRoutes.ENCODE) },
+                    onNavigateToExecute = { id -> navController.navigate(HikingRoutes.execute(id)) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
+                )
+            }
+            composable(HikingRoutes.EXECUTE) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                HikingWorkoutExecuteScreen(
+                    workoutId = id,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToReport = { wId ->
+                        navController.navigate(HikingRoutes.report(wId)) {
+                            popUpTo(HikingRoutes.EXECUTE) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable(HikingRoutes.ENCODE) {

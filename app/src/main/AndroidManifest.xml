@@ -61,6 +61,12 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- GPS live tracking pour les randonnées -->
+        <service
+            android:name=".service.HikingTrackingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
         <!-- FileProvider pour le partage de fichiers TCX Garmin -->
         <provider
             android:name="androidx.core.content.FileProvider"

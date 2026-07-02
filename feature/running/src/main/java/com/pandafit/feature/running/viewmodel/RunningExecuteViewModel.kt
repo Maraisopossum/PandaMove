@@ -9,7 +9,12 @@ import com.pandafit.core.database.catalog.LiveTrackState
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutDao
+import com.pandafit.core.database.entities.RunEndType
+import com.pandafit.core.database.entities.RunEndUnit
+import com.pandafit.core.database.entities.RunStepEntity
 import com.pandafit.core.database.entities.RunStepType
+import com.pandafit.core.database.entities.RunTargetType
+import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.feature.running.GpsTrackingController
 import com.pandafit.feature.running.model.FreeStepExecution
@@ -27,6 +32,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -44,14 +50,17 @@ class RunningExecuteViewModel @Inject constructor(
     private val gpsTrackingController: GpsTrackingController,
 ) : ViewModel() {
 
-    private val workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+    /** 0 = "séance directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
+    private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
     private val _uiState = MutableStateFlow(RunningExecuteUiState())
     val uiState: StateFlow<RunningExecuteUiState> = _uiState.asStateFlow()
 
     val liveTrackState: StateFlow<LiveTrackState> = gpsTrackingRepository.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveTrackState())
 
-    init { loadWorkout() }
+    init {
+        if (workoutId > 0L) loadWorkout() else _uiState.value = RunningExecuteUiState(isLoading = false)
+    }
 
     private fun loadWorkout() {
         viewModelScope.launch {
@@ -84,6 +93,7 @@ class RunningExecuteViewModel @Inject constructor(
             _uiState.value = RunningExecuteUiState(
                 isLoading = false,
                 workout = workout,
+                workoutId = workoutId,
                 freeSteps = freeSteps,
                 repeatBlocks = repeatBlocks,
                 resultDistanceKm  = workout.resultDistanceKm?.toString() ?: "",
@@ -100,6 +110,41 @@ class RunningExecuteViewModel @Inject constructor(
         }
     }
 
+    /** Crée la séance (+ étape RUNNING libre) en base au premier appel (brouillon → réel), idempotent ensuite. */
+    private suspend fun ensureWorkoutCreated(): Long {
+        if (workoutId > 0L) return workoutId
+        val now = LocalDateTime.now()
+        val id = workoutDao.insert(
+            WorkoutEntity(
+                workoutType = WorkoutType.RUNNING,
+                name = "Course libre",
+                isTemplate = false,
+                scheduledDate = LocalDate.now(),
+                createdAt = now,
+                updatedAt = now,
+            )
+        )
+        val step = RunStepEntity(
+            workoutId = id,
+            position = 0,
+            stepType = RunStepType.RUNNING,
+            endType = RunEndType.DURATION,
+            endValue = FREE_RUN_DURATION_SECONDS,
+            endUnit = RunEndUnit.SECONDS,
+            targetType = RunTargetType.NONE,
+        )
+        stepDao.insert(step)
+        workoutId = id
+        val workout = workoutDao.getById(id)
+        sessionManager.startWorkout(id, workout?.name ?: "Course libre", WorkoutType.RUNNING)
+        _uiState.value = _uiState.value.copy(
+            workout = workout,
+            workoutId = id,
+            freeSteps = listOf(FreeStepExecution(step = step, result = FreeStepResult())),
+        )
+        return id
+    }
+
     // ── GPS tracking ──────────────────────────────────────────────────────────
 
     fun startCalibration() {
@@ -107,7 +152,10 @@ class RunningExecuteViewModel @Inject constructor(
     }
 
     fun startGpsTracking() {
-        gpsTrackingController.start(workoutId)
+        viewModelScope.launch {
+            val id = ensureWorkoutCreated()
+            gpsTrackingController.start(id)
+        }
     }
 
     fun pauseGpsTracking() {
@@ -174,6 +222,7 @@ class RunningExecuteViewModel @Inject constructor(
 
     fun finishWorkout() {
         viewModelScope.launch {
+            val id = ensureWorkoutCreated()
             // Arrêter le GPS/calibration si encore actif
             val track = liveTrackState.value
             if (track.isTracking) {
@@ -200,7 +249,7 @@ class RunningExecuteViewModel @Inject constructor(
             val now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
             workoutDao.saveResults(
-                id          = workoutId,
+                id          = id,
                 distKm      = s.resultDistanceKm.replace(",", ".").toDoubleOrNull(),
                 durSec      = parseDurationToSec(s.resultDurationStr),
                 pace        = parsePaceStr(s.resultPaceStr),
@@ -252,6 +301,11 @@ class RunningExecuteViewModel @Inject constructor(
         val min = parts[0].toIntOrNull() ?: return null
         val sec = parts[1].toIntOrNull() ?: return null
         return min + sec / 60.0
+    }
+
+    companion object {
+        /** 6h : assez long pour ne jamais être atteint en usage normal, le coureur arrête manuellement. */
+        private const val FREE_RUN_DURATION_SECONDS = 6 * 3600
     }
 }
 

@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.dao.WorkoutBlockDao
 import com.pandafit.core.database.dao.WorkoutDao
-import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.feature.cycling.model.CyclingListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -89,24 +88,12 @@ class CyclingListViewModel @Inject constructor(
     }
 
     /**
-     * "Séance directe" : crée une sortie vélo minimale et expose son ID via
-     * [CyclingListUiState.quickStartWorkoutId] pour naviguer directement vers l'exécution GPS.
+     * "Séance directe" : navigue vers l'exécution GPS en mode brouillon, sans créer de sortie en
+     * base. La séance n'est créée qu'au tap "Démarrer" (voir [CyclingExecuteViewModel]), pour
+     * éviter les lignes orphelines si l'utilisateur quitte sans avoir démarré le suivi GPS.
      */
     fun quickStartDirectRide() {
-        viewModelScope.launch {
-            val now = LocalDateTime.now()
-            val workoutId = workoutDao.insert(
-                WorkoutEntity(
-                    workoutType   = WorkoutType.CYCLING,
-                    name          = "Sortie vélo libre",
-                    isTemplate    = false,
-                    scheduledDate = LocalDate.now(),
-                    createdAt     = now,
-                    updatedAt     = now,
-                )
-            )
-            _uiState.value = _uiState.value.copy(quickStartWorkoutId = workoutId)
-        }
+        _uiState.value = _uiState.value.copy(quickStartWorkoutId = 0L)
     }
 
     fun onQuickStartHandled() {

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -24,6 +25,8 @@ import javax.inject.Inject
 data class CyclingExecuteUiState(
     val isLoading: Boolean = true,
     val workout: WorkoutEntity? = null,
+    /** Id réel une fois la séance créée en base (créée seulement au tap "Démarrer" pour une sortie directe). */
+    val workoutId: Long? = null,
     val isCompleted: Boolean = false,
 
     // Champs résultats
@@ -49,7 +52,8 @@ class CyclingExecuteViewModel @Inject constructor(
     private val gpsController: GpsCyclingController,
 ) : ViewModel() {
 
-    private val workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+    /** 0 = "sortie directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
+    private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
 
     private val _uiState = MutableStateFlow(CyclingExecuteUiState())
     val uiState: StateFlow<CyclingExecuteUiState> = _uiState.asStateFlow()
@@ -57,7 +61,9 @@ class CyclingExecuteViewModel @Inject constructor(
     val liveTrackState: StateFlow<LiveTrackState> = gpsTrackingRepository.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveTrackState())
 
-    init { loadWorkout() }
+    init {
+        if (workoutId > 0L) loadWorkout() else _uiState.value = CyclingExecuteUiState(isLoading = false)
+    }
 
     private fun loadWorkout() {
         viewModelScope.launch {
@@ -69,6 +75,7 @@ class CyclingExecuteViewModel @Inject constructor(
             _uiState.value = CyclingExecuteUiState(
                 isLoading           = false,
                 workout             = w,
+                workoutId           = workoutId,
                 resultDistanceKm    = w.resultDistanceKm?.toString() ?: "",
                 resultDurationStr   = w.resultDurationSec?.let { formatDurationSec(it) } ?: "",
                 resultSpeedAvgKmh   = w.resultSpeedAvgKmh?.let { "%.1f".format(it) } ?: "",
@@ -84,11 +91,37 @@ class CyclingExecuteViewModel @Inject constructor(
         }
     }
 
+    /** Crée la séance en base au premier appel (brouillon → réel), idempotent ensuite. */
+    private suspend fun ensureWorkoutCreated(): Long {
+        if (workoutId > 0L) return workoutId
+        val now = LocalDateTime.now()
+        val id = workoutDao.insert(
+            WorkoutEntity(
+                workoutType = WorkoutType.CYCLING,
+                name = "Sortie vélo libre",
+                isTemplate = false,
+                scheduledDate = LocalDate.now(),
+                createdAt = now,
+                updatedAt = now,
+            )
+        )
+        workoutId = id
+        val workout = workoutDao.getById(id)
+        sessionManager.startWorkout(id, workout?.name ?: "Sortie vélo libre", WorkoutType.CYCLING)
+        _uiState.value = _uiState.value.copy(workout = workout, workoutId = id)
+        return id
+    }
+
     // ── GPS tracking ──────────────────────────────────────────────────────────
 
     fun startCalibration() = gpsController.startCalibration()
 
-    fun startGpsTracking() = gpsController.start(workoutId)
+    fun startGpsTracking() {
+        viewModelScope.launch {
+            val id = ensureWorkoutCreated()
+            gpsController.start(id)
+        }
+    }
 
     fun pauseGpsTracking() = gpsController.pause()
 
@@ -127,6 +160,7 @@ class CyclingExecuteViewModel @Inject constructor(
 
     fun finishWorkout() {
         viewModelScope.launch {
+            val id = ensureWorkoutCreated()
             val track = liveTrackState.value
             if (track.isTracking) gpsController.stop() else gpsController.stopCalibration()
 
@@ -152,7 +186,7 @@ class CyclingExecuteViewModel @Inject constructor(
                 ?: computeAvgSpeedKmh(s.resultDistanceKm, s.resultDurationStr)?.replace(",", ".")?.toDoubleOrNull()
 
             workoutDao.saveCyclingResults(
-                id         = workoutId,
+                id         = id,
                 distKm     = distKm,
                 durSec     = durSec,
                 speedAvg   = speedAvg,

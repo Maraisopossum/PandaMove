@@ -1,18 +1,26 @@
 package com.pandafit.feature.hiking.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.ActiveSessionManager
+import com.pandafit.core.database.catalog.GpsTrackingRepository
+import com.pandafit.core.database.catalog.LiveTrackState
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
+import com.pandafit.feature.hiking.GpsHikingController
 import com.pandafit.feature.hiking.model.HikingDetailUiState
+import com.pandafit.feature.hiking.model.HikingExecuteUiState
 import com.pandafit.feature.hiking.model.HikingListUiState
 import com.pandafit.feature.hiking.model.HikingReportUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -34,11 +42,32 @@ class HikingListViewModel @Inject constructor(
         viewModelScope.launch {
             workoutDao.observeCompletedByType(WorkoutType.HIKING)
                 .catch { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
-                .collect { _uiState.value = HikingListUiState(isLoading = false, completed = it) }
+                // Préserver quickStartWorkoutId : Room peut émettre entre l'insert et la mise à jour de l'état
+                .collect { newState ->
+                    _uiState.value = HikingListUiState(
+                        isLoading = false,
+                        completed = newState,
+                        quickStartWorkoutId = _uiState.value.quickStartWorkoutId,
+                    )
+                }
         }
     }
 
     fun delete(id: Long) = viewModelScope.launch { workoutDao.deleteById(id) }
+
+    /**
+     * "Randonnée directe" : navigue vers l'exécution GPS en mode brouillon, sans créer de séance
+     * en base. La séance n'est créée qu'au tap "Démarrer" (voir [HikingExecuteViewModel]), pour
+     * éviter les lignes orphelines si l'utilisateur quitte sans avoir démarré le suivi GPS.
+     */
+    fun quickStartFreeHike() {
+        _uiState.value = _uiState.value.copy(quickStartWorkoutId = 0L)
+    }
+
+    /** À appeler une fois la navigation effectuée, pour ne pas redéclencher l'effet. */
+    fun onQuickStartHandled() {
+        _uiState.value = _uiState.value.copy(quickStartWorkoutId = null)
+    }
 }
 
 @HiltViewModel
@@ -164,4 +193,182 @@ class HikingReportViewModel @Inject constructor(
             onDone()
         }
     }
+}
+
+/**
+ * Exécution GPS live d'une "Randonnée directe" — même base que RunningExecuteViewModel,
+ * mais sans étapes/répétitions structurées (la rando libre n'a pas de plan à l'avance).
+ */
+@HiltViewModel
+class HikingExecuteViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val workoutDao: WorkoutDao,
+    private val sessionManager: ActiveSessionManager,
+    private val gpsTrackingRepository: GpsTrackingRepository,
+    private val gpsTrackingController: GpsHikingController,
+) : ViewModel() {
+
+    /** 0 = "randonnée directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
+    private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+    private val _uiState = MutableStateFlow(HikingExecuteUiState())
+    val uiState: StateFlow<HikingExecuteUiState> = _uiState.asStateFlow()
+
+    val liveTrackState: StateFlow<LiveTrackState> = gpsTrackingRepository.state
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveTrackState())
+
+    init {
+        if (workoutId > 0L) loadWorkout() else _uiState.value = HikingExecuteUiState(isLoading = false)
+    }
+
+    private fun loadWorkout() {
+        viewModelScope.launch {
+            val workout = workoutDao.getById(workoutId) ?: return@launch
+            sessionManager.startWorkout(workoutId, workout.name, WorkoutType.HIKING)
+            _uiState.value = HikingExecuteUiState(
+                isLoading = false,
+                workout = workout,
+                workoutId = workoutId,
+                resultDistanceKm = workout.resultDistanceKm?.toString() ?: "",
+                resultDurationStr = workout.resultDurationSec?.let { formatDurationSec(it) } ?: "",
+                resultSpeedKmh = workout.resultSpeedAvgKmh?.let { "%.1f".format(it) } ?: "",
+                resultElevationM = workout.resultElevationM?.toString() ?: "",
+                resultHrAvg = workout.resultHrAvg?.toString() ?: "",
+                resultHrMax = workout.resultHrMax?.toString() ?: "",
+                resultRpe = workout.resultRpe?.toString() ?: "",
+                resultCalories = workout.resultCalories?.toString() ?: "",
+                resultNotes = workout.resultNotes,
+            )
+        }
+    }
+
+    /** Crée la séance en base au premier appel (brouillon → réel), idempotent ensuite. */
+    private suspend fun ensureWorkoutCreated(): Long {
+        if (workoutId > 0L) return workoutId
+        val now = LocalDateTime.now()
+        val id = workoutDao.insert(
+            WorkoutEntity(
+                workoutType = WorkoutType.HIKING,
+                name = "Randonnée libre",
+                isTemplate = false,
+                scheduledDate = LocalDate.now(),
+                createdAt = now,
+                updatedAt = now,
+            )
+        )
+        workoutId = id
+        val workout = workoutDao.getById(id)
+        sessionManager.startWorkout(id, workout?.name ?: "Randonnée libre", WorkoutType.HIKING)
+        _uiState.value = _uiState.value.copy(workout = workout, workoutId = id)
+        return id
+    }
+
+    // ── GPS tracking ──────────────────────────────────────────────────────────
+
+    fun startCalibration() = gpsTrackingController.startCalibration()
+    fun startGpsTracking() {
+        viewModelScope.launch {
+            val id = ensureWorkoutCreated()
+            gpsTrackingController.start(id)
+        }
+    }
+    fun pauseGpsTracking() = gpsTrackingController.pause()
+    fun resumeGpsTracking() = gpsTrackingController.resume()
+
+    // ── Résultats (édition manuelle) ────────────────────────────────────────────
+
+    fun updateOverallResult(field: String, value: String) {
+        val s = _uiState.value
+        val newState = when (field) {
+            "distanceKm" -> s.copy(resultDistanceKm = value)
+            "duration"   -> s.copy(resultDurationStr = value)
+            "speed"      -> s.copy(resultSpeedKmh = value)
+            "elevation"  -> s.copy(resultElevationM = value)
+            "hr"         -> s.copy(resultHrAvg = value)
+            "hrMax"      -> s.copy(resultHrMax = value)
+            "rpe"        -> s.copy(resultRpe = value)
+            "calories"   -> s.copy(resultCalories = value)
+            "notes"      -> s.copy(resultNotes = value)
+            else         -> s
+        }
+        _uiState.value = if (field == "distanceKm" || field == "duration") {
+            val computed = computeSpeedKmh(newState.resultDistanceKm, newState.resultDurationStr)
+            if (computed != null) newState.copy(resultSpeedKmh = computed) else newState
+        } else newState
+    }
+
+    private fun computeSpeedKmh(distanceKm: String, durationStr: String): String? {
+        val dist = distanceKm.replace(",", ".").toDoubleOrNull() ?: return null
+        if (dist <= 0) return null
+        val durSec = parseDurationToSec(durationStr) ?: return null
+        if (durSec <= 0) return null
+        return "%.1f".format(dist / (durSec / 3600.0))
+    }
+
+    // ── Finish ────────────────────────────────────────────────────────────────
+
+    fun finishWorkout() {
+        viewModelScope.launch {
+            val id = ensureWorkoutCreated()
+            val track = liveTrackState.value
+            if (track.isTracking) gpsTrackingController.stop() else gpsTrackingController.stopCalibration()
+
+            val s = if (track.distanceM > 0) {
+                val distKmStr = "%.3f".format(track.distanceM / 1000.0)
+                val durStr = formatDurationSec(track.durationSec)
+                val speedStr = computeSpeedKmh(distKmStr, durStr) ?: _uiState.value.resultSpeedKmh
+                val elevStr = if (track.elevationGainM > 0) track.elevationGainM.toString() else _uiState.value.resultElevationM
+                _uiState.value.copy(
+                    resultDistanceKm = distKmStr,
+                    resultDurationStr = durStr,
+                    resultSpeedKmh = speedStr,
+                    resultElevationM = elevStr,
+                )
+            } else _uiState.value
+
+            val now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+            workoutDao.saveCyclingResults(
+                id = id,
+                distKm = s.resultDistanceKm.replace(",", ".").toDoubleOrNull(),
+                durSec = parseDurationToSec(s.resultDurationStr),
+                speedAvg = s.resultSpeedKmh.replace(",", ".").toDoubleOrNull(),
+                speedMax = null,
+                hr = s.resultHrAvg.toIntOrNull(),
+                hrMax = s.resultHrMax.toIntOrNull(),
+                cadence = null,
+                elevationM = s.resultElevationM.toIntOrNull(),
+                calories = s.resultCalories.toIntOrNull(),
+                rpe = s.resultRpe.toIntOrNull(),
+                notes = s.resultNotes,
+                completedAt = now,
+            )
+
+            gpsTrackingRepository.reset()
+            sessionManager.endWorkout()
+            _uiState.value = s.copy(isCompleted = true)
+        }
+    }
+
+    override fun onCleared() {
+        gpsTrackingController.stopCalibration()
+        sessionManager.endWorkout()
+        super.onCleared()
+    }
+
+    private fun parseDurationToSec(str: String): Int? {
+        val parts = str.split(":").mapNotNull { it.toIntOrNull() }
+        return when (parts.size) {
+            2    -> parts[0] * 60 + parts[1]
+            3    -> parts[0] * 3600 + parts[1] * 60 + parts[2]
+            else -> str.toIntOrNull()
+        }
+    }
+}
+
+private fun formatDurationSec(totalSec: Int): String {
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return if (h > 0) "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
+    else "$m:${s.toString().padStart(2, '0')}"
 }

@@ -48,4 +48,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.bundles.lifecycle)
     implementation(libs.bundles.coroutines)
+
+    // OSMDroid (carte GPS live du tracé — séance directe)
+    implementation(libs.osmdroid)
 }

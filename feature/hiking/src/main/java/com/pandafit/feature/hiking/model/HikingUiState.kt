@@ -6,6 +6,25 @@ data class HikingListUiState(
     val isLoading: Boolean = true,
     val completed: List<WorkoutEntity> = emptyList(),
     val error: String? = null,
+    /** Non-null juste après "Randonnée directe" — déclenche la navigation vers l'exécution GPS. */
+    val quickStartWorkoutId: Long? = null,
+)
+
+data class HikingExecuteUiState(
+    val isLoading: Boolean = true,
+    val workout: WorkoutEntity? = null,
+    /** Id réel une fois la séance créée en base (créée seulement au tap "Démarrer"). Null tant que la rando directe est en brouillon. */
+    val workoutId: Long? = null,
+    val resultDistanceKm: String = "",
+    val resultDurationStr: String = "",
+    val resultSpeedKmh: String = "",
+    val resultElevationM: String = "",
+    val resultHrAvg: String = "",
+    val resultHrMax: String = "",
+    val resultRpe: String = "",
+    val resultCalories: String = "",
+    val resultNotes: String = "",
+    val isCompleted: Boolean = false,
 )
 
 data class HikingDetailUiState(

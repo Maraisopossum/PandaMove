@@ -188,13 +188,15 @@ object ProfileRoutes {
 }
 
 object HikingRoutes {
-    const val LIST   = "hiking"
-    const val ENCODE = "hiking/encode"
-    const val REPORT = "hiking/{workoutId}"
-    const val EDIT   = "hiking/{workoutId}/edit"
+    const val LIST    = "hiking"
+    const val ENCODE  = "hiking/encode"
+    const val REPORT  = "hiking/{workoutId}"
+    const val EDIT    = "hiking/{workoutId}/edit"
+    const val EXECUTE = "hiking/{workoutId}/execute"
 
-    fun report(id: Long) = "hiking/$id"
-    fun edit(id: Long)   = "hiking/$id/edit"
+    fun report(id: Long)  = "hiking/$id"
+    fun edit(id: Long)    = "hiking/$id/edit"
+    fun execute(id: Long) = "hiking/$id/execute"
 }
 
 object BreathingRoutes {
