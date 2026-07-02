@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -74,6 +75,8 @@ fun CyclingWorkoutDetailScreen(
                 title = if (uiState.isNew) stringResource(R.string.cycling_detail_title_new) else stringResource(R.string.cycling_detail_title_edit),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
+                containerColor = PandaBlue,
+                contentColor = Color.White,
             )
         },
         bottomBar = {

@@ -46,7 +46,6 @@ import com.pandafit.core.database.catalog.EquipmentCategory
 import com.pandafit.core.database.catalog.chargesAtteignablesPour
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaGreen
-import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.profile.R
 import com.pandafit.feature.profile.viewmodel.EquipmentViewModel
@@ -136,7 +135,7 @@ fun EquipmentScreen(
                                         color = PandaSubtext,
                                     )
                                     IconButton(onClick = { dialogOuvert = category }, modifier = Modifier.size(24.dp)) {
-                                        Icon(Icons.Default.Settings, stringResource(R.string.equipment_configure_cd), modifier = Modifier.size(14.dp), tint = PandaPurple)
+                                        Icon(Icons.Default.Settings, stringResource(R.string.equipment_configure_cd), modifier = Modifier.size(14.dp), tint = PandaGreen)
                                     }
                                 }
                             }
@@ -210,7 +209,7 @@ private fun PasStepperField(
                 onClick = { if (valeurKg - step >= min) onValueChange(valeurKg - step) },
                 modifier = Modifier.size(28.dp),
             ) {
-                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(12.dp), tint = PandaPurple)
+                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(12.dp), tint = PandaGreen)
             }
             val display = if (valeurKg == valeurKg.toInt().toFloat()) "${valeurKg.toInt()} kg" else "$valeurKg kg"
             Text(
@@ -224,7 +223,7 @@ private fun PasStepperField(
                 onClick = { onValueChange(valeurKg + step) },
                 modifier = Modifier.size(28.dp),
             ) {
-                Icon(Icons.Default.Add, "+", modifier = Modifier.size(12.dp), tint = PandaPurple)
+                Icon(Icons.Default.Add, "+", modifier = Modifier.size(12.dp), tint = PandaGreen)
             }
         }
     }

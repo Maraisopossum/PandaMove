@@ -171,6 +171,8 @@ fun SeanceCreateScreen(
                 },
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
+                containerColor = PandaPurple,
+                contentColor = Color.White,
             )
         },
         bottomBar = {

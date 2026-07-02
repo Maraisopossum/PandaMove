@@ -77,11 +77,13 @@ import com.pandafit.core.database.entities.InstanceSeanceEntity
 import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.designsystem.components.PandaLoadingIndicator
-import com.pandafit.designsystem.theme.KalyptusGreen
-import com.pandafit.designsystem.theme.KalyptusGreenLight
-import com.pandafit.designsystem.theme.PandaGreen
+import com.pandafit.designsystem.theme.PandaPurple
+import com.pandafit.designsystem.theme.PandaPurpleLight
+import com.pandafit.designsystem.theme.PandaRed
 import com.pandafit.designsystem.theme.PandaOrange
 import com.pandafit.designsystem.theme.PandaOrangeLight
+import com.pandafit.designsystem.theme.PandaOutline
+import com.pandafit.designsystem.theme.PandaSurfaceVariant
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.strength.model.SerieRealiseeState
 import com.pandafit.feature.strength.viewmodel.InstanceExecuteViewModel
@@ -245,7 +247,7 @@ fun InstanceReportScreen(
             text = { Text(stringResource(R.string.instance_report_finish_dialog_message)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.prepareFinish(); showFinishDialog = false }) {
-                    Text(stringResource(R.string.instance_report_finish_confirm), color = PandaGreen, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.instance_report_finish_confirm), color = PandaPurple, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -277,10 +279,10 @@ fun InstanceReportScreen(
                 },
                 actions = {
                     IconButton(onClick = onNavigateToEdit) {
-                        Icon(Icons.Default.Edit, stringResource(R.string.instance_report_edit_cd), tint = KalyptusGreen)
+                        Icon(Icons.Default.Edit, stringResource(R.string.instance_report_edit_cd), tint = PandaPurple)
                     }
                     IconButton(onClick = { showExportSheet = true }) {
-                        Icon(Icons.Default.Share, stringResource(R.string.instance_report_export_cd), tint = KalyptusGreen)
+                        Icon(Icons.Default.Share, stringResource(R.string.instance_report_export_cd), tint = PandaPurple)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -298,7 +300,7 @@ fun InstanceReportScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(KalyptusGreenLight, RoundedCornerShape(14.dp))
+                        .background(PandaPurpleLight, RoundedCornerShape(14.dp))
                         .padding(14.dp),
                 ) {
                     Column {
@@ -311,14 +313,14 @@ fun InstanceReportScreen(
                             Text(
                                 "${seance!!.notes} · ${instance?.date?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH))?.replaceFirstChar { it.uppercase() } ?: ""}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = KalyptusGreen,
+                                color = PandaPurple,
                                 fontWeight = FontWeight.SemiBold,
                             )
                         } else if (instance != null) {
                             Text(
                                 instance.date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH)).replaceFirstChar { it.uppercase() },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = KalyptusGreen,
+                                color = PandaPurple,
                             )
                         }
                         Spacer(Modifier.height(10.dp))
@@ -473,7 +475,7 @@ fun InstanceReportScreen(
                     onClick = { showFinishDialog = true },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PandaGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = PandaPurple),
                 ) {
                     Text(stringResource(R.string.instance_report_finish_button), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
                 }
@@ -529,7 +531,7 @@ private fun ReportSerieRow(serie: SerieRealiseeState, isEvenRow: Boolean) {
             serieLabel,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
-            color = if (strikethrough) PandaSubtext.copy(alpha = 0.4f) else Color(0xFFE53935),
+            color = if (strikethrough) PandaSubtext.copy(alpha = 0.4f) else PandaRed,
             modifier = Modifier.width(20.dp),
         )
         Text(
@@ -600,7 +602,7 @@ internal fun ReportPrintContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(KalyptusGreenLight, RoundedCornerShape(14.dp))
+                .background(PandaPurpleLight, RoundedCornerShape(14.dp))
                 .padding(14.dp),
         ) {
             Column {
@@ -613,14 +615,14 @@ internal fun ReportPrintContent(
                     Text(
                         "${seance!!.notes} · ${instance?.date?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH))?.replaceFirstChar { it.uppercase() } ?: ""}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = KalyptusGreen,
+                        color = PandaPurple,
                         fontWeight = FontWeight.SemiBold,
                     )
                 } else if (instance != null) {
                     Text(
                         instance.date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.FRENCH)).replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.bodySmall,
-                        color = KalyptusGreen,
+                        color = PandaPurple,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
@@ -657,7 +659,7 @@ internal fun ReportPrintContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF0F0F0), RoundedCornerShape(8.dp))
+                .background(PandaSurfaceVariant, RoundedCornerShape(8.dp))
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -717,7 +719,7 @@ internal fun ReportPrintContent(
                 val exerciceId = ex.exerciceSeance.id
                 val series = seriesMap[exerciceId] ?: emptyList()
                 val isGrouped = isSuperset || isEchauffement
-                val borderColor = if (isGrouped) groupAccentColor.copy(alpha = 0.3f) else Color(0xFFDDDDDD)
+                val borderColor = if (isGrouped) groupAccentColor.copy(alpha = 0.3f) else PandaOutline
                 val bgColor = if (isGrouped) groupBgColor.copy(alpha = 0.4f) else Color.White
 
                 Column(
@@ -757,12 +759,12 @@ internal fun ReportPrintContent(
 
         // Branding
         Spacer(Modifier.height(20.dp))
-        HorizontalDivider(color = Color(0xFFE0E0E0))
+        HorizontalDivider(color = PandaOutline)
         Spacer(Modifier.height(8.dp))
         Text(
             stringResource(R.string.instance_report_branding),
             style = MaterialTheme.typography.labelSmall,
-            color = Color(0xFF9E9E9E),
+            color = PandaSubtext,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.End,
         )

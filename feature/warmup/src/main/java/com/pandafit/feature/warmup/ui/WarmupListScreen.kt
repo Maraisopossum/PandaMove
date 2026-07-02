@@ -40,7 +40,7 @@ import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
-import com.pandafit.designsystem.theme.PandaOrange
+import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.warmup.R
 import com.pandafit.feature.warmup.viewmodel.WarmupListViewModel
@@ -62,11 +62,18 @@ fun WarmupListScreen(
     val currentWarmups = uiState.warmupsByCategory[uiState.selectedCategory] ?: emptyList()
 
     Scaffold(
-        topBar = { PandaTopBar(title = stringResource(R.string.warmup_screen_title), onOpenDrawer = onOpenDrawer) },
+        topBar = {
+            PandaTopBar(
+                title = stringResource(R.string.warmup_screen_title),
+                onOpenDrawer = onOpenDrawer,
+                containerColor = KalyptusGreen,
+                contentColor = Color.White,
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNavigateToCreate(uiState.selectedCategory.name) },
-                containerColor = PandaOrange,
+                containerColor = KalyptusGreen,
             ) {
                 Icon(Icons.Default.Add, stringResource(R.string.warmup_fab_new_cd), tint = Color.White)
             }
@@ -91,8 +98,8 @@ fun WarmupListScreen(
                             onClick = { viewModel.selectCategory(cat) },
                             label = { Text(label) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PandaOrange.copy(alpha = 0.15f),
-                                selectedLabelColor = PandaOrange,
+                                selectedContainerColor = KalyptusGreen.copy(alpha = 0.15f),
+                                selectedLabelColor = KalyptusGreen,
                             ),
                         )
                     }
@@ -109,7 +116,7 @@ fun WarmupListScreen(
                             AppButton(
                                 label = stringResource(R.string.warmup_create_button),
                                 onClick = { onNavigateToCreate(uiState.selectedCategory.name) },
-                                color = PandaOrange,
+                                color = KalyptusGreen,
                             )
                         },
                     )
@@ -139,7 +146,7 @@ private fun WarmupCard(warmup: SeanceEntity, onClick: () -> Unit) {
                 modifier = Modifier.size(40.dp).padding(end = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.SelfImprovement, null, tint = PandaOrange, modifier = Modifier.size(28.dp))
+                Icon(Icons.Default.SelfImprovement, null, tint = KalyptusGreen, modifier = Modifier.size(28.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(warmup.nom, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)

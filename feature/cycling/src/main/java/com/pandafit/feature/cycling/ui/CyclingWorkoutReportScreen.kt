@@ -67,6 +67,8 @@ fun CyclingWorkoutReportScreen(
                 title = workout?.name ?: stringResource(R.string.cycling_report_title_fallback),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
+                containerColor = PandaBlue,
+                contentColor = Color.White,
                 actions = {
                     IconButton(onClick = {
                         if (isTemplate || !isCompleted) onNavigateToEdit(workoutId)

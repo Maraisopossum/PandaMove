@@ -176,7 +176,14 @@ fun CalendarScreen(
     }
 
     Scaffold(
-        topBar = { PandaTopBar(title = stringResource(R.string.calendar_screen_title), onOpenDrawer = onOpenDrawer) },
+        topBar = {
+            PandaTopBar(
+                title = stringResource(R.string.calendar_screen_title),
+                onOpenDrawer = onOpenDrawer,
+                containerColor = PandaOrange,
+                contentColor = Color.White,
+            )
+        },
         // TODO: réactiver le FAB quand le flux d'affectation depuis le calendrier sera finalisé
 //        floatingActionButton = {
 //            Box {

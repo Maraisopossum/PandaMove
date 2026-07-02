@@ -204,7 +204,7 @@ fun ProfileScreen(
                         Text(
                             stringResource(R.string.profile_gender_label),
                             style = MaterialTheme.typography.labelMedium,
-                            color = androidx.compose.ui.graphics.Color(0xFF888888),
+                            color = PandaSubtext,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             val genders = listOf(

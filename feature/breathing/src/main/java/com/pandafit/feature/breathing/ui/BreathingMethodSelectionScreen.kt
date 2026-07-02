@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.designsystem.components.PandaTopBar
-import com.pandafit.designsystem.theme.PandaBlue
-import com.pandafit.designsystem.theme.PandaGreen
+import androidx.compose.ui.graphics.Color
+import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.breathing.R
 import com.pandafit.feature.breathing.method.BreathingMethod
@@ -100,6 +100,8 @@ fun BreathingMethodSelectionScreen(
                 title = stringResource(R.string.breathing_selection_title),
                 onOpenDrawer = onOpenDrawer,
                 scrollBehavior = scrollBehavior,
+                containerColor = KalyptusGreen,
+                contentColor = Color.White,
                 actions = {
                     IconButton(onClick = onCreateCustomMethod) {
                         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.breathing_create_method_cd))
@@ -113,7 +115,7 @@ fun BreathingMethodSelectionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(bottom = 88.dp),
         ) {
             // Mascotte en header
             item {
@@ -415,7 +417,7 @@ private fun BreathingMethodCard(
                                 "$currentValue",
                                 style      = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
-                                color      = PandaBlue,
+                                color      = KalyptusGreen,
                             )
                             Text(unit, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                         }
@@ -432,7 +434,7 @@ private fun BreathingMethodCard(
                     Button(
                         onClick  = onStart,
                         modifier = Modifier.fillMaxWidth(),
-                        colors   = ButtonDefaults.buttonColors(containerColor = PandaGreen),
+                        colors   = ButtonDefaults.buttonColors(containerColor = KalyptusGreen),
                     ) {
                         Text(stringResource(R.string.breathing_start_button), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
                     }

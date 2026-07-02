@@ -96,6 +96,8 @@ fun SeanceDetailScreen(
                 title = uiState.seance?.nom ?: stringResource(R.string.seance_detail_title_fallback),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
+                containerColor = PandaPurple,
+                contentColor = Color.White,
                 actions = {
                     IconButton(onClick = { onNavigateToEdit(seanceId) }) {
                         Icon(Icons.Default.Edit, stringResource(R.string.common_edit_cd))

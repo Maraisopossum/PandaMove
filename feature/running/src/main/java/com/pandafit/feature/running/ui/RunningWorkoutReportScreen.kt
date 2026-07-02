@@ -73,6 +73,8 @@ fun RunningWorkoutReportScreen(
                 title = workout?.name ?: stringResource(R.string.running_report_title_fallback),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
+                containerColor = PandaGreen,
+                contentColor = Color.White,
                 actions = {
                     // Crayon : édition pour templates et séances planifiées ; modif résultats si terminée
                     val editCd = if (isCompleted) stringResource(R.string.running_report_edit_results_cd) else stringResource(R.string.running_report_edit_seance_cd)

@@ -94,7 +94,7 @@ fun RunningWorkoutDetailScreen(
                         modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     )
                     TextButton(onClick = { viewModel.save() }, enabled = !uiState.isSaving) {
-                        Text(stringResource(R.string.running_detail_save_button), color = PandaPurple, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.running_detail_save_button), color = PandaGreen, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -134,7 +134,7 @@ fun RunningWorkoutDetailScreen(
                         Checkbox(
                             checked = uiState.withStroller,
                             onCheckedChange = viewModel::updateWithStroller,
-                            colors = CheckboxDefaults.colors(checkedColor = PandaPurple),
+                            colors = CheckboxDefaults.colors(checkedColor = PandaGreen),
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.running_detail_with_stroller), style = MaterialTheme.typography.bodyMedium)
@@ -148,7 +148,7 @@ fun RunningWorkoutDetailScreen(
                 Text(
                     stringResource(R.string.running_detail_section_steps),
                     style = MaterialTheme.typography.labelSmall,
-                    color = PandaPurple,
+                    color = PandaGreen,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
@@ -206,7 +206,7 @@ fun RunningWorkoutDetailScreen(
                     OutlinedButton(
                         onClick = { viewModel.addStep() },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PandaPurple),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PandaGreen),
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))

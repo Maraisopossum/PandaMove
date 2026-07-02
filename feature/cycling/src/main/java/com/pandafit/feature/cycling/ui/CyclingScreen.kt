@@ -24,7 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,7 +63,6 @@ fun CyclingScreen(
         }
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val isEmpty = uiState.templates.isEmpty() && uiState.planned.isEmpty() && uiState.completed.isEmpty()
 
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
@@ -152,7 +151,6 @@ fun CyclingScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
@@ -168,7 +166,12 @@ fun CyclingScreen(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaBlue.copy(alpha = 0.08f)),
                 )
             } else {
-                PandaTopBar(title = stringResource(R.string.cycling_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(
+                    title = stringResource(R.string.cycling_screen_title),
+                    onOpenDrawer = onOpenDrawer,
+                    containerColor = PandaBlue,
+                    contentColor = Color.White,
+                )
             }
         },
         floatingActionButton = {

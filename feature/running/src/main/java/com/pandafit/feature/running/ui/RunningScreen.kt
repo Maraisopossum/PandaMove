@@ -25,7 +25,7 @@ import androidx.compose.ui.res.stringResource
 import com.pandafit.feature.running.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,7 +41,6 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
 import com.pandafit.designsystem.theme.PandaGreen
-import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.running.viewmodel.RunningListViewModel
 import java.time.format.DateTimeFormatter
@@ -66,7 +65,6 @@ fun RunningScreen(
             viewModel.onQuickStartHandled()
         }
     }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val isEmpty = uiState.templates.isEmpty() && uiState.planned.isEmpty() && uiState.completed.isEmpty()
 
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
@@ -171,7 +169,6 @@ fun RunningScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
@@ -191,10 +188,15 @@ fun RunningScreen(
                             Icon(Icons.Default.Delete, stringResource(R.string.running_screen_delete_selection_cd), tint = MaterialTheme.colorScheme.error)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaPurple.copy(alpha = 0.08f)),
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaGreen.copy(alpha = 0.08f)),
                 )
             } else {
-                PandaTopBar(title = stringResource(R.string.running_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(
+                    title = stringResource(R.string.running_screen_title),
+                    onOpenDrawer = onOpenDrawer,
+                    containerColor = PandaGreen,
+                    contentColor = Color.White,
+                )
             }
         },
         floatingActionButton = {
@@ -300,7 +302,7 @@ private fun RunSectionHeader(label: String) {
     Text(
         label,
         style = MaterialTheme.typography.labelSmall,
-        color = PandaPurple,
+        color = PandaGreen,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp, end = 16.dp),
     )
@@ -320,8 +322,8 @@ private fun RunWorkoutCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
-    val borderColor = if (isSelected) PandaPurple else PandaPurple.copy(alpha = 0f)
-    val bgColor = if (isSelected) PandaPurple.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
+    val borderColor = if (isSelected) PandaGreen else PandaGreen.copy(alpha = 0f)
+    val bgColor = if (isSelected) PandaGreen.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
 
     Card(
         modifier = Modifier
@@ -342,7 +344,7 @@ private fun RunWorkoutCard(
                 Icon(
                     if (isSelected) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle,
                     contentDescription = null,
-                    tint = if (isSelected) PandaPurple else PandaSubtext,
+                    tint = if (isSelected) PandaGreen else PandaSubtext,
                     modifier = Modifier.size(22.dp),
                 )
                 Spacer(Modifier.width(10.dp))

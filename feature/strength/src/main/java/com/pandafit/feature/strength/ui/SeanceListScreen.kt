@@ -42,7 +42,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,7 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -94,7 +93,6 @@ fun SeanceListScreen(
     viewModel: SeanceListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     // Navigation après création one-shot
     LaunchedEffect(Unit) {
@@ -274,7 +272,6 @@ fun SeanceListScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
@@ -299,7 +296,12 @@ fun SeanceListScreen(
                     ),
                 )
             } else {
-                PandaTopBar(title = stringResource(R.string.strength_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(
+                    title = stringResource(R.string.strength_screen_title),
+                    onOpenDrawer = onOpenDrawer,
+                    containerColor = PandaPurple,
+                    contentColor = Color.White,
+                )
             }
         },
         floatingActionButton = {
