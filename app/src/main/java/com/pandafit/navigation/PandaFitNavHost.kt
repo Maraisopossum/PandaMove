@@ -48,6 +48,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.AppDrawerNav
+import com.pandafit.designsystem.components.DrawerSide as UiDrawerSide
+import com.pandafit.feature.profile.viewmodel.DrawerSide as ProfileDrawerSide
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
 import kotlinx.coroutines.flow.filterNotNull
@@ -175,6 +177,7 @@ fun PandaFitNavHost() {
         userName = profileState.userName,
         activeSessionBanner = if (showBanner) bannerContent else null,
         activeSessionDrawerBanner = bannerContent,
+        drawerSide = if (profileState.drawerSide == ProfileDrawerSide.RIGHT) UiDrawerSide.RIGHT else UiDrawerSide.LEFT,
     ) {
         Scaffold(
             contentWindowInsets = WindowInsets(0.dp),

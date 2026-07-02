@@ -38,6 +38,7 @@ private val KEY_USERNAME              = stringPreferencesKey("user_name")
 private val KEY_GENDER                = stringPreferencesKey("gender")
 private val KEY_SOUND_OVERRIDE_SILENT = booleanPreferencesKey("sound_override_silent")
 private val KEY_DARK_MODE             = booleanPreferencesKey("dark_mode")
+private val KEY_DRAWER_SIDE           = stringPreferencesKey("drawer_side")
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(
@@ -59,6 +60,11 @@ class UserPreferencesRepository @Inject constructor(
         prefs[KEY_DARK_MODE] ?: false
     }
 
+    /** "LEFT" ou "RIGHT" — côté d'ouverture du menu hamburger. */
+    val drawerSideFlow: Flow<String> = dataStore.data.map { prefs ->
+        prefs[KEY_DRAWER_SIDE] ?: "LEFT"
+    }
+
     suspend fun setUserName(name: String) {
         dataStore.edit { it[KEY_USERNAME] = name }
     }
@@ -73,5 +79,9 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setDarkMode(enabled: Boolean) {
         dataStore.edit { it[KEY_DARK_MODE] = enabled }
+    }
+
+    suspend fun setDrawerSide(side: String) {
+        dataStore.edit { it[KEY_DRAWER_SIDE] = side }
     }
 }

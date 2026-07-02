@@ -36,13 +36,17 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.KalyptusGreenLight
@@ -52,6 +56,15 @@ import com.pandafit.designsystem.theme.PandaSidebarHover
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.designsystem.theme.PandaWhite
 import kotlinx.coroutines.launch
+
+/** Côté d'ouverture du menu hamburger — à une main pour droitiers (RIGHT) ou gauchers (LEFT). */
+enum class DrawerSide { LEFT, RIGHT }
+
+/** Côté courant du drawer, lu par [com.pandafit.designsystem.components.PandaTopBar] pour placer le bouton hamburger du même côté. */
+val LocalDrawerSide = compositionLocalOf { DrawerSide.LEFT }
+
+/** Fond du menu déployé — bleu marine foncé, texte blanc ExtraBold. */
+private val DrawerNavyBackground = Color(0xFF03224C)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DONNÉES DU DRAWER
@@ -107,41 +120,58 @@ fun AppDrawerNav(
     items: List<DrawerNavItem> = defaultDrawerItems,
     activeSessionBanner: (@Composable () -> Unit)? = null,
     activeSessionDrawerBanner: (@Composable () -> Unit)? = null,
+    drawerSide: DrawerSide = DrawerSide.LEFT,
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val baseLayoutDirection = LocalLayoutDirection.current
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = PandaSidebar,
-                modifier = Modifier.width(260.dp),
+    // ModalNavigationDrawer s'ouvre toujours du bord "start" : on inverse la direction de mise en
+    // page pour ouvrir à droite, puis on la restaure dans chaque slot pour ne pas retourner le contenu.
+    val outerLayoutDirection = if (drawerSide == DrawerSide.RIGHT) {
+        if (baseLayoutDirection == LayoutDirection.Ltr) LayoutDirection.Rtl else LayoutDirection.Ltr
+    } else baseLayoutDirection
+
+    CompositionLocalProvider(LocalLayoutDirection provides outerLayoutDirection) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                CompositionLocalProvider(LocalLayoutDirection provides baseLayoutDirection) {
+                    ModalDrawerSheet(
+                        drawerContainerColor = DrawerNavyBackground,
+                        modifier = Modifier.width(260.dp),
+                    ) {
+                        DrawerContent(
+                            currentRoute = currentRoute,
+                            userName = userName,
+                            userSubtitle = userSubtitle,
+                            items = items,
+                            activeSessionBanner = activeSessionDrawerBanner,
+                            onNavigate = { route ->
+                                onNavigate(route)
+                                scope.launch { drawerState.close() }
+                            },
+                        )
+                    }
+                }
+            },
+        ) {
+            CompositionLocalProvider(
+                LocalLayoutDirection provides baseLayoutDirection,
+                LocalDrawerSide provides drawerSide,
             ) {
-                DrawerContent(
-                    currentRoute = currentRoute,
-                    userName = userName,
-                    userSubtitle = userSubtitle,
-                    items = items,
-                    activeSessionBanner = activeSessionDrawerBanner,
-                    onNavigate = { route ->
-                        onNavigate(route)
-                        scope.launch { drawerState.close() }
-                    },
-                )
-            }
-        },
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            content()
-            activeSessionBanner?.let { banner ->
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .navigationBarsPadding(),
-                ) {
-                    banner()
+                Box(modifier = Modifier.fillMaxSize()) {
+                    content()
+                    activeSessionBanner?.let { banner ->
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .navigationBarsPadding(),
+                        ) {
+                            banner()
+                        }
+                    }
                 }
             }
         }
@@ -246,7 +276,7 @@ private fun DrawerContent(
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(userName, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = PandaWhite)
+                Text(userName, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, color = PandaWhite)
                 if (userSubtitle.isNotBlank()) {
                     Text(userSubtitle, style = MaterialTheme.typography.labelSmall, color = PandaWhite.copy(alpha = 0.4f))
                 }
@@ -292,8 +322,8 @@ private fun DrawerNavItem(
         Text(
             item.label,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isActive) PandaWhite else PandaWhite.copy(alpha = 0.45f),
+            fontWeight = FontWeight.ExtraBold,
+            color = if (isActive) PandaWhite else PandaWhite.copy(alpha = 0.7f),
         )
     }
 }

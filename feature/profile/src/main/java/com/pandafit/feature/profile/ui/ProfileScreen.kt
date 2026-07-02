@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.DarkMode
@@ -68,6 +70,7 @@ import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.profile.R
+import com.pandafit.feature.profile.viewmodel.DrawerSide
 import com.pandafit.feature.profile.viewmodel.ExportImportStatus
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
 import com.pandafit.feature.profile.viewmodel.UserGender
@@ -296,6 +299,50 @@ fun ProfileScreen(
                             checked = uiState.isDarkMode,
                             onCheckedChange = { viewModel.setDarkMode(it) },
                         )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                stringResource(R.string.profile_drawer_side_label),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = PandaSubtext,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                val sides = listOf(
+                                    DrawerSide.LEFT to (stringResource(R.string.profile_drawer_side_left) to Icons.AutoMirrored.Filled.KeyboardArrowLeft),
+                                    DrawerSide.RIGHT to (stringResource(R.string.profile_drawer_side_right) to Icons.AutoMirrored.Filled.KeyboardArrowRight),
+                                )
+                                sides.forEach { (side, labelIcon) ->
+                                    val (label, icon) = labelIcon
+                                    val selected = uiState.drawerSide == side
+                                    Row(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .border(
+                                                width = if (selected) 2.dp else 1.dp,
+                                                color = if (selected) KalyptusGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                                            )
+                                            .clickable { viewModel.setDrawerSide(side) }
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Icon(
+                                            icon,
+                                            contentDescription = null,
+                                            tint = if (selected) KalyptusGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                            color = if (selected) KalyptusGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

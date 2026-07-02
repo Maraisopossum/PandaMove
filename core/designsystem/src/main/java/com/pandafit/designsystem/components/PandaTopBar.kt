@@ -27,6 +27,10 @@ fun PandaTopBar(
     scrolledContainerColor: Color = MaterialTheme.colorScheme.surface,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
+    // Le bouton hamburger suit le côté d'ouverture choisi dans Profil : navigationIcon (start) en
+    // LEFT, actions (end) en RIGHT, pour rester accessible à une main du même côté que le tiroir.
+    val drawerOnRight = onOpenDrawer != null && LocalDrawerSide.current == DrawerSide.RIGHT
+
     CenterAlignedTopAppBar(
         title = {
             Text(
@@ -41,12 +45,19 @@ fun PandaTopBar(
                 onNavigateBack != null -> IconButton(onClick = onNavigateBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
                 }
-                onOpenDrawer != null -> IconButton(onClick = onOpenDrawer) {
+                onOpenDrawer != null && !drawerOnRight -> IconButton(onClick = onOpenDrawer) {
                     Icon(Icons.Default.Menu, contentDescription = "Menu")
                 }
             }
         },
-        actions = actions,
+        actions = {
+            actions()
+            if (drawerOnRight) {
+                IconButton(onClick = onOpenDrawer!!) {
+                    Icon(Icons.Default.Menu, contentDescription = "Menu")
+                }
+            }
+        },
         scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = containerColor,

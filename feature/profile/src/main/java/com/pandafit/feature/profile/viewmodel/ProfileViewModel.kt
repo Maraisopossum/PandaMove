@@ -35,6 +35,8 @@ import javax.inject.Inject
 
 enum class UserGender { MALE, FEMALE }
 
+enum class DrawerSide { LEFT, RIGHT }
+
 enum class ExportImportStatus { IDLE, EXPORTING, IMPORTING, SUCCESS_EXPORT, SUCCESS_IMPORT, ERROR }
 
 data class ProfileUiState(
@@ -42,6 +44,7 @@ data class ProfileUiState(
     val gender: UserGender = UserGender.MALE,
     val soundOverrideSilent: Boolean = false,
     val isDarkMode: Boolean = false,
+    val drawerSide: DrawerSide = DrawerSide.LEFT,
     val exerciseCount: Int = 0,
     val exportImportStatus: ExportImportStatus = ExportImportStatus.IDLE,
     val csvRunningStatus: ExportImportStatus = ExportImportStatus.IDLE,
@@ -104,6 +107,15 @@ class ProfileViewModel @Inject constructor(
                     _isReady.value = true
                 }
         }
+        viewModelScope.launch {
+            userPrefs.drawerSideFlow
+                .catch { /* ignore, use default */ }
+                .collect { side ->
+                    _uiState.value = _uiState.value.copy(
+                        drawerSide = if (side == "RIGHT") DrawerSide.RIGHT else DrawerSide.LEFT,
+                    )
+                }
+        }
     }
 
     fun updateUserName(name: String) {
@@ -120,6 +132,10 @@ class ProfileViewModel @Inject constructor(
 
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch { userPrefs.setDarkMode(enabled) }
+    }
+
+    fun setDrawerSide(side: DrawerSide) {
+        viewModelScope.launch { userPrefs.setDrawerSide(side.name) }
     }
 
     fun clearStatus() {

@@ -38,6 +38,9 @@
     <string name="profile_section_display">Affichage</string>
     <string name="profile_dark_mode_title">Thème sombre</string>
     <string name="profile_dark_mode_subtitle">Applique un fond sombre à toute l\'application</string>
+    <string name="profile_drawer_side_label">Menu latéral</string>
+    <string name="profile_drawer_side_left">Gauche</string>
+    <string name="profile_drawer_side_right">Droite</string>
     <string name="profile_section_data">Données</string>
     <string name="profile_export_title">Exporter mes données</string>
     <string name="profile_export_in_progress">Export en cours…</string>
