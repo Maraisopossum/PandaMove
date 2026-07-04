@@ -84,6 +84,36 @@ data class RunningExecuteUiState(
     val resultCalories: String = "",
     val resultCadenceAvgPpm: String = "",
     val resultNotes: String = "",
+    val livePhase: LivePhaseUiState? = null,
+    val timeline: List<TimelineStepUiState> = emptyList(),
+    /** Prévus pour un futur capteur FC/cadence — non alimentés aujourd'hui, jamais affichés tant que null. */
+    val liveHrBpm: Int? = null,
+    val liveCadencePpm: Int? = null,
+)
+
+enum class LivePhaseKind { WARMUP, EFFORT, RECOVERY, COOLDOWN }
+
+/** Carte "MAINTENANT" du cockpit live : phase active, progression bornée, prochaine étape. */
+data class LivePhaseUiState(
+    val kind: LivePhaseKind,
+    val label: String,
+    val isDistanceBased: Boolean,
+    val currentValueLabel: String,
+    val targetValueLabel: String,
+    val progress: Float,
+    val remainingLabel: String,
+    val targetHint: String? = null,
+    val nextLabel: String? = null,
+    val isLastStep: Boolean = false,
+)
+
+enum class TimelineStatus { COMPLETED, ACTIVE, UPCOMING }
+
+data class TimelineStepUiState(
+    val label: String,
+    val sublabel: String? = null,
+    val kind: LivePhaseKind,
+    val status: TimelineStatus,
 )
 
 data class FreeStepExecution(

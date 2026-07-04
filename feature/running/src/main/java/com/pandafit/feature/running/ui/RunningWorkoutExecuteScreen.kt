@@ -10,6 +10,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,9 +104,11 @@ fun RunningWorkoutExecuteScreen(
     onNavigateToReport: (Long) -> Unit = { onNavigateBack() },
     viewModel: RunningExecuteViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.screenState.collectAsStateWithLifecycle()
     val liveTrackState by viewModel.liveTrackState.collectAsStateWithLifecycle()
     var showFinishDialog by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    var showDetailsSheet by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     var locationPermissionGranted by remember {
         mutableStateOf(
@@ -121,40 +125,6 @@ fun RunningWorkoutExecuteScreen(
 
     LaunchedEffect(locationPermissionGranted) {
         if (locationPermissionGranted) viewModel.startCalibration()
-    }
-
-    val currentStepLabel: String? = run {
-        val activeFreeStep = uiState.freeSteps.firstOrNull { !it.result.done }
-        val activeBlock = uiState.repeatBlocks.firstOrNull { b -> b.reps.any { !it.done } }
-
-        // Le prochain bloc à afficher est celui dont la position est la plus faible parmi
-        // les blocs pas encore terminés (échauffement/récupération intercalés avec les intervalles).
-        val showFreeStepFirst = when {
-            activeFreeStep == null -> false
-            activeBlock == null    -> true
-            else                   -> activeFreeStep.step.position <= activeBlock.repeat.position
-        }
-
-        if (showFreeStepFirst && activeFreeStep != null) {
-            val s = activeFreeStep.step
-            val summary = when (s.endType) {
-                RunEndType.DURATION -> {
-                    val m = s.endValue / 60; val secs = s.endValue % 60
-                    "$m:${secs.toString().padStart(2, '0')}"
-                }
-                RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
-            }
-            "${stepLabel(s.stepType)} — $summary"
-        } else if (activeBlock != null) {
-            val activeRep = activeBlock.reps.first { !it.done }
-            val dist = activeBlock.targetStep?.let { s ->
-                when (s.endType) {
-                    RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
-                    RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
-                }
-            } ?: ""
-            "Int. ${activeRep.repNumber}/${activeBlock.repeat.repeatCount}${if (dist.isNotBlank()) " · $dist" else ""}"
-        } else null
     }
 
     if (showFinishDialog) {
@@ -195,8 +165,16 @@ fun RunningWorkoutExecuteScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { showFinishDialog = true }) {
-                        Text(stringResource(R.string.running_execute_finish_button), color = RedColor, fontWeight = FontWeight.Bold)
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.running_execute_overflow_menu_cd))
+                        }
+                        DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.running_execute_finish_button), color = RedColor, fontWeight = FontWeight.Bold) },
+                                onClick = { showOverflowMenu = false; showFinishDialog = true },
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -215,7 +193,6 @@ fun RunningWorkoutExecuteScreen(
                 Spacer(Modifier.height(12.dp))
                 GpsTrackBlock(
                     state = liveTrackState,
-                    currentStepLabel = currentStepLabel,
                     permissionGranted = locationPermissionGranted,
                     onStart = { viewModel.startGpsTracking() },
                     onPause = { viewModel.pauseGpsTracking() },
@@ -225,9 +202,61 @@ fun RunningWorkoutExecuteScreen(
                 Spacer(Modifier.height(16.dp))
             }
 
+            // ── Cockpit live : phase active + timeline + accès au détail ──
+            uiState.livePhase?.let { phase ->
+                item {
+                    LiveWorkoutPhaseCard(phase = phase)
+                    Spacer(Modifier.height(12.dp))
+                    WorkoutProgressTimeline(steps = uiState.timeline)
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+            item {
+                OutlinedButton(
+                    onClick = { showDetailsSheet = true },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, com.pandafit.designsystem.theme.PandaGreen),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = com.pandafit.designsystem.theme.PandaGreen),
+                ) {
+                    Text(stringResource(R.string.running_execute_view_details_button), fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Filled.ExpandMore, contentDescription = null)
+                }
+            }
+        }
+    }
+
+    if (showDetailsSheet) {
+        WorkoutDetailsBottomSheet(
+            uiState = uiState,
+            onUpdateOverallResult = viewModel::updateOverallResult,
+            onUpdateFreeStep = viewModel::updateFreeStep,
+            onUpdateIntervalRep = viewModel::updateIntervalRep,
+            onDismiss = { showDetailsSheet = false },
+        )
+    }
+}
+
+// ── Bottom sheet détail : résultats globaux, intervalles, note (retirés du flux live principal) ──
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkoutDetailsBottomSheet(
+    uiState: com.pandafit.feature.running.model.RunningExecuteUiState,
+    onUpdateOverallResult: (String, String) -> Unit,
+    onUpdateFreeStep: (Int, FreeStepResult) -> Unit,
+    onUpdateIntervalRep: (Int, Int, IntervalRepResult) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
+        ) {
             // ── Résultats globaux ──
             item {
-                Spacer(Modifier.height(12.dp))
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -242,21 +271,21 @@ fun RunningWorkoutExecuteScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell(stringResource(R.string.running_execute_cell_distance), uiState.resultDistanceKm, { viewModel.updateOverallResult("distanceKm", it) }, KeyboardType.Decimal, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_time), uiState.resultDurationStr, { viewModel.updateOverallResult("duration", it) }, KeyboardType.Text, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_distance), uiState.resultDistanceKm, { onUpdateOverallResult("distanceKm", it) }, KeyboardType.Decimal, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_time), uiState.resultDurationStr, { onUpdateOverallResult("duration", it) }, KeyboardType.Text, Modifier.weight(1f))
                         ReadOnlyCell(stringResource(R.string.running_execute_cell_pace), uiState.resultPaceStr, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_avg), uiState.resultHrAvg, { viewModel.updateOverallResult("hr", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_max), uiState.resultHrMax, { viewModel.updateOverallResult("hrMax", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_rpe), uiState.resultRpe, { viewModel.updateOverallResult("rpe", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_avg), uiState.resultHrAvg, { onUpdateOverallResult("hr", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_max), uiState.resultHrMax, { onUpdateOverallResult("hrMax", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_rpe), uiState.resultRpe, { onUpdateOverallResult("rpe", it) }, KeyboardType.Number, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell(stringResource(R.string.running_execute_cell_elevation), uiState.resultElevationM, { viewModel.updateOverallResult("elevation", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_calories), uiState.resultCalories, { viewModel.updateOverallResult("calories", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_cadence), uiState.resultCadenceAvgPpm, { viewModel.updateOverallResult("cadence", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_elevation), uiState.resultElevationM, { onUpdateOverallResult("elevation", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_calories), uiState.resultCalories, { onUpdateOverallResult("calories", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_cadence), uiState.resultCadenceAvgPpm, { onUpdateOverallResult("cadence", it) }, KeyboardType.Number, Modifier.weight(1f))
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -276,7 +305,7 @@ fun RunningWorkoutExecuteScreen(
                 items(stepsBeforeRepeats, key = { "free_${it.index}" }) { (idx, execution) ->
                     FreeStepSection(
                         execution = execution,
-                        onUpdate = { updated -> viewModel.updateFreeStep(idx, updated) },
+                        onUpdate = { updated -> onUpdateFreeStep(idx, updated) },
                     )
                     Spacer(Modifier.height(14.dp))
                 }
@@ -288,7 +317,7 @@ fun RunningWorkoutExecuteScreen(
                         execution = execution,
                         onRepUpdate = { repIdx, updated ->
                             val blockIdx = uiState.repeatBlocks.indexOf(execution)
-                            viewModel.updateIntervalRep(blockIdx, repIdx, updated)
+                            onUpdateIntervalRep(blockIdx, repIdx, updated)
                         },
                     )
                     Spacer(Modifier.height(14.dp))
@@ -299,7 +328,7 @@ fun RunningWorkoutExecuteScreen(
                 items(stepsAfterRepeats, key = { "free_${it.index}" }) { (idx, execution) ->
                     FreeStepSection(
                         execution = execution,
-                        onUpdate = { updated -> viewModel.updateFreeStep(idx, updated) },
+                        onUpdate = { updated -> onUpdateFreeStep(idx, updated) },
                     )
                     Spacer(Modifier.height(14.dp))
                 }
@@ -316,25 +345,12 @@ fun RunningWorkoutExecuteScreen(
                 Spacer(Modifier.height(6.dp))
                 OutlinedTextField(
                     value = uiState.resultNotes,
-                    onValueChange = { viewModel.updateOverallResult("notes", it) },
+                    onValueChange = { onUpdateOverallResult("notes", it) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     placeholder = { Text(stringResource(R.string.running_execute_session_note_placeholder)) },
                     shape = RoundedCornerShape(12.dp),
                 )
-                Spacer(Modifier.height(16.dp))
-            }
-
-            // ── Bouton terminer ──
-            item {
-                Button(
-                    onClick = { showFinishDialog = true },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RedColor),
-                ) {
-                    Text(stringResource(R.string.running_execute_finish_seance_button), color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
-                }
             }
         }
     }
@@ -624,7 +640,6 @@ private fun ReadOnlyCell(label: String, value: String, modifier: Modifier = Modi
 @Composable
 private fun GpsTrackBlock(
     state: LiveTrackState,
-    currentStepLabel: String?,
     permissionGranted: Boolean,
     onStart: () -> Unit,
     onPause: () -> Unit,
@@ -634,7 +649,7 @@ private fun GpsTrackBlock(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp)
+            .height(190.dp)
             .clip(RoundedCornerShape(14.dp)),
     ) {
         if (!permissionGranted) {
@@ -663,7 +678,7 @@ private fun GpsTrackBlock(
             }
         } else {
             val ctx = LocalContext.current
-            val pandaBitmap = remember(ctx) { createPandaBitmap() }
+            val pandaBitmap = remember(ctx) { loadPandaMarkerBitmap(ctx) }
             val mapView = remember(ctx) {
                 MapView(ctx).apply {
                     Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
@@ -700,7 +715,7 @@ private fun GpsTrackBlock(
                         val marker = Marker(mv).apply {
                             position = GeoPoint(markerPos.first, markerPos.second)
                             icon = BitmapDrawable(ctx.resources, pandaBitmap)
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             infoWindow = null
                         }
                         mv.overlays.add(marker)
@@ -759,16 +774,6 @@ private fun GpsTrackBlock(
                         )
                     }
                     GpsPhase.RUNNING, GpsPhase.PAUSED -> {
-                        if (currentStepLabel != null && phase == GpsPhase.RUNNING) {
-                            Text(
-                                currentStepLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFBBBBBB),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                            )
-                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -826,23 +831,28 @@ private fun GpsTrackBlock(
     }
 }
 
-private fun createPandaBitmap(): android.graphics.Bitmap {
-    val emoji = "🐼"
-    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { textSize = 56f }
-    val bounds = android.graphics.Rect()
-    paint.getTextBounds(emoji, 0, emoji.length, bounds)
-    val w = (bounds.width() + 8).coerceAtLeast(8)
-    val h = (bounds.height() + 8).coerceAtLeast(8)
-    val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
-    android.graphics.Canvas(bmp).drawText(emoji, 4f, h.toFloat() - 4f, paint)
-    return bmp
+/** Marqueur carte : le vrai personnage PandaMove (pas un emoji), redimensionné à taille lisible sur la carte. */
+private fun loadPandaMarkerBitmap(ctx: Context): android.graphics.Bitmap {
+    val source = androidx.core.content.res.ResourcesCompat.getDrawable(ctx.resources, R.drawable.panda_running_male, null)
+        ?.let { drawable ->
+            val bmp = android.graphics.Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            bmp
+        }
+        ?: return android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+    val density = ctx.resources.displayMetrics.density
+    val targetHeightPx = (56 * density).toInt().coerceAtLeast(1)
+    val targetWidthPx = (targetHeightPx * source.width / source.height).coerceAtLeast(1)
+    return android.graphics.Bitmap.createScaledBitmap(source, targetWidthPx, targetHeightPx, true)
 }
 
 @Composable
 private fun GpsStat(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color(0xFFBBBBBB))
-        Text(value, style = MaterialTheme.typography.labelMedium, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(value, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
     }
 }
 

@@ -105,6 +105,8 @@
     <string name="running_execute_finish_seance_button">Terminer la séance</string>
     <string name="running_execute_interval_label">INTERVALLES — %1$d fois</string>
     <string name="running_execute_navigate_back_cd">Retour</string>
+    <string name="running_execute_overflow_menu_cd">Plus d\'options</string>
+    <string name="running_execute_view_details_button">Voir le détail</string>
 
     <!-- Table headers (execute + report) -->
     <string name="running_table_col_num">#</string>

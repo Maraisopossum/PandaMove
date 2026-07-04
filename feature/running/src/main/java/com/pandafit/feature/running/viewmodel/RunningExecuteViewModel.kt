@@ -20,14 +20,19 @@ import com.pandafit.feature.running.GpsTrackingController
 import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
 import com.pandafit.core.database.model.IntervalRepResult
+import com.pandafit.feature.running.model.LivePhaseKind
+import com.pandafit.feature.running.model.LivePhaseUiState
 import com.pandafit.feature.running.model.RunRepeatExecution
 import com.pandafit.feature.running.model.RunningExecuteUiState
+import com.pandafit.feature.running.model.TimelineStatus
+import com.pandafit.feature.running.model.TimelineStepUiState
 import com.pandafit.feature.running.model.formatPace
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
@@ -58,6 +63,11 @@ class RunningExecuteViewModel @Inject constructor(
     val liveTrackState: StateFlow<LiveTrackState> = gpsTrackingRepository.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveTrackState())
 
+    /** Projection enrichie de [uiState] pour le cockpit live (phase active + timeline) : source d'affichage de l'écran. */
+    val screenState: StateFlow<RunningExecuteUiState> = combine(_uiState, liveTrackState) { state, track ->
+        state.copy(livePhase = computeLivePhase(state, track), timeline = computeTimeline(state))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RunningExecuteUiState())
+
     // ── Auto-lap ─────────────────────────────────────────────────────────────
     // Segments (étapes libres + course/récup de chaque répétition), à plat dans l'ordre
     // d'exécution. Construits une fois au démarrage du GPS ; l'index avance uniquement
@@ -84,28 +94,31 @@ class RunningExecuteViewModel @Inject constructor(
     private fun evaluateAutoLap(track: LiveTrackState) {
         while (autoLapIndex < autoLapSegments.size) {
             val seg = autoLapSegments[autoLapIndex]
+            val elapsedSec = track.durationSec - autoLapBaselineDurationSec
+            val elapsedDistM = track.distanceM - autoLapBaselineDistanceM
             val elapsed = when (seg.endType) {
-                RunEndType.DURATION -> (track.durationSec - autoLapBaselineDurationSec).toDouble()
-                RunEndType.DISTANCE -> track.distanceM - autoLapBaselineDistanceM
+                RunEndType.DURATION -> elapsedSec.toDouble()
+                RunEndType.DISTANCE -> elapsedDistM
             }
             val targetValue = when (seg.endType) {
                 RunEndType.DURATION -> seg.endValue.toDouble()
                 RunEndType.DISTANCE -> if (seg.endUnit == RunEndUnit.KM) seg.endValue * 1000.0 else seg.endValue.toDouble()
             }
             if (elapsed < targetValue) break
-            completeAutoLapSegment(seg)
+            completeAutoLapSegment(seg, elapsedSec, elapsedDistM)
             autoLapBaselineDistanceM = track.distanceM
             autoLapBaselineDurationSec = track.durationSec
             autoLapIndex++
         }
     }
 
-    private fun completeAutoLapSegment(seg: AutoLapSegment) {
+    /** Complète un segment atteint automatiquement et encode le temps réel (+ l'allure pour une phase course) mesurés par le GPS. */
+    private fun completeAutoLapSegment(seg: AutoLapSegment, elapsedSec: Int, elapsedDistM: Double) {
         when (seg) {
             is AutoLapSegment.FreeStep -> {
                 val steps = _uiState.value.freeSteps
                 if (seg.idx in steps.indices && !steps[seg.idx].result.done) {
-                    updateFreeStep(seg.idx, steps[seg.idx].result.copy(done = true))
+                    updateFreeStep(seg.idx, steps[seg.idx].result.copy(done = true, timeStr = formatMmSs(elapsedSec)))
                 }
             }
             is AutoLapSegment.RepPhase -> {
@@ -117,13 +130,192 @@ class RunningExecuteViewModel @Inject constructor(
                         if (seg.isFinal) {
                             if (!rep.done) updateIntervalRep(seg.blockIdx, seg.repIdx, rep.copy(done = true, runningDone = true))
                         } else {
-                            if (!rep.runningDone) updateIntervalRep(seg.blockIdx, seg.repIdx, rep.copy(runningDone = true))
+                            if (!rep.runningDone) {
+                                val paceStr = if (seg.endType == RunEndType.DISTANCE && elapsedDistM > 0) {
+                                    formatPace(elapsedSec / 60.0 / (elapsedDistM / 1000.0))
+                                } else ""
+                                updateIntervalRep(
+                                    seg.blockIdx, seg.repIdx,
+                                    rep.copy(
+                                        runningDone = true,
+                                        timeStr = formatMmSs(elapsedSec),
+                                        actualIntensity = paceStr.ifBlank { rep.actualIntensity },
+                                    ),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+
+    // ── Cockpit live : phase active + timeline ─────────────────────────────────
+
+    /** Carte "MAINTENANT" : dérivée du même segment que l'auto-lap, avec progression bornée [0f, 1f]. */
+    private fun computeLivePhase(state: RunningExecuteUiState, track: LiveTrackState): LivePhaseUiState? {
+        if (autoLapIndex !in autoLapSegments.indices) return null
+        val seg = autoLapSegments[autoLapIndex]
+
+        val elapsed = when (seg.endType) {
+            RunEndType.DURATION -> (track.durationSec - autoLapBaselineDurationSec).toDouble()
+            RunEndType.DISTANCE -> track.distanceM - autoLapBaselineDistanceM
+        }
+        val targetValue = when (seg.endType) {
+            RunEndType.DURATION -> seg.endValue.toDouble()
+            RunEndType.DISTANCE -> if (seg.endUnit == RunEndUnit.KM) seg.endValue * 1000.0 else seg.endValue.toDouble()
+        }
+        val progress = if (targetValue > 0) (elapsed / targetValue).toFloat().coerceIn(0f, 1f) else 0f
+        val remaining = (targetValue - elapsed).coerceAtLeast(0.0)
+        val isDistanceBased = seg.endType == RunEndType.DISTANCE
+        val isCooldown = seg is AutoLapSegment.FreeStep && autoLapIndex == autoLapSegments.lastIndex
+
+        val (label, kind) = when {
+            seg is AutoLapSegment.FreeStep && isCooldown -> "RETOUR AU CALME" to LivePhaseKind.COOLDOWN
+            seg is AutoLapSegment.FreeStep                -> "ÉCHAUFFEMENT" to LivePhaseKind.WARMUP
+            seg is AutoLapSegment.RepPhase && seg.isRecovery -> "RÉCUPÉRATION" to LivePhaseKind.RECOVERY
+            seg is AutoLapSegment.RepPhase -> {
+                val repeatCount = state.repeatBlocks.getOrNull(seg.blockIdx)?.repeat?.repeatCount ?: 0
+                "INTERVALLE ${seg.repIdx + 1}/$repeatCount" to LivePhaseKind.EFFORT
+            }
+            else -> "" to LivePhaseKind.WARMUP
+        }
+
+        val targetHint = if (seg is AutoLapSegment.FreeStep && !isCooldown) "Allure libre" else null
+        val isLastStep = autoLapIndex == autoLapSegments.lastIndex
+        val nextLabel = if (isLastStep) null
+        else "ENSUITE · ${describeSegment(autoLapSegments[autoLapIndex + 1], state)}"
+
+        return LivePhaseUiState(
+            kind = kind,
+            label = label,
+            isDistanceBased = isDistanceBased,
+            currentValueLabel = if (isDistanceBased) formatMeters(elapsed) else formatMmSs(elapsed.toInt()),
+            targetValueLabel = if (isDistanceBased) formatMeters(targetValue) else formatMmSs(targetValue.toInt()),
+            progress = progress,
+            remainingLabel = if (isDistanceBased) "${formatMeters(remaining)} restants" else "${formatMmSs(remaining.toInt())} restant",
+            targetHint = targetHint,
+            nextLabel = nextLabel,
+            isLastStep = isLastStep,
+        )
+    }
+
+    private fun describeSegment(seg: AutoLapSegment, state: RunningExecuteUiState): String = when (seg) {
+        is AutoLapSegment.FreeStep -> {
+            val step = state.freeSteps.getOrNull(seg.idx)?.step
+            val summary = step?.let { formatEndValue(it.endType, it.endValue, it.endUnit) } ?: ""
+            listOfNotNull(step?.let { phaseStepLabel(it.stepType) }, summary.ifBlank { null }).joinToString(" ")
+        }
+        is AutoLapSegment.RepPhase -> if (seg.isRecovery) {
+            "Récupération ${formatEndValue(seg.endType, seg.endValue, seg.endUnit)}"
+        } else {
+            val repeatCount = state.repeatBlocks.getOrNull(seg.blockIdx)?.repeat?.repeatCount ?: 0
+            "${formatEndValue(seg.endType, seg.endValue, seg.endUnit)} × $repeatCount"
+        }
+    }
+
+    /**
+     * Timeline compacte : une entrée par étape libre et par bloc de répétitions (résumé "N / total"),
+     * SAUF le bloc actif qui se déplie en une entrée par répétition individuelle (suivi rapide pendant
+     * la série d'intervalles en cours).
+     */
+    private fun computeTimeline(state: RunningExecuteUiState): List<TimelineStepUiState> {
+        data class Positioned(val position: Int, val isBlock: Boolean, val idx: Int)
+
+        val positioned = state.freeSteps.mapIndexed { idx, fse -> Positioned(fse.step.position, false, idx) } +
+            state.repeatBlocks.mapIndexed { idx, blk -> Positioned(blk.repeat.position, true, idx) }
+        val sorted = positioned.sortedBy { it.position }
+
+        return sorted.flatMapIndexed { sortedIdx, p ->
+            if (!p.isBlock) {
+                val fse = state.freeSteps[p.idx]
+                val isCooldown = sortedIdx == sorted.lastIndex
+                val kind = if (isCooldown) LivePhaseKind.COOLDOWN else LivePhaseKind.WARMUP
+                val label = if (isCooldown) "Retour au calme" else phaseStepLabel(fse.step.stepType)
+                val status = when {
+                    fse.result.done -> TimelineStatus.COMPLETED
+                    isActiveFreeStep(p.idx) -> TimelineStatus.ACTIVE
+                    else -> TimelineStatus.UPCOMING
+                }
+                listOf(
+                    TimelineStepUiState(
+                        label = label,
+                        sublabel = formatEndValue(fse.step.endType, fse.step.endValue, fse.step.endUnit),
+                        kind = kind,
+                        status = status,
+                    )
+                )
+            } else {
+                val block = state.repeatBlocks[p.idx]
+                val done = block.reps.count { it.done }
+                val total = block.reps.size
+                val running = block.targetStep
+                val recovery = block.recoveryStep
+                val label = running?.let { formatEndValue(it.endType, it.endValue, it.endUnit) } ?: "Intervalles"
+                val expandedSublabel = if (recovery != null) {
+                    "$label · R ${formatEndValue(recovery.endType, recovery.endValue, recovery.endUnit)}"
+                } else label
+                val blockCompleted = total > 0 && done == total
+                val activeRepIdx = activeRepIndex(p.idx)
+
+                if (activeRepIdx != null) {
+                    block.reps.mapIndexed { repIdx, rep ->
+                        TimelineStepUiState(
+                            label = "${repIdx + 1}",
+                            sublabel = expandedSublabel,
+                            kind = LivePhaseKind.EFFORT,
+                            status = when {
+                                rep.done -> TimelineStatus.COMPLETED
+                                repIdx == activeRepIdx -> TimelineStatus.ACTIVE
+                                else -> TimelineStatus.UPCOMING
+                            },
+                        )
+                    }
+                } else {
+                    listOf(
+                        TimelineStepUiState(
+                            label = label,
+                            sublabel = "${(done + 1).coerceAtMost(total)} / $total",
+                            kind = LivePhaseKind.EFFORT,
+                            status = if (blockCompleted) TimelineStatus.COMPLETED else TimelineStatus.UPCOMING,
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun isActiveFreeStep(idx: Int): Boolean {
+        val seg = autoLapSegments.getOrNull(autoLapIndex) ?: return false
+        return seg is AutoLapSegment.FreeStep && seg.idx == idx
+    }
+
+    /** Index (0-based) de la répétition en cours dans ce bloc, ou null si ce bloc n'est pas actif. */
+    private fun activeRepIndex(blockIdx: Int): Int? {
+        val seg = autoLapSegments.getOrNull(autoLapIndex) ?: return null
+        return if (seg is AutoLapSegment.RepPhase && seg.blockIdx == blockIdx) seg.repIdx else null
+    }
+
+    private fun phaseStepLabel(type: RunStepType): String = when (type) {
+        RunStepType.WARMUP   -> "Échauffement"
+        RunStepType.RUNNING  -> "Course"
+        RunStepType.WALKING  -> "Marche"
+        RunStepType.RECOVERY -> "Récupération"
+        RunStepType.REST     -> "Repos"
+        RunStepType.OTHER    -> "Autre"
+    }
+
+    private fun formatEndValue(endType: RunEndType, endValue: Int, endUnit: RunEndUnit): String = when (endType) {
+        RunEndType.DURATION -> formatMmSs(endValue)
+        RunEndType.DISTANCE -> if (endUnit == RunEndUnit.KM) "$endValue km" else "$endValue m"
+    }
+
+    private fun formatMmSs(totalSec: Int): String {
+        val s = totalSec.coerceAtLeast(0)
+        return "${(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}"
+    }
+
+    private fun formatMeters(m: Double): String = "${m.coerceAtLeast(0.0).toInt()} m"
 
     /** Aplati la séance (étapes libres + course/récup de chaque répétition) en segments ordonnés par position. */
     private fun buildAutoLapSegments(state: RunningExecuteUiState): List<AutoLapSegment> {
@@ -144,13 +336,13 @@ class RunningExecuteViewModel @Inject constructor(
                 block.reps.indices.forEach { repIdx ->
                     if (running != null) {
                         segments += AutoLapSegment.RepPhase(
-                            p.idx, repIdx, isFinal = recovery == null,
+                            p.idx, repIdx, isFinal = recovery == null, isRecovery = false,
                             running.endType, running.endValue, running.endUnit,
                         )
                     }
                     if (recovery != null) {
                         segments += AutoLapSegment.RepPhase(
-                            p.idx, repIdx, isFinal = true,
+                            p.idx, repIdx, isFinal = true, isRecovery = true,
                             recovery.endType, recovery.endValue, recovery.endUnit,
                         )
                     }
@@ -177,6 +369,8 @@ class RunningExecuteViewModel @Inject constructor(
             val blockIdx: Int,
             val repIdx: Int,
             val isFinal: Boolean,
+            /** true si ce segment est la phase récupération (par opposition à la phase course/effort). */
+            val isRecovery: Boolean,
             override val endType: RunEndType,
             override val endValue: Int,
             override val endUnit: RunEndUnit,
@@ -212,7 +406,7 @@ class RunningExecuteViewModel @Inject constructor(
                 RunRepeatExecution(repeat = rep, targetStep = targetStep, recoveryStep = recoveryStep, reps = reps)
             }
 
-            _uiState.value = RunningExecuteUiState(
+            val loaded = RunningExecuteUiState(
                 isLoading = false,
                 workout = workout,
                 workoutId = workoutId,
@@ -229,7 +423,23 @@ class RunningExecuteViewModel @Inject constructor(
                 resultCadenceAvgPpm = workout.resultCadenceAvgRpm?.toString() ?: "",
                 resultNotes       = workout.resultNotes,
             )
+            initAutoLapSegments(loaded)
+            _uiState.value = loaded
         }
+    }
+
+    /**
+     * Construit les segments d'auto-lap dès que la séance est chargée (avant même le démarrage du GPS),
+     * pour que la carte de phase active/timeline s'affichent dès l'émission du nouvel état — pas
+     * seulement au prochain tick GPS. Appelée AVANT d'assigner `_uiState.value` : le `combine()` de
+     * `screenState` doit voir des segments déjà construits dès qu'il reçoit ce nouvel état.
+     * `startGpsTracking()` réarme ensuite les lignes de base au vrai début du tracé.
+     */
+    private fun initAutoLapSegments(state: RunningExecuteUiState) {
+        autoLapSegments = buildAutoLapSegments(state)
+        autoLapIndex = 0
+        autoLapBaselineDistanceM = 0.0
+        autoLapBaselineDurationSec = 0
     }
 
     /** Crée la séance (+ étape RUNNING libre) en base au premier appel (brouillon → réel), idempotent ensuite. */
@@ -259,11 +469,13 @@ class RunningExecuteViewModel @Inject constructor(
         workoutId = id
         val workout = workoutDao.getById(id)
         sessionManager.startWorkout(id, workout?.name ?: "Course libre", WorkoutType.RUNNING)
-        _uiState.value = _uiState.value.copy(
+        val loaded = _uiState.value.copy(
             workout = workout,
             workoutId = id,
             freeSteps = listOf(FreeStepExecution(step = step, result = FreeStepResult())),
         )
+        initAutoLapSegments(loaded)
+        _uiState.value = loaded
         return id
     }
 
@@ -276,10 +488,7 @@ class RunningExecuteViewModel @Inject constructor(
     fun startGpsTracking() {
         viewModelScope.launch {
             val id = ensureWorkoutCreated()
-            autoLapSegments = buildAutoLapSegments(_uiState.value)
-            autoLapIndex = 0
-            autoLapBaselineDistanceM = 0.0
-            autoLapBaselineDurationSec = 0
+            initAutoLapSegments(_uiState.value)
             gpsTrackingController.start(id)
         }
     }
