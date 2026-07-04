@@ -113,6 +113,8 @@
     <string name="running_table_col_temps">Temps</string>
     <string name="running_table_col_rpe">RPE</string>
     <string name="running_table_col_check">✓</string>
+    <string name="running_table_col_check_course">C</string>
+    <string name="running_table_col_check_recup">R</string>
 
     <!-- RunningWorkoutReportScreen -->
     <string name="running_report_title_fallback">Séance running</string>

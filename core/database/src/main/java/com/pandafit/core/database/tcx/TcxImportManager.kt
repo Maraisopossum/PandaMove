@@ -356,6 +356,7 @@ private fun TcxLap.toIntervalRepResult(index: Int, isCycling: Boolean = false): 
         actualIntensity = intensity,
         rpeStr          = "",
         done            = true,
+        runningDone     = true,
         hrAvg           = avgHrBpm,
         hrMax           = maxHrBpm,
     )

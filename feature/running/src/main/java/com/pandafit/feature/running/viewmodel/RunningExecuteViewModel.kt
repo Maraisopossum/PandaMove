@@ -58,8 +58,129 @@ class RunningExecuteViewModel @Inject constructor(
     val liveTrackState: StateFlow<LiveTrackState> = gpsTrackingRepository.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveTrackState())
 
+    // ── Auto-lap ─────────────────────────────────────────────────────────────
+    // Segments (étapes libres + course/récup de chaque répétition), à plat dans l'ordre
+    // d'exécution. Construits une fois au démarrage du GPS ; l'index avance uniquement
+    // vers l'avant au fil de la séance, chaque avancée réarme la ligne de base distance/durée.
+    private var autoLapSegments: List<AutoLapSegment> = emptyList()
+    private var autoLapIndex: Int = 0
+    private var autoLapBaselineDistanceM: Double = 0.0
+    private var autoLapBaselineDurationSec: Int = 0
+
     init {
         if (workoutId > 0L) loadWorkout() else _uiState.value = RunningExecuteUiState(isLoading = false)
+
+        // Collecteur indépendant du cycle de vie de l'écran (contrairement à liveTrackState,
+        // qui s'arrête 5s après la dernière observation UI) pour ne jamais rater un déclenchement.
+        viewModelScope.launch {
+            gpsTrackingRepository.state.collect { track ->
+                if (autoLapSegments.isNotEmpty() && track.isTracking && !track.isPaused) {
+                    evaluateAutoLap(track)
+                }
+            }
+        }
+    }
+
+    private fun evaluateAutoLap(track: LiveTrackState) {
+        while (autoLapIndex < autoLapSegments.size) {
+            val seg = autoLapSegments[autoLapIndex]
+            val elapsed = when (seg.endType) {
+                RunEndType.DURATION -> (track.durationSec - autoLapBaselineDurationSec).toDouble()
+                RunEndType.DISTANCE -> track.distanceM - autoLapBaselineDistanceM
+            }
+            val targetValue = when (seg.endType) {
+                RunEndType.DURATION -> seg.endValue.toDouble()
+                RunEndType.DISTANCE -> if (seg.endUnit == RunEndUnit.KM) seg.endValue * 1000.0 else seg.endValue.toDouble()
+            }
+            if (elapsed < targetValue) break
+            completeAutoLapSegment(seg)
+            autoLapBaselineDistanceM = track.distanceM
+            autoLapBaselineDurationSec = track.durationSec
+            autoLapIndex++
+        }
+    }
+
+    private fun completeAutoLapSegment(seg: AutoLapSegment) {
+        when (seg) {
+            is AutoLapSegment.FreeStep -> {
+                val steps = _uiState.value.freeSteps
+                if (seg.idx in steps.indices && !steps[seg.idx].result.done) {
+                    updateFreeStep(seg.idx, steps[seg.idx].result.copy(done = true))
+                }
+            }
+            is AutoLapSegment.RepPhase -> {
+                val blocks = _uiState.value.repeatBlocks
+                if (seg.blockIdx in blocks.indices) {
+                    val reps = blocks[seg.blockIdx].reps
+                    if (seg.repIdx in reps.indices) {
+                        val rep = reps[seg.repIdx]
+                        if (seg.isFinal) {
+                            if (!rep.done) updateIntervalRep(seg.blockIdx, seg.repIdx, rep.copy(done = true, runningDone = true))
+                        } else {
+                            if (!rep.runningDone) updateIntervalRep(seg.blockIdx, seg.repIdx, rep.copy(runningDone = true))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Aplati la séance (étapes libres + course/récup de chaque répétition) en segments ordonnés par position. */
+    private fun buildAutoLapSegments(state: RunningExecuteUiState): List<AutoLapSegment> {
+        data class Positioned(val position: Int, val isBlock: Boolean, val idx: Int)
+
+        val positioned = state.freeSteps.mapIndexed { idx, fse -> Positioned(fse.step.position, false, idx) } +
+            state.repeatBlocks.mapIndexed { idx, blk -> Positioned(blk.repeat.position, true, idx) }
+
+        val segments = mutableListOf<AutoLapSegment>()
+        positioned.sortedBy { it.position }.forEach { p ->
+            if (!p.isBlock) {
+                val step = state.freeSteps[p.idx].step
+                segments += AutoLapSegment.FreeStep(p.idx, step.endType, step.endValue, step.endUnit)
+            } else {
+                val block = state.repeatBlocks[p.idx]
+                val running = block.targetStep
+                val recovery = block.recoveryStep
+                block.reps.indices.forEach { repIdx ->
+                    if (running != null) {
+                        segments += AutoLapSegment.RepPhase(
+                            p.idx, repIdx, isFinal = recovery == null,
+                            running.endType, running.endValue, running.endUnit,
+                        )
+                    }
+                    if (recovery != null) {
+                        segments += AutoLapSegment.RepPhase(
+                            p.idx, repIdx, isFinal = true,
+                            recovery.endType, recovery.endValue, recovery.endUnit,
+                        )
+                    }
+                }
+            }
+        }
+        return segments
+    }
+
+    private sealed class AutoLapSegment {
+        abstract val endType: RunEndType
+        abstract val endValue: Int
+        abstract val endUnit: RunEndUnit
+
+        data class FreeStep(
+            val idx: Int,
+            override val endType: RunEndType,
+            override val endValue: Int,
+            override val endUnit: RunEndUnit,
+        ) : AutoLapSegment()
+
+        /** Phase course (isFinal = false si suivie d'une récup) ou récup (toujours isFinal) d'une répétition. */
+        data class RepPhase(
+            val blockIdx: Int,
+            val repIdx: Int,
+            val isFinal: Boolean,
+            override val endType: RunEndType,
+            override val endValue: Int,
+            override val endUnit: RunEndUnit,
+        ) : AutoLapSegment()
     }
 
     private fun loadWorkout() {
@@ -69,25 +190,26 @@ class RunningExecuteViewModel @Inject constructor(
             val repeats  = repeatDao.getByWorkout(workoutId)
             val allSteps = stepDao.getByWorkout(workoutId)
 
-            val freeSteps = if (repeats.isEmpty()) {
-                allSteps.filter { it.repeatId == null }.sortedBy { it.position }.map { step ->
-                    val saved: FreeStepResult = if (step.resultsJson.isNotBlank())
-                        runCatching { json.decodeFromString<FreeStepResult>(step.resultsJson) }.getOrDefault(FreeStepResult())
-                    else FreeStepResult()
-                    FreeStepExecution(step = step, result = saved)
-                }
-            } else emptyList()
+            val freeSteps = allSteps.filter { it.repeatId == null }.sortedBy { it.position }.map { step ->
+                val saved: FreeStepResult = if (step.resultsJson.isNotBlank())
+                    runCatching { json.decodeFromString<FreeStepResult>(step.resultsJson) }.getOrDefault(FreeStepResult())
+                else FreeStepResult()
+                FreeStepExecution(step = step, result = saved)
+            }
 
             val repeatBlocks = repeats.sortedBy { it.position }.map { rep ->
                 val childSteps = allSteps.filter { it.repeatId == rep.id }.sortedBy { it.position }
                 val targetStep = childSteps.firstOrNull { it.stepType == RunStepType.RUNNING }
                     ?: childSteps.firstOrNull()
+                val recoveryStep = childSteps.firstOrNull {
+                    it.stepType == RunStepType.RECOVERY || it.stepType == RunStepType.REST || it.stepType == RunStepType.WALKING
+                }
                 val savedReps: List<IntervalRepResult> = if (rep.resultsJson.isNotBlank()) {
                     runCatching { json.decodeFromString<List<IntervalRepResult>>(rep.resultsJson) }.getOrDefault(emptyList())
                 } else emptyList()
                 val reps = if (savedReps.size == rep.repeatCount) savedReps
                            else (1..rep.repeatCount).map { i -> savedReps.getOrNull(i - 1) ?: IntervalRepResult(i) }
-                RunRepeatExecution(repeat = rep, targetStep = targetStep, reps = reps)
+                RunRepeatExecution(repeat = rep, targetStep = targetStep, recoveryStep = recoveryStep, reps = reps)
             }
 
             _uiState.value = RunningExecuteUiState(
@@ -154,6 +276,10 @@ class RunningExecuteViewModel @Inject constructor(
     fun startGpsTracking() {
         viewModelScope.launch {
             val id = ensureWorkoutCreated()
+            autoLapSegments = buildAutoLapSegments(_uiState.value)
+            autoLapIndex = 0
+            autoLapBaselineDistanceM = 0.0
+            autoLapBaselineDurationSec = 0
             gpsTrackingController.start(id)
         }
     }

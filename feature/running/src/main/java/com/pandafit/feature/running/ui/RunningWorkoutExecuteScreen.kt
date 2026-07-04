@@ -124,36 +124,37 @@ fun RunningWorkoutExecuteScreen(
     }
 
     val currentStepLabel: String? = run {
-        when {
-            uiState.freeSteps.isNotEmpty() -> {
-                val active = uiState.freeSteps.firstOrNull { !it.result.done }
-                active?.let { exec ->
-                    val s = exec.step
-                    val summary = when (s.endType) {
-                        RunEndType.DURATION -> {
-                            val m = s.endValue / 60; val secs = s.endValue % 60
-                            "$m:${secs.toString().padStart(2, '0')}"
-                        }
-                        RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
-                    }
-                    "${stepLabel(s.stepType)} — $summary"
-                }
-            }
-            uiState.repeatBlocks.isNotEmpty() -> {
-                val block = uiState.repeatBlocks.firstOrNull { b -> b.reps.any { !it.done } }
-                block?.let { b ->
-                    val activeRep = b.reps.first { !it.done }
-                    val dist = b.targetStep?.let { s ->
-                        when (s.endType) {
-                            RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
-                            RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
-                        }
-                    } ?: ""
-                    "Int. ${activeRep.repNumber}/${b.repeat.repeatCount}${if (dist.isNotBlank()) " · $dist" else ""}"
-                }
-            }
-            else -> null
+        val activeFreeStep = uiState.freeSteps.firstOrNull { !it.result.done }
+        val activeBlock = uiState.repeatBlocks.firstOrNull { b -> b.reps.any { !it.done } }
+
+        // Le prochain bloc à afficher est celui dont la position est la plus faible parmi
+        // les blocs pas encore terminés (échauffement/récupération intercalés avec les intervalles).
+        val showFreeStepFirst = when {
+            activeFreeStep == null -> false
+            activeBlock == null    -> true
+            else                   -> activeFreeStep.step.position <= activeBlock.repeat.position
         }
+
+        if (showFreeStepFirst && activeFreeStep != null) {
+            val s = activeFreeStep.step
+            val summary = when (s.endType) {
+                RunEndType.DURATION -> {
+                    val m = s.endValue / 60; val secs = s.endValue % 60
+                    "$m:${secs.toString().padStart(2, '0')}"
+                }
+                RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
+            }
+            "${stepLabel(s.stepType)} — $summary"
+        } else if (activeBlock != null) {
+            val activeRep = activeBlock.reps.first { !it.done }
+            val dist = activeBlock.targetStep?.let { s ->
+                when (s.endType) {
+                    RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
+                    RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
+                }
+            } ?: ""
+            "Int. ${activeRep.repNumber}/${activeBlock.repeat.repeatCount}${if (dist.isNotBlank()) " · $dist" else ""}"
+        } else null
     }
 
     if (showFinishDialog) {
@@ -261,18 +262,26 @@ fun RunningWorkoutExecuteScreen(
                 Spacer(Modifier.height(16.dp))
             }
 
-            // ── Étapes libres (séances sans répétition) ──
-            if (uiState.freeSteps.isNotEmpty()) {
-                items(uiState.freeSteps.indices.toList(), key = { "free_$it" }) { idx ->
+            // ── Étapes libres et blocs répétition, intercalés selon leur position ──
+            // (ex : échauffement avant les intervalles, récupération après)
+            val firstRepeatPosition = uiState.repeatBlocks.minOfOrNull { it.repeat.position }
+            val stepsBeforeRepeats = if (firstRepeatPosition != null)
+                uiState.freeSteps.withIndex().filter { it.value.step.position < firstRepeatPosition }
+            else uiState.freeSteps.withIndex().toList()
+            val stepsAfterRepeats = if (firstRepeatPosition != null)
+                uiState.freeSteps.withIndex().filter { it.value.step.position >= firstRepeatPosition }
+            else emptyList()
+
+            if (stepsBeforeRepeats.isNotEmpty()) {
+                items(stepsBeforeRepeats, key = { "free_${it.index}" }) { (idx, execution) ->
                     FreeStepSection(
-                        execution = uiState.freeSteps[idx],
+                        execution = execution,
                         onUpdate = { updated -> viewModel.updateFreeStep(idx, updated) },
                     )
                     Spacer(Modifier.height(14.dp))
                 }
             }
 
-            // ── Blocs répétition (un tableau par repeat) ──
             if (uiState.repeatBlocks.isNotEmpty()) {
                 items(uiState.repeatBlocks, key = { it.repeat.id }) { execution ->
                     RepeatIntervalSection(
@@ -281,6 +290,16 @@ fun RunningWorkoutExecuteScreen(
                             val blockIdx = uiState.repeatBlocks.indexOf(execution)
                             viewModel.updateIntervalRep(blockIdx, repIdx, updated)
                         },
+                    )
+                    Spacer(Modifier.height(14.dp))
+                }
+            }
+
+            if (stepsAfterRepeats.isNotEmpty()) {
+                items(stepsAfterRepeats, key = { "free_${it.index}" }) { (idx, execution) ->
+                    FreeStepSection(
+                        execution = execution,
+                        onUpdate = { updated -> viewModel.updateFreeStep(idx, updated) },
                     )
                     Spacer(Modifier.height(14.dp))
                 }
@@ -329,6 +348,7 @@ private fun RepeatIntervalSection(
     onRepUpdate: (Int, IntervalRepResult) -> Unit,
 ) {
     val target = execution.targetStep
+    val hasRecovery = execution.recoveryStep != null
     val intensityLabel = intensityColumnLabel(target)
     val hasIntensity = intensityLabel != null
     val intensityKeyboard = if (target?.targetType == RunTargetType.PACE) KeyboardType.Text else KeyboardType.Decimal
@@ -358,12 +378,27 @@ private fun RepeatIntervalSection(
         }
     }
 
+    val recoveryStr = execution.recoveryStep?.let { s ->
+        val amount = when (s.endType) {
+            RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
+            RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
+        }
+        "${stepLabel(s.stepType)} $amount"
+    }
+
     Text(
         stringResource(R.string.running_execute_interval_label, execution.repeat.repeatCount),
         style = MaterialTheme.typography.labelSmall,
         color = PandaSubtext,
         fontWeight = FontWeight.Bold,
     )
+    if (recoveryStr != null) {
+        Text(
+            recoveryStr,
+            style = MaterialTheme.typography.labelSmall,
+            color = PandaSubtext,
+        )
+    }
     Spacer(Modifier.height(8.dp))
     Column(
         modifier = Modifier
@@ -377,7 +412,12 @@ private fun RepeatIntervalSection(
             Text(stringResource(R.string.running_table_col_tps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
             if (hasIntensity) Text(intensityLabel!!, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(52.dp), textAlign = TextAlign.Center)
             Text(stringResource(R.string.running_table_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(30.dp), textAlign = TextAlign.Center)
-            Text(stringResource(R.string.running_table_col_check), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+            if (hasRecovery) {
+                Text(stringResource(R.string.running_table_col_check_course), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+                Text(stringResource(R.string.running_table_col_check_recup), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+            } else {
+                Text(stringResource(R.string.running_table_col_check), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+            }
         }
 
         execution.reps.forEachIndexed { idx, rep ->
@@ -406,12 +446,32 @@ private fun RepeatIntervalSection(
                     RepBasicField(rep.actualIntensity, Modifier.width(52.dp), keyboardType = intensityKeyboard) { onRepUpdate(idx, rep.copy(actualIntensity = it)) }
                 }
                 RepBasicField(rep.rpeStr, Modifier.width(30.dp), keyboardType = KeyboardType.Number) { onRepUpdate(idx, rep.copy(rpeStr = it)) }
-                Checkbox(
-                    checked = rep.done,
-                    onCheckedChange = { onRepUpdate(idx, rep.copy(done = it)) },
-                    modifier = Modifier.size(28.dp),
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
-                )
+                if (hasRecovery) {
+                    Checkbox(
+                        checked = rep.runningDone,
+                        onCheckedChange = { checked ->
+                            // Décocher la course décoche aussi la récup (elle ne peut pas être faite sans la course).
+                            onRepUpdate(idx, rep.copy(runningDone = checked, done = checked && rep.done))
+                        },
+                        modifier = Modifier.size(28.dp),
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
+                    )
+                    Checkbox(
+                        checked = rep.done,
+                        onCheckedChange = { checked ->
+                            onRepUpdate(idx, rep.copy(done = checked, runningDone = rep.runningDone || checked))
+                        },
+                        modifier = Modifier.size(28.dp),
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
+                    )
+                } else {
+                    Checkbox(
+                        checked = rep.done,
+                        onCheckedChange = { onRepUpdate(idx, rep.copy(done = it, runningDone = it)) },
+                        modifier = Modifier.size(28.dp),
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
+                    )
+                }
             }
         }
     }

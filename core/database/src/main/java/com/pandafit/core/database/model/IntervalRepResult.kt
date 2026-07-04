@@ -15,7 +15,10 @@ data class IntervalRepResult(
     /** Allure réelle, FC, cadence — selon le targetType du step. */
     val actualIntensity: String = "",
     val rpeStr: String = "",
+    /** Répétition entièrement terminée (course + récup si elle existe). */
     val done: Boolean = false,
+    /** Phase course terminée — coché séparément quand la répétition a une récup distincte. */
+    val runningDone: Boolean = false,
     /** FC moyenne sur l'intervalle (rempli à l'import TCX). */
     val hrAvg: Int? = null,
     /** FC max sur l'intervalle (rempli à l'import TCX). */

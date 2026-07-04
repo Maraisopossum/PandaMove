@@ -102,6 +102,7 @@ data class FreeStepResult(
 data class RunRepeatExecution(
     val repeat: RunRepeatEntity,
     val targetStep: RunStepEntity?,
+    val recoveryStep: RunStepEntity?,
     val reps: List<IntervalRepResult>,
 )
 
