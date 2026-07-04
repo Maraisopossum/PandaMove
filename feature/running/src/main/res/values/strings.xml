@@ -108,6 +108,19 @@
     <string name="running_execute_overflow_menu_cd">Plus d\'options</string>
     <string name="running_execute_view_details_button">Voir le détail</string>
 
+    <!-- WorkoutResultScreen -->
+    <string name="workout_result_completed_label">SÉANCE TERMINÉE !</string>
+    <string name="workout_result_total_duration_label">Durée totale</string>
+    <string name="workout_result_distance_label">Distance</string>
+    <string name="workout_result_avg_pace_label">Allure moyenne</string>
+    <string name="workout_result_analysis_title">ANALYSE DE TA SÉANCE</string>
+    <string name="workout_result_route_label">PARCOURS</string>
+    <string name="workout_result_metrics_title">MÉTRIQUES</string>
+    <string name="workout_result_view_details_button">Voir tous les détails</string>
+    <string name="workout_result_share_button">Partager</string>
+    <string name="workout_result_imported_tcx_suffix">Importée depuis TCX</string>
+    <string name="workout_result_data_source_tcx_notice">Séance importée depuis un fichier TCX. Certaines données peuvent être incomplètes.</string>
+
     <!-- Table headers (execute + report) -->
     <string name="running_table_col_num">#</string>
     <string name="running_table_col_cible">Cible</string>

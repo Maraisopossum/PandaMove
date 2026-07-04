@@ -68,6 +68,7 @@ import com.pandafit.feature.running.ui.RunningScreen
 import com.pandafit.feature.running.ui.RunningWorkoutDetailScreen
 import com.pandafit.feature.running.ui.RunningWorkoutExecuteScreen
 import com.pandafit.feature.running.ui.RunningWorkoutReportScreen
+import com.pandafit.feature.running.ui.WorkoutResultScreen
 import com.pandafit.feature.stats.ui.StatsConfigScreen
 import com.pandafit.feature.stats.ui.StatsScreen
 import com.pandafit.feature.strength.ui.InstanceExecuteScreen
@@ -265,6 +266,15 @@ fun PandaFitNavHost() {
                 )
             }
             composable(RunningRoutes.DETAIL) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                WorkoutResultScreen(
+                    workoutId               = id,
+                    onNavigateBack          = { navController.popBackStack() },
+                    onNavigateToEdit        = { wId -> navController.navigate(RunningRoutes.edit(wId)) },
+                    onNavigateToFullDetails = { wId -> navController.navigate(RunningRoutes.rawDetail(wId)) },
+                )
+            }
+            composable(RunningRoutes.RAW_DETAIL) { backStack ->
                 val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
                 RunningWorkoutReportScreen(
                     workoutId         = id,

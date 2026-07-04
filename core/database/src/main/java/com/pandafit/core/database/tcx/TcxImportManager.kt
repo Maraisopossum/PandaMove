@@ -12,6 +12,7 @@ import com.pandafit.core.database.entities.RunStepEntity
 import com.pandafit.core.database.entities.RunStepType
 import com.pandafit.core.database.entities.RunTargetType
 import com.pandafit.core.database.entities.WorkoutEntity
+import com.pandafit.core.database.entities.WorkoutSource
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.core.database.model.IntervalRepResult
 import dagger.hilt.android.scopes.ViewModelScoped
@@ -104,6 +105,7 @@ class TcxImportManager @Inject constructor(
                 resultCadenceAvgRpm   = activity.avgCadenceRpm,
                 resultCalories        = activity.totalCalories.takeIf { it > 0 },
                 withStroller          = withStroller,
+                source                = WorkoutSource.TCX_IMPORT,
             )
         )
 
@@ -181,7 +183,7 @@ class TcxImportManager @Inject constructor(
 
         // Mise à jour withStroller sur l'entité après saveResults
         workoutDao.getById(workoutId)?.let { existing ->
-            workoutDao.update(existing.copy(withStroller = withStroller, updatedAt = LocalDateTime.now()))
+            workoutDao.update(existing.copy(withStroller = withStroller, updatedAt = LocalDateTime.now(), source = WorkoutSource.TCX_IMPORT))
         }
 
         TcxImportResult(workoutId, effectiveType ?: WorkoutType.RUNNING, lapsCount, gpsCount, isNewWorkout = false)

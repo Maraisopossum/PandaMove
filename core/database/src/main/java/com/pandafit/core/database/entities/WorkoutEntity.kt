@@ -97,8 +97,18 @@ data class WorkoutEntity(
 
     @ColumnInfo(name = "result_calories")
     val resultCalories: Int? = null,
+
+    /** Provenance de la séance — détermine l'affichage de la notice source dans l'écran de résultat. */
+    val source: WorkoutSource = WorkoutSource.NATIVE,
 )
 
 enum class WorkoutType {
     RUNNING, CYCLING, STRENGTH, HIKING
+}
+
+enum class WorkoutSource {
+    /** Saisie/exécutée directement dans PandaMove (manuelle ou GPS live). */
+    NATIVE,
+    /** Importée depuis un fichier TCX (Garmin Connect ou équivalent). */
+    TCX_IMPORT,
 }

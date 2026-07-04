@@ -55,6 +55,7 @@ object DatabaseModule {
                 PandaFitDatabase.MIGRATION_21_22,
                 PandaFitDatabase.MIGRATION_22_23,
                 PandaFitDatabase.MIGRATION_23_24,
+                PandaFitDatabase.MIGRATION_24_25,
             )
             .build()
 

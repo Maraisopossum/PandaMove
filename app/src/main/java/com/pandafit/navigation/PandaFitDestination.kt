@@ -122,13 +122,15 @@ val TOP_LEVEL_DESTINATIONS = listOf(
 object RunningRoutes {
     const val LIST   = "running"
     const val CREATE = "running/create"
-    const val DETAIL = "running/{workoutId}"          // rapport lecture seule
+    const val DETAIL = "running/{workoutId}"          // résultat commun (Hero/Analyse/Parcours/Métriques)
+    const val RAW_DETAIL = "running/{workoutId}/full" // détail brut (étapes/intervalles/note)
     const val EDIT   = "running/{workoutId}/edit"     // formulaire modification
     const val EXECUTE = "running/{workoutId}/execute"
 
-    fun detail(id: Long)  = "running/$id"
-    fun edit(id: Long)    = "running/$id/edit"
-    fun execute(id: Long) = "running/$id/execute"
+    fun detail(id: Long)    = "running/$id"
+    fun rawDetail(id: Long) = "running/$id/full"
+    fun edit(id: Long)      = "running/$id/edit"
+    fun execute(id: Long)   = "running/$id/execute"
 }
 
 object StrengthRoutes {

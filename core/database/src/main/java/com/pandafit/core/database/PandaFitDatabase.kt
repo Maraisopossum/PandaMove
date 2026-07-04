@@ -54,7 +54,7 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         CustomBreathingMethodEntity::class,
         ObjectifProgressionEntity::class,
     ],
-    version = 24,
+    version = 25,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -316,6 +316,13 @@ abstract class PandaFitDatabase : RoomDatabase() {
                         `session_date` TEXT NOT NULL
                     )"""
                 )
+            }
+        }
+
+        // v24 → v25 : provenance de la séance (native vs import TCX), pour l'écran de résultat commun
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE workouts ADD COLUMN source TEXT NOT NULL DEFAULT 'NATIVE'")
             }
         }
 
