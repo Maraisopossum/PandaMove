@@ -120,6 +120,15 @@
     <string name="workout_result_share_button">Partager</string>
     <string name="workout_result_imported_tcx_suffix">Importée depuis TCX</string>
     <string name="workout_result_data_source_tcx_notice">Séance importée depuis un fichier TCX. Certaines données peuvent être incomplètes.</string>
+    <string name="workout_result_objective_label">OBJECTIF</string>
+    <string name="workout_result_in_target_label">dans la cible</string>
+    <string name="workout_result_faster_label">plus rapide</string>
+    <string name="workout_result_slower_label">plus lente</string>
+    <string name="workout_result_regularity_label">Régularité</string>
+    <string name="workout_result_best_pace_label">Meilleure allure</string>
+    <string name="workout_result_best_pace_rep">Répétition #%1$d</string>
+    <string name="workout_result_target_low">Cible basse (%1$s)</string>
+    <string name="workout_result_target_high">Cible haute (%1$s)</string>
 
     <!-- Table headers (execute + report) -->
     <string name="running_table_col_num">#</string>

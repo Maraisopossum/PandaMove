@@ -55,4 +55,6 @@ dependencies {
 
     // OSMDroid (carte GPS du tracé TCX)
     implementation(libs.osmdroid)
+
+    testImplementation(libs.junit)
 }

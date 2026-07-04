@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -93,11 +92,36 @@ fun GpsTrackMapCard(
             }
             mv.overlays.add(polyline)
 
-            // Ajustement automatique sur le tracé
+            // Ajustement automatique sur le tracé. `zoomToBoundingBox` peut bloquer indéfiniment
+            // (ANR réel confirmé par instrumentation : plus de 10s sans retour) si la vue n'a pas
+            // encore de dimensions (mv.width/height == 0), ce qui est le cas courant à la première
+            // mise en page de la carte (l'AndroidView n'a pas fini son layout quand `update` est
+            // appelé). On attend donc une mesure valide via un listener de layout ponctuel plutôt
+            // que d'appeler le zoom immédiatement.
             val bounds = BoundingBox.fromGeoPoints(geoPoints)
-            mv.post {
-                mv.zoomToBoundingBox(bounds, true, 56)
+            fun applyZoom() {
+                mv.zoomToBoundingBox(bounds, false, 56)
                 mv.invalidate()
+            }
+            if (mv.width > 0 && mv.height > 0) {
+                mv.post { applyZoom() }
+            } else {
+                // ViewTreeObserver.addOnGlobalLayoutListener n'est pas fiable ici : avant que la
+                // vue soit attachée à une fenêtre, getViewTreeObserver() peut renvoyer une instance
+                // transitoire remplacée à l'attachement, ce qui perd silencieusement le listener.
+                // addOnLayoutChangeListener est porté par la View elle-même, pas par un
+                // ViewTreeObserver ponctuel — il survit à l'attachement.
+                mv.addOnLayoutChangeListener(object : android.view.View.OnLayoutChangeListener {
+                    override fun onLayoutChange(
+                        v: android.view.View?, left: Int, top: Int, right: Int, bottom: Int,
+                        oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int,
+                    ) {
+                        if (right - left > 0 && bottom - top > 0) {
+                            mv.removeOnLayoutChangeListener(this)
+                            applyZoom()
+                        }
+                    }
+                })
             }
         },
     )

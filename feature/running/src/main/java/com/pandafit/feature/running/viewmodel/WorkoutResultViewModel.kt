@@ -16,8 +16,10 @@ import com.pandafit.feature.running.model.MetricItem
 import com.pandafit.feature.running.model.RunRepeatExecution
 import com.pandafit.feature.running.model.SignatureMetric
 import com.pandafit.feature.running.model.WorkoutFeedback
+import com.pandafit.feature.running.model.IntervalAnalysis
 import com.pandafit.feature.running.model.computeAvailableMetrics
 import com.pandafit.feature.running.model.computeFeedback
+import com.pandafit.feature.running.model.computeIntervalAnalysis
 import com.pandafit.feature.running.model.computeMascotVariant
 import com.pandafit.feature.running.model.computeSignatureMetric
 import com.pandafit.feature.running.model.hasRealIntervals
@@ -40,6 +42,7 @@ data class WorkoutResultUiState(
     val availableMetrics: List<MetricItem> = emptyList(),
     val gpsPoints: List<Pair<Double, Double>> = emptyList(),
     val mascotVariant: MascotVariant = MascotVariant.JOY_MALE,
+    val intervalAnalysis: IntervalAnalysis? = null,
 )
 
 private val json = Json { ignoreUnknownKeys = true }
@@ -97,6 +100,7 @@ class WorkoutResultViewModel @Inject constructor(
                 availableMetrics = computeAvailableMetrics(workout),
                 gpsPoints = gpsPoints,
                 mascotVariant = computeMascotVariant(isFemale),
+                intervalAnalysis = if (hasIntervals) computeIntervalAnalysis(repeatBlocks) else null,
             )
         }
     }

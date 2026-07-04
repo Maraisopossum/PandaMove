@@ -1,5 +1,7 @@
 package com.pandafit.feature.running.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,8 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -40,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,13 +54,18 @@ import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaGreen
 import com.pandafit.designsystem.theme.PandaGreenContainer
 import com.pandafit.designsystem.theme.PandaOnBackground
+import com.pandafit.designsystem.theme.PandaOrange
+import com.pandafit.designsystem.theme.PandaRed
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.running.R
+import com.pandafit.feature.running.model.EffortClassification
+import com.pandafit.feature.running.model.IntervalAnalysis
 import com.pandafit.feature.running.model.MascotVariant
 import com.pandafit.feature.running.model.MetricItem
 import com.pandafit.feature.running.model.SignatureMetric
 import com.pandafit.feature.running.model.WorkoutFeedback
 import com.pandafit.feature.running.model.formatPace
+import com.pandafit.feature.running.model.formatPaceSecPerKm
 import com.pandafit.feature.running.viewmodel.WorkoutResultUiState
 import com.pandafit.feature.running.viewmodel.WorkoutResultViewModel
 import java.time.format.DateTimeFormatter
@@ -190,7 +198,7 @@ private fun WorkoutResultHero(uiState: WorkoutResultUiState, workout: WorkoutEnt
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                androidx.compose.foundation.Image(
+                Image(
                     painter = painterResource(mascotDrawableRes(uiState.mascotVariant)),
                     contentDescription = null,
                     modifier = Modifier.size(88.dp),
@@ -282,8 +290,8 @@ private fun PandaFeedbackBanner(feedback: WorkoutFeedback) {
 }
 
 /**
- * Contenu variable selon le type de séance. Pour cette étape : analyse minimale commune ; le
- * routage vers FreeRunAnalysis/IntervalWorkoutAnalysis arrive dans une étape ultérieure.
+ * Contenu variable selon le type de séance. FreeRunAnalysis (graphique allure/dénivelé, régularité
+ * course libre) reste à faire dans une étape ultérieure.
  */
 @Composable
 private fun WorkoutAnalysisSection(uiState: WorkoutResultUiState, workout: WorkoutEntity) {
@@ -295,9 +303,170 @@ private fun WorkoutAnalysisSection(uiState: WorkoutResultUiState, workout: Worko
             color = PandaOnBackground,
         )
         Spacer(Modifier.height(8.dp))
+        val analysis = uiState.intervalAnalysis
         when {
-            uiState.hasIntervals -> BasicWorkoutAnalysis(workout) // IntervalWorkoutAnalysis — étape ultérieure
+            uiState.hasIntervals && analysis != null -> IntervalWorkoutAnalysis(analysis)
             else -> BasicWorkoutAnalysis(workout) // FreeRunAnalysis — étape ultérieure
+        }
+    }
+}
+
+private fun classificationColor(kind: EffortClassification) = when (kind) {
+    EffortClassification.IN_TARGET -> PandaGreen
+    EffortClassification.FASTER_THAN_TARGET -> PandaOrange
+    EffortClassification.SLOWER_THAN_TARGET -> PandaRed
+}
+
+@Composable
+private fun IntervalWorkoutAnalysis(analysis: IntervalAnalysis) {
+    val inTarget = analysis.efforts.count { it.classification == EffortClassification.IN_TARGET }
+    val faster = analysis.efforts.count { it.classification == EffortClassification.FASTER_THAN_TARGET }
+    val slower = analysis.efforts.count { it.classification == EffortClassification.SLOWER_THAN_TARGET }
+
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Text(stringResource(R.string.workout_result_objective_label), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+                Text(
+                    "${formatPaceSecPerKm(analysis.targetMinSec)} – ${formatPaceSecPerKm(analysis.targetMaxSec)} /km",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = PandaOnBackground,
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            ClassificationCount(inTarget, PandaGreen, stringResource(R.string.workout_result_in_target_label))
+            Spacer(Modifier.width(12.dp))
+            ClassificationCount(faster, PandaOrange, stringResource(R.string.workout_result_faster_label))
+            Spacer(Modifier.width(12.dp))
+            ClassificationCount(slower, PandaRed, stringResource(R.string.workout_result_slower_label))
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            analysis.regularityPercent?.let { pct ->
+                Column {
+                    Text(stringResource(R.string.workout_result_regularity_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                    Text("$pct %", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaOnBackground)
+                }
+            }
+            analysis.bestEffort?.let { best ->
+                Column {
+                    Text(stringResource(R.string.workout_result_best_pace_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                    Text(
+                        "${formatPaceSecPerKm(best.paceSecPerKm)} /km",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = PandaOnBackground,
+                    )
+                    Text(
+                        stringResource(R.string.workout_result_best_pace_rep, best.displayNumber),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PandaSubtext,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        IntervalEffortChart(analysis)
+    }
+}
+
+@Composable
+private fun ClassificationCount(count: Int, color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Canvas(modifier = Modifier.size(8.dp)) {
+            drawCircle(color = color)
+        }
+        Spacer(Modifier.width(4.dp))
+        Text("$count", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = PandaOnBackground)
+        Spacer(Modifier.width(4.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
+    }
+}
+
+/**
+ * Graphique en barres fait maison (pas de bibliothèque de chart dans le projet) — une barre par
+ * effort, dessinée dans un unique Canvas (plutôt qu'une Row/LazyRow de composables imbriqués par
+ * barre, qui s'est révélée instable — ANR reproductible à l'affichage sur device).
+ */
+@Composable
+private fun IntervalEffortChart(analysis: IntervalAnalysis) {
+    val efforts = analysis.efforts
+    val slowestPace = (efforts.maxOf { it.paceSecPerKm }).coerceAtLeast(analysis.targetMaxSec)
+    val fastestPace = (efforts.minOf { it.paceSecPerKm }).coerceAtMost(analysis.targetMinSec)
+    val range = (slowestPace - fastestPace).coerceAtLeast(1)
+
+    Column {
+        // Labels au-dessus/en-dessous en Text() Compose classiques (pas de TextMeasurer dans
+        // le DrawScope) ; seules les barres sont dessinées dans un Canvas — plusieurs variantes
+        // plus complexes (LazyRow, Row+horizontalScroll, Canvas+TextMeasurer) se sont révélées
+        // instables (ANR reproductible à l'affichage sur device).
+        Row(modifier = Modifier.fillMaxWidth()) {
+            efforts.forEach { effort ->
+                Text(
+                    formatPaceSecPerKm(effort.paceSecPerKm),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = classificationColor(effort.classification),
+                    maxLines = 1,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(110.dp),
+        ) {
+            val slotWidthPx = size.width / efforts.size
+            val barWidthPx = slotWidthPx * 0.6f
+
+            efforts.forEachIndexed { index, effort ->
+                val slotCenterX = index * slotWidthPx + slotWidthPx / 2
+                val color = classificationColor(effort.classification)
+                val barFraction = (1f - (effort.paceSecPerKm - fastestPace).toFloat() / range).coerceIn(0.05f, 1f)
+                val barHeightPx = size.height * barFraction
+
+                drawRoundRect(
+                    color = color,
+                    topLeft = androidx.compose.ui.geometry.Offset(slotCenterX - barWidthPx / 2, size.height - barHeightPx),
+                    size = androidx.compose.ui.geometry.Size(barWidthPx, barHeightPx),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f),
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            efforts.forEach { effort ->
+                Text(
+                    "#${effort.displayNumber}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                    maxLines = 1,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.workout_result_target_low, formatPaceSecPerKm(analysis.targetMinSec)),
+                style = MaterialTheme.typography.labelSmall,
+                color = PandaSubtext,
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                stringResource(R.string.workout_result_target_high, formatPaceSecPerKm(analysis.targetMaxSec)),
+                style = MaterialTheme.typography.labelSmall,
+                color = PandaSubtext,
+            )
         }
     }
 }
@@ -330,8 +499,11 @@ private fun WorkoutMetricsSection(metrics: List<MetricItem>) {
             color = PandaOnBackground,
         )
         Spacer(Modifier.height(8.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(metrics) { metric ->
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            metrics.forEach { metric ->
                 Column(
                     modifier = Modifier
                         .width(84.dp)
