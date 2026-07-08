@@ -2,6 +2,7 @@ package com.pandafit.feature.running.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutDao
@@ -23,10 +24,14 @@ class RunningListViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val repeatDao: RunRepeatDao,
     private val stepDao: RunStepDao,
+    private val sessionManager: ActiveSessionManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RunningListUiState())
     val uiState: StateFlow<RunningListUiState> = _uiState.asStateFlow()
+
+    /** Séance en cours d'exécution (GPS actif ou en pause) : ne doit jamais pouvoir être supprimée. */
+    val activeWorkoutId: StateFlow<Long?> = sessionManager.activeWorkoutId
 
     init { observeWorkouts() }
 
@@ -46,11 +51,13 @@ class RunningListViewModel @Inject constructor(
     }
 
     fun deleteWorkout(id: Long) {
+        if (id == sessionManager.activeWorkoutId.value) return
         viewModelScope.launch { workoutDao.deleteById(id) }
     }
 
     fun deleteWorkouts(ids: Set<Long>) {
-        viewModelScope.launch { ids.forEach { workoutDao.deleteById(it) } }
+        val active = sessionManager.activeWorkoutId.value
+        viewModelScope.launch { ids.filter { it != active }.forEach { workoutDao.deleteById(it) } }
     }
 
     /** Affecte une séance type à une date (crée une occurrence planifiée). */

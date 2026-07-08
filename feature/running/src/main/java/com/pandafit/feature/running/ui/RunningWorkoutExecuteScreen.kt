@@ -1,5 +1,6 @@
 package com.pandafit.feature.running.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -41,6 +42,7 @@ import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
 import com.pandafit.core.database.model.IntervalRepResult
 import com.pandafit.feature.running.model.RunRepeatExecution
+import com.pandafit.feature.running.model.runStepLabel
 import com.pandafit.feature.running.viewmodel.RunningExecuteViewModel
 import android.Manifest
 import android.content.Context
@@ -107,6 +109,7 @@ fun RunningWorkoutExecuteScreen(
     val uiState by viewModel.screenState.collectAsStateWithLifecycle()
     val liveTrackState by viewModel.liveTrackState.collectAsStateWithLifecycle()
     var showFinishDialog by remember { mutableStateOf(false) }
+    var showExitDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showDetailsSheet by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
@@ -125,6 +128,26 @@ fun RunningWorkoutExecuteScreen(
 
     LaunchedEffect(locationPermissionGranted) {
         if (locationPermissionGranted) viewModel.startCalibration()
+    }
+
+    BackHandler(enabled = !uiState.isCompleted) { showExitDialog = true }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text(stringResource(R.string.running_execute_exit_dialog_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.running_execute_exit_dialog_body)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.cancelWorkout(); showExitDialog = false; onNavigateBack() }) {
+                    Text(stringResource(R.string.running_execute_exit_cancel_seance), color = RedColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false; onNavigateBack() }) {
+                    Text(stringResource(R.string.running_execute_exit_keep_running))
+                }
+            },
+        )
     }
 
     if (showFinishDialog) {
@@ -160,7 +183,7 @@ fun RunningWorkoutExecuteScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { if (uiState.isCompleted) onNavigateBack() else showExitDialog = true }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.running_execute_navigate_back_cd))
                     }
                 },
@@ -203,11 +226,12 @@ fun RunningWorkoutExecuteScreen(
             }
 
             // ── Cockpit live : phase active + timeline + accès au détail ──
+            // En "séance directe" : mascotte + chronomètre qui monte dès l'ouverture, sans cible ni timeline.
             uiState.livePhase?.let { phase ->
                 item {
-                    LiveWorkoutPhaseCard(phase = phase)
+                    LiveWorkoutPhaseCard(phase = phase, isFreeRun = uiState.isFreeRun)
                     Spacer(Modifier.height(12.dp))
-                    WorkoutProgressTimeline(steps = uiState.timeline)
+                    if (!uiState.isFreeRun) WorkoutProgressTimeline(steps = uiState.timeline)
                     Spacer(Modifier.height(16.dp))
                 }
             }
@@ -293,11 +317,14 @@ private fun WorkoutDetailsBottomSheet(
 
             // ── Étapes libres et blocs répétition, intercalés selon leur position ──
             // (ex : échauffement avant les intervalles, récupération après)
+            // Masqué en "séance directe" : pas d'étapes/cibles à renseigner, juste les résultats globaux + note.
             val firstRepeatPosition = uiState.repeatBlocks.minOfOrNull { it.repeat.position }
-            val stepsBeforeRepeats = if (firstRepeatPosition != null)
+            val stepsBeforeRepeats = if (uiState.isFreeRun) emptyList()
+            else if (firstRepeatPosition != null)
                 uiState.freeSteps.withIndex().filter { it.value.step.position < firstRepeatPosition }
             else uiState.freeSteps.withIndex().toList()
-            val stepsAfterRepeats = if (firstRepeatPosition != null)
+            val stepsAfterRepeats = if (uiState.isFreeRun) emptyList()
+            else if (firstRepeatPosition != null)
                 uiState.freeSteps.withIndex().filter { it.value.step.position >= firstRepeatPosition }
             else emptyList()
 
@@ -399,7 +426,7 @@ private fun RepeatIntervalSection(
             RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
             RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
         }
-        "${stepLabel(s.stepType)} $amount"
+        "${runStepLabel(s.stepType)} $amount"
     }
 
     Text(
@@ -538,7 +565,7 @@ private fun FreeStepSection(
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             Text(
-                "${stepLabel(step.stepType)} — $stepSummary",
+                "${runStepLabel(step.stepType)} — $stepSummary",
                 style = MaterialTheme.typography.labelSmall,
                 color = PandaSubtext,
                 fontWeight = FontWeight.Bold,
@@ -567,15 +594,6 @@ private fun FreeStepSection(
             }
         }
     }
-}
-
-private fun stepLabel(type: RunStepType): String = when (type) {
-    RunStepType.WARMUP   -> "Échauffement"
-    RunStepType.RUNNING  -> "Course à pied"
-    RunStepType.WALKING  -> "Marche"
-    RunStepType.RECOVERY -> "Récupération"
-    RunStepType.REST     -> "Repos"
-    RunStepType.OTHER    -> "Autre"
 }
 
 private fun intensityColumnLabel(target: RunStepEntity?): String? = when {

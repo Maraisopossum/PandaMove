@@ -28,22 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pandafit.designsystem.theme.PandaOnBackground
 import com.pandafit.designsystem.theme.PandaOutlineVariant
-import com.pandafit.designsystem.theme.PandaPhaseCooldown
-import com.pandafit.designsystem.theme.PandaPhaseEffort
-import com.pandafit.designsystem.theme.PandaPhaseRecovery
-import com.pandafit.designsystem.theme.PandaPhaseWarmup
 import com.pandafit.designsystem.theme.PandaSubtextLight
 import com.pandafit.designsystem.theme.PandaWhite
-import com.pandafit.feature.running.model.LivePhaseKind
 import com.pandafit.feature.running.model.TimelineStatus
 import com.pandafit.feature.running.model.TimelineStepUiState
-
-private fun kindColor(kind: LivePhaseKind) = when (kind) {
-    LivePhaseKind.WARMUP   -> PandaPhaseWarmup
-    LivePhaseKind.EFFORT   -> PandaPhaseEffort
-    LivePhaseKind.RECOVERY -> PandaPhaseRecovery
-    LivePhaseKind.COOLDOWN -> PandaPhaseCooldown
-}
 
 /** Timeline horizontale compacte des grandes étapes de la séance (remplace les tableaux répétitifs). */
 @Composable
@@ -70,7 +58,7 @@ fun WorkoutProgressTimeline(
 
 @Composable
 private fun TimelineNode(step: TimelineStepUiState) {
-    val color = kindColor(step.kind)
+    val color = runStepColor(step.stepType)
     Column(
         modifier = Modifier.width(96.dp).padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -74,6 +74,8 @@ data class RunningExecuteUiState(
     val freeSteps: List<FreeStepExecution> = emptyList(),
     val repeatBlocks: List<RunRepeatExecution> = emptyList(),
     val isCompleted: Boolean = false,
+    /** "Séance directe" (chronomètre libre, sans étapes/cibles) : l'UI d'exécution s'affiche en mode simplifié. */
+    val isFreeRun: Boolean = false,
     val resultDistanceKm: String = "",
     val resultDurationStr: String = "",
     val resultPaceStr: String = "",
@@ -91,11 +93,24 @@ data class RunningExecuteUiState(
     val liveCadencePpm: Int? = null,
 )
 
-enum class LivePhaseKind { WARMUP, EFFORT, RECOVERY, COOLDOWN }
+/**
+ * Libellé d'un type d'étape running — partagé entre la programmation (création) et l'exécution
+ * pour qu'un type donné s'affiche toujours de la même façon (ex : "Course à pied" et non "Retour
+ * au calme" pour une étape RUNNING placée en dernière position).
+ */
+fun runStepLabel(type: RunStepType): String = when (type) {
+    RunStepType.WARMUP   -> "Échauffement"
+    RunStepType.RUNNING  -> "Course à pied"
+    RunStepType.WALKING  -> "Marche"
+    RunStepType.RECOVERY -> "Récupération"
+    RunStepType.REST     -> "Repos"
+    RunStepType.OTHER    -> "Autre"
+}
 
 /** Carte "MAINTENANT" du cockpit live : phase active, progression bornée, prochaine étape. */
 data class LivePhaseUiState(
-    val kind: LivePhaseKind,
+    /** Type réel de l'étape en cours (détermine libellé et couleur, cohérents avec la programmation). */
+    val stepType: RunStepType,
     val label: String,
     val isDistanceBased: Boolean,
     val currentValueLabel: String,
@@ -112,7 +127,8 @@ enum class TimelineStatus { COMPLETED, ACTIVE, UPCOMING }
 data class TimelineStepUiState(
     val label: String,
     val sublabel: String? = null,
-    val kind: LivePhaseKind,
+    /** Type réel de l'étape (détermine la couleur, cohérente avec la programmation). */
+    val stepType: RunStepType,
     val status: TimelineStatus,
 )
 

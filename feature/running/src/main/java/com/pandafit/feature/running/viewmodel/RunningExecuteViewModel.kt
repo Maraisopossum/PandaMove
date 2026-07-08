@@ -20,13 +20,13 @@ import com.pandafit.feature.running.GpsTrackingController
 import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
 import com.pandafit.core.database.model.IntervalRepResult
-import com.pandafit.feature.running.model.LivePhaseKind
 import com.pandafit.feature.running.model.LivePhaseUiState
 import com.pandafit.feature.running.model.RunRepeatExecution
 import com.pandafit.feature.running.model.RunningExecuteUiState
 import com.pandafit.feature.running.model.TimelineStatus
 import com.pandafit.feature.running.model.TimelineStepUiState
 import com.pandafit.feature.running.model.formatPace
+import com.pandafit.feature.running.model.runStepLabel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -57,6 +57,9 @@ class RunningExecuteViewModel @Inject constructor(
 
     /** 0 = "séance directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
     private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+
+    /** true si [workoutId] a été créé automatiquement par [ensureWorkoutCreated] ("séance directe"), à supprimer si annulée. */
+    private var wasAutoCreated: Boolean = false
     private val _uiState = MutableStateFlow(RunningExecuteUiState())
     val uiState: StateFlow<RunningExecuteUiState> = _uiState.asStateFlow()
 
@@ -78,7 +81,7 @@ class RunningExecuteViewModel @Inject constructor(
     private var autoLapBaselineDurationSec: Int = 0
 
     init {
-        if (workoutId > 0L) loadWorkout() else _uiState.value = RunningExecuteUiState(isLoading = false)
+        if (workoutId > 0L) loadWorkout() else initDraftFreeRun()
 
         // Collecteur indépendant du cycle de vie de l'écran (contrairement à liveTrackState,
         // qui s'arrête 5s après la dernière observation UI) pour ne jamais rater un déclenchement.
@@ -157,6 +160,22 @@ class RunningExecuteViewModel @Inject constructor(
         if (autoLapIndex !in autoLapSegments.indices) return null
         val seg = autoLapSegments[autoLapIndex]
 
+        // "Séance directe" : pas de cible/étapes, juste le chronomètre qui monte depuis l'ouverture de l'écran.
+        if (state.isFreeRun) {
+            return LivePhaseUiState(
+                stepType = RunStepType.RUNNING,
+                label = "COURSE LIBRE",
+                isDistanceBased = false,
+                currentValueLabel = formatHms(track.durationSec),
+                targetValueLabel = "",
+                progress = 0f,
+                remainingLabel = "",
+                targetHint = null,
+                nextLabel = null,
+                isLastStep = false,
+            )
+        }
+
         val elapsed = when (seg.endType) {
             RunEndType.DURATION -> (track.durationSec - autoLapBaselineDurationSec).toDouble()
             RunEndType.DISTANCE -> track.distanceM - autoLapBaselineDistanceM
@@ -168,26 +187,37 @@ class RunningExecuteViewModel @Inject constructor(
         val progress = if (targetValue > 0) (elapsed / targetValue).toFloat().coerceIn(0f, 1f) else 0f
         val remaining = (targetValue - elapsed).coerceAtLeast(0.0)
         val isDistanceBased = seg.endType == RunEndType.DISTANCE
-        val isCooldown = seg is AutoLapSegment.FreeStep && autoLapIndex == autoLapSegments.lastIndex
 
-        val (label, kind) = when {
-            seg is AutoLapSegment.FreeStep && isCooldown -> "RETOUR AU CALME" to LivePhaseKind.COOLDOWN
-            seg is AutoLapSegment.FreeStep                -> "ÉCHAUFFEMENT" to LivePhaseKind.WARMUP
-            seg is AutoLapSegment.RepPhase && seg.isRecovery -> "RÉCUPÉRATION" to LivePhaseKind.RECOVERY
-            seg is AutoLapSegment.RepPhase -> {
-                val repeatCount = state.repeatBlocks.getOrNull(seg.blockIdx)?.repeat?.repeatCount ?: 0
-                "INTERVALLE ${seg.repIdx + 1}/$repeatCount" to LivePhaseKind.EFFORT
+        // Type réel de l'étape (jamais déduit de sa position dans la séance) : une étape RUNNING
+        // placée en dernier reste "Course à pied", pas un "Retour au calme" présumé.
+        val stepType: RunStepType = when (seg) {
+            is AutoLapSegment.FreeStep -> state.freeSteps.getOrNull(seg.idx)?.step?.stepType ?: RunStepType.RUNNING
+            is AutoLapSegment.RepPhase -> if (seg.isRecovery) {
+                state.repeatBlocks.getOrNull(seg.blockIdx)?.recoveryStep?.stepType ?: RunStepType.RECOVERY
+            } else {
+                state.repeatBlocks.getOrNull(seg.blockIdx)?.targetStep?.stepType ?: RunStepType.RUNNING
             }
-            else -> "" to LivePhaseKind.WARMUP
         }
 
-        val targetHint = if (seg is AutoLapSegment.FreeStep && !isCooldown) "Allure libre" else null
+        val label = when (seg) {
+            is AutoLapSegment.FreeStep -> runStepLabel(stepType).uppercase()
+            is AutoLapSegment.RepPhase -> if (seg.isRecovery) {
+                runStepLabel(stepType).uppercase()
+            } else {
+                val repeatCount = state.repeatBlocks.getOrNull(seg.blockIdx)?.repeat?.repeatCount ?: 0
+                "INTERVALLE ${seg.repIdx + 1}/$repeatCount"
+            }
+        }
+
+        val targetHint = if (seg is AutoLapSegment.FreeStep &&
+            state.freeSteps.getOrNull(seg.idx)?.step?.targetType == RunTargetType.NONE
+        ) "Allure libre" else null
         val isLastStep = autoLapIndex == autoLapSegments.lastIndex
         val nextLabel = if (isLastStep) null
         else "ENSUITE · ${describeSegment(autoLapSegments[autoLapIndex + 1], state)}"
 
         return LivePhaseUiState(
-            kind = kind,
+            stepType = stepType,
             label = label,
             isDistanceBased = isDistanceBased,
             currentValueLabel = if (isDistanceBased) formatMeters(elapsed) else formatMmSs(elapsed.toInt()),
@@ -204,7 +234,7 @@ class RunningExecuteViewModel @Inject constructor(
         is AutoLapSegment.FreeStep -> {
             val step = state.freeSteps.getOrNull(seg.idx)?.step
             val summary = step?.let { formatEndValue(it.endType, it.endValue, it.endUnit) } ?: ""
-            listOfNotNull(step?.let { phaseStepLabel(it.stepType) }, summary.ifBlank { null }).joinToString(" ")
+            listOfNotNull(step?.let { runStepLabel(it.stepType) }, summary.ifBlank { null }).joinToString(" ")
         }
         is AutoLapSegment.RepPhase -> if (seg.isRecovery) {
             "Récupération ${formatEndValue(seg.endType, seg.endValue, seg.endUnit)}"
@@ -226,12 +256,9 @@ class RunningExecuteViewModel @Inject constructor(
             state.repeatBlocks.mapIndexed { idx, blk -> Positioned(blk.repeat.position, true, idx) }
         val sorted = positioned.sortedBy { it.position }
 
-        return sorted.flatMapIndexed { sortedIdx, p ->
+        return sorted.flatMap { p ->
             if (!p.isBlock) {
                 val fse = state.freeSteps[p.idx]
-                val isCooldown = sortedIdx == sorted.lastIndex
-                val kind = if (isCooldown) LivePhaseKind.COOLDOWN else LivePhaseKind.WARMUP
-                val label = if (isCooldown) "Retour au calme" else phaseStepLabel(fse.step.stepType)
                 val status = when {
                     fse.result.done -> TimelineStatus.COMPLETED
                     isActiveFreeStep(p.idx) -> TimelineStatus.ACTIVE
@@ -239,9 +266,9 @@ class RunningExecuteViewModel @Inject constructor(
                 }
                 listOf(
                     TimelineStepUiState(
-                        label = label,
+                        label = runStepLabel(fse.step.stepType),
                         sublabel = formatEndValue(fse.step.endType, fse.step.endValue, fse.step.endUnit),
-                        kind = kind,
+                        stepType = fse.step.stepType,
                         status = status,
                     )
                 )
@@ -257,13 +284,14 @@ class RunningExecuteViewModel @Inject constructor(
                 } else label
                 val blockCompleted = total > 0 && done == total
                 val activeRepIdx = activeRepIndex(p.idx)
+                val blockStepType = running?.stepType ?: RunStepType.RUNNING
 
                 if (activeRepIdx != null) {
                     block.reps.mapIndexed { repIdx, rep ->
                         TimelineStepUiState(
                             label = "${repIdx + 1}",
                             sublabel = expandedSublabel,
-                            kind = LivePhaseKind.EFFORT,
+                            stepType = blockStepType,
                             status = when {
                                 rep.done -> TimelineStatus.COMPLETED
                                 repIdx == activeRepIdx -> TimelineStatus.ACTIVE
@@ -276,7 +304,7 @@ class RunningExecuteViewModel @Inject constructor(
                         TimelineStepUiState(
                             label = label,
                             sublabel = "${(done + 1).coerceAtMost(total)} / $total",
-                            kind = LivePhaseKind.EFFORT,
+                            stepType = blockStepType,
                             status = if (blockCompleted) TimelineStatus.COMPLETED else TimelineStatus.UPCOMING,
                         )
                     )
@@ -296,15 +324,6 @@ class RunningExecuteViewModel @Inject constructor(
         return if (seg is AutoLapSegment.RepPhase && seg.blockIdx == blockIdx) seg.repIdx else null
     }
 
-    private fun phaseStepLabel(type: RunStepType): String = when (type) {
-        RunStepType.WARMUP   -> "Échauffement"
-        RunStepType.RUNNING  -> "Course"
-        RunStepType.WALKING  -> "Marche"
-        RunStepType.RECOVERY -> "Récupération"
-        RunStepType.REST     -> "Repos"
-        RunStepType.OTHER    -> "Autre"
-    }
-
     private fun formatEndValue(endType: RunEndType, endValue: Int, endUnit: RunEndUnit): String = when (endType) {
         RunEndType.DURATION -> formatMmSs(endValue)
         RunEndType.DISTANCE -> if (endUnit == RunEndUnit.KM) "$endValue km" else "$endValue m"
@@ -316,6 +335,15 @@ class RunningExecuteViewModel @Inject constructor(
     }
 
     private fun formatMeters(m: Double): String = "${m.coerceAtLeast(0.0).toInt()} m"
+
+    private fun formatHms(totalSec: Int): String {
+        val s = totalSec.coerceAtLeast(0)
+        val h = s / 3600
+        val m = (s % 3600) / 60
+        val sec = s % 60
+        return if (h > 0) "$h:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}"
+        else "${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}"
+    }
 
     /** Aplati la séance (étapes libres + course/récup de chaque répétition) en segments ordonnés par position. */
     private fun buildAutoLapSegments(state: RunningExecuteUiState): List<AutoLapSegment> {
@@ -412,6 +440,7 @@ class RunningExecuteViewModel @Inject constructor(
                 workoutId = workoutId,
                 freeSteps = freeSteps,
                 repeatBlocks = repeatBlocks,
+                isFreeRun = isFreeRunShape(freeSteps, repeatBlocks),
                 resultDistanceKm  = workout.resultDistanceKm?.toString() ?: "",
                 resultDurationStr = workout.resultDurationSec?.let { formatDurationSec(it) } ?: "",
                 resultPaceStr     = workout.resultPaceAvgMinPerKm?.let { formatPace(it) } ?: "",
@@ -442,6 +471,38 @@ class RunningExecuteViewModel @Inject constructor(
         autoLapBaselineDurationSec = 0
     }
 
+    /** Détecte la forme "séance directe" créée par [ensureWorkoutCreated] : une unique étape libre sans cible ni répétitions. */
+    private fun isFreeRunShape(freeSteps: List<FreeStepExecution>, repeatBlocks: List<RunRepeatExecution>): Boolean =
+        repeatBlocks.isEmpty() && freeSteps.size == 1 &&
+            freeSteps[0].step.targetType == RunTargetType.NONE &&
+            freeSteps[0].step.endType == RunEndType.DURATION &&
+            freeSteps[0].step.endValue == FREE_RUN_DURATION_SECONDS
+
+    private fun buildFreeRunStep(ownerWorkoutId: Long) = RunStepEntity(
+        workoutId = ownerWorkoutId,
+        position = 0,
+        stepType = RunStepType.RUNNING,
+        endType = RunEndType.DURATION,
+        endValue = FREE_RUN_DURATION_SECONDS,
+        endUnit = RunEndUnit.SECONDS,
+        targetType = RunTargetType.NONE,
+    )
+
+    /**
+     * "Séance directe" : affiche mascotte + chronomètre dès l'ouverture de l'écran, sans encore créer
+     * la séance en base (créée seulement au tap "Démarrer" via [ensureWorkoutCreated], pour éviter les
+     * lignes orphelines si l'utilisateur quitte sans avoir démarré le suivi GPS).
+     */
+    private fun initDraftFreeRun() {
+        val loaded = RunningExecuteUiState(
+            isLoading = false,
+            freeSteps = listOf(FreeStepExecution(step = buildFreeRunStep(0L), result = FreeStepResult())),
+            isFreeRun = true,
+        )
+        initAutoLapSegments(loaded)
+        _uiState.value = loaded
+    }
+
     /** Crée la séance (+ étape RUNNING libre) en base au premier appel (brouillon → réel), idempotent ensuite. */
     private suspend fun ensureWorkoutCreated(): Long {
         if (workoutId > 0L) return workoutId
@@ -456,23 +517,17 @@ class RunningExecuteViewModel @Inject constructor(
                 updatedAt = now,
             )
         )
-        val step = RunStepEntity(
-            workoutId = id,
-            position = 0,
-            stepType = RunStepType.RUNNING,
-            endType = RunEndType.DURATION,
-            endValue = FREE_RUN_DURATION_SECONDS,
-            endUnit = RunEndUnit.SECONDS,
-            targetType = RunTargetType.NONE,
-        )
+        val step = buildFreeRunStep(id)
         stepDao.insert(step)
         workoutId = id
+        wasAutoCreated = true
         val workout = workoutDao.getById(id)
         sessionManager.startWorkout(id, workout?.name ?: "Course libre", WorkoutType.RUNNING)
         val loaded = _uiState.value.copy(
             workout = workout,
             workoutId = id,
             freeSteps = listOf(FreeStepExecution(step = step, result = FreeStepResult())),
+            isFreeRun = true,
         )
         initAutoLapSegments(loaded)
         _uiState.value = loaded
@@ -613,9 +668,30 @@ class RunningExecuteViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Annule la séance en cours (choix "Annuler la séance" au retour arrière) : arrête le suivi GPS
+     * (service au premier plan indépendant de ce ViewModel), supprime le brouillon "séance directe"
+     * s'il a été créé automatiquement, et libère la session active. Une séance planifiée/type
+     * n'est jamais supprimée : seul son résultat en cours (non sauvegardé) est abandonné.
+     */
+    fun cancelWorkout() {
+        viewModelScope.launch {
+            if (liveTrackState.value.isTracking) gpsTrackingController.stop() else gpsTrackingController.stopCalibration()
+            gpsTrackingRepository.reset()
+            if (wasAutoCreated && workoutId > 0L) workoutDao.deleteById(workoutId)
+            sessionManager.endWorkout()
+        }
+    }
+
+    /**
+     * Arrête uniquement la calibration (simple listener local, sans impact si le tracé n'a pas
+     * démarré). Ne PAS arrêter le suivi GPS ni libérer la session active ici : le retour arrière
+     * (popBackStack) efface ce ViewModel alors que le [RunningTrackingService] continue en
+     * arrière-plan (foreground service indépendant). Libérer la session ici la rendrait
+     * supprimable par erreur pendant qu'elle tourne encore (cf. cancelWorkout() pour l'arrêt explicite).
+     */
     override fun onCleared() {
         gpsTrackingController.stopCalibration()
-        sessionManager.endWorkout()
         super.onCleared()
     }
 

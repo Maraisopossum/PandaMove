@@ -57,6 +57,7 @@ fun RunningScreen(
     viewModel: RunningListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activeWorkoutId by viewModel.activeWorkoutId.collectAsStateWithLifecycle()
 
     // "Séance directe" : la séance libre est créée en base puis on bascule directement sur l'exécution GPS.
     LaunchedEffect(uiState.quickStartWorkoutId) {
@@ -270,8 +271,8 @@ fun RunningScreen(
                                 onReschedule = if (!isSelectionMode) {
                                     { rescheduleTargetId = w.id; showReschedulePicker = true }
                                 } else null,
-                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToExecute(w.id) },
-                                onLongClick = { toggle(w.id) },
+                                onClick = { if (isSelectionMode) { if (w.id != activeWorkoutId) toggle(w.id) } else onNavigateToExecute(w.id) },
+                                onLongClick = { if (w.id != activeWorkoutId) toggle(w.id) },
                             )
                         }
                     }

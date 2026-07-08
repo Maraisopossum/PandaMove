@@ -90,6 +90,10 @@
     <string name="running_execute_finish_dialog_body">Les résultats seront sauvegardés et la séance marquée comme terminée.</string>
     <string name="running_execute_finish_button">Terminer</string>
     <string name="running_execute_cancel_button">Annuler</string>
+    <string name="running_execute_exit_dialog_title">Séance en cours</string>
+    <string name="running_execute_exit_dialog_body">Le suivi GPS continue en arrière-plan si vous quittez sans l\'annuler.</string>
+    <string name="running_execute_exit_keep_running">Continuer en arrière-plan</string>
+    <string name="running_execute_exit_cancel_seance">Annuler la séance</string>
     <string name="running_execute_global_results_label">RÉSULTATS GLOBAUX</string>
     <string name="running_execute_cell_distance">Distance (km)</string>
     <string name="running_execute_cell_time">Temps (mm:ss)</string>
