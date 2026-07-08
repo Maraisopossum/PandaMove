@@ -254,6 +254,7 @@ fun PandaFitNavHost() {
                 RunningScreen(
                     onNavigateToDetail        = { id -> navController.navigate(RunningRoutes.detail(id)) },
                     onNavigateToExecute       = { id -> navController.navigate(RunningRoutes.execute(id)) },
+                    onNavigateToEdit          = { id -> navController.navigate(RunningRoutes.edit(id)) },
                     onNavigateToCreate        = { navController.navigate(RunningRoutes.CREATE) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                 )

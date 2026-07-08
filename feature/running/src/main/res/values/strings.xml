@@ -129,6 +129,8 @@
     <string name="workout_result_best_pace_rep">Répétition #%1$d</string>
     <string name="workout_result_target_low">Cible basse (%1$s)</string>
     <string name="workout_result_target_high">Cible haute (%1$s)</string>
+    <string name="workout_result_best_km_label">Meilleur km</string>
+    <string name="workout_result_worst_km_label">Allure la plus lente</string>
 
     <!-- Table headers (execute + report) -->
     <string name="running_table_col_num">#</string>

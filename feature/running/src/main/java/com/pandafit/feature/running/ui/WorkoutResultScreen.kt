@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,7 +58,9 @@ import com.pandafit.designsystem.theme.PandaRed
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.running.R
 import com.pandafit.feature.running.model.EffortClassification
+import com.pandafit.feature.running.model.FreeRunAnalysis
 import com.pandafit.feature.running.model.IntervalAnalysis
+import com.pandafit.feature.running.model.KmSplit
 import com.pandafit.feature.running.model.MascotVariant
 import com.pandafit.feature.running.model.MetricItem
 import com.pandafit.feature.running.model.SignatureMetric
@@ -289,10 +290,7 @@ private fun PandaFeedbackBanner(feedback: WorkoutFeedback) {
     }
 }
 
-/**
- * Contenu variable selon le type de séance. FreeRunAnalysis (graphique allure/dénivelé, régularité
- * course libre) reste à faire dans une étape ultérieure.
- */
+/** Contenu variable selon le type de séance. */
 @Composable
 private fun WorkoutAnalysisSection(uiState: WorkoutResultUiState, workout: WorkoutEntity) {
     Column {
@@ -303,10 +301,12 @@ private fun WorkoutAnalysisSection(uiState: WorkoutResultUiState, workout: Worko
             color = PandaOnBackground,
         )
         Spacer(Modifier.height(8.dp))
-        val analysis = uiState.intervalAnalysis
+        val intervalAnalysis = uiState.intervalAnalysis
+        val freeRunAnalysis = uiState.freeRunAnalysis
         when {
-            uiState.hasIntervals && analysis != null -> IntervalWorkoutAnalysis(analysis)
-            else -> BasicWorkoutAnalysis(workout) // FreeRunAnalysis — étape ultérieure
+            uiState.hasIntervals && intervalAnalysis != null -> IntervalWorkoutAnalysis(intervalAnalysis)
+            !uiState.hasIntervals && freeRunAnalysis != null -> FreeRunAnalysisSection(freeRunAnalysis, workout)
+            else -> BasicWorkoutAnalysis(workout)
         }
     }
 }
@@ -467,6 +467,111 @@ private fun IntervalEffortChart(analysis: IntervalAnalysis) {
                 style = MaterialTheme.typography.labelSmall,
                 color = PandaSubtext,
             )
+        }
+    }
+}
+
+@Composable
+private fun FreeRunAnalysisSection(analysis: FreeRunAnalysis, workout: WorkoutEntity) {
+    Column {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            workout.resultPaceAvgMinPerKm?.let {
+                Column {
+                    Text(stringResource(R.string.workout_result_avg_pace_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                    Text("${formatPace(it)} /km", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaOnBackground)
+                }
+            }
+            analysis.regularityPercent?.let { pct ->
+                Column {
+                    Text(stringResource(R.string.workout_result_regularity_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                    Text("$pct %", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaOnBackground)
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        FreeRunPaceChart(analysis.splits)
+        Spacer(Modifier.height(16.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Column {
+                Text(stringResource(R.string.workout_result_best_km_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                Text(
+                    "${formatPaceSecPerKm(analysis.bestSplit.paceSecPerKm)} /km",
+                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaGreen,
+                )
+            }
+            Column {
+                Text(stringResource(R.string.workout_result_worst_km_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                Text(
+                    "${formatPaceSecPerKm(analysis.worstSplit.paceSecPerKm)} /km",
+                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaOnBackground,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Graphique allure (+ dénivelé si disponible) par km, en Canvas unique (cf. leçon de l'étape
+ * intervalles : éviter les composables imbriqués multiples par point, préférer un seul Canvas).
+ */
+@Composable
+private fun FreeRunPaceChart(splits: List<KmSplit>) {
+    val hasElevation = splits.any { (it.elevationGainM ?: 0) > 0 }
+    val slowestPace = splits.maxOf { it.paceSecPerKm }
+    val fastestPace = splits.minOf { it.paceSecPerKm }
+    val paceRange = (slowestPace - fastestPace).coerceAtLeast(1)
+    val maxElevation = splits.maxOf { it.elevationGainM ?: 0 }.coerceAtLeast(1)
+
+    val paceLineColor = PandaGreen
+    val elevationColor = com.pandafit.designsystem.theme.PandaBlue
+
+    Column {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp),
+        ) {
+            val slotWidth = size.width / splits.size
+            val chartHeight = size.height
+
+            // Dénivelé — aire légère en fond, à l'échelle indépendante de l'allure.
+            if (hasElevation) {
+                val elevationPath = androidx.compose.ui.graphics.Path()
+                elevationPath.moveTo(0f, chartHeight)
+                splits.forEachIndexed { index, split ->
+                    val x = index * slotWidth + slotWidth / 2
+                    val elevationFraction = (split.elevationGainM ?: 0).toFloat() / maxElevation
+                    val y = chartHeight - (chartHeight * 0.4f * elevationFraction)
+                    elevationPath.lineTo(x, y)
+                }
+                elevationPath.lineTo(size.width, chartHeight)
+                elevationPath.close()
+                drawPath(elevationPath, color = elevationColor.copy(alpha = 0.15f))
+            }
+
+            // Allure — ligne principale. Axe inversé : allure plus rapide (valeur plus petite) = plus haut.
+            val paceLinePath = androidx.compose.ui.graphics.Path()
+            splits.forEachIndexed { index, split ->
+                val x = index * slotWidth + slotWidth / 2
+                val paceFraction = 1f - (split.paceSecPerKm - fastestPace).toFloat() / paceRange
+                val y = chartHeight * (1f - paceFraction * 0.9f - 0.05f)
+                if (index == 0) paceLinePath.moveTo(x, y) else paceLinePath.lineTo(x, y)
+                drawCircle(color = paceLineColor, radius = 6f, center = androidx.compose.ui.geometry.Offset(x, y))
+            }
+            drawPath(paceLinePath, color = paceLineColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5f))
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            splits.forEach { split ->
+                Text(
+                    "${split.km}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                    maxLines = 1,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }

@@ -51,6 +51,7 @@ import java.util.Locale
 fun RunningScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToExecute: (Long) -> Unit,
+    onNavigateToEdit: (Long) -> Unit,
     onNavigateToCreate: () -> Unit,
     onOpenDrawer: () -> Unit = {},
     viewModel: RunningListViewModel = hiltViewModel(),
@@ -253,7 +254,7 @@ fun RunningScreen(
                                 isSelectionMode = isSelectionMode,
                                 onDuplicate = if (!isSelectionMode) { { viewModel.duplicateWorkout(w.id) } } else null,
                                 onAssign = if (!isSelectionMode) { { assignTarget = w; showAssignMenu = true } } else null,
-                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToDetail(w.id) },
+                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToEdit(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
                         }

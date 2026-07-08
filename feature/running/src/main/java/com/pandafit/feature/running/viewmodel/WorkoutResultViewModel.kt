@@ -16,9 +16,11 @@ import com.pandafit.feature.running.model.MetricItem
 import com.pandafit.feature.running.model.RunRepeatExecution
 import com.pandafit.feature.running.model.SignatureMetric
 import com.pandafit.feature.running.model.WorkoutFeedback
+import com.pandafit.feature.running.model.FreeRunAnalysis
 import com.pandafit.feature.running.model.IntervalAnalysis
 import com.pandafit.feature.running.model.computeAvailableMetrics
 import com.pandafit.feature.running.model.computeFeedback
+import com.pandafit.feature.running.model.computeFreeRunAnalysis
 import com.pandafit.feature.running.model.computeIntervalAnalysis
 import com.pandafit.feature.running.model.computeMascotVariant
 import com.pandafit.feature.running.model.computeSignatureMetric
@@ -43,6 +45,7 @@ data class WorkoutResultUiState(
     val gpsPoints: List<Pair<Double, Double>> = emptyList(),
     val mascotVariant: MascotVariant = MascotVariant.JOY_MALE,
     val intervalAnalysis: IntervalAnalysis? = null,
+    val freeRunAnalysis: FreeRunAnalysis? = null,
 )
 
 private val json = Json { ignoreUnknownKeys = true }
@@ -86,9 +89,8 @@ class WorkoutResultViewModel @Inject constructor(
             val hasIntervals = hasRealIntervals(repeatBlocks)
             val isFemale = userPreferencesRepository.genderFlow.first() == "FEMALE"
 
-            val gpsPoints = gpsDao.getByWorkout(workoutId)
-                .sortedBy { it.pointIndex }
-                .map { Pair(it.latitude, it.longitude) }
+            val gpsTrackPoints = gpsDao.getByWorkout(workoutId).sortedBy { it.pointIndex }
+            val gpsPoints = gpsTrackPoints.map { Pair(it.latitude, it.longitude) }
 
             _uiState.value = WorkoutResultUiState(
                 isLoading = false,
@@ -101,6 +103,7 @@ class WorkoutResultViewModel @Inject constructor(
                 gpsPoints = gpsPoints,
                 mascotVariant = computeMascotVariant(isFemale),
                 intervalAnalysis = if (hasIntervals) computeIntervalAnalysis(repeatBlocks) else null,
+                freeRunAnalysis = if (!hasIntervals) computeFreeRunAnalysis(gpsTrackPoints) else null,
             )
         }
     }
