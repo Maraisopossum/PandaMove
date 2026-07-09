@@ -1,5 +1,6 @@
 package com.pandafit.feature.calendar.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,11 +19,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -32,10 +35,9 @@ import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +56,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -81,6 +85,7 @@ import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.calendar.R
 import com.pandafit.feature.calendar.model.CalendarUiState
+import com.pandafit.feature.calendar.model.UpcomingItem
 import com.pandafit.feature.calendar.viewmodel.CalendarViewModel
 import java.time.LocalDate
 import java.time.YearMonth
@@ -99,7 +104,7 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showFabMenu by remember { mutableStateOf(false) }
+    var showAddChooser by remember { mutableStateOf(false) }
     var showSeancePicker by remember { mutableStateOf(false) }
     var showRunningPicker by remember { mutableStateOf(false) }
     var showCyclingPicker by remember { mutableStateOf(false) }
@@ -107,6 +112,17 @@ fun CalendarScreen(
     var rescheduleWorkoutId by remember { mutableStateOf<Long?>(null) }
     var showReschedulePicker by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Bottom sheet — choix du type de séance à ajouter
+    if (showAddChooser) {
+        ModalBottomSheet(onDismissRequest = { showAddChooser = false }, sheetState = sheetState) {
+            AddSessionChooserSheet(
+                onPickStrength = { showAddChooser = false; showSeancePicker = true },
+                onPickRunning = { showAddChooser = false; showRunningPicker = true },
+                onPickCycling = { showAddChooser = false; showCyclingPicker = true },
+            )
+        }
+    }
 
     // Bottom sheet — renforcement
     if (showSeancePicker) {
@@ -184,34 +200,6 @@ fun CalendarScreen(
                 contentColor = Color.White,
             )
         },
-        // TODO: réactiver le FAB quand le flux d'affectation depuis le calendrier sera finalisé
-//        floatingActionButton = {
-//            Box {
-//                FloatingActionButton(
-//                    onClick = { showFabMenu = true },
-//                    containerColor = PandaPurple,
-//                ) {
-//                    Icon(Icons.Default.Add, "Ajouter", tint = Color.White)
-//                }
-//                DropdownMenu(expanded = showFabMenu, onDismissRequest = { showFabMenu = false }) {
-//                    DropdownMenuItem(
-//                        text = { Text("Renforcement") },
-//                        leadingIcon = { Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(18.dp)) },
-//                        onClick = { showFabMenu = false; showSeancePicker = true },
-//                    )
-//                    DropdownMenuItem(
-//                        text = { Text("Course à pieds") },
-//                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.DirectionsRun, null, tint = PandaGreen, modifier = Modifier.size(18.dp)) },
-//                        onClick = { showFabMenu = false; showRunningPicker = true },
-//                    )
-//                    DropdownMenuItem(
-//                        text = { Text("Vélo") },
-//                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.DirectionsBike, null, tint = PandaBlue, modifier = Modifier.size(18.dp)) },
-//                        onClick = { showFabMenu = false; showCyclingPicker = true },
-//                    )
-//                }
-//            }
-//        },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         if (uiState.error != null) {
@@ -224,17 +212,23 @@ fun CalendarScreen(
         ) {
             // Filtres sport
             item {
+                val allSelected = uiState.activeFilters.size == WorkoutType.entries.size
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    CalendarSportToggle(
+                        icon = Icons.Default.CalendarMonth,
+                        color = PandaGreen,
+                        selected = allSelected,
+                        onClick = viewModel::selectAllFilters,
+                    )
                     WorkoutType.entries.forEach { type ->
-                        PandaFilterChip(
-                            label = workoutTypeLabel(type),
+                        CalendarSportToggle(
+                            icon = workoutTypeIcon(type),
+                            color = workoutTypeColor(type),
                             selected = type in uiState.activeFilters,
-                            onSelectedChange = { viewModel.toggleFilter(type) },
-                            selectedColor = workoutTypeColor(type),
-                            leadingIcon = workoutTypeIcon(type),
+                            onClick = { viewModel.toggleFilter(type) },
                         )
                     }
                 }
@@ -265,12 +259,18 @@ fun CalendarScreen(
             item {
                 Spacer(Modifier.height(16.dp))
                 val dateLabel = uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRENCH))
-                Text(
-                    text = dateLabel.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                Row(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(Icons.Default.CalendarMonth, null, tint = PandaGreen, modifier = Modifier.size(20.dp))
+                    Text(
+                        text = dateLabel.replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
             }
 
@@ -279,12 +279,13 @@ fun CalendarScreen(
                 || uiState.selectedDayBreathingSessions.isNotEmpty()
             if (!hasContent) {
                 item {
-                    Text(
-                        stringResource(R.string.calendar_no_session_day),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PandaSubtext,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
+                    PandaCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        CalendarEmptyDayState(
+                            gender = uiState.gender,
+                            onAddSession = { showAddChooser = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             } else {
                 items(uiState.filteredSelectedDayWorkouts, key = { "w_${it.id}" }) { workout ->
@@ -318,7 +319,73 @@ fun CalendarScreen(
                     )
                 }
             }
+
+            // Prochaines séances
+            if (uiState.upcomingItems.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(20.dp))
+                    Text(
+                        "Prochaines séances",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                items(uiState.upcomingItems, key = { "u_${it::class.simpleName}_${it.date}_${it.hashCode()}" }) { item ->
+                    UpcomingItemRow(item = item, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                }
+            }
         }
+    }
+}
+
+// ===== Bottom sheet — choix du type de séance à ajouter =====
+
+@Composable
+private fun AddSessionChooserSheet(
+    onPickStrength: () -> Unit,
+    onPickRunning: () -> Unit,
+    onPickCycling: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            "Ajouter une séance",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+        HorizontalDivider()
+        TextButton(
+            onClick = onPickStrength,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("Renforcement", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        TextButton(
+            onClick = onPickRunning,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.DirectionsRun, null, tint = PandaGreen, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("Course à pieds", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        TextButton(
+            onClick = onPickCycling,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.DirectionsBike, null, tint = PandaBlue, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("Vélo", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -411,6 +478,117 @@ private fun WorkoutPickerSheet(
     }
 }
 
+// ===== État vide du jour sélectionné =====
+
+@Composable
+private fun CalendarEmptyDayState(gender: String, onAddSession: () -> Unit, modifier: Modifier = Modifier) {
+    val mascotRes = if (gender == "FEMALE") {
+        R.drawable.panda_calendar_empty_female
+    } else {
+        R.drawable.panda_calendar_empty_male
+    }
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier.size(140.dp).clip(CircleShape).background(PandaGreen.copy(alpha = 0.10f)),
+            )
+            Image(
+                painter = painterResource(mascotRes),
+                contentDescription = null,
+                modifier = Modifier.size(120.dp),
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Journée libre pour le moment !",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.calendar_no_session_day),
+            style = MaterialTheme.typography.bodyMedium,
+            color = PandaSubtext,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = onAddSession,
+            colors = ButtonDefaults.buttonColors(containerColor = PandaGreen),
+        ) {
+            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Ajouter une séance")
+        }
+    }
+}
+
+// ===== Toggle filtre sport (pictogramme seul) =====
+
+@Composable
+private fun CalendarSportToggle(
+    icon: ImageVector,
+    color: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(if (selected) color else color.copy(alpha = 0.12f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            null,
+            tint = if (selected) Color.White else color,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+// ===== Section "Prochaines séances" =====
+
+@Composable
+private fun UpcomingItemRow(item: UpcomingItem, modifier: Modifier = Modifier) {
+    val dateLabel = item.date.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.FRENCH)).replaceFirstChar { it.uppercase() }
+    val (icon, color, title) = when (item) {
+        is UpcomingItem.Workout -> Triple(workoutTypeIcon(item.workout.workoutType), workoutTypeColor(item.workout.workoutType), item.workout.name)
+        is UpcomingItem.Instance -> Triple(Icons.Default.FitnessCenter, PandaPurple, item.seanceName)
+    }
+    val statusLabel = if (item.isCompleted) "Terminé" else "Prévu"
+    PandaCard(modifier = modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            SportIconBadge(icon = icon, contentDescription = null, accentColor = color, size = 40.dp, iconSize = 20.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Default.CalendarMonth, null, tint = PandaSubtext, modifier = Modifier.size(13.dp))
+                    Text(dateLabel, style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                }
+            }
+            Text(
+                statusLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = color,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(color.copy(alpha = 0.12f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
+    }
+}
+
 // ===== Grille calendrier =====
 
 @Composable
@@ -442,7 +620,7 @@ private fun MonthCalendarGrid(
     val today = LocalDate.now()
     val firstDayOfMonth = currentMonth.atDay(1)
     val daysInMonth = currentMonth.lengthOfMonth()
-    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
+    val firstDayOfWeek = (firstDayOfMonth.dayOfWeek.value + 6) % 7
     val totalCells = firstDayOfWeek + daysInMonth
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -488,18 +666,22 @@ private fun CalendarDayCell(
     onClick: () -> Unit, modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier.aspectRatio(1f).clip(CircleShape)
-            .background(when { isSelected -> PandaGreen; isToday -> PandaGreen.copy(alpha = 0.15f); else -> Color.Transparent })
-            .clickable(onClick = onClick),
+        modifier = modifier.aspectRatio(1f).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                day.toString(),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
-                color = when { isSelected -> Color.White; isToday -> PandaGreen; else -> MaterialTheme.colorScheme.onSurface },
-            )
+            Box(
+                modifier = Modifier.size(30.dp).clip(CircleShape)
+                    .background(when { isSelected -> PandaGreen; isToday -> PandaGreen.copy(alpha = 0.15f); else -> Color.Transparent }),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    day.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = when { isSelected -> Color.White; isToday -> PandaGreen; else -> MaterialTheme.colorScheme.onSurface },
+                )
+            }
             if (workouts.isNotEmpty() || hasStrengthInstance || hasBreathingSession) {
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
                     workouts.take(2).forEach { SportDot(color = workoutTypeColor(it.workoutType), size = 5.dp) }

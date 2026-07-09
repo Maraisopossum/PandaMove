@@ -46,6 +46,9 @@ interface InstanceSeanceDao {
     @Query("SELECT * FROM instances_seance WHERE seance_id = :seanceId ORDER BY date DESC")
     fun observeForSeance(seanceId: Long): Flow<List<InstanceSeanceEntity>>
 
+    @Query("SELECT * FROM instances_seance WHERE date >= :today AND is_completed = 0 ORDER BY date ASC LIMIT :limit")
+    fun observeUpcoming(today: LocalDate, limit: Int = 10): Flow<List<InstanceSeanceEntity>>
+
     @Query("SELECT COUNT(*) FROM instances_seance WHERE seance_id = :seanceId")
     suspend fun countForSeance(seanceId: Long): Int
 

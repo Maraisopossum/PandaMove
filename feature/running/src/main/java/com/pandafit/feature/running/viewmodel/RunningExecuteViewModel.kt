@@ -157,9 +157,6 @@ class RunningExecuteViewModel @Inject constructor(
 
     /** Carte "MAINTENANT" : dérivée du même segment que l'auto-lap, avec progression bornée [0f, 1f]. */
     private fun computeLivePhase(state: RunningExecuteUiState, track: LiveTrackState): LivePhaseUiState? {
-        if (autoLapIndex !in autoLapSegments.indices) return null
-        val seg = autoLapSegments[autoLapIndex]
-
         // "Séance directe" : pas de cible/étapes, juste le chronomètre qui monte depuis l'ouverture de l'écran.
         if (state.isFreeRun) {
             return LivePhaseUiState(
@@ -175,6 +172,26 @@ class RunningExecuteViewModel @Inject constructor(
                 isLastStep = false,
             )
         }
+
+        // Séance structurée sans étape enregistrée (ex. import legacy avec seul l'objectif texte) :
+        // même rendu que la course libre plutôt que de masquer silencieusement tout le cockpit.
+        if (autoLapSegments.isEmpty()) {
+            return LivePhaseUiState(
+                stepType = RunStepType.RUNNING,
+                label = "COURSE",
+                isDistanceBased = false,
+                currentValueLabel = formatHms(track.durationSec),
+                targetValueLabel = "",
+                progress = 0f,
+                remainingLabel = "",
+                targetHint = null,
+                nextLabel = null,
+                isLastStep = false,
+            )
+        }
+
+        if (autoLapIndex !in autoLapSegments.indices) return null
+        val seg = autoLapSegments[autoLapIndex]
 
         val elapsed = when (seg.endType) {
             RunEndType.DURATION -> (track.durationSec - autoLapBaselineDurationSec).toDouble()

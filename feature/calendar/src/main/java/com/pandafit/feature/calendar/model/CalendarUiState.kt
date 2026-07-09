@@ -10,6 +10,22 @@ import java.time.YearMonth
 
 enum class CalendarViewMode { MONTH, WEEK, DAY }
 
+/** Élément affiché dans la section "Prochaines séances" — unifie workouts et instances strength. */
+sealed interface UpcomingItem {
+    val date: LocalDate
+    val isCompleted: Boolean
+
+    data class Workout(val workout: WorkoutEntity) : UpcomingItem {
+        override val date: LocalDate get() = workout.scheduledDate
+        override val isCompleted: Boolean get() = workout.isCompleted
+    }
+
+    data class Instance(val instance: InstanceSeanceEntity, val seanceName: String) : UpcomingItem {
+        override val date: LocalDate get() = instance.date
+        override val isCompleted: Boolean get() = instance.isCompleted
+    }
+}
+
 data class CalendarUiState(
     val isLoading: Boolean = true,
     val currentMonth: YearMonth = YearMonth.now(),
@@ -27,6 +43,8 @@ data class CalendarUiState(
     val availableCyclingWorkouts: List<WorkoutEntity> = emptyList(),
     val activeFilters: Set<WorkoutType> = WorkoutType.entries.toSet(),
     val showStrengthInstances: Boolean = true,
+    val gender: String = "MALE",
+    val upcomingItems: List<UpcomingItem> = emptyList(),
     val error: String? = null,
 ) {
     val filteredWorkoutsByDate: Map<LocalDate, List<WorkoutEntity>>
