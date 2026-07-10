@@ -161,7 +161,7 @@ fun CalendarScreen(
     if (showRunningPicker) {
         ModalBottomSheet(onDismissRequest = { showRunningPicker = false }, sheetState = sheetState) {
             WorkoutPickerSheet(
-                title = "Affecter une séance running",
+                title = stringResource(R.string.calendar_sheet_running_title),
                 workouts = uiState.availableRunningWorkouts,
                 accentColor = PandaGreen,
                 icon = Icons.AutoMirrored.Filled.DirectionsRun,
@@ -178,7 +178,7 @@ fun CalendarScreen(
     if (showCyclingPicker) {
         ModalBottomSheet(onDismissRequest = { showCyclingPicker = false }, sheetState = sheetState) {
             WorkoutPickerSheet(
-                title = "Affecter une séance vélo",
+                title = stringResource(R.string.calendar_sheet_cycling_title),
                 workouts = uiState.availableCyclingWorkouts,
                 accentColor = PandaBlue,
                 icon = Icons.AutoMirrored.Filled.DirectionsBike,
@@ -325,7 +325,7 @@ fun CalendarScreen(
                 item {
                     Spacer(Modifier.height(20.dp))
                     Text(
-                        "Prochaines séances",
+                        stringResource(R.string.calendar_upcoming_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -350,7 +350,7 @@ private fun AddSessionChooserSheet(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            "Ajouter une séance",
+            stringResource(R.string.calendar_add_session_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -363,7 +363,7 @@ private fun AddSessionChooserSheet(
         ) {
             Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
-            Text("Renforcement", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.calendar_add_strength_option), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         TextButton(
@@ -373,7 +373,7 @@ private fun AddSessionChooserSheet(
         ) {
             Icon(Icons.AutoMirrored.Filled.DirectionsRun, null, tint = PandaGreen, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
-            Text("Course à pieds", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.calendar_add_running_option), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         TextButton(
@@ -383,7 +383,7 @@ private fun AddSessionChooserSheet(
         ) {
             Icon(Icons.AutoMirrored.Filled.DirectionsBike, null, tint = PandaBlue, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
-            Text("Vélo", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.calendar_add_cycling_option), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         }
         Spacer(Modifier.height(24.dp))
     }
@@ -503,7 +503,7 @@ private fun CalendarEmptyDayState(gender: String, onAddSession: () -> Unit, modi
         }
         Spacer(Modifier.height(12.dp))
         Text(
-            "Journée libre pour le moment !",
+            stringResource(R.string.calendar_empty_day_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -522,7 +522,7 @@ private fun CalendarEmptyDayState(gender: String, onAddSession: () -> Unit, modi
         ) {
             Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Ajouter une séance")
+            Text(stringResource(R.string.calendar_add_session_title))
         }
     }
 }
@@ -562,7 +562,7 @@ private fun UpcomingItemRow(item: UpcomingItem, modifier: Modifier = Modifier) {
         is UpcomingItem.Workout -> Triple(workoutTypeIcon(item.workout.workoutType), workoutTypeColor(item.workout.workoutType), item.workout.name)
         is UpcomingItem.Instance -> Triple(Icons.Default.FitnessCenter, PandaPurple, item.seanceName)
     }
-    val statusLabel = if (item.isCompleted) "Terminé" else "Prévu"
+    val statusLabel = stringResource(if (item.isCompleted) R.string.calendar_status_completed else R.string.calendar_status_planned)
     PandaCard(modifier = modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             SportIconBadge(icon = icon, contentDescription = null, accentColor = color, size = 40.dp, iconSize = 20.dp)
@@ -823,14 +823,11 @@ private fun CalendarBreathingItem(
                 Text(session.methodName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 Text("$durationLabel · ${session.cyclesCompleted} cycle${if (session.cyclesCompleted > 1) "s" else ""}", style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
             }
-            Icon(Icons.Default.CheckCircle, "Complétée", tint = KalyptusGreen, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.CheckCircle, stringResource(R.string.calendar_completed_cd), tint = KalyptusGreen, modifier = Modifier.size(18.dp))
         }
     }
 }
 
-private fun workoutTypeLabel(type: WorkoutType) = when (type) {
-    WorkoutType.RUNNING -> "Running"; WorkoutType.CYCLING -> "Vélo"; WorkoutType.STRENGTH -> "Renfort"; WorkoutType.HIKING -> "Rando"
-}
 private fun workoutTypeColor(type: WorkoutType) = when (type) {
     WorkoutType.RUNNING -> PandaGreen; WorkoutType.CYCLING -> PandaBlue; WorkoutType.STRENGTH -> PandaPurple; WorkoutType.HIKING -> PandaAmber
 }

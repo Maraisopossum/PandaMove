@@ -33,4 +33,12 @@
     <string name="calendar_change_date_cd">Changer la date</string>
     <string name="calendar_start_cd">Démarrer</string>
     <string name="calendar_instance_fallback">Séance</string>
+    <string name="calendar_upcoming_title">Prochaines séances</string>
+    <string name="calendar_add_session_title">Ajouter une séance</string>
+    <string name="calendar_add_strength_option">Renforcement</string>
+    <string name="calendar_add_running_option">Course à pieds</string>
+    <string name="calendar_add_cycling_option">Vélo</string>
+    <string name="calendar_empty_day_title">Journée libre pour le moment !</string>
+    <string name="calendar_status_planned">Prévu</string>
+    <string name="calendar_status_completed">Terminé</string>
 </resources>
