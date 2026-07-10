@@ -34,7 +34,7 @@ class FooViewModel @Inject constructor(
 - `StatsPreferencesModule` : fournit le DataStore stats avec `@StatsDataStore`
 
 ## Room
-- Version actuelle : **20** (migrations v3→20 dans `PandaFitDatabase.kt`)
+- Version actuelle : **25** (migrations v3→25 dans `PandaFitDatabase.kt`)
 - Migrations dans `PandaFitDatabase.kt` + `addMigrations(...)` dans `DatabaseModule.kt`
 - `@Relation` sans `ORDER BY` → toujours re-trier en Kotlin après récupération
 - `TypeConverters` pour `LocalDate`, `LocalDateTime`, enums

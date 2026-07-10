@@ -87,7 +87,7 @@ Deload (-10% après échecs répétés) : **proposé** via `ProgressionRecapDial
 ## État
 ✅ Fonctionne : home, running (+GPS live), cycling, strength, warmup, calendar, stats, profile, timer  
 ✅ GPS live tracking running — RunningTrackingService + GpsTrackingRepository + OSMDroid map  
-✅ Export JSON v3.0 — DataExportManager / DataImportManager  
+✅ Export JSON v3.2 — DataExportManager / DataImportManager  
 ✅ Catalogue exercices — 16 groupes musculaires, édition custom, encodeur HTML standalone  
 ✅ Surcharge progressive — incrément qualitatif par inventaire matériel réel, deload proposé (pas imposé)  
 🔄 En cours : —  

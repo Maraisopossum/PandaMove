@@ -1,8 +1,8 @@
-# PandaMove — Contexte compact IA (v23)
+# PandaMove — Contexte compact IA (v25)
 > Charge ce fichier en premier. Il remplace PROJECT_CONTEXT_MIN + AI_INDEX + ROOM_SCHEMA en une seule lecture.
 
 ## App
-Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, timer) · MVVM+UDF · Hilt · Room schema v23 · minSdk 31
+Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, respiration, randonnée, timer) · MVVM+UDF · Hilt · Room schema v25 · minSdk 31
 
 ## Modules
 ```
@@ -11,7 +11,7 @@ app/
                  RunningTrackingService (ForegroundService GPS, @AndroidEntryPoint)
   navigation/    PandaFitNavHost.kt · PandaFitDestination.kt
 core/
-  database/      PandaFitDatabase (v23) · DAOs · entities · migrations 3→23
+  database/      PandaFitDatabase (v25) · DAOs · entities · migrations 3→25
                  ActiveSessionManager (@Singleton, StateFlow chrono)
                  catalog/GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
                  catalog/EquipmentRepository (@Singleton, inventaire matériel réel — voir section dédiée)
@@ -25,9 +25,12 @@ feature/
   cycling        CyclingScreen · CyclingWorkoutDetailScreen · CyclingListViewModel
   strength       SeanceListScreen · SeanceCreateScreen · InstanceExecuteScreen · InstanceReportScreen
   warmup         WarmupListScreen · catégories WARMUP_GENERAL|MOBILITY|ACTIVATION
-  calendar       AppCalendarView (lecture seule, multi-sport)
+  calendar       CalendarScreen · CalendarViewModel — vue multi-sport, filtres, affectation,
+                 section "Prochaines séances" (workouts + instances strength à venir)
   stats          StatsScreen · StatsViewModel · StatsPreferences (DataStore)
   profile        ProfileScreen · ExerciseCatalogScreen · DataExportManager · DataImportManager
+  breathing      BreathingSessionScreen · BreathingMethodSelectionScreen — méthodes prédéfinies + custom
+  hiking         module randonnée (voir feature/hiking/)
   timer          Minuteur autonome : COUNTDOWN|HIIT|TABATA|EMOM|AMRAP|FOR_TIME
 ```
 
@@ -140,7 +143,7 @@ val selected = state.multiSelectedIds.mapNotNull { id -> exercisesById[id] }  //
 
 ## Export JSON
 ```
-DataExportManager.exportToJson() → PandaMoveExport v3.0
+DataExportManager.exportToJson() → PandaMoveExport v3.2
 DataImportManager.import(json) → parse + insert DB
 Schéma : PandaMoveExport > StrengthTemplateDto > BlocDto > ExerciceDto + CustomExerciseDto
 ```

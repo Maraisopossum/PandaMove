@@ -1,4 +1,4 @@
-# PandaFit — Contexte IA minimal (v20)
+# PandaFit — Contexte IA minimal (v25)
 
 ## App
 Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, timer) · Module-based architecture
@@ -8,7 +8,7 @@ Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, 
 app/                        → NavHost, DI wiring
   service/                  → ActiveSessionService (chrono session), RunningTrackingService (GPS ForegroundService)
 core/
-  database/                 → Room (schema v20), DAOs, entities, migrations (v3→20)
+  database/                 → Room (schema v25), DAOs, entities, migrations (v3→25)
                                catalog/ → GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
                                ActiveSessionManager (@Singleton, StateFlow chrono)
   designsystem/             → composants partagés (PandaCard, PandaTopBar, AssignSessionDialogs)
@@ -21,12 +21,14 @@ feature/
   cycling/                  → vélo (CyclingScreen)
   stats/                    → StatsScreen + StatsViewModel + StatsConfig (DataStore)
   profile/                  → ProfileScreen + export/import JSON + catalogue exercices (16 groupes musculaires)
-  calendar/                 → AppCalendarView (lecture seule, multi-sport)
+  calendar/                 → CalendarScreen + CalendarViewModel (filtres, affectation, "Prochaines séances")
+  breathing/                → BreathingSessionScreen (méthodes prédéfinies + custom)
+  hiking/                   → module randonnée
   timer/                    → Minuteur autonome (COUNTDOWN|HIIT|TABATA|EMOM|AMRAP|FOR_TIME)
 ```
 
 ## Stack technique
-- Compose + Material3 · Hilt · Room v20 · Navigation Compose · DataStore Preferences
+- Compose + Material3 · Hilt · Room v25 · Navigation Compose · DataStore Preferences
 - Kotlin coroutines/Flow · `@HiltViewModel` · `SavedStateHandle`
 - kotlinx.serialization (export JSON) · Garmin TCX export
 - OSMDroid 6.1.20 (carte GPS running) · play-services-location 21.3.0 (FusedLocationProviderClient)

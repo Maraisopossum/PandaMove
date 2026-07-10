@@ -3,7 +3,28 @@
 ## Source of truth
 - **Renforcement** : `InstanceSeanceEntity` (table `instances_seance`) — une ligne = une session planifiée
 - **Running / Vélo** : `WorkoutEntity` (table `workouts`) — `isTemplate=false`, `scheduledDate` = date planifiée
-- Vue calendrier (`AppCalendarView`) : agrège les deux sources, lecture seule
+- Écran calendrier (`feature/calendar/ui/CalendarScreen.kt` + `CalendarViewModel.kt`) : agrège les deux
+  sources par mois, **plus lecture seule** — filtres par sport, ajout de séance depuis l'état vide du
+  jour, reschedule/suppression, section "Prochaines séances" (voir plus bas)
+- ⚠ Ne pas confondre avec `core/designsystem/components/AppCalendarView.kt` — grille de calendrier
+  réutilisable générique (utilisée notamment par les dialogs d'affectation ci-dessous), sans lien direct
+  avec l'écran Calendrier
+
+## Écran Calendrier — état actuel
+```
+Filtres sport (CalendarSportToggle) : pictogrammes ronds icône seule, "Tous" + un par WorkoutType
+  → toggleFilter(type) / selectAllFilters() dans CalendarViewModel
+Grille mensuelle : jour sélectionné/aujourd'hui en pastille 30dp (pas la cellule entière)
+  ⚠ premier jour de la semaine = (dayOfWeek.value + 6) % 7 — PAS dayOfWeek.value % 7 (bug corrigé :
+  décalait tous les jours d'une case, lundi=1 non ramené à l'offset 0)
+Jour sélectionné, vide : CalendarEmptyDayState — mascotte (gender-aware via UserPreferencesRepository
+  .genderFlow), titre + CTA "Ajouter une séance" → AddSessionChooserSheet (Renfort/Running/Vélo)
+  → réutilise SeancePickerSheet / WorkoutPickerSheet existants
+Jour sélectionné, non vide : CalendarWorkoutItem / CalendarInstanceItem / CalendarBreathingItem
+Section "Prochaines séances" : CalendarViewModel combine WorkoutDao.observeUpcoming() +
+  InstanceSeanceDao.observeUpcoming() (STRENGTH uniquement, WARMUP exclu), triées par date, limite 5
+  → modèle UpcomingItem (sealed interface Workout | Instance) dans CalendarUiState.kt
+```
 
 ## Composants réutilisables (designsystem)
 Tous dans `core/designsystem/components/AssignSessionDialogs.kt` :

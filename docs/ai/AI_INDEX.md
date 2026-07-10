@@ -1,4 +1,4 @@
-# AI_INDEX — Navigation rapide fichiers (schema v20)
+# AI_INDEX — Navigation rapide fichiers (schema v25)
 > **Démarrage rapide** : lis `CONTEXT_COMPACT.md` en premier (remplace 5 fichiers).  
 > Tâches courantes : voir `PROMPT_TEMPLATES.md` pour les templates de prompts.
 
@@ -52,7 +52,10 @@
 | Dialog une date | `AssignSessionDialogs.kt` · `AssignSingleDatePickerDialog` |
 | Dialog plusieurs dates | `AssignSessionDialogs.kt` · `AssignMultiDatePickerDialog` |
 | Dialog récurrence | `AssignSessionDialogs.kt` · `AssignRecurrenceDialog` |
-| Vue calendrier multi-sport | `feature/calendar/ui/AppCalendarView.kt` |
+| Écran calendrier multi-sport | `feature/calendar/ui/CalendarScreen.kt` |
+| VM calendrier | `feature/calendar/viewmodel/CalendarViewModel.kt` |
+| Grille calendrier mensuelle réutilisable (designsystem) | `core/designsystem/components/AppCalendarView.kt` — ⚠ ne pas confondre avec l'écran ci-dessus |
+| Prochaines séances (upcoming) | `CalendarViewModel` → `InstanceSeanceDao.observeUpcoming()` + `WorkoutDao.observeUpcoming()` |
 | Bug connu onDismiss | Voir `KNOWN_BUGS.md` (résolu) |
 
 ## Stats
@@ -89,8 +92,8 @@
 ## Base de données
 | Rôle | Fichier |
 |---|---|
-| Database (v20) | `core/database/PandaFitDatabase.kt` |
-| Migrations | `core/database/PandaFitDatabase.kt` — MIGRATION_3_4 … MIGRATION_19_20 |
+| Database (v25) | `core/database/PandaFitDatabase.kt` |
+| Migrations | `core/database/PandaFitDatabase.kt` — MIGRATION_3_4 … MIGRATION_24_25 |
 | WorkoutDao | `core/database/dao/WorkoutDao.kt` |
 | SeanceDao | `core/database/dao/SeanceDao.kt` |
 | InstanceSeanceDao | `core/database/dao/InstanceSeanceDao.kt` |
@@ -110,6 +113,20 @@
 | Minuteur autonome | `feature/timer/` — modes COUNTDOWN|HIIT|TABATA|EMOM|AMRAP|FOR_TIME |
 | Séparé du timer renforcement | `ActiveSessionManager` (@Singleton) pour le chrono session |
 
+## Respiration (Breathing)
+| Rôle | Fichier |
+|---|---|
+| Sélection méthode | `feature/breathing/ui/BreathingMethodSelectionScreen.kt` |
+| Session respiration | `feature/breathing/ui/BreathingSessionScreen.kt` |
+| Service foreground | `feature/breathing/service/BreathingService.kt` |
+| Méthodes custom (DB) | `core/database/entities/CustomBreathingMethodEntity.kt` — table `custom_breathing_method` (v17) |
+| Historique séances (DB) | `core/database/entities/BreathingSessionEntity.kt` — table `breathing_session` (v16) |
+
+## Randonnée (Hiking)
+| Rôle | Fichier |
+|---|---|
+| Écrans | `feature/hiking/` |
+
 ## Design System
 | Rôle | Fichier |
 |---|---|
@@ -122,14 +139,14 @@
 | `CONTEXT_COMPACT.md` | Contexte ultra-dense — lire EN PREMIER (remplace 5 fichiers) |
 | `PROMPT_TEMPLATES.md` | Templates de prompts par tâche (économie tokens) |
 | `ARCHITECTURE.md` | Patterns MVVM, Hilt, Room, GPS service, OSMDroid |
-| `ROOM_SCHEMA_MIN.md` | Schéma Room complet v20 |
-| `PROJECT_CONTEXT_MIN.md` | Contexte minimal v20 + flux critiques |
-| `RUNNING_FLOW.md` | Flux running + GPS live tracking v20 |
+| `ROOM_SCHEMA_MIN.md` | Schéma Room complet v25 |
+| `PROJECT_CONTEXT_MIN.md` | Contexte minimal v25 + flux critiques |
+| `RUNNING_FLOW.md` | Flux running + GPS live tracking (feature introduite v20) |
 | `STRENGTH_FLOW.md` | Flux renforcement + isolation template/instance |
 | `CYCLING_FLOW.md` | Flux vélo |
 | `WARMUP_FLOW.md` | Flux échauffement |
 | `STATS_FLOW.md` | Flux stats + config DataStore + fun cards |
-| `EXPORT_IMPORT_FLOW.md` | Export/import JSON v3.0 |
+| `EXPORT_IMPORT_FLOW.md` | Export/import JSON v3.2 |
 | `ASSIGN_FLOW.md` | Affectation calendrier détaillée |
 | `CALENDAR_SYSTEM.md` | Système calendrier + dialogs affectation |
 | `PROFILE_FLOW.md` | Profil + catalogue exercices + dark mode |

@@ -33,13 +33,13 @@ Fichiers à créer/modifier :
 Contexte : lis docs/ai/CONTEXT_COMPACT.md.
 
 Ajoute [DESCRIPTION DU CHANGEMENT DB] à la table [TABLE].
-Schema actuel : v20.
+Schema actuel : v25.
 
 À faire dans cet ordre :
 1. Modifier l'Entity : core/database/entities/[Entity].kt
-2. Écrire MIGRATION_20_21 dans PandaFitDatabase.kt
-3. Ajouter MIGRATION_20_21 dans DatabaseModule.addMigrations()
-4. Mettre à jour version = 21 dans PandaFitDatabase
+2. Écrire MIGRATION_25_26 dans PandaFitDatabase.kt
+3. Ajouter MIGRATION_25_26 dans DatabaseModule.addMigrations()
+4. Mettre à jour version = 26 dans PandaFitDatabase
 5. Mettre à jour/ajouter méthodes DAO si besoin
 
 Règle : ALTER TABLE uniquement (pas DROP/RECREATE sauf nécessaire absolu).
@@ -107,7 +107,7 @@ Ajoute le champ [NOM_CHAMP] aux résultats running.
 
 Checklist :
 □ WorkoutEntity : ajouter le champ (nullable)
-□ Migration Room v20→v21 (ALTER TABLE workouts ADD COLUMN ...)
+□ Migration Room vN→vN+1 (ALTER TABLE workouts ADD COLUMN ...) — v25 = version actuelle
 □ WorkoutDao.saveResults() : ajouter le paramètre
 □ RunningExecuteViewModel : updateOverallResult() + finishWorkout()
 □ RunningExecuteUiState : ajouter le champ String
