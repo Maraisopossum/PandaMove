@@ -73,6 +73,7 @@ import com.pandafit.designsystem.components.AssignSingleDatePickerDialog
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaFilterChip
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportDot
 import com.pandafit.designsystem.components.SportIconBadge
@@ -563,8 +564,8 @@ private fun UpcomingItemRow(item: UpcomingItem, modifier: Modifier = Modifier) {
         is UpcomingItem.Instance -> Triple(Icons.Default.FitnessCenter, PandaPurple, item.seanceName)
     }
     val statusLabel = stringResource(if (item.isCompleted) R.string.calendar_status_completed else R.string.calendar_status_planned)
-    PandaCard(modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    PandaSportCard(accentColor = color, modifier = modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SportIconBadge(icon = icon, contentDescription = null, accentColor = color, size = 40.dp, iconSize = 20.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -726,8 +727,8 @@ private fun CalendarWorkoutItem(
         )
     }
 
-    PandaCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    PandaSportCard(accentColor = accentColor, onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SportIconBadge(icon = icon, contentDescription = null, accentColor = accentColor, size = 40.dp, iconSize = 20.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -778,8 +779,8 @@ private fun CalendarInstanceItem(
         )
     }
 
-    PandaCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    PandaSportCard(accentColor = PandaPurple, onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SportIconBadge(icon = Icons.Default.FitnessCenter, contentDescription = null, accentColor = PandaPurple, size = 40.dp, iconSize = 20.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -815,8 +816,8 @@ private fun CalendarBreathingItem(
     val durationSec = session.durationSeconds % 60
     val durationLabel = if (durationMin > 0) "${durationMin}min${if (durationSec > 0) " ${durationSec}s" else ""}" else "${durationSec}s"
 
-    PandaCard(modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    PandaSportCard(accentColor = KalyptusGreen, modifier = modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SportIconBadge(icon = Icons.Default.Air, contentDescription = null, accentColor = KalyptusGreen, size = 40.dp, iconSize = 20.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {

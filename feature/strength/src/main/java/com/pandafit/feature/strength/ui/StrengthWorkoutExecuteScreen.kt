@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.feature.strength.R
-import com.pandafit.designsystem.components.PandaCard
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaPurple
@@ -110,12 +110,12 @@ private fun StrengthExecutionExerciseCard(
     isActive: Boolean,
     onSetComplete: (Int, StrengthSetDraft) -> Unit,
 ) {
-    PandaCard(
+    PandaSportCard(
+        accentColor = PandaPurple,
+        isSelected = isActive,
         modifier = Modifier.fillMaxWidth(),
-        containerColor = if (isActive) PandaPurple.copy(alpha = 0.06f) else MaterialTheme.colorScheme.surface,
-        elevation = if (isActive) 3.dp else 1.dp,
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.padding(horizontal = 6.dp))

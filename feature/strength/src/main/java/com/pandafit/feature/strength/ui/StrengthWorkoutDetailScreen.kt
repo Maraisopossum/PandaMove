@@ -64,6 +64,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.core.database.entities.ExerciseEntity
 import com.pandafit.designsystem.components.PandaCard
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
@@ -226,11 +227,11 @@ private fun StrengthExerciseCard(
 ) {
     var expanded by remember { mutableStateOf(true) }
 
-    PandaCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
+    PandaSportCard(accentColor = PandaPurple, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             // Header
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Default.FitnessCenter, null, tint = PandaPurple, modifier = Modifier.size(20.dp))

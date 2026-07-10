@@ -37,7 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.feature.strength.R
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.designsystem.components.AppButton
-import com.pandafit.designsystem.components.PandaCard
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
@@ -94,9 +94,9 @@ fun StrengthScreen(
 
 @Composable
 private fun StrengthWorkoutCard(workout: WorkoutEntity, onClick: () -> Unit) {
-    PandaCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    PandaSportCard(accentColor = PandaPurple, onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SportIconBadge(icon = Icons.Default.FitnessCenter, contentDescription = null, accentColor = PandaPurple)
