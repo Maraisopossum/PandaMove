@@ -1,5 +1,5 @@
 # PandaMove — Contexte compact IA (v25)
-> Charge ce fichier en premier. Il remplace PROJECT_CONTEXT_MIN + AI_INDEX + ROOM_SCHEMA en une seule lecture.
+> Charge ce fichier en premier. Il condense l'essentiel de PROJECT_CONTEXT_MIN + AI_INDEX + ROOM_SCHEMA_MIN pour une lecture rapide — les 3 restent la référence détaillée sur leur sujet (index fichiers, schéma complet) et ne sont pas supprimés ; les garder synchronisés en cas de changement de version/structure.
 
 ## App
 Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, respiration, randonnée, timer) · MVVM+UDF · Hilt · Room schema v25 · minSdk 31

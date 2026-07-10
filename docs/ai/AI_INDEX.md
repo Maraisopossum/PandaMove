@@ -1,5 +1,5 @@
 # AI_INDEX — Navigation rapide fichiers (schema v25)
-> **Démarrage rapide** : lis `CONTEXT_COMPACT.md` en premier (remplace 5 fichiers).  
+> **Démarrage rapide** : lis `CONTEXT_COMPACT.md` en premier (condensé de ce fichier + PROJECT_CONTEXT_MIN + ROOM_SCHEMA_MIN, pas un remplacement — les 3 restent à jour séparément).  
 > Tâches courantes : voir `PROMPT_TEMPLATES.md` pour les templates de prompts.
 
 ## Renforcement (Strength)
@@ -136,7 +136,7 @@
 ## Docs IA (ce dossier)
 | Fichier | Contenu |
 |---|---|
-| `CONTEXT_COMPACT.md` | Contexte ultra-dense — lire EN PREMIER (remplace 5 fichiers) |
+| `CONTEXT_COMPACT.md` | Contexte ultra-dense — lire EN PREMIER (condensé de ce fichier + PROJECT_CONTEXT_MIN + ROOM_SCHEMA_MIN) |
 | `PROMPT_TEMPLATES.md` | Templates de prompts par tâche (économie tokens) |
 | `ARCHITECTURE.md` | Patterns MVVM, Hilt, Room, GPS service, OSMDroid |
 | `ROOM_SCHEMA_MIN.md` | Schéma Room complet v25 |
