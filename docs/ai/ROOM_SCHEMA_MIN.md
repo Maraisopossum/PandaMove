@@ -1,4 +1,4 @@
-# Room Schema — Version condensée (v23)
+# Room Schema — Version condensée (v25)
 
 ## Tables principales
 
@@ -25,6 +25,7 @@ id PK | seance_id FK | exercise_id FK | bloc_id FK(NULL) | superset_groupe | pos
 | progression_activee | systeme_progression (LINEAIRE|DOUBLE|TEMPORELLE)
 | reps_min | reps_max | increment_kg | increment_duree_sec | seuil_deload  ← ajoutés migration v20→v21
 | type_exercice (COMPOSE_BAS|COMPOSE_HAUT|ISOLATION|MACHINE|PDC) | increment_pct  ← ajoutés migration v22→v23
+| is_bodyweight  ← ajouté migration v23→v24
 ```
 
 ### `instances_seance` → `InstanceSeanceEntity`
@@ -36,6 +37,7 @@ id PK | seance_id FK | date | notes | is_completed | completed_at | duration_sec
 ```
 id PK | seance_id FK | exercice_id FK | charge_cible | reps_cible | duree_cible_sec
 | compteur_echec | derniere_maj
+| nombre_series_cible  ← ajouté migration v23→v24
 ```
 Objectif courant par exercice (bible §0.1) — lu à l'activation d'une instance, jamais figé dans le template.
 
@@ -49,6 +51,7 @@ id PK | instance_seance_id FK CASCADE | exercice_seance_id FK CASCADE
 ```
 id PK | name | description | category | muscle_groups | exercise_type | equipment
 | muscle_primary | is_custom | is_favorite
+| is_bodyweight  ← ajouté migration v23→v24
 ```
 `ORDER BY name ASC` dans `observeAll()` → tri UTF-8 binaire (É > F, impact sélection multi-exercices)
 
@@ -69,6 +72,7 @@ id PK | workout_type (RUNNING|CYCLING) | name | notes | objective | scheduled_da
 | result_elevation_m*                  ← migration v10→v11
 | result_cadence_avg_rpm               ← migration ultérieure
 | result_calories                      ← migration ultérieure
+| source (NATIVE|TCX_IMPORT)           ← ajouté migration v24→v25
 | created_at | updated_at
 ```
 
@@ -83,6 +87,18 @@ id PK | workout_id FK | repeat_id FK(NULL) | position | step_type | end_type | e
 | note | target_type | target_min | target_max | results_json*
 ```
 ★ `results_json` ajouté en migration v11→v12 (validation des étapes libres)
+
+### `breathing_session` → `BreathingSessionEntity` (v16)
+```
+id PK | method_id | method_name | cycles_completed | duration_seconds | session_date
+```
+Historique des séances de respiration terminées — `session_date` en `LocalDate` (comparable à `scheduled_date` de `workouts` pour l'agrégation calendrier/stats).
+
+### `custom_breathing_method` → `CustomBreathingMethodEntity` (v17)
+```
+id PK | name | emoji | inhale_seconds | hold_in_seconds | exhale_seconds | hold_out_seconds | default_cycles
+```
+Méthodes de respiration créées par l'utilisateur, en complément des méthodes prédéfinies codées en dur côté `feature/breathing`.
 
 ### `gps_track_points` → `GpsTrackPointEntity`
 ```
@@ -122,8 +138,12 @@ ExerciceMapping(id, exerciseId, repsType)  // getExerciceMappingsForSeances()
 | v10 → v11 | `ALTER TABLE workouts ADD COLUMN result_hr_max INTEGER` + `result_elevation_m INTEGER` |
 | v11 → v12 | `ALTER TABLE run_steps ADD COLUMN results_json TEXT NOT NULL DEFAULT ''` |
 | v12 → v13 | `ALTER TABLE blocs_seance ADD COLUMN instance_seance_id INTEGER` + idem sur `exercices_seance` + index |
+| v15 → v16 | `CREATE TABLE breathing_session` (module respiration) |
+| v16 → v17 | `CREATE TABLE custom_breathing_method` (méthodes de respiration personnalisées) |
 | v19 → v20 | `ALTER TABLE gps_track_points ADD COLUMN timestamp_ms INTEGER NOT NULL DEFAULT 0` + `speed_mps REAL` + `accuracy_m REAL` |
 | v20 → v21 | Module surcharge progressive : `progression_activee`, `systeme_progression`, `reps_min`, `reps_max`, `increment_kg`, `increment_duree_sec`, `seuil_deload` sur `exercices_seance` + table `objectifs_progression` |
 | v21 → v22 | `ALTER TABLE seances ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0` (archivage au lieu de suppression cascade) |
 | v22 → v23 | Incrément qualitatif (bible §4.1-§4.3) : `ALTER TABLE exercices_seance ADD COLUMN type_exercice TEXT` + `increment_pct REAL` |
-| Prochaine | v23 → v24 — incrémenter `version =` dans `PandaFitDatabase.kt` + ajouter dans `DatabaseModule.addMigrations()` |
+| v23 → v24 | `is_bodyweight` sur `exercises` + `exercices_seance` ; `nombre_series_cible` sur `objectifs_progression` |
+| v24 → v25 | `ALTER TABLE workouts ADD COLUMN source TEXT NOT NULL DEFAULT 'NATIVE'` (provenance NATIVE / TCX_IMPORT, notice source dans l'écran résultat) |
+| Prochaine | v25 → v26 — incrémenter `version =` dans `PandaFitDatabase.kt` + ajouter dans `DatabaseModule.addMigrations()` |
