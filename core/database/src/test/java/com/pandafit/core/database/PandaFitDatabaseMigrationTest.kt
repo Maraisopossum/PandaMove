@@ -2,6 +2,7 @@ package com.pandafit.core.database
 
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -25,7 +26,8 @@ class PandaFitDatabaseMigrationTest {
     @get:Rule
     val helper: MigrationTestHelper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
-        PandaFitDatabase::class.java,
+        PandaFitDatabase::class.java.canonicalName,
+        FrameworkSQLiteOpenHelperFactory(),
     )
 
     @Test
