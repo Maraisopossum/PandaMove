@@ -1,4 +1,4 @@
-# AI_INDEX — Navigation rapide fichiers (schema v25)
+# AI_INDEX — Navigation rapide fichiers (schema v26)
 > **Démarrage rapide** : lis `CONTEXT_COMPACT.md` en premier (condensé de ce fichier + PROJECT_CONTEXT_MIN + ROOM_SCHEMA_MIN, pas un remplacement — les 3 restent à jour séparément).  
 > Tâches courantes : voir `PROMPT_TEMPLATES.md` pour les templates de prompts.
 
@@ -92,8 +92,8 @@
 ## Base de données
 | Rôle | Fichier |
 |---|---|
-| Database (v25) | `core/database/PandaFitDatabase.kt` |
-| Migrations | `core/database/PandaFitDatabase.kt` — MIGRATION_3_4 … MIGRATION_24_25 |
+| Database (v26) | `core/database/PandaFitDatabase.kt` |
+| Migrations | `core/database/PandaFitDatabase.kt` — MIGRATION_3_4 … MIGRATION_25_26 |
 | WorkoutDao | `core/database/dao/WorkoutDao.kt` |
 | SeanceDao | `core/database/dao/SeanceDao.kt` |
 | InstanceSeanceDao | `core/database/dao/InstanceSeanceDao.kt` |
@@ -139,8 +139,8 @@
 | `CONTEXT_COMPACT.md` | Contexte ultra-dense — lire EN PREMIER (condensé de ce fichier + PROJECT_CONTEXT_MIN + ROOM_SCHEMA_MIN) |
 | `PROMPT_TEMPLATES.md` | Templates de prompts par tâche (économie tokens) |
 | `ARCHITECTURE.md` | Patterns MVVM, Hilt, Room, GPS service, OSMDroid |
-| `ROOM_SCHEMA_MIN.md` | Schéma Room complet v25 |
-| `PROJECT_CONTEXT_MIN.md` | Contexte minimal v25 + flux critiques |
+| `ROOM_SCHEMA_MIN.md` | Schéma Room complet v26 |
+| `PROJECT_CONTEXT_MIN.md` | Contexte minimal v26 + flux critiques |
 | `RUNNING_FLOW.md` | Flux running + GPS live tracking (feature introduite v20) |
 | `STRENGTH_FLOW.md` | Flux renforcement + isolation template/instance |
 | `CYCLING_FLOW.md` | Flux vélo |

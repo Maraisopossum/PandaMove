@@ -46,4 +46,8 @@ data class TcxRawPoint(
     val latitude: Double,
     val longitude: Double,
     val altitudeM: Double?,
+    /** Epoch millis du champ <Time> du trackpoint (null si absent/invalide). */
+    val timestampMs: Long? = null,
+    /** Vitesse instantanée en m/s (extension Garmin TPX <Speed>, absente de certains exports). */
+    val speedMs: Double? = null,
 )

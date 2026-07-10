@@ -1,5 +1,6 @@
 package com.pandafit.service
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -8,11 +9,17 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -38,6 +45,8 @@ class RunningTrackingService : Service() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+    private var sensorManager: SensorManager? = null
+    private var stepDetectorListener: SensorEventListener? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -45,6 +54,7 @@ class RunningTrackingService : Service() {
     override fun onCreate() {
         super.onCreate()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        sensorManager = getSystemService(SensorManager::class.java)
         createChannel()
         setupLocationCallback()
     }
@@ -69,13 +79,38 @@ class RunningTrackingService : Service() {
             startForeground(NOTIF_ID, notif)
         }
         requestLocationUpdates()
+        registerStepDetector()
     }
 
     private fun stopTracking() {
         fusedLocationClient.removeLocationUpdates(locationCallback)
+        unregisterStepDetector()
         gpsTrackingRepository.stopTracking()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    /**
+     * Cadence via le capteur matériel de pas — nécessite ACTIVITY_RECOGNITION depuis Android 10.
+     * Si non accordée, on se contente silencieusement de ne pas remonter de cadence (comme
+     * aujourd'hui) plutôt que de planter le service GPS pour autant.
+     */
+    private fun registerStepDetector() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) return
+        val sensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR) ?: return
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                scope.launch { gpsTrackingRepository.addStep() }
+            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+        stepDetectorListener = listener
+        sensorManager?.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+    }
+
+    private fun unregisterStepDetector() {
+        stepDetectorListener?.let { sensorManager?.unregisterListener(it) }
+        stepDetectorListener = null
     }
 
     private fun setupLocationCallback() {
@@ -134,6 +169,7 @@ class RunningTrackingService : Service() {
 
     override fun onDestroy() {
         runCatching { fusedLocationClient.removeLocationUpdates(locationCallback) }
+        unregisterStepDetector()
         scope.cancel()
         super.onDestroy()
     }

@@ -2,6 +2,18 @@
 
 ## ✅ RÉSOLUS
 
+### Bug import TCX — horodatage GPS toujours à 0
+- **Symptôme** : les points GPS d'une séance importée (`timestamp_ms`, `speed_mps`) sont systématiquement à 0/null, alors que la colonne existe pour ça (migration v19→v20) — impossible d'exploiter une trace importée pour une analyse temporelle (allure dans le temps, rejeu chronologique)
+- **Cause** : `TcxParser` ne parsait jamais la balise `<Time>` du `<Trackpoint>` (pourtant obligatoire dans le format TCX) — `TcxRawPoint` n'avait même pas de champ pour ça
+- **Fix** : ajout de `tag == "Time" && inTrackpoint()` (parsing ISO-8601 → epoch millis) et `tag == "Speed" && inTrackpoint()` (extension Garmin TPX) dans `TcxParser.kt`, champs `timestampMs`/`speedMs` sur `TcxRawPoint`, propagés jusqu'à `GpsTrackPointEntity` dans `TcxImportManager.insertGpsTrack()`
+- **Fichiers** : `TcxParser.kt`, `TcxParsedData.kt`, `TcxImportManager.kt`
+
+### Bug dénivelé bruité — cumul brut sans seuil anti-bruit
+- **Symptôme** : le dénivelé positif calculé dépasse l'amplitude réelle du parcours sur un terrain quasi plat (ex. 19 m de gain pour ~10 m d'amplitude GPS) — le bruit de mesure (GPS ±10-20 m, baromètre montre) est compté comme du vrai dénivelé
+- **Cause** : `GpsTrackingRepository.addPoint()` (live) et `TcxParser.computeElevationGain()` (import) cumulaient chacun de leur côté toute différence d'altitude positive entre deux échantillons consécutifs, sans seuil
+- **Fix** : utilitaire partagé `evaluateElevationSample()` (hystérésis ±2 m — une variation sous ce seuil ne déplace pas la référence et ne compte pas comme dénivelé) dans `core/database/util/ElevationGain.kt`, utilisé par les deux moteurs
+- **Fichiers** : `core/database/util/ElevationGain.kt`, `GpsTrackingRepository.kt`, `TcxParser.kt`
+
 ### Bug affectation séance type — assignTargetId nullifié trop tôt
 - **Symptôme** : clic icône 📅 → dialog apparaît → choix date → rien ne se passe
 - **Cause** : `onDismiss = { showAssignMenu = false; assignTarget = null }` — l'id est effacé avant que le sous-dialog puisse l'utiliser

@@ -1,4 +1,4 @@
-# Room Schema — Version condensée (v25)
+# Room Schema — Version condensée (v26)
 
 ## Tables principales
 
@@ -79,6 +79,9 @@ id PK | workout_type (RUNNING|CYCLING) | name | notes | objective | scheduled_da
 ### `run_repeats` → `RunRepeatEntity`
 ```
 id PK | workout_id FK | position | repeat_count | results_json
+| is_auto_lap  ← ajouté migration v25→v26 (true = splits km auto-lap montre importés TCX,
+                 false = vrai bloc de fractionné construit dans l'app — évite d'afficher
+                 "INTERVALLE X/N" à l'exécution live d'une sortie continue réutilisée en modèle)
 ```
 
 ### `run_steps` → `RunStepEntity`
@@ -146,4 +149,5 @@ ExerciceMapping(id, exerciseId, repsType)  // getExerciceMappingsForSeances()
 | v22 → v23 | Incrément qualitatif (bible §4.1-§4.3) : `ALTER TABLE exercices_seance ADD COLUMN type_exercice TEXT` + `increment_pct REAL` |
 | v23 → v24 | `is_bodyweight` sur `exercises` + `exercices_seance` ; `nombre_series_cible` sur `objectifs_progression` |
 | v24 → v25 | `ALTER TABLE workouts ADD COLUMN source TEXT NOT NULL DEFAULT 'NATIVE'` (provenance NATIVE / TCX_IMPORT, notice source dans l'écran résultat) |
-| Prochaine | v25 → v26 — incrémenter `version =` dans `PandaFitDatabase.kt` + ajouter dans `DatabaseModule.addMigrations()` |
+| v25 → v26 | `ALTER TABLE run_repeats ADD COLUMN is_auto_lap INTEGER NOT NULL DEFAULT 0` (distingue auto-lap montre vs vrai fractionné) |
+| Prochaine | v26 → v27 — incrémenter `version =` dans `PandaFitDatabase.kt` + ajouter dans `DatabaseModule.addMigrations()` |

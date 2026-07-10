@@ -41,11 +41,11 @@ data class GpsTrackPointEntity(
     @ColumnInfo(name = "altitude_m")
     val altitudeM: Double? = null,
 
-    /** Horodatage Unix en millisecondes (0 pour les points importés via TCX). */
+    /** Horodatage Unix en millisecondes (0 si absent du fichier TCX importé — champ <Time> non trouvé/invalide). */
     @ColumnInfo(name = "timestamp_ms")
     val timestampMs: Long = 0L,
 
-    /** Vitesse en m/s fournie par FusedLocation (null pour les imports TCX). */
+    /** Vitesse en m/s — FusedLocation en live, extension Garmin TPX <Speed> à l'import TCX (absente de certains exports). */
     @ColumnInfo(name = "speed_mps")
     val speedMps: Float? = null,
 

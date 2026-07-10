@@ -221,8 +221,12 @@ class RunningExecuteViewModel @Inject constructor(
             is AutoLapSegment.RepPhase -> if (seg.isRecovery) {
                 runStepLabel(stepType).uppercase()
             } else {
-                val repeatCount = state.repeatBlocks.getOrNull(seg.blockIdx)?.repeat?.repeatCount ?: 0
-                "INTERVALLE ${seg.repIdx + 1}/$repeatCount"
+                val block = state.repeatBlocks.getOrNull(seg.blockIdx)?.repeat
+                val repeatCount = block?.repeatCount ?: 0
+                // Un bloc auto-lap montre (splits km importés TCX) n'est pas un vrai fractionné :
+                // ne pas l'afficher comme "INTERVALLE" si réutilisé comme modèle de séance.
+                if (block?.isAutoLap == true) "SPLIT ${seg.repIdx + 1}/$repeatCount"
+                else "INTERVALLE ${seg.repIdx + 1}/$repeatCount"
             }
         }
 
@@ -645,11 +649,17 @@ class RunningExecuteViewModel @Inject constructor(
                 // Allure moyenne réelle (durée/distance), pas l'allure instantanée du dernier point GPS
                 val paceStr   = computePaceStr(distKmStr, durStr) ?: formatPace(track.paceMinkm)
                 val elevStr   = if (track.elevationGainM > 0) track.elevationGainM.toString() else _uiState.value.resultElevationM
+                // Cadence moyenne (pas/min) depuis le capteur matériel — absente si permission refusée
+                // ou capteur indisponible sur l'appareil (track.stepCount reste alors à 0).
+                val cadenceStr = if (track.stepCount > 0 && track.durationSec > 0) {
+                    (track.stepCount * 60 / track.durationSec).toString()
+                } else _uiState.value.resultCadenceAvgPpm
                 _uiState.value.copy(
                     resultDistanceKm  = distKmStr,
                     resultDurationStr = durStr,
                     resultPaceStr     = paceStr,
                     resultElevationM  = elevStr,
+                    resultCadenceAvgPpm = cadenceStr,
                 )
             } else _uiState.value
 

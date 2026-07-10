@@ -1,8 +1,8 @@
-# PandaMove — Contexte compact IA (v25)
+# PandaMove — Contexte compact IA (v26)
 > Charge ce fichier en premier. Il condense l'essentiel de PROJECT_CONTEXT_MIN + AI_INDEX + ROOM_SCHEMA_MIN pour une lecture rapide — les 3 restent la référence détaillée sur leur sujet (index fichiers, schéma complet) et ne sont pas supprimés ; les garder synchronisés en cas de changement de version/structure.
 
 ## App
-Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, respiration, randonnée, timer) · MVVM+UDF · Hilt · Room schema v25 · minSdk 31
+Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, respiration, randonnée, timer) · MVVM+UDF · Hilt · Room schema v26 · minSdk 31
 
 ## Modules
 ```
@@ -11,7 +11,7 @@ app/
                  RunningTrackingService (ForegroundService GPS, @AndroidEntryPoint)
   navigation/    PandaFitNavHost.kt · PandaFitDestination.kt
 core/
-  database/      PandaFitDatabase (v25) · DAOs · entities · migrations 3→25
+  database/      PandaFitDatabase (v26) · DAOs · entities · migrations 3→26
                  ActiveSessionManager (@Singleton, StateFlow chrono)
                  catalog/GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
                  catalog/EquipmentRepository (@Singleton, inventaire matériel réel — voir section dédiée)

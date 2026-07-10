@@ -49,6 +49,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.DashPathEffect
 import android.graphics.drawable.BitmapDrawable
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
@@ -118,8 +119,19 @@ fun RunningWorkoutExecuteScreen(
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
     }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        locationPermissionGranted = granted
+    // Capteur de pas pour la cadence live (Android 10+, dégrade silencieusement si refusée —
+    // le GPS continue de fonctionner sans cadence).
+    var activityRecognitionGranted by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+                ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    // ?.let : ne met à jour que les clés effectivement présentes dans le résultat — un lancement
+    // ne demandant qu'une des deux permissions ne doit pas écraser l'état de l'autre à false.
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+        granted[Manifest.permission.ACCESS_FINE_LOCATION]?.let { locationPermissionGranted = it }
+        granted[Manifest.permission.ACTIVITY_RECOGNITION]?.let { activityRecognitionGranted = it }
     }
 
     LaunchedEffect(uiState.isCompleted) {
@@ -128,6 +140,17 @@ fun RunningWorkoutExecuteScreen(
 
     LaunchedEffect(locationPermissionGranted) {
         if (locationPermissionGranted) viewModel.startCalibration()
+    }
+
+    // Demande groupée à l'ouverture de l'écran pour tout ce qui manque encore — évite que
+    // ACTIVITY_RECOGNITION reste jamais demandée quand la localisation est déjà accordée
+    // (le bouton GPS, seul autre déclencheur, ne s'affiche que si elle NE l'est PAS).
+    LaunchedEffect(Unit) {
+        val missing = buildList {
+            if (!locationPermissionGranted) add(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (!activityRecognitionGranted) add(Manifest.permission.ACTIVITY_RECOGNITION)
+        }
+        if (missing.isNotEmpty()) permissionLauncher.launch(missing.toTypedArray())
     }
 
     BackHandler(enabled = !uiState.isCompleted) { showExitDialog = true }
@@ -220,7 +243,11 @@ fun RunningWorkoutExecuteScreen(
                     onStart = { viewModel.startGpsTracking() },
                     onPause = { viewModel.pauseGpsTracking() },
                     onResume = { viewModel.resumeGpsTracking() },
-                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                    onRequestPermission = {
+                        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) perms += Manifest.permission.ACTIVITY_RECOGNITION
+                        permissionLauncher.launch(perms.toTypedArray())
+                    },
                 )
                 Spacer(Modifier.height(16.dp))
             }

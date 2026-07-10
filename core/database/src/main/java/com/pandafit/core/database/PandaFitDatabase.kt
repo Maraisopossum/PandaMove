@@ -54,7 +54,7 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         CustomBreathingMethodEntity::class,
         ObjectifProgressionEntity::class,
     ],
-    version = 25,
+    version = 26,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -323,6 +323,15 @@ abstract class PandaFitDatabase : RoomDatabase() {
         val MIGRATION_24_25 = object : Migration(24, 25) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE workouts ADD COLUMN source TEXT NOT NULL DEFAULT 'NATIVE'")
+            }
+        }
+
+        // v25 → v26 : distingue un bloc auto-lap montre (splits kilométriques importés TCX) d'un
+        // vrai bloc de fractionné construit dans l'app, pour ne pas afficher "INTERVALLE X/N" à
+        // l'exécution live d'une sortie continue réutilisée comme modèle.
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE run_repeats ADD COLUMN is_auto_lap INTEGER NOT NULL DEFAULT 0")
             }
         }
 

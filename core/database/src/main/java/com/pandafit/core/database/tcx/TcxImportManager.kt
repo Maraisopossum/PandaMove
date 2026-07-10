@@ -196,11 +196,13 @@ class TcxImportManager @Inject constructor(
         val simplified = douglasPeucker(rawPoints, epsilonDegrees = 0.000045) // ~5 m
         val entities = simplified.mapIndexed { idx, p ->
             GpsTrackPointEntity(
-                workoutId  = workoutId,
-                pointIndex = idx,
-                latitude   = p.latitude,
-                longitude  = p.longitude,
-                altitudeM  = p.altitudeM,
+                workoutId   = workoutId,
+                pointIndex  = idx,
+                latitude    = p.latitude,
+                longitude   = p.longitude,
+                altitudeM   = p.altitudeM,
+                timestampMs = p.timestampMs ?: 0L,
+                speedMps    = p.speedMs?.toFloat(),
             )
         }
         gpsDao.insertAll(entities)
@@ -218,6 +220,8 @@ class TcxImportManager @Inject constructor(
                 position    = 0,
                 repeatCount = laps.size,
                 resultsJson = json.encodeToString(results),
+                // Splits kilométriques auto-lap de la montre, pas un fractionné construit dans l'app
+                isAutoLap   = true,
             )
         )
         // Create one RunStepEntity per lap so the UI can display it as structured steps

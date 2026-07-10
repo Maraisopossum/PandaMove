@@ -1,11 +1,14 @@
 package com.pandafit.core.database.tcx
 
 import com.pandafit.core.database.entities.WorkoutType
+import com.pandafit.core.database.util.evaluateElevationSample
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
+import java.time.Instant
+import java.time.format.DateTimeParseException
 import javax.xml.parsers.SAXParserFactory
 
 // ── Public entry point ────────────────────────────────────────────────────────
@@ -52,6 +55,8 @@ private class TcxSaxHandler : DefaultHandler() {
     private var tpLat: Double? = null
     private var tpLon: Double? = null
     private var tpAlt: Double? = null
+    private var tpTimeMs: Long? = null
+    private var tpSpeedMs: Double? = null
     private var inTpHr = false
     private var inPosition = false
 
@@ -92,7 +97,7 @@ private class TcxSaxHandler : DefaultHandler() {
                 inLapMaxHr = false
             }
             tag == "Trackpoint" -> {
-                tpLat = null; tpLon = null; tpAlt = null
+                tpLat = null; tpLon = null; tpAlt = null; tpTimeMs = null; tpSpeedMs = null
                 inTpHr = false
             }
             tag == "Position" -> inPosition = true
@@ -146,6 +151,9 @@ private class TcxSaxHandler : DefaultHandler() {
             tag == "LatitudeDegrees" -> tpLat = value.toDoubleOrNull()
             tag == "LongitudeDegrees" -> tpLon = value.toDoubleOrNull()
             tag == "AltitudeMeters" && inTrackpoint() -> tpAlt = value.toDoubleOrNull()
+            tag == "Time" && inTrackpoint() -> tpTimeMs = parseIsoInstantMs(value)
+            // Extension Garmin TPX <Speed> (m/s) — absente de certains exports, reste null sinon
+            tag == "Speed" && inTrackpoint() -> tpSpeedMs = value.toDoubleOrNull()
             tag == "Position" -> inPosition = false
             tag == "HeartRateBpm" && inTrackpoint() -> inTpHr = false
             // HeartRateBpm Value inside trackpoint — we don't store it per-point, ignore
@@ -174,7 +182,7 @@ private class TcxSaxHandler : DefaultHandler() {
     private fun commitTrackpoint() {
         val lat = tpLat ?: return
         val lon = tpLon ?: return
-        trackPoints.add(TcxRawPoint(lat, lon, tpAlt))
+        trackPoints.add(TcxRawPoint(lat, lon, tpAlt, tpTimeMs, tpSpeedMs))
     }
 
     // ── Path helpers ──────────────────────────────────────────────────────────
@@ -221,13 +229,24 @@ private class TcxSaxHandler : DefaultHandler() {
 
 // ── Elevation gain ────────────────────────────────────────────────────────────
 
+/** Même filtre anti-bruit que le tracking live (voir [evaluateElevationSample]) — évite de compter
+ *  les oscillations d'altitude bruitées d'un parcours plat comme du vrai dénivelé. */
 private fun computeElevationGain(points: List<TcxRawPoint>): Int? {
     val altitudes = points.mapNotNull { it.altitudeM }
     if (altitudes.size < 2) return null
-    var gain = 0.0
-    for (i in 1 until altitudes.size) {
-        val diff = altitudes[i] - altitudes[i - 1]
-        if (diff > 0.0) gain += diff
+    var baseline: Double? = null
+    var gain = 0
+    for (alt in altitudes) {
+        val step = evaluateElevationSample(baseline, alt)
+        baseline = step.newBaselineM
+        gain += step.gainDeltaM
     }
-    return gain.toInt().takeIf { it >= 0 }
+    return gain.takeIf { it >= 0 }
 }
+
+// ── Time parsing ────────────────────────────────────────────────────────────
+
+/** Parse un timestamp ISO 8601 TCX (ex. "2026-07-10T08:15:32.000Z") en epoch millis, ou null si invalide. */
+private fun parseIsoInstantMs(value: String): Long? =
+    if (value.isBlank()) null
+    else try { Instant.parse(value).toEpochMilli() } catch (e: DateTimeParseException) { null }

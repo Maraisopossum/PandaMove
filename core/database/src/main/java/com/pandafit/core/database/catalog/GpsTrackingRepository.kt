@@ -2,6 +2,7 @@ package com.pandafit.core.database.catalog
 
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.entities.GpsTrackPointEntity
+import com.pandafit.core.database.util.evaluateElevationSample
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +28,8 @@ data class LiveTrackState(
     /** Aligné sur [points] : true si le segment reliant points[i-1] à points[i] suit un trou de signal GPS */
     val weakSignalAt: List<Boolean> = emptyList(),
     val currentPosition: Pair<Double, Double>? = null,
+    /** Nombre de pas détectés par le capteur matériel (TYPE_STEP_DETECTOR) depuis le début du suivi. */
+    val stepCount: Int = 0,
 )
 
 @Singleton
@@ -127,10 +130,11 @@ class GpsTrackingRepository @Inject constructor(
             haversineM(prevLat, prevLng, lat, lng)
         } else 0.0
 
-        val elevGain = if (altM != null && lastAltitudeM != null && altM > lastAltitudeM!!) {
-            prev.elevationGainM + (altM - lastAltitudeM!!).toInt()
+        val elevGain = if (altM != null) {
+            val step = evaluateElevationSample(lastAltitudeM, altM)
+            lastAltitudeM = step.newBaselineM
+            prev.elevationGainM + step.gainDeltaM
         } else prev.elevationGainM
-        lastAltitudeM = altM
 
         val totalDist = prev.distanceM + distIncrement
         val durationSec = ((timestampMs - startTimeMs - totalPausedMs) / 1000L).toInt().coerceAtLeast(0)
@@ -162,6 +166,12 @@ class GpsTrackingRepository @Inject constructor(
                 accuracyM = accuracyM,
             )
         )
+    }
+
+    /** Un pas détecté par le capteur matériel — ignoré si le suivi est en pause (arrêt réel, pas du bruit). */
+    fun addStep() {
+        if (!_state.value.isTracking || _state.value.isPaused) return
+        _state.value = _state.value.copy(stepCount = _state.value.stepCount + 1)
     }
 
     fun pauseTracking() {

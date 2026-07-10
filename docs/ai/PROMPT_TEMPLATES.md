@@ -33,7 +33,7 @@ Fichiers à créer/modifier :
 Contexte : lis docs/ai/CONTEXT_COMPACT.md.
 
 Ajoute [DESCRIPTION DU CHANGEMENT DB] à la table [TABLE].
-Schema actuel : v25.
+Schema actuel : v26.
 
 À faire dans cet ordre :
 1. Modifier l'Entity : core/database/entities/[Entity].kt
@@ -107,7 +107,7 @@ Ajoute le champ [NOM_CHAMP] aux résultats running.
 
 Checklist :
 □ WorkoutEntity : ajouter le champ (nullable)
-□ Migration Room vN→vN+1 (ALTER TABLE workouts ADD COLUMN ...) — v25 = version actuelle
+□ Migration Room vN→vN+1 (ALTER TABLE workouts ADD COLUMN ...) — v26 = version actuelle
 □ WorkoutDao.saveResults() : ajouter le paramètre
 □ RunningExecuteViewModel : updateOverallResult() + finishWorkout()
 □ RunningExecuteUiState : ajouter le champ String

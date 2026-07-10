@@ -20,6 +20,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
+    <!-- Capteur de pas (cadence running) — requis à partir d'Android 10 pour TYPE_STEP_DETECTOR -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+
     <application
         android:name=".PandaFitApp"
         android:allowBackup="false"

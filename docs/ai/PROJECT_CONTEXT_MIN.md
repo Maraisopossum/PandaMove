@@ -1,4 +1,4 @@
-# PandaFit — Contexte IA minimal (v25)
+# PandaFit — Contexte IA minimal (v26)
 
 ## App
 Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, vélo, timer) · Module-based architecture
@@ -8,7 +8,7 @@ Android Kotlin/Compose · Hub multisport (renforcement, échauffement, running, 
 app/                        → NavHost, DI wiring
   service/                  → ActiveSessionService (chrono session), RunningTrackingService (GPS ForegroundService)
 core/
-  database/                 → Room (schema v25), DAOs, entities, migrations (v3→25)
+  database/                 → Room (schema v26), DAOs, entities, migrations (v3→26)
                                catalog/ → GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
                                ActiveSessionManager (@Singleton, StateFlow chrono)
   designsystem/             → composants partagés (PandaCard, PandaTopBar, AssignSessionDialogs)
@@ -28,7 +28,7 @@ feature/
 ```
 
 ## Stack technique
-- Compose + Material3 · Hilt · Room v25 · Navigation Compose · DataStore Preferences
+- Compose + Material3 · Hilt · Room v26 · Navigation Compose · DataStore Preferences
 - Kotlin coroutines/Flow · `@HiltViewModel` · `SavedStateHandle`
 - kotlinx.serialization (export JSON) · Garmin TCX export
 - OSMDroid 6.1.20 (carte GPS running) · play-services-location 21.3.0 (FusedLocationProviderClient)
