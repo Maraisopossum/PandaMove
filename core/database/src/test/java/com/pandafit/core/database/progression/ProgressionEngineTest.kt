@@ -363,4 +363,36 @@ class ProgressionEngineTest {
         assertEquals(22.5f, proposition.nouvelleChargeCible)
         assertEquals(null, proposition.nouveauNombreSeries)
     }
+
+    private fun proposition(statut: StatutExercice, deload: Boolean) = PropositionProgression(
+        statut = statut,
+        nouvelleChargeCible = null,
+        nouveauRepsCible = null,
+        nouvelleDureeCible = null,
+        nouveauCompteurEchec = 0,
+        deload = deload,
+    )
+
+    @Test
+    fun `requiresValidation - succes necessite toujours validation`() {
+        assertTrue(requiresValidation(proposition(StatutExercice.SUCCES, deload = false)))
+        assertTrue(requiresValidation(proposition(StatutExercice.SUCCES_SANS_MARGE, deload = false)))
+    }
+
+    @Test
+    fun `requiresValidation - non logge necessite validation`() {
+        assertTrue(requiresValidation(proposition(StatutExercice.NON_LOGGE, deload = false)))
+    }
+
+    @Test
+    fun `requiresValidation - deload necessite validation meme avec un statut d'echec`() {
+        assertTrue(requiresValidation(proposition(StatutExercice.ECHEC, deload = true)))
+        assertTrue(requiresValidation(proposition(StatutExercice.ECHEC_MARQUE, deload = true)))
+    }
+
+    @Test
+    fun `requiresValidation - echec sans deload est persiste silencieusement`() {
+        assertFalse(requiresValidation(proposition(StatutExercice.ECHEC, deload = false)))
+        assertFalse(requiresValidation(proposition(StatutExercice.ECHEC_MARQUE, deload = false)))
+    }
 }

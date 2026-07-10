@@ -25,6 +25,7 @@ import com.pandafit.core.database.progression.WarmupPalier
 import com.pandafit.core.database.progression.WarmupProtocole
 import com.pandafit.core.database.progression.evaluerExercice
 import com.pandafit.core.database.progression.proposerMontee
+import com.pandafit.core.database.progression.requiresValidation
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.core.database.relations.SeanceFull
 import com.pandafit.feature.strength.model.ChoixValidation
@@ -1011,14 +1012,10 @@ class InstanceExecuteViewModel @Inject constructor(
                 val pasMateriel = resolvePasMateriel(exWithEx.exercise.equipment, pasParCategorie)
                 val chargesAtteignables = resolveChargesAtteignables(exWithEx.exercise.equipment, inventaire)
                 val proposition = evaluerExercice(es, cible, objectifExistant?.compteurEchec ?: 0, series, es.isBilateral, pasMateriel, chargesAtteignables)
-                when {
-                    proposition.statut == StatutExercice.SUCCES ||
-                        proposition.statut == StatutExercice.SUCCES_SANS_MARGE ||
-                        proposition.statut == StatutExercice.NON_LOGGE ||
-                        proposition.deload ->
-                        rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition, chargesAtteignables ?: emptyList()))
-                    else ->
-                        persisterObjectif(instance.seanceId, exWithEx.exercise.id, objectifExistant, proposition)
+                if (requiresValidation(proposition)) {
+                    rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition, chargesAtteignables ?: emptyList()))
+                } else {
+                    persisterObjectif(instance.seanceId, exWithEx.exercise.id, objectifExistant, proposition)
                 }
             }
             if (rows.isEmpty()) {

@@ -44,6 +44,13 @@ import javax.inject.Inject
 
 private val json = Json { ignoreUnknownKeys = true }
 
+/**
+ * Libellé de la phase "rep" du cockpit live : un bloc auto-lap (splits km importés TCX) n'est pas
+ * un vrai fractionné et doit s'afficher "SPLIT" plutôt que "INTERVALLE" (docs/ai/KNOWN_BUGS.md).
+ */
+fun repPhaseLabel(repeatCount: Int, repIdx: Int, isAutoLap: Boolean): String =
+    if (isAutoLap) "SPLIT ${repIdx + 1}/$repeatCount" else "INTERVALLE ${repIdx + 1}/$repeatCount"
+
 @HiltViewModel
 class RunningExecuteViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -222,11 +229,7 @@ class RunningExecuteViewModel @Inject constructor(
                 runStepLabel(stepType).uppercase()
             } else {
                 val block = state.repeatBlocks.getOrNull(seg.blockIdx)?.repeat
-                val repeatCount = block?.repeatCount ?: 0
-                // Un bloc auto-lap montre (splits km importés TCX) n'est pas un vrai fractionné :
-                // ne pas l'afficher comme "INTERVALLE" si réutilisé comme modèle de séance.
-                if (block?.isAutoLap == true) "SPLIT ${seg.repIdx + 1}/$repeatCount"
-                else "INTERVALLE ${seg.repIdx + 1}/$repeatCount"
+                repPhaseLabel(block?.repeatCount ?: 0, seg.repIdx, block?.isAutoLap == true)
             }
         }
 

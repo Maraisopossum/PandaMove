@@ -20,6 +20,22 @@ data class PropositionProgression(
     val nouveauNombreSeries: Int? = null,
 )
 
+/**
+ * true si la proposition doit être présentée à l'utilisateur pour validation (récap Oui/Non/Ajuster)
+ * plutôt que persistée silencieusement — c'est le cas de tout succès (l'utilisateur peut vouloir
+ * ajuster) et de toute proposition de deload, **quel que soit le statut associé**.
+ *
+ * ⚠ Piège documenté (KNOWN_BUGS.md) : un deload peut accompagner un statut d'échec (ECHEC/ECHEC_MARQUE).
+ * Un futur refactor qui court-circuiterait cette fonction (ex. `statut != ECHEC` seul) réintroduirait
+ * un deload imposé silencieusement — d'où son isolement en fonction pure directement testable, plutôt
+ * que la logique inline dans `InstanceExecuteViewModel.prepareFinish()`.
+ */
+fun requiresValidation(proposition: PropositionProgression): Boolean =
+    proposition.statut == StatutExercice.SUCCES ||
+        proposition.statut == StatutExercice.SUCCES_SANS_MARGE ||
+        proposition.statut == StatutExercice.NON_LOGGE ||
+        proposition.deload
+
 /** Cible courante, indépendante de sa source (objectif persisté ou valeur initiale du template). */
 data class CibleExercice(
     val chargeKg: Float?,
