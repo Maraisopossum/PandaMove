@@ -159,6 +159,7 @@
     <string name="seance_detail_progression_badge">↗ Progression</string>
     <string name="seance_detail_progression_increment_series">+ séries</string>
     <string name="seance_detail_progression_next">Prochaine cible : %1$s</string>
+    <string name="seance_create_add_warmup_button">Ajouter un échauffement</string>
     <string name="seance_create_warmup_picker_title">Choisir un échauffement</string>
     <string name="seance_create_warmup_picker_empty">Aucun échauffement disponible.</string>
     <string name="seance_create_exercise_picker_title">Ajouter des exercices</string>

@@ -83,7 +83,7 @@ val defaultDrawerItems = listOf(
     DrawerNavItem("strength",  "Renforcement",  Icons.Default.FitnessCenter),
     DrawerNavItem("breathing", "Respiration",   Icons.Default.Air),
     DrawerNavItem("hiking",   "Randonnée",     Icons.Default.Landscape),
-    // DrawerNavItem("warmup",    "Échauffement",  Icons.Default.SelfImprovement),  // TODO: masqué temporairement
+    DrawerNavItem("warmup",    "Échauffement",  Icons.Default.SelfImprovement),
     DrawerNavItem("timer",     "Minuteur",      Icons.Default.Timer),
     DrawerNavItem("calendar",  "Calendrier",    Icons.Default.CalendarMonth),
     DrawerNavItem("stats",     "Statistiques",  Icons.Default.BarChart),

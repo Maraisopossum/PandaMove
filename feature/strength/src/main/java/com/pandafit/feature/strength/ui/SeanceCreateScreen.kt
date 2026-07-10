@@ -242,19 +242,18 @@ fun SeanceCreateScreen(
             }
 
             // Bouton d'ajout d'échauffement (template uniquement, pas en mode instance)
-            // TODO: masqué temporairement — à réactiver quand la section Échauffement sera prête
-//            if (!isInstanceEdit) {
-//                item {
-//                    TextButton(
-//                        onClick = { viewModel.showWarmupPicker() },
-//                        modifier = Modifier.fillMaxWidth(),
-//                    ) {
-//                        Icon(Icons.Default.SelfImprovement, null, modifier = Modifier.size(16.dp), tint = PandaOrange)
-//                        Spacer(Modifier.width(6.dp))
-//                        Text("Ajouter un échauffement", color = PandaOrange)
-//                    }
-//                }
-//            }
+            if (!isInstanceEdit) {
+                item {
+                    TextButton(
+                        onClick = { viewModel.showWarmupPicker() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.SelfImprovement, null, modifier = Modifier.size(16.dp), tint = PandaOrange)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.seance_create_add_warmup_button), color = PandaOrange)
+                    }
+                }
+            }
 
             // Liste unifiée d'items (exercices libres + blocs dans l'ordre)
             itemsIndexed(uiState.items, key = { i, item ->
