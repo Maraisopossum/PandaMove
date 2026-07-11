@@ -3,9 +3,16 @@ package com.pandafit.core.database.catalog
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.entities.GpsTrackPointEntity
 import com.pandafit.core.database.util.evaluateElevationSample
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.atan2
@@ -50,6 +57,28 @@ class GpsTrackingRepository @Inject constructor(
     @Volatile private var isAutoPaused: Boolean = false
     private var lastFixTimestampMs: Long = 0L
 
+    // Chronomètre affiché indépendant de la cadence des fix GPS (§KNOWN_BUGS.md) : sans ce
+    // ticker, durationSec n'avance qu'à l'arrivée d'un fix, ce qui fait "sauter" l'affichage
+    // par paquets de secondes quand le signal GPS est irrégulier (intérieur, canyon urbain...).
+    private val tickerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var tickerJob: Job? = null
+
+    private fun startTicker() {
+        tickerJob?.cancel()
+        tickerJob = tickerScope.launch {
+            while (isActive) {
+                delay(1_000L)
+                val current = _state.value
+                if (current.isTracking && !current.isPaused) {
+                    val elapsedSec = ((System.currentTimeMillis() - startTimeMs - totalPausedMs) / 1000L).toInt().coerceAtLeast(0)
+                    if (elapsedSec != current.durationSec) {
+                        _state.value = current.copy(durationSec = elapsedSec)
+                    }
+                }
+            }
+        }
+    }
+
     // ── Calibration ──────────────────────────────────────────────────────────
 
     fun startCalibration() {
@@ -80,6 +109,7 @@ class GpsTrackingRepository @Inject constructor(
         isAutoPaused = false
         lastFixTimestampMs = 0L
         _state.value = LiveTrackState(isTracking = true)
+        startTicker()
     }
 
     suspend fun addPoint(
@@ -192,10 +222,12 @@ class GpsTrackingRepository @Inject constructor(
     }
 
     fun stopTracking() {
+        tickerJob?.cancel()
         _state.value = _state.value.copy(isTracking = false)
     }
 
     fun reset() {
+        tickerJob?.cancel()
         _state.value = LiveTrackState()
         workoutId = 0L
         pointIndex = 0
