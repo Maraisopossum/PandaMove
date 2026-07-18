@@ -25,7 +25,7 @@ private const val METERS_PER_DEGREE_LAT = 111_320.0
  * par point, pour garantir une grille cohérente sur toute la zone — au prix d'une légère distorsion
  * si les points couvrent une très large plage de latitudes (négligeable à l'échelle d'une ville).
  */
-fun computeHeatmapCells(points: List<GpsTrackPointEntity>, cellSizeMeters: Double = 25.0): List<HeatmapCell> {
+fun computeHeatmapCells(points: List<GpsTrackPointEntity>, cellSizeMeters: Double = 12.0): List<HeatmapCell> {
     if (points.isEmpty()) return emptyList()
 
     val refLat = points.sumOf { it.latitude } / points.size

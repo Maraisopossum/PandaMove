@@ -6,7 +6,10 @@ import android.graphics.Point
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -34,6 +37,12 @@ import kotlin.math.sqrt
  * pré-rasterisée) : elles restent à la bonne taille géographique quel que soit le niveau de zoom sans
  * recalcul de la grille.
  *
+ * [initialCenter] (lat, lon) : si fourni, la carte s'ouvre centrée là (position actuelle de
+ * l'utilisateur) à [initialZoom] plutôt que cadrée sur l'étendue de toutes les cellules — plus utile
+ * en pratique qu'un cadrage qui peut dézoomer très loin si des sorties existent dans des villes très
+ * éloignées. Le cadrage initial (l'un ou l'autre) n'est appliqué qu'une fois : les zooms/pans
+ * suivants de l'utilisateur ne sont jamais réécrasés par une recomposition.
+ *
  * Nécessite la permission INTERNET et l'initialisation de
  * `org.osmdroid.config.Configuration.getInstance().userAgentValue` dans l'Application (déjà fait
  * pour [GpsTrackMapCard]).
@@ -42,6 +51,8 @@ import kotlin.math.sqrt
 fun HeatmapMap(
     cells: List<HeatmapCell>,
     modifier: Modifier = Modifier.fillMaxSize(),
+    initialCenter: Pair<Double, Double>? = null,
+    initialZoom: Double = 15.5,
 ) {
     if (cells.isEmpty()) return
 
@@ -54,6 +65,9 @@ fun HeatmapMap(
             setMultiTouchControls(true)
         }
     }
+    // Empêche toute recomposition ultérieure de recadrer la carte et d'annuler un zoom/pan déjà
+    // fait par l'utilisateur — le cadrage initial n'a droit qu'à un seul passage.
+    var hasAppliedInitialCamera by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -77,29 +91,35 @@ fun HeatmapMap(
             mv.overlays.clear()
             mv.overlays.add(HeatmapOverlay(cells))
 
-            // Cadrage initial sur l'étendue de toutes les cellules — même parade anti-ANR que
-            // GpsTrackMapCard : zoomToBoundingBox peut bloquer indéfiniment si la vue n'a pas encore
-            // de dimensions mesurées.
-            val geoPoints = cells.map { GeoPoint(it.centerLat, it.centerLon) }
-            val bounds = BoundingBox.fromGeoPoints(geoPoints)
-            fun applyZoom() {
-                mv.zoomToBoundingBox(bounds, false, 64)
-                mv.invalidate()
-            }
-            if (mv.width > 0 && mv.height > 0) {
-                mv.post { applyZoom() }
-            } else {
-                mv.addOnLayoutChangeListener(object : android.view.View.OnLayoutChangeListener {
-                    override fun onLayoutChange(
-                        v: android.view.View?, left: Int, top: Int, right: Int, bottom: Int,
-                        oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int,
-                    ) {
-                        if (right - left > 0 && bottom - top > 0) {
-                            mv.removeOnLayoutChangeListener(this)
-                            applyZoom()
-                        }
+            if (!hasAppliedInitialCamera) {
+                // Même parade anti-ANR que GpsTrackMapCard : zoomToBoundingBox/setCenter peuvent se
+                // comporter de façon incohérente si la vue n'a pas encore de dimensions mesurées.
+                fun applyInitialCamera() {
+                    if (initialCenter != null) {
+                        mv.controller.setZoom(initialZoom)
+                        mv.controller.setCenter(GeoPoint(initialCenter.first, initialCenter.second))
+                    } else {
+                        val bounds = BoundingBox.fromGeoPoints(cells.map { GeoPoint(it.centerLat, it.centerLon) })
+                        mv.zoomToBoundingBox(bounds, false, 64)
                     }
-                })
+                    mv.invalidate()
+                    hasAppliedInitialCamera = true
+                }
+                if (mv.width > 0 && mv.height > 0) {
+                    mv.post { applyInitialCamera() }
+                } else {
+                    mv.addOnLayoutChangeListener(object : android.view.View.OnLayoutChangeListener {
+                        override fun onLayoutChange(
+                            v: android.view.View?, left: Int, top: Int, right: Int, bottom: Int,
+                            oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int,
+                        ) {
+                            if (right - left > 0 && bottom - top > 0) {
+                                mv.removeOnLayoutChangeListener(this)
+                                applyInitialCamera()
+                            }
+                        }
+                    })
+                }
             }
         },
     )
@@ -107,32 +127,35 @@ fun HeatmapMap(
 
 private const val METERS_PER_DEGREE_LAT = 111_320.0
 
+/**
+ * Dessine chaque cellule comme un disque doux (pas un carré à bord dur) légèrement plus large que
+ * la cellule elle-même : les disques voisins se chevauchent et fondent leurs bords, ce qui donne un
+ * tracé continu et lissé (esprit heatmap Strava) plutôt qu'une grille de blocs visibles.
+ */
 private class HeatmapOverlay(private val cells: List<HeatmapCell>) : Overlay() {
     private val paint = Paint().apply { style = Paint.Style.FILL; isAntiAlias = true }
     private val minCount = cells.minOf { it.count }
     // Évite une division par zéro quand toutes les cellules ont le même nombre de passages.
     private val maxCount = cells.maxOf { it.count }.coerceAtLeast(minCount + 1)
-    private val topLeft = Point()
-    private val bottomRight = Point()
+    private val center = Point()
+    private val edge = Point()
 
     override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
         if (shadow) return
         val projection = mapView.projection
         cells.forEach { cell ->
             val halfLat = (cell.cellSizeMeters / 2.0) / METERS_PER_DEGREE_LAT
-            val halfLon = (cell.cellSizeMeters / 2.0) / (METERS_PER_DEGREE_LAT * cos(Math.toRadians(cell.centerLat)).coerceAtLeast(0.01))
-            projection.toPixels(GeoPoint(cell.centerLat + halfLat, cell.centerLon - halfLon), topLeft)
-            projection.toPixels(GeoPoint(cell.centerLat - halfLat, cell.centerLon + halfLon), bottomRight)
+            projection.toPixels(GeoPoint(cell.centerLat, cell.centerLon), center)
+            projection.toPixels(GeoPoint(cell.centerLat + halfLat, cell.centerLon), edge)
+            // Rayon élargi à 120% de la demi-cellule : le chevauchement volontaire avec les cellules
+            // adjacentes est ce qui fait disparaître l'effet "grille" et fond les bords en continu.
+            val radiusPx = kotlin.math.abs(center.y - edge.y) * 1.2f
 
             // Racine carrée : sans elle, une poignée de cellules extrêmes écrase le dégradé et
             // presque tout le reste retombe au bleu — l'easing étale la lecture visuelle.
             val t = sqrt(((cell.count - minCount).toFloat() / (maxCount - minCount).toFloat()).coerceIn(0f, 1f))
-            paint.color = heatmapColor(t).copy(alpha = 0.55f).toArgb()
-            canvas.drawRect(
-                topLeft.x.toFloat(), topLeft.y.toFloat(),
-                bottomRight.x.toFloat(), bottomRight.y.toFloat(),
-                paint,
-            )
+            paint.color = heatmapColor(t).copy(alpha = 0.5f).toArgb()
+            canvas.drawCircle(center.x.toFloat(), center.y.toFloat(), radiusPx, paint)
         }
     }
 }
