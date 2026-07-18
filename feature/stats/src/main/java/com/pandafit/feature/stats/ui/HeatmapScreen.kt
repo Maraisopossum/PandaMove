@@ -5,6 +5,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -20,7 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.HeatmapMap
 import com.pandafit.designsystem.components.PandaEmptyState
-import com.pandafit.designsystem.components.PandaFilterChip
+import com.pandafit.designsystem.components.PandaIconToggle
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaAmber
@@ -54,26 +58,27 @@ fun HeatmapScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // Toggles ronds pictogramme seul — même style que les filtres sport du Calendrier.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                PandaFilterChip(
-                    label = stringResource(R.string.heatmap_filter_all),
+                PandaIconToggle(
+                    icon = Icons.Filled.Map,
+                    color = PandaPurple,
                     selected = uiState.selectedSport == null,
-                    onSelectedChange = { if (it) viewModel.selectSport(null) },
-                    selectedColor = PandaPurple,
-                    modifier = Modifier.weight(1f),
+                    onClick = { viewModel.selectSport(null) },
+                    contentDescription = stringResource(R.string.heatmap_filter_all),
                 )
                 HEATMAP_SPORTS.forEach { sport ->
-                    PandaFilterChip(
-                        label = sportLabel(sport),
+                    PandaIconToggle(
+                        icon = sportIcon(sport),
+                        color = sportColor(sport),
                         selected = uiState.selectedSport == sport,
-                        onSelectedChange = { if (it) viewModel.selectSport(sport) },
-                        selectedColor = sportColor(sport),
-                        modifier = Modifier.weight(1f),
+                        onClick = { viewModel.selectSport(sport) },
+                        contentDescription = sportLabel(sport),
                     )
                 }
             }
@@ -105,6 +110,13 @@ private fun sportLabel(sport: WorkoutType): String = when (sport) {
     WorkoutType.CYCLING -> stringResource(R.string.heatmap_filter_cycling)
     WorkoutType.HIKING -> stringResource(R.string.heatmap_filter_hiking)
     WorkoutType.STRENGTH -> "" // jamais dans HEATMAP_SPORTS (pas de tracé GPS)
+}
+
+private fun sportIcon(sport: WorkoutType): ImageVector = when (sport) {
+    WorkoutType.RUNNING -> Icons.AutoMirrored.Filled.DirectionsRun
+    WorkoutType.CYCLING -> Icons.AutoMirrored.Filled.DirectionsBike
+    WorkoutType.HIKING -> Icons.Filled.Landscape
+    WorkoutType.STRENGTH -> Icons.Filled.Map
 }
 
 private fun sportColor(sport: WorkoutType) = when (sport) {
