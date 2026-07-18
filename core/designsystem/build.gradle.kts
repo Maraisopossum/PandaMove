@@ -32,6 +32,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:database"))
+
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
     implementation(libs.bundles.compose)
