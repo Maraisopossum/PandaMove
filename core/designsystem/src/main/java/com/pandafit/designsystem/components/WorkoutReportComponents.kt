@@ -445,15 +445,12 @@ fun SplitAnalysisChart(
                 val slotWidth = size.width / splits.size
                 val chartHeight = size.height
 
+                // Grille horizontale calée uniquement sur l'axe vitesse/allure — un quadrillage sur
+                // les deux axes à la fois (métrique + dénivelé) surchargeait le graphique sans aider
+                // la lecture, les deux échelles n'ayant pas les mêmes graduations.
                 metricTicks.forEach { tick ->
                     val y = chartHeight * yFraction(tick)
                     drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-                }
-                if (hasElevation) {
-                    elevationTicks.forEach { tick ->
-                        val y = chartHeight - chartHeight * (tick / elevationTickMax).toFloat()
-                        drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-                    }
                 }
 
                 val elevationStrokeWidth = if (emphasizeElevation) 5f else 3f
