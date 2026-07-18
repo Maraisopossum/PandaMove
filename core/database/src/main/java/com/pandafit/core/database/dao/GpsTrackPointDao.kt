@@ -19,6 +19,10 @@ interface GpsTrackPointDao {
     @Query("SELECT * FROM gps_track_points WHERE workout_id = :workoutId ORDER BY point_index ASC")
     suspend fun getByWorkout(workoutId: Long): List<GpsTrackPointEntity>
 
+    /** Requête groupée pour les listes (miniature de tracé) — évite une requête par séance affichée. */
+    @Query("SELECT * FROM gps_track_points WHERE workout_id IN (:workoutIds) ORDER BY workout_id ASC, point_index ASC")
+    suspend fun getByWorkoutIds(workoutIds: List<Long>): List<GpsTrackPointEntity>
+
     @Query("SELECT * FROM gps_track_points WHERE workout_id = :workoutId ORDER BY point_index ASC")
     fun observeByWorkout(workoutId: Long): Flow<List<GpsTrackPointEntity>>
 

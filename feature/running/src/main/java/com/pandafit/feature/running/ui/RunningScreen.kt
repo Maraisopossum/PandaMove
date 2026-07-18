@@ -285,6 +285,7 @@ fun RunningScreen(
                                 alpha = 0.75f,
                                 isSelected = w.id in selectedIds,
                                 isSelectionMode = isSelectionMode,
+                                routeThumbnail = uiState.routeThumbnails[w.id],
                                 onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToDetail(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
@@ -320,6 +321,7 @@ private fun RunWorkoutCard(
     onDuplicate: (() -> Unit)? = null,
     onAssign: (() -> Unit)? = null,
     onReschedule: (() -> Unit)? = null,
+    routeThumbnail: List<Pair<Double, Double>>? = null,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
@@ -368,6 +370,24 @@ private fun RunWorkoutCard(
                         Text(workout.notes, style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                     }
                 }
+                val stats = buildList {
+                    workout.resultDistanceKm?.let { add("${"%.1f".format(it)} km") }
+                    workout.resultDurationSec?.let {
+                        val h = it / 3600; val m = (it % 3600) / 60
+                        add(if (h > 0) "${h}h${m.toString().padStart(2, '0')}" else "${m}min")
+                    }
+                    workout.resultElevationM?.let { add("↑ ${it}m") }
+                }.joinToString(" · ")
+                if (stats.isNotBlank()) {
+                    Text(stats, style = MaterialTheme.typography.labelMedium, color = PandaGreen, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            if (!routeThumbnail.isNullOrEmpty() && routeThumbnail.size >= 2) {
+                com.pandafit.designsystem.components.GpsRouteThumbnail(
+                    points = routeThumbnail,
+                    color = PandaGreen,
+                    modifier = Modifier.size(48.dp).padding(end = 4.dp),
+                )
             }
             if (!isSelectionMode) {
                 if (onDuplicate != null) {

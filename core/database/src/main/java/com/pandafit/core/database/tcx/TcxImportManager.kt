@@ -336,12 +336,20 @@ private fun TcxParsedActivity.avgSpeedKmh(): Double? {
     return (kmh * 10).toLong() / 10.0 // arrondi à 1 décimale
 }
 
-fun TcxParsedActivity.defaultName(): String {
+fun TcxParsedActivity.defaultName(): String = defaultNameForType(workoutType)
+
+/**
+ * Nom par défaut pour un [type] donné — distinct de [workoutType] (le sport détecté du fichier)
+ * pour permettre de recalculer le nom quand l'utilisateur corrige le sport dans l'aperçu d'import
+ * (cf. [com.pandafit.feature.profile.viewmodel.TcxImportViewModel.updateType]), sans quoi le nom
+ * garde l'intitulé de l'ancien sport (ex. "Course du ..." sur une séance reclassée en randonnée).
+ */
+fun TcxParsedActivity.defaultNameForType(type: WorkoutType): String {
     val date = startTimeAsDate()
-    return when (workoutType) {
+    return when (type) {
         WorkoutType.RUNNING -> "Course du $date"
         WorkoutType.CYCLING -> "Vélo du $date"
-        WorkoutType.HIKING  -> "Randonnée du $date"
+        WorkoutType.HIKING  -> "Sortie du $date"
         else                -> "Séance du $date"
     }
 }

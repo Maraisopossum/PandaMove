@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -46,6 +47,7 @@ private val reportJson = Json { ignoreUnknownKeys = true }
 @HiltViewModel
 class HikingListViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
+    private val gpsDao: GpsTrackPointDao,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HikingListUiState())
@@ -56,12 +58,21 @@ class HikingListViewModel @Inject constructor(
     private fun observe() {
         viewModelScope.launch {
             workoutDao.observeCompletedByType(WorkoutType.HIKING)
+                .map { completed ->
+                    // Requête groupée (pas une par carte) pour la miniature de parcours.
+                    val thumbnails = if (completed.isEmpty()) emptyMap() else {
+                        gpsDao.getByWorkoutIds(completed.map { it.id })
+                            .groupBy({ it.workoutId }, { Pair(it.latitude, it.longitude) })
+                    }
+                    completed to thumbnails
+                }
                 .catch { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
                 // Préserver quickStartWorkoutId : Room peut émettre entre l'insert et la mise à jour de l'état
-                .collect { newState ->
+                .collect { (completed, thumbnails) ->
                     _uiState.value = HikingListUiState(
                         isLoading = false,
-                        completed = newState,
+                        completed = completed,
+                        routeThumbnails = thumbnails,
                         quickStartWorkoutId = _uiState.value.quickStartWorkoutId,
                     )
                 }

@@ -3,6 +3,7 @@ package com.pandafit.feature.running.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.ActiveSessionManager
+import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.RunStepDao
 import com.pandafit.core.database.dao.WorkoutDao
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -24,6 +26,7 @@ class RunningListViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val repeatDao: RunRepeatDao,
     private val stepDao: RunStepDao,
+    private val gpsDao: GpsTrackPointDao,
     private val sessionManager: ActiveSessionManager,
 ) : ViewModel() {
 
@@ -42,7 +45,15 @@ class RunningListViewModel @Inject constructor(
                 workoutDao.observePlannedByType(WorkoutType.RUNNING),
                 workoutDao.observeCompletedByType(WorkoutType.RUNNING),
             ) { templates, planned, completed ->
-                RunningListUiState(isLoading = false, templates = templates, planned = planned, completed = completed)
+                Triple(templates, planned, completed)
+            }
+            .map { (templates, planned, completed) ->
+                // Requête groupée (pas une par carte) pour la miniature de parcours des séances terminées.
+                val thumbnails = if (completed.isEmpty()) emptyMap() else {
+                    gpsDao.getByWorkoutIds(completed.map { it.id })
+                        .groupBy({ it.workoutId }, { Pair(it.latitude, it.longitude) })
+                }
+                RunningListUiState(isLoading = false, templates = templates, planned = planned, completed = completed, routeThumbnails = thumbnails)
             }
             .catch { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
             // Préserver quickStartWorkoutId : Room peut émettre entre l'insert et la mise à jour de l'état

@@ -21,6 +21,8 @@ data class RunningListUiState(
     val error: String? = null,
     /** Workout libre créé par "Séance directe" : déclenche la navigation vers l'exécution puis se réinitialise. */
     val quickStartWorkoutId: Long? = null,
+    /** Tracé GPS (lat, lon) par workoutId, pour la miniature de parcours des séances terminées — absent si pas de tracé. */
+    val routeThumbnails: Map<Long, List<Pair<Double, Double>>> = emptyMap(),
 )
 
 // ── Detail (create/edit) ──────────────────────────────────────────────────────

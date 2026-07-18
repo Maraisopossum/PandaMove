@@ -9,6 +9,7 @@ import com.pandafit.core.database.tcx.TcxImportManager
 import com.pandafit.core.database.tcx.TcxImportResult
 import com.pandafit.core.database.tcx.TcxParsedActivity
 import com.pandafit.core.database.tcx.defaultName
+import com.pandafit.core.database.tcx.defaultNameForType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,8 +88,17 @@ class TcxImportViewModel @Inject constructor(
         viewModelScope.launch {
             val preview = _step.value as? TcxImportStep.Preview ?: return@launch
             val planned = workoutDao.observePlannedByType(type).first()
+            // Ne recalcule le nom que si l'utilisateur n'a pas encore personnalisé celui proposé par
+            // défaut pour le sport détecté — sinon le changement de sport écraserait un nom saisi
+            // à la main.
+            val name = if (preview.name == preview.activity.defaultNameForType(preview.workoutType)) {
+                preview.activity.defaultNameForType(type)
+            } else {
+                preview.name
+            }
             _step.value = preview.copy(
                 workoutType     = type,
+                name            = name,
                 plannedWorkouts = planned,
                 targetWorkoutId = null,
             )

@@ -13,6 +13,8 @@ data class HikingListUiState(
     val error: String? = null,
     /** Non-null juste après "Randonnée directe" — déclenche la navigation vers l'exécution GPS. */
     val quickStartWorkoutId: Long? = null,
+    /** Tracé GPS (lat, lon) par workoutId, pour la miniature de parcours des séances terminées — absent si pas de tracé. */
+    val routeThumbnails: Map<Long, List<Pair<Double, Double>>> = emptyMap(),
 )
 
 data class HikingExecuteUiState(

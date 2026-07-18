@@ -2,6 +2,7 @@ package com.pandafit.feature.cycling.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.WorkoutBlockDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.WorkoutType
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -21,6 +23,7 @@ import javax.inject.Inject
 class CyclingListViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val blockDao: WorkoutBlockDao,
+    private val gpsDao: GpsTrackPointDao,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CyclingListUiState())
@@ -35,7 +38,14 @@ class CyclingListViewModel @Inject constructor(
                 workoutDao.observePlannedByType(WorkoutType.CYCLING),
                 workoutDao.observeCompletedByType(WorkoutType.CYCLING),
             ) { templates, planned, completed ->
-                CyclingListUiState(isLoading = false, templates = templates, planned = planned, completed = completed)
+                Triple(templates, planned, completed)
+            }
+            .map { (templates, planned, completed) ->
+                val thumbnails = if (completed.isEmpty()) emptyMap() else {
+                    gpsDao.getByWorkoutIds(completed.map { it.id })
+                        .groupBy({ it.workoutId }, { Pair(it.latitude, it.longitude) })
+                }
+                CyclingListUiState(isLoading = false, templates = templates, planned = planned, completed = completed, routeThumbnails = thumbnails)
             }
             .catch { e -> _uiState.value = _uiState.value.copy(isLoading = false, error = e.message) }
             // Préserver quickStartWorkoutId : Room peut émettre entre l'insert et la mise à jour de l'état
