@@ -49,14 +49,14 @@ fun HeatmapScreen(
     ) { innerPadding ->
         when {
             uiState.isLoading || !uiState.isLocationResolved -> PandaLoadingIndicator(modifier = Modifier.padding(innerPadding))
-            uiState.data == null -> PandaEmptyState(
+            uiState.points.size < 2 -> PandaEmptyState(
                 title = stringResource(R.string.heatmap_empty_title),
                 description = stringResource(R.string.heatmap_empty_description),
                 icon = Icons.Filled.Map,
                 modifier = Modifier.padding(innerPadding),
             )
             else -> HeatmapMap(
-                data = uiState.data!!,
+                points = uiState.points,
                 initialCenter = uiState.currentLocation,
                 modifier = Modifier
                     .fillMaxSize()

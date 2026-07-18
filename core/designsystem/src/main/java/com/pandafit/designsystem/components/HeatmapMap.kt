@@ -1,11 +1,14 @@
 package com.pandafit.designsystem.components
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Point
+import android.graphics.Rect
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,28 +17,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
-import com.pandafit.core.database.analysis.HeatmapData
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.withContext
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Overlay
+import kotlin.math.cos
+import kotlin.math.exp
+import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
- * Carte GPS interactive (zoom/pan) affichant [data] en lignes continues colorées par fréquence de
- * passage (bleu = peu fréquenté, rouge = très fréquenté, relatif au min/max de l'utilisateur) — pas
- * un semis de points : chaque tracé est dessiné comme une ligne (avec halo, esprit Strava), la
- * grille de fréquentation ([HeatmapData.grid]) ne servant qu'à choisir la couleur de chaque segment.
+ * Carte GPS interactive (zoom/pan) affichant [points] en vraie heatmap de densité (flou gaussien,
+ * bleu → rouge du moins au plus fréquenté, relatif au propre historique de l'utilisateur) sur un
+ * fond de carte sombre — esprit Strava, pas un semis de points ni une grille de cellules à bord dur.
+ *
+ * Le calque densité est recalculé pour la zone actuellement visible (pas une fois pour toutes les
+ * données) : un seul rendu figé sur toute l'étendue des points serait soit un magma flou informe
+ * une fois zoomé sur une petite partie (résolution insuffisante), soit illisible dézoomé sur des
+ * sorties très éloignées entre elles. Le recalcul est débattu de ~350ms après la fin d'un geste de
+ * zoom/pan (jamais à chaque frame), fait hors thread principal, et ne considère que les points de la
+ * zone visible (+ marge) — borné en coût même avec un historique GPS chargé.
  *
  * [initialCenter] (lat, lon) : si fourni, la carte s'ouvre centrée là (position actuelle de
- * l'utilisateur) à [initialZoom] plutôt que cadrée sur l'étendue de tous les tracés — plus utile en
+ * l'utilisateur) à [initialZoom] plutôt que cadrée sur l'étendue de tous les points — plus utile en
  * pratique qu'un cadrage qui peut dézoomer très loin si des sorties existent dans des villes très
  * éloignées. Le cadrage initial (l'un ou l'autre) n'est appliqué qu'une fois : les zooms/pans
  * suivants de l'utilisateur ne sont jamais réécrasés par une recomposition.
@@ -44,39 +62,68 @@ import kotlin.math.sqrt
  * `org.osmdroid.config.Configuration.getInstance().userAgentValue` dans l'Application (déjà fait
  * pour [GpsTrackMapCard]).
  */
+@OptIn(FlowPreview::class)
 @Composable
 fun HeatmapMap(
-    data: HeatmapData,
+    points: List<Pair<Double, Double>>,
     modifier: Modifier = Modifier.fillMaxSize(),
     initialCenter: Pair<Double, Double>? = null,
     initialZoom: Double = 15.5,
 ) {
-    if (data.tracks.isEmpty()) return
+    if (points.size < 2) return
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
         MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
+            setTileSource(CARTO_DARK_MATTER_TILE_SOURCE)
             setMultiTouchControls(true)
         }
     }
     // Empêche toute recomposition ultérieure de recadrer la carte et d'annuler un zoom/pan déjà
     // fait par l'utilisateur — le cadrage initial n'a droit qu'à un seul passage.
     var hasAppliedInitialCamera by remember { mutableStateOf(false) }
+    var heatmapLayer by remember { mutableStateOf<HeatmapLayer?>(null) }
+    // Un simple compteur suffit : seul le "tick" compte, pas sa valeur — déclenche le debounce ci-dessous.
+    val recomputeTrigger = remember { MutableStateFlow(0L) }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
+    LaunchedEffect(mapView, points) {
+        recomputeTrigger.debounce(350).collect {
+            val bbox = mapView.boundingBox ?: return@collect
+            if (mapView.width <= 0 || mapView.height <= 0) return@collect
+            val layer = withContext(Dispatchers.Default) {
+                buildHeatmapLayer(points, bbox, mapView.width, mapView.height)
+            }
+            heatmapLayer = layer
+        }
+    }
+
+    DisposableEffect(mapView, lifecycleOwner) {
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> mapView.onResume()
                 Lifecycle.Event.ON_PAUSE  -> mapView.onPause()
                 else                      -> Unit
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+
+        val mapListener = object : MapListener {
+            override fun onScroll(event: ScrollEvent?): Boolean {
+                recomputeTrigger.value = System.currentTimeMillis()
+                return false
+            }
+            override fun onZoom(event: ZoomEvent?): Boolean {
+                recomputeTrigger.value = System.currentTimeMillis()
+                return false
+            }
+        }
+        mapView.addMapListener(mapListener)
+
         onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+            lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
+            mapView.removeMapListener(mapListener)
             mapView.onDetach()
         }
     }
@@ -90,7 +137,7 @@ fun HeatmapMap(
         modifier = modifier.clipToBounds(),
         update = { mv ->
             mv.overlays.clear()
-            mv.overlays.add(HeatmapOverlay(data))
+            heatmapLayer?.let { mv.overlays.add(DensityHeatmapOverlay(it)) }
 
             if (!hasAppliedInitialCamera) {
                 // Même parade anti-ANR que GpsTrackMapCard : zoomToBoundingBox/setCenter peuvent se
@@ -100,11 +147,13 @@ fun HeatmapMap(
                         mv.controller.setZoom(initialZoom)
                         mv.controller.setCenter(GeoPoint(initialCenter.first, initialCenter.second))
                     } else {
-                        val bounds = BoundingBox.fromGeoPoints(data.tracks.flatten().map { GeoPoint(it.first, it.second) })
+                        val bounds = BoundingBox.fromGeoPoints(points.map { GeoPoint(it.first, it.second) })
                         mv.zoomToBoundingBox(bounds, false, 64)
                     }
                     mv.invalidate()
                     hasAppliedInitialCamera = true
+                    // Premier calcul du calque densité, une fois la caméra initiale posée.
+                    recomputeTrigger.value = System.currentTimeMillis()
                 }
                 if (mv.width > 0 && mv.height > 0) {
                     mv.post { applyInitialCamera() }
@@ -121,64 +170,149 @@ fun HeatmapMap(
                         }
                     })
                 }
+            } else {
+                mv.invalidate()
             }
         },
     )
 }
 
+/** CARTO Dark Matter — fond de carte sombre façon Strava, sans clé API (attribution requise, incluse ci-dessous). */
+private val CARTO_DARK_MATTER_TILE_SOURCE = XYTileSource(
+    "CartoDBDarkMatter",
+    0, 20, 256, ".png",
+    arrayOf(
+        "https://a.basemaps.cartocdn.com/dark_all/",
+        "https://b.basemaps.cartocdn.com/dark_all/",
+        "https://c.basemaps.cartocdn.com/dark_all/",
+        "https://d.basemaps.cartocdn.com/dark_all/",
+    ),
+    "© OpenStreetMap contributors © CARTO",
+)
+
+// ── Construction du calque densité (hors thread principal) ───────────────────────────────────────
+
+private const val METERS_PER_DEGREE_LAT = 111_320.0
+private const val BITMAP_MAX_DIMENSION = 900
+
+/** Bitmap colorisé + zone géographique qu'il couvre — plaqué sur la carte par [DensityHeatmapOverlay]. */
+private class HeatmapLayer(val bitmap: Bitmap, val bounds: BoundingBox)
+
 /**
- * Dessine chaque tracé comme une ligne continue (pas un semis de points par cellule) : pour chaque
- * segment, la couleur est choisie via [HeatmapData.grid] à son point médian — un double passage
- * (halo large peu opaque + trait fin plus opaque, esprit Strava) donne un rendu lissé plutôt qu'une
- * ligne à bord dur.
+ * Rasterise la densité des points tombant dans [viewBounds] (+ marge, pour amortir un léger pan
+ * avant le prochain recalcul) à une résolution proche de la taille d'écran [viewportW]x[viewportH]
+ * — jamais la totalité de l'historique sur une résolution fixe, qui deviendrait soit un magma flou
+ * une fois zoomé soit illisible dézoomé (cf. doc de [HeatmapMap]).
+ *
+ * Empreinte gaussienne par point dans un tampon de flottants (pas de saturation prématurée), puis
+ * colorisation via une table de correspondance à 256 entrées (bleu→rouge) — le dégradé n'est calculé
+ * qu'une fois par palier, jamais par pixel.
  */
-private class HeatmapOverlay(private val data: HeatmapData) : Overlay() {
-    private val glowPaint = Paint().apply {
-        style = Paint.Style.STROKE
-        isAntiAlias = true
-        strokeCap = Paint.Cap.ROUND
-        strokeJoin = Paint.Join.ROUND
-        strokeWidth = 16f
+private fun buildHeatmapLayer(
+    allPoints: List<Pair<Double, Double>>,
+    viewBounds: BoundingBox,
+    viewportW: Int,
+    viewportH: Int,
+): HeatmapLayer? {
+    val latPad = (viewBounds.latNorth - viewBounds.latSouth) * 0.25
+    val lonPad = (viewBounds.lonEast - viewBounds.lonWest) * 0.25
+    val north = viewBounds.latNorth + latPad
+    val south = viewBounds.latSouth - latPad
+    val east = viewBounds.lonEast + lonPad
+    val west = viewBounds.lonWest - lonPad
+
+    val points = allPoints.filter { (lat, lon) -> lat in south..north && lon in west..east }
+    if (points.size < 2) return null
+
+    val refLat = (north + south) / 2.0
+    val latSpanM = (north - south) * METERS_PER_DEGREE_LAT
+    val lonSpanM = (east - west) * METERS_PER_DEGREE_LAT * cos(Math.toRadians(refLat)).coerceAtLeast(0.01)
+    val aspect = (lonSpanM / latSpanM.coerceAtLeast(1.0)).coerceIn(0.2, 5.0)
+
+    // Résolution calée sur la taille d'écran réelle (plafonnée) plutôt que sur l'étendue
+    // géographique — la netteté ne dépend plus du zoom courant.
+    val targetDim = min(BITMAP_MAX_DIMENSION, min(viewportW, viewportH).takeIf { it > 0 } ?: BITMAP_MAX_DIMENSION)
+    val w: Int
+    val h: Int
+    if (aspect >= 1.0) {
+        w = targetDim
+        h = (w / aspect).toInt().coerceAtLeast(64)
+    } else {
+        h = targetDim
+        w = (h * aspect).toInt().coerceAtLeast(64)
     }
-    private val corePaint = Paint().apply {
-        style = Paint.Style.STROKE
-        isAntiAlias = true
-        strokeCap = Paint.Cap.ROUND
-        strokeJoin = Paint.Join.ROUND
-        strokeWidth = 6f
+
+    // Rayon relatif à la taille du calque (~4% du plus petit côté) — une empreinte GPS représente
+    // toujours à peu près la même fraction de l'écran, quel que soit le niveau de zoom, puisque le
+    // calque est justement recalculé pour matcher le zoom courant.
+    val radiusPx = (min(w, h) * 0.045f).coerceIn(4f, 48f)
+    val sigma = radiusPx / 2f
+
+    val density = FloatArray(w * h)
+    points.forEach { (lat, lon) ->
+        val cx = ((lon - west) / (east - west) * w).toFloat()
+        val cy = ((north - lat) / (north - south) * h).toFloat()
+        val minX = (cx - radiusPx).toInt().coerceIn(0, w - 1)
+        val maxX = (cx + radiusPx).toInt().coerceIn(0, w - 1)
+        val minY = (cy - radiusPx).toInt().coerceIn(0, h - 1)
+        val maxY = (cy + radiusPx).toInt().coerceIn(0, h - 1)
+        for (y in minY..maxY) {
+            val dy = y - cy
+            val rowOffset = y * w
+            for (x in minX..maxX) {
+                val dx = x - cx
+                val distSq = dx * dx + dy * dy
+                if (distSq <= radiusPx * radiusPx) {
+                    density[rowOffset + x] += exp(-distSq / (2f * sigma * sigma))
+                }
+            }
+        }
     }
-    private val p1 = Point()
-    private val p2 = Point()
+
+    val maxDensity = density.max().coerceAtLeast(0.0001f)
+    // LUT 257 entrées (0..256 inclus) : le dégradé n'est calculé qu'une fois par palier, jamais par
+    // pixel — indispensable pour rester rapide sur un Bitmap de plusieurs centaines de milliers de pixels.
+    val colorLut = IntArray(257) { i ->
+        // Racine carrée : sans elle, une poignée de zones extrêmes écrase le dégradé et presque
+        // tout le reste retombe au bleu — l'easing étale la lecture visuelle.
+        val eased = sqrt(i / 256f)
+        if (eased <= 0.04f) {
+            0 // transparent : pas de halo visible loin de tout point réel
+        } else {
+            val c = heatmapColor(eased)
+            val alpha = (40 + eased * 150f).toInt().coerceIn(0, 190)
+            (alpha shl 24) or ((c.red * 255).toInt() shl 16) or ((c.green * 255).toInt() shl 8) or (c.blue * 255).toInt()
+        }
+    }
+
+    val pixels = IntArray(w * h)
+    for (i in pixels.indices) {
+        val t = (density[i] / maxDensity).coerceIn(0f, 1f)
+        pixels[i] = colorLut[(t * 256).toInt().coerceIn(0, 256)]
+    }
+
+    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
+    return HeatmapLayer(bitmap, BoundingBox(north, east, south, west))
+}
+
+/** Plaque le Bitmap densité précalculé sur la carte, repositionné/redimensionné via la projection à chaque frame — jamais recalculé pendant un simple pan/zoom (cf. debounce dans [HeatmapMap]). */
+private class DensityHeatmapOverlay(private val layer: HeatmapLayer) : Overlay() {
+    private val paint = Paint().apply { isAntiAlias = true; isFilterBitmap = true }
+    private val topLeft = Point()
+    private val bottomRight = Point()
 
     override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
         if (shadow) return
         val projection = mapView.projection
-        val grid = data.grid
-
-        data.tracks.forEach { track ->
-            for (i in 0 until track.size - 1) {
-                val (lat1, lon1) = track[i]
-                val (lat2, lon2) = track[i + 1]
-                val midLat = (lat1 + lat2) / 2.0
-                val midLon = (lon1 + lon2) / 2.0
-
-                // Racine carrée : sans elle, une poignée de segments extrêmes écrase le dégradé et
-                // presque tout le reste retombe au bleu — l'easing étale la lecture visuelle.
-                val t = sqrt(
-                    ((grid.countAt(midLat, midLon) - grid.minCount).toFloat() / (grid.maxCount - grid.minCount).toFloat())
-                        .coerceIn(0f, 1f),
-                )
-                val color = heatmapColor(t)
-
-                projection.toPixels(GeoPoint(lat1, lon1), p1)
-                projection.toPixels(GeoPoint(lat2, lon2), p2)
-
-                glowPaint.color = color.copy(alpha = 0.20f).toArgb()
-                canvas.drawLine(p1.x.toFloat(), p1.y.toFloat(), p2.x.toFloat(), p2.y.toFloat(), glowPaint)
-                corePaint.color = color.copy(alpha = 0.90f).toArgb()
-                canvas.drawLine(p1.x.toFloat(), p1.y.toFloat(), p2.x.toFloat(), p2.y.toFloat(), corePaint)
-            }
-        }
+        projection.toPixels(GeoPoint(layer.bounds.latNorth, layer.bounds.lonWest), topLeft)
+        projection.toPixels(GeoPoint(layer.bounds.latSouth, layer.bounds.lonEast), bottomRight)
+        canvas.drawBitmap(
+            layer.bitmap,
+            null,
+            Rect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y),
+            paint,
+        )
     }
 }
 

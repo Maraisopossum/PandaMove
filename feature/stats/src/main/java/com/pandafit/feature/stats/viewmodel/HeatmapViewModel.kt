@@ -10,8 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.pandafit.core.database.analysis.HeatmapData
-import com.pandafit.core.database.analysis.computeHeatmapData
+import com.pandafit.core.database.analysis.computeHeatmapPoints
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,7 +27,7 @@ import kotlin.coroutines.resume
 
 data class HeatmapUiState(
     val isLoading: Boolean = true,
-    val data: HeatmapData? = null,
+    val points: List<Pair<Double, Double>> = emptyList(),
     /** Position actuelle (lat, lon) — utilisée pour centrer la carte à l'ouverture. */
     val currentLocation: Pair<Double, Double>? = null,
     /** Vrai une fois la tentative de localisation terminée (succès, échec ou permission absente) —
@@ -55,12 +54,12 @@ class HeatmapViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            // Lecture + binning (potentiellement des dizaines de milliers de points sur un
-            // historique chargé) hors du thread principal.
-            val data = withContext(Dispatchers.IO) {
-                computeHeatmapData(gpsDao.getAll())
+            // Lecture hors du thread principal — le calcul de densité/flou lui-même est fait par
+            // HeatmapMap, également hors thread principal.
+            val points = withContext(Dispatchers.IO) {
+                computeHeatmapPoints(gpsDao.getAll())
             }
-            _uiState.value = _uiState.value.copy(isLoading = false, data = data)
+            _uiState.value = _uiState.value.copy(isLoading = false, points = points)
         }
     }
 
