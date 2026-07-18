@@ -15,6 +15,11 @@
     <string name="common_seance_name_label">Nom de la séance</string>
     <string name="common_empty_dash">—</string>
 
+    <!-- Heatmap -->
+    <string name="heatmap_screen_title">Heatmap</string>
+    <string name="heatmap_empty_title">Pas encore de tracé GPS</string>
+    <string name="heatmap_empty_description">Enregistre une sortie course, vélo ou randonnée avec le GPS pour voir apparaître tes zones les plus fréquentées.</string>
+
     <!-- Stats strings -->
     <string name="stats_screen_title">Statistiques</string>
     <string name="stats_section_strength">Renforcement</string>

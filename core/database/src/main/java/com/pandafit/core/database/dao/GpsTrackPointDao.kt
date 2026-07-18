@@ -23,6 +23,10 @@ interface GpsTrackPointDao {
     @Query("SELECT * FROM gps_track_points WHERE workout_id IN (:workoutIds) ORDER BY workout_id ASC, point_index ASC")
     suspend fun getByWorkoutIds(workoutIds: List<Long>): List<GpsTrackPointEntity>
 
+    /** Tous les points GPS toutes séances confondues — pour la heatmap globale (cf. core/database/analysis/HeatmapAnalysis.kt). */
+    @Query("SELECT * FROM gps_track_points")
+    suspend fun getAll(): List<GpsTrackPointEntity>
+
     @Query("SELECT * FROM gps_track_points WHERE workout_id = :workoutId ORDER BY point_index ASC")
     fun observeByWorkout(workoutId: Long): Flow<List<GpsTrackPointEntity>>
 

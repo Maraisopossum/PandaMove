@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Timer
@@ -87,6 +88,7 @@ val defaultDrawerItems = listOf(
     DrawerNavItem("timer",     "Minuteur",      Icons.Default.Timer),
     DrawerNavItem("calendar",  "Calendrier",    Icons.Default.CalendarMonth),
     DrawerNavItem("stats",     "Statistiques",  Icons.Default.BarChart),
+    DrawerNavItem("heatmap",   "Heatmap",       Icons.Default.Map),
     DrawerNavItem("profile",   "Profil",        Icons.Default.Person),
 )
 

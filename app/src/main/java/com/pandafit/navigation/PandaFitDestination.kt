@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelfImprovement
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.outlined.DirectionsBike
 import androidx.compose.material.icons.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Timer
@@ -104,6 +106,13 @@ sealed class PandaFitDestination(
         label = "Randonnée",
         selectedIcon = Icons.Filled.Landscape,
         unselectedIcon = Icons.Filled.Landscape,
+    )
+
+    data object Heatmap : PandaFitDestination(
+        route = "heatmap",
+        label = "Heatmap",
+        selectedIcon = Icons.Filled.Map,
+        unselectedIcon = Icons.Outlined.Map,
     )
 }
 

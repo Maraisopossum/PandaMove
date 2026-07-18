@@ -69,6 +69,7 @@ import com.pandafit.feature.running.ui.RunningWorkoutDetailScreen
 import com.pandafit.feature.running.ui.RunningWorkoutExecuteScreen
 import com.pandafit.feature.running.ui.RunningWorkoutReportScreen
 import com.pandafit.feature.running.ui.WorkoutResultScreen
+import com.pandafit.feature.stats.ui.HeatmapScreen
 import com.pandafit.feature.stats.ui.StatsConfigScreen
 import com.pandafit.feature.stats.ui.StatsScreen
 import com.pandafit.feature.strength.ui.InstanceExecuteScreen
@@ -497,6 +498,9 @@ fun PandaFitNavHost() {
             }
             composable(PandaFitDestination.Stats.route) {
                 StatsScreen(onOpenDrawer = { scope.launch { drawerState.open() } })
+            }
+            composable(PandaFitDestination.Heatmap.route) {
+                HeatmapScreen(onOpenDrawer = { scope.launch { drawerState.open() } })
             }
             composable(PandaFitDestination.Profile.route) {
                 ProfileScreen(
