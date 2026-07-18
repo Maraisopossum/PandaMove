@@ -53,6 +53,20 @@
     <string name="hiking_report_rpe">RPE</string>
     <string name="hiking_report_notes_title">Notes</string>
 
+    <!-- HikingWorkoutReportScreen — Hero / analyse / graphique (style commun running) -->
+    <string name="hiking_report_completed_label">SORTIE TERMINÉE !</string>
+    <string name="hiking_report_total_duration_label">Durée totale</string>
+    <string name="hiking_report_distance_label">Distance</string>
+    <string name="hiking_report_avg_speed_label">Vitesse moyenne</string>
+    <string name="hiking_report_analysis_title">ANALYSE DE TA SORTIE</string>
+    <string name="hiking_report_route_label">PARCOURS</string>
+    <string name="hiking_report_metrics_title">MÉTRIQUES</string>
+    <string name="hiking_report_regularity_label">Régularité</string>
+    <string name="hiking_report_best_km_label">Meilleur split</string>
+    <string name="hiking_report_worst_km_label">Split le plus lent</string>
+    <string name="hiking_report_speed_legend">Vitesse (km/h)</string>
+    <string name="hiking_report_elevation_legend">Dénivelé (m)</string>
+
     <!-- Randonnée directe (GPS live) -->
     <string name="hiking_fab_seance_directe">Randonnée directe</string>
     <string name="hiking_execute_title_fallback">Randonnée</string>

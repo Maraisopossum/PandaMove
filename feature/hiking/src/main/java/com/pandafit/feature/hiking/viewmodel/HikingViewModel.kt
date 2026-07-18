@@ -4,11 +4,22 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.ActiveSessionManager
+import com.pandafit.core.database.analysis.SplitMetric
+import com.pandafit.core.database.analysis.computeAvailableMetrics
+import com.pandafit.core.database.analysis.computeDistanceSplitAnalysis
+import com.pandafit.core.database.analysis.computeDistanceSplitAnalysisFromLaps
+import com.pandafit.core.database.analysis.computeFeedback
+import com.pandafit.core.database.analysis.computeMascotVariant
+import com.pandafit.core.database.analysis.computeSignatureMetric
 import com.pandafit.core.database.catalog.GpsTrackingRepository
 import com.pandafit.core.database.catalog.LiveTrackState
+import com.pandafit.core.database.catalog.UserPreferencesRepository
+import com.pandafit.core.database.dao.GpsTrackPointDao
+import com.pandafit.core.database.dao.RunRepeatDao
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
+import com.pandafit.core.database.model.IntervalRepResult
 import com.pandafit.feature.hiking.GpsHikingController
 import com.pandafit.feature.hiking.model.HikingDetailUiState
 import com.pandafit.feature.hiking.model.HikingExecuteUiState
@@ -20,13 +31,17 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+
+private val reportJson = Json { ignoreUnknownKeys = true }
 
 @HiltViewModel
 class HikingListViewModel @Inject constructor(
@@ -175,6 +190,9 @@ class HikingDetailViewModel @Inject constructor(
 @HiltViewModel
 class HikingReportViewModel @Inject constructor(
     private val workoutDao: WorkoutDao,
+    private val gpsDao: GpsTrackPointDao,
+    private val repeatDao: RunRepeatDao,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HikingReportUiState())
@@ -182,8 +200,29 @@ class HikingReportViewModel @Inject constructor(
 
     fun load(workoutId: Long) {
         viewModelScope.launch {
-            val w = workoutDao.getById(workoutId)
-            _uiState.value = HikingReportUiState(isLoading = false, workout = w)
+            val workout = workoutDao.getById(workoutId) ?: run {
+                _uiState.value = HikingReportUiState(isLoading = false)
+                return@launch
+            }
+
+            val gpsTrackPoints = gpsDao.getByWorkout(workoutId).sortedBy { it.pointIndex }
+            val gpsPoints = gpsTrackPoints.map { Pair(it.latitude, it.longitude) }
+            val reps: List<IntervalRepResult> = repeatDao.getByWorkout(workoutId)
+                .filter { it.resultsJson.isNotBlank() }
+                .flatMap { runCatching { reportJson.decodeFromString<List<IntervalRepResult>>(it.resultsJson) }.getOrDefault(emptyList()) }
+            val isFemale = userPreferencesRepository.genderFlow.first() == "FEMALE"
+
+            _uiState.value = HikingReportUiState(
+                isLoading = false,
+                workout = workout,
+                gpsPoints = gpsPoints,
+                signatureMetric = computeSignatureMetric(workout),
+                feedback = computeFeedback(workout, hasIntervals = false),
+                availableMetrics = computeAvailableMetrics(workout),
+                mascotVariant = computeMascotVariant(isFemale),
+                splitAnalysis = computeDistanceSplitAnalysis(gpsTrackPoints, SplitMetric.SPEED_KMH)
+                    ?: computeDistanceSplitAnalysisFromLaps(reps, gpsTrackPoints, SplitMetric.SPEED_KMH),
+            )
         }
     }
 

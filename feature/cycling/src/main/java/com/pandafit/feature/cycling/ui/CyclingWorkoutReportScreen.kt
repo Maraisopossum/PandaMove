@@ -5,9 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,13 +25,28 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pandafit.core.database.analysis.SplitMetric
 import com.pandafit.core.database.entities.BlockType
 import com.pandafit.core.database.entities.WorkoutBlockEntity
 import com.pandafit.core.database.entities.WorkoutEntity
+import com.pandafit.core.database.entities.WorkoutSource
 import com.pandafit.designsystem.components.GpsTrackMapCard
+import com.pandafit.designsystem.components.HeroStat
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.components.PandaTopBar
+import com.pandafit.designsystem.components.RegularityIndicator
+import com.pandafit.designsystem.components.ReportSectionCard
+import com.pandafit.designsystem.components.SPEED_TICK_STEPS_KMH
+import com.pandafit.designsystem.components.SplitAnalysisChart
+import com.pandafit.designsystem.components.WorkoutFeedbackBanner
+import com.pandafit.designsystem.components.WorkoutMetricsRow
+import com.pandafit.designsystem.components.WorkoutResultHeroCard
+import com.pandafit.designsystem.components.formatSpeedTick
+import com.pandafit.designsystem.components.signatureMetricToHeroStat
 import com.pandafit.designsystem.theme.PandaBlue
+import com.pandafit.designsystem.theme.PandaBlueContainer
+import com.pandafit.designsystem.theme.PandaGreen
+import com.pandafit.designsystem.theme.PandaOnBackground
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.cycling.R
 import com.pandafit.feature.cycling.viewmodel.CyclingReportViewModel
@@ -95,12 +111,13 @@ fun CyclingWorkoutReportScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 88.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).let {
+                PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp)
+            },
         ) {
-            // ── En-tête ──────────────────────────────────────────────────────
             item {
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 1.dp,
@@ -123,27 +140,109 @@ fun CyclingWorkoutReportScreen(
                 }
             }
 
-            // ── Résultats globaux (séances terminées) ─────────────────────────
             if (isCompleted && workout != null) {
                 item {
-                    CyclingGlobalResultsCard(
-                        workout = workout,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    val stats = buildList {
+                        add(HeroStat(stringResource(R.string.cycling_report_distance_label), workout.resultDistanceKm?.let { "%.1f km".format(it) } ?: "—", Icons.Filled.Place, PandaBlue))
+                        add(HeroStat(stringResource(R.string.cycling_report_avg_speed_label), workout.resultSpeedAvgKmh?.let { "%.1f km/h".format(it) } ?: "—", Icons.Filled.Speed, PandaGreen))
+                        uiState.signatureMetric?.let { add(signatureMetricToHeroStat(it)) }
+                    }
+                    WorkoutResultHeroCard(
+                        mascotVariant = uiState.mascotVariant,
+                        accentColor = PandaBlue,
+                        completedLabel = stringResource(R.string.cycling_report_completed_label),
+                        durationValue = formatDurSec(workout.resultDurationSec ?: 0),
+                        durationLabel = stringResource(R.string.cycling_report_total_duration_label),
+                        stats = stats,
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
+                }
+                uiState.feedback?.let { feedback ->
+                    item { WorkoutFeedbackBanner(feedback, PandaBlueContainer, Modifier.padding(vertical = 8.dp)) }
+                }
+                uiState.splitAnalysis?.takeIf { it.splits.size >= 2 }?.let { analysis ->
+                    item {
+                        Text(
+                            stringResource(R.string.cycling_report_analysis_title),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = PandaOnBackground,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                        )
+                        ReportSectionCard {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                                workout.resultSpeedAvgKmh?.let {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(stringResource(R.string.cycling_report_avg_speed_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                                        Text("%.1f km/h".format(it), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaOnBackground)
+                                    }
+                                }
+                                analysis.regularityPercent?.let { pct ->
+                                    RegularityIndicator(pct, stringResource(R.string.cycling_report_regularity_label), Modifier.weight(1f))
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            SplitAnalysisChart(
+                                splits = analysis.chartSplits,
+                                metric = SplitMetric.SPEED_KMH,
+                                metricLegendLabel = stringResource(R.string.cycling_report_speed_legend),
+                                metricColor = PandaBlue,
+                                elevationColor = PandaGreen,
+                                elevationLegendLabel = stringResource(R.string.cycling_report_elevation_legend),
+                                metricTickSteps = SPEED_TICK_STEPS_KMH,
+                                formatMetricTick = ::formatSpeedTick,
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                                Column {
+                                    Text(stringResource(R.string.cycling_report_best_km_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                                    Text("%.1f km/h".format(analysis.bestSplit.metricValue), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaBlue)
+                                }
+                                Column {
+                                    Text(stringResource(R.string.cycling_report_worst_km_label), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
+                                    Text("%.1f km/h".format(analysis.worstSplit.metricValue), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PandaOnBackground)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
                 }
             }
 
             // ── Tracé GPS ────────────────────────────────────────────────────
             if (uiState.gpsPoints.size >= 2) {
                 item {
-                    GpsTrackMapCard(
-                        points = uiState.gpsPoints,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                            .clip(MaterialTheme.shapes.medium),
+                    Text(
+                        stringResource(R.string.cycling_report_route_label),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = PandaOnBackground,
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
+                    ReportSectionCard {
+                        GpsTrackMapCard(
+                            points = uiState.gpsPoints,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .clip(MaterialTheme.shapes.medium),
+                        )
+                    }
+                    Spacer(Modifier.height(20.dp))
+                }
+            }
+
+            if (uiState.availableMetrics.isNotEmpty()) {
+                item {
+                    Text(
+                        stringResource(R.string.cycling_report_metrics_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = PandaOnBackground,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    ReportSectionCard { WorkoutMetricsRow(uiState.availableMetrics) }
+                    Spacer(Modifier.height(20.dp))
                 }
             }
 
@@ -155,93 +254,17 @@ fun CyclingWorkoutReportScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = PandaSubtext,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
                 }
                 items(uiState.blocks, key = { "block_${it.id}" }) { block ->
                     CyclingBlockReadRow(
                         block = block,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(vertical = 3.dp),
                     )
                 }
             }
         }
-    }
-}
-
-// ── Carte résultats globaux cycling ──────────────────────────────────────────
-
-@Composable
-private fun CyclingGlobalResultsCard(
-    workout: WorkoutEntity,
-    modifier: Modifier = Modifier,
-) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = Color(0xFFF0F4FF)) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(stringResource(R.string.cycling_report_section_results), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(10.dp))
-
-            // Ligne 1 : Distance / Durée / Vitesse moy
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyclingResultCell(stringResource(R.string.cycling_report_cell_distance), workout.resultDistanceKm?.let { "%.1f km".format(it) } ?: "—", Modifier.weight(1f))
-                CyclingResultCell(stringResource(R.string.cycling_report_cell_time),     workout.resultDurationSec?.let { formatDurSec(it) } ?: "—",    Modifier.weight(1f))
-                CyclingResultCell(stringResource(R.string.cycling_report_cell_speed_avg), workout.resultSpeedAvgKmh?.let { "%.1f km/h".format(it) } ?: "—", Modifier.weight(1f))
-            }
-
-            // Ligne 2 : Vitesse max / FC moy / FC max (si présents)
-            val hasLine2 = workout.resultSpeedMaxKmh != null || workout.resultHrAvg != null || workout.resultHrMax != null
-            if (hasLine2) {
-                Spacer(Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CyclingResultCell(stringResource(R.string.cycling_report_cell_speed_max), workout.resultSpeedMaxKmh?.let { "%.1f km/h".format(it) } ?: "—", Modifier.weight(1f))
-                    CyclingResultCell(stringResource(R.string.cycling_report_cell_hr_avg),    workout.resultHrAvg?.let { "$it bpm" } ?: "—",   Modifier.weight(1f))
-                    CyclingResultCell(stringResource(R.string.cycling_report_cell_hr_max),    workout.resultHrMax?.let { "$it bpm" } ?: "—",   Modifier.weight(1f))
-                }
-            }
-
-            // Ligne 3 : Cadence / Dénivelé / Calories / RPE (si au moins un présent)
-            val hasLine3 = workout.resultCadenceAvgRpm != null || workout.resultElevationM != null
-                || workout.resultCalories != null || workout.resultRpe != null
-            if (hasLine3) {
-                Spacer(Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CyclingResultCell(stringResource(R.string.cycling_report_cell_cadence),   workout.resultCadenceAvgRpm?.let { "$it rpm" } ?: "—", Modifier.weight(1f))
-                    CyclingResultCell(stringResource(R.string.cycling_report_cell_elevation), workout.resultElevationM?.let { "$it m" } ?: "—",       Modifier.weight(1f))
-                    CyclingResultCell(stringResource(R.string.cycling_report_cell_calories),  workout.resultCalories?.let { "$it kcal" } ?: "—",      Modifier.weight(1f))
-                }
-                if (workout.resultRpe != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CyclingResultCell(stringResource(R.string.cycling_report_cell_rpe), workout.resultRpe.toString(), Modifier.weight(1f))
-                        Spacer(Modifier.weight(1f))
-                        Spacer(Modifier.weight(1f))
-                    }
-                }
-            }
-
-            // Note de séance
-            if (workout.resultNotes.isNotBlank()) {
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    workout.resultNotes,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = PandaSubtext,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CyclingResultCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(Color.White, MaterialTheme.shapes.small)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, textAlign = TextAlign.Center)
-        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
     }
 }
 
