@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
-import org.osmdroid.tileprovider.tilesource.XYTileSource
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -77,7 +77,7 @@ fun HeatmapMap(
 
     val mapView = remember {
         MapView(context).apply {
-            setTileSource(CARTO_DARK_MATTER_TILE_SOURCE)
+            setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
         }
     }
@@ -177,19 +177,6 @@ fun HeatmapMap(
     )
 }
 
-/** CARTO Dark Matter — fond de carte sombre façon Strava, sans clé API (attribution requise, incluse ci-dessous). */
-private val CARTO_DARK_MATTER_TILE_SOURCE = XYTileSource(
-    "CartoDBDarkMatter",
-    0, 20, 256, ".png",
-    arrayOf(
-        "https://a.basemaps.cartocdn.com/dark_all/",
-        "https://b.basemaps.cartocdn.com/dark_all/",
-        "https://c.basemaps.cartocdn.com/dark_all/",
-        "https://d.basemaps.cartocdn.com/dark_all/",
-    ),
-    "© OpenStreetMap contributors © CARTO",
-)
-
 // ── Construction du calque densité (hors thread principal) ───────────────────────────────────────
 
 private const val METERS_PER_DEGREE_LAT = 111_320.0
@@ -242,10 +229,11 @@ private fun buildHeatmapLayer(
         w = (h * aspect).toInt().coerceAtLeast(64)
     }
 
-    // Rayon relatif à la taille du calque (~4% du plus petit côté) — une empreinte GPS représente
+    // Rayon relatif à la taille du calque (~1.6% du plus petit côté) — une empreinte GPS représente
     // toujours à peu près la même fraction de l'écran, quel que soit le niveau de zoom, puisque le
-    // calque est justement recalculé pour matcher le zoom courant.
-    val radiusPx = (min(w, h) * 0.045f).coerceIn(4f, 48f)
+    // calque est justement recalculé pour matcher le zoom courant. Volontairement fin : une bande
+    // large masque le tracé réel des rues sous un magma flou.
+    val radiusPx = (min(w, h) * 0.016f).coerceIn(3f, 16f)
     val sigma = radiusPx / 2f
 
     val density = FloatArray(w * h)
