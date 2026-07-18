@@ -58,10 +58,18 @@ class HeatmapViewModel @Inject constructor(
         fetchCurrentLocationIfPermitted()
     }
 
-    /** Change le filtre sport et recharge — null pour revenir à "Tous sports". */
+    /**
+     * Change le filtre sport et recharge — null pour revenir à "Tous sports".
+     *
+     * Ne repasse jamais par [HeatmapUiState.isLoading] : ça démonterait la carte (spinner plein
+     * écran à la place), ce qui recrée la MapView de zéro à la prochaine composition — perte du
+     * zoom/pan en cours et clignotement le temps que les tuiles rechargent. La carte reste montée,
+     * seule [HeatmapUiState.points] change une fois la nouvelle requête terminée ; HeatmapMap se
+     * charge lui-même de recalculer son calque densité en tâche de fond.
+     */
     fun selectSport(sport: WorkoutType?) {
         if (sport == _uiState.value.selectedSport) return
-        _uiState.value = _uiState.value.copy(selectedSport = sport, isLoading = true)
+        _uiState.value = _uiState.value.copy(selectedSport = sport)
         loadData()
     }
 
