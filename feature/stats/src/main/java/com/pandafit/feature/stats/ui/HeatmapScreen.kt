@@ -15,7 +15,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.designsystem.components.HeatmapMap
@@ -58,13 +57,12 @@ fun HeatmapScreen(
             else -> HeatmapMap(
                 points = uiState.points,
                 initialCenter = uiState.currentLocation,
+                // Remplit jusqu'au bord bas de l'écran (juste la barre système Android en dessous,
+                // déjà réservée par innerPadding) — seule la barre du haut (bouton hamburger) borde
+                // la carte, pas de bandeau réservé en bas.
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
-                    // Laisse la place au bandeau de séance active (rendu par-dessus, hors de cet
-                    // écran) — sans cette marge la carte interactive s'étend jusqu'au bord et le
-                    // recouvre.
-                    .padding(bottom = 88.dp),
+                    .padding(innerPadding),
             )
         }
     }
