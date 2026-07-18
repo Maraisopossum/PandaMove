@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
@@ -19,27 +20,23 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
-import com.pandafit.core.database.analysis.HeatmapCell
+import com.pandafit.core.database.analysis.HeatmapData
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Overlay
-import kotlin.math.cos
 import kotlin.math.sqrt
 
 /**
- * Carte GPS interactive (zoom/pan) affichant [cells] en dégradé de couleur (bleu = peu fréquenté,
- * rouge = très fréquenté, relatif au min/max du jeu de cellules passé) — heatmap globale toutes
- * séances GPS confondues (cf. [com.pandafit.core.database.analysis.computeHeatmapCells]).
- *
- * Les cellules sont dessinées directement via la projection de la carte à chaque frame (pas une image
- * pré-rasterisée) : elles restent à la bonne taille géographique quel que soit le niveau de zoom sans
- * recalcul de la grille.
+ * Carte GPS interactive (zoom/pan) affichant [data] en lignes continues colorées par fréquence de
+ * passage (bleu = peu fréquenté, rouge = très fréquenté, relatif au min/max de l'utilisateur) — pas
+ * un semis de points : chaque tracé est dessiné comme une ligne (avec halo, esprit Strava), la
+ * grille de fréquentation ([HeatmapData.grid]) ne servant qu'à choisir la couleur de chaque segment.
  *
  * [initialCenter] (lat, lon) : si fourni, la carte s'ouvre centrée là (position actuelle de
- * l'utilisateur) à [initialZoom] plutôt que cadrée sur l'étendue de toutes les cellules — plus utile
- * en pratique qu'un cadrage qui peut dézoomer très loin si des sorties existent dans des villes très
+ * l'utilisateur) à [initialZoom] plutôt que cadrée sur l'étendue de tous les tracés — plus utile en
+ * pratique qu'un cadrage qui peut dézoomer très loin si des sorties existent dans des villes très
  * éloignées. Le cadrage initial (l'un ou l'autre) n'est appliqué qu'une fois : les zooms/pans
  * suivants de l'utilisateur ne sont jamais réécrasés par une recomposition.
  *
@@ -49,12 +46,12 @@ import kotlin.math.sqrt
  */
 @Composable
 fun HeatmapMap(
-    cells: List<HeatmapCell>,
+    data: HeatmapData,
     modifier: Modifier = Modifier.fillMaxSize(),
     initialCenter: Pair<Double, Double>? = null,
     initialZoom: Double = 15.5,
 ) {
-    if (cells.isEmpty()) return
+    if (data.tracks.isEmpty()) return
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -86,10 +83,14 @@ fun HeatmapMap(
 
     AndroidView(
         factory = { mapView },
-        modifier = modifier,
+        // clipToBounds : sans lui, cette AndroidView (rendu Canvas natif, pas du Compose pur) peut
+        // continuer à peindre au-delà des limites que lui donne le modifier appelant (ex. sous la
+        // barre du haut ou par-dessus le bandeau de séance active en bas) au lieu de s'arrêter à sa
+        // zone allouée.
+        modifier = modifier.clipToBounds(),
         update = { mv ->
             mv.overlays.clear()
-            mv.overlays.add(HeatmapOverlay(cells))
+            mv.overlays.add(HeatmapOverlay(data))
 
             if (!hasAppliedInitialCamera) {
                 // Même parade anti-ANR que GpsTrackMapCard : zoomToBoundingBox/setCenter peuvent se
@@ -99,7 +100,7 @@ fun HeatmapMap(
                         mv.controller.setZoom(initialZoom)
                         mv.controller.setCenter(GeoPoint(initialCenter.first, initialCenter.second))
                     } else {
-                        val bounds = BoundingBox.fromGeoPoints(cells.map { GeoPoint(it.centerLat, it.centerLon) })
+                        val bounds = BoundingBox.fromGeoPoints(data.tracks.flatten().map { GeoPoint(it.first, it.second) })
                         mv.zoomToBoundingBox(bounds, false, 64)
                     }
                     mv.invalidate()
@@ -125,37 +126,58 @@ fun HeatmapMap(
     )
 }
 
-private const val METERS_PER_DEGREE_LAT = 111_320.0
-
 /**
- * Dessine chaque cellule comme un disque doux (pas un carré à bord dur) légèrement plus large que
- * la cellule elle-même : les disques voisins se chevauchent et fondent leurs bords, ce qui donne un
- * tracé continu et lissé (esprit heatmap Strava) plutôt qu'une grille de blocs visibles.
+ * Dessine chaque tracé comme une ligne continue (pas un semis de points par cellule) : pour chaque
+ * segment, la couleur est choisie via [HeatmapData.grid] à son point médian — un double passage
+ * (halo large peu opaque + trait fin plus opaque, esprit Strava) donne un rendu lissé plutôt qu'une
+ * ligne à bord dur.
  */
-private class HeatmapOverlay(private val cells: List<HeatmapCell>) : Overlay() {
-    private val paint = Paint().apply { style = Paint.Style.FILL; isAntiAlias = true }
-    private val minCount = cells.minOf { it.count }
-    // Évite une division par zéro quand toutes les cellules ont le même nombre de passages.
-    private val maxCount = cells.maxOf { it.count }.coerceAtLeast(minCount + 1)
-    private val center = Point()
-    private val edge = Point()
+private class HeatmapOverlay(private val data: HeatmapData) : Overlay() {
+    private val glowPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        isAntiAlias = true
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        strokeWidth = 16f
+    }
+    private val corePaint = Paint().apply {
+        style = Paint.Style.STROKE
+        isAntiAlias = true
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        strokeWidth = 6f
+    }
+    private val p1 = Point()
+    private val p2 = Point()
 
     override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
         if (shadow) return
         val projection = mapView.projection
-        cells.forEach { cell ->
-            val halfLat = (cell.cellSizeMeters / 2.0) / METERS_PER_DEGREE_LAT
-            projection.toPixels(GeoPoint(cell.centerLat, cell.centerLon), center)
-            projection.toPixels(GeoPoint(cell.centerLat + halfLat, cell.centerLon), edge)
-            // Rayon élargi à 120% de la demi-cellule : le chevauchement volontaire avec les cellules
-            // adjacentes est ce qui fait disparaître l'effet "grille" et fond les bords en continu.
-            val radiusPx = kotlin.math.abs(center.y - edge.y) * 1.2f
+        val grid = data.grid
 
-            // Racine carrée : sans elle, une poignée de cellules extrêmes écrase le dégradé et
-            // presque tout le reste retombe au bleu — l'easing étale la lecture visuelle.
-            val t = sqrt(((cell.count - minCount).toFloat() / (maxCount - minCount).toFloat()).coerceIn(0f, 1f))
-            paint.color = heatmapColor(t).copy(alpha = 0.5f).toArgb()
-            canvas.drawCircle(center.x.toFloat(), center.y.toFloat(), radiusPx, paint)
+        data.tracks.forEach { track ->
+            for (i in 0 until track.size - 1) {
+                val (lat1, lon1) = track[i]
+                val (lat2, lon2) = track[i + 1]
+                val midLat = (lat1 + lat2) / 2.0
+                val midLon = (lon1 + lon2) / 2.0
+
+                // Racine carrée : sans elle, une poignée de segments extrêmes écrase le dégradé et
+                // presque tout le reste retombe au bleu — l'easing étale la lecture visuelle.
+                val t = sqrt(
+                    ((grid.countAt(midLat, midLon) - grid.minCount).toFloat() / (grid.maxCount - grid.minCount).toFloat())
+                        .coerceIn(0f, 1f),
+                )
+                val color = heatmapColor(t)
+
+                projection.toPixels(GeoPoint(lat1, lon1), p1)
+                projection.toPixels(GeoPoint(lat2, lon2), p2)
+
+                glowPaint.color = color.copy(alpha = 0.20f).toArgb()
+                canvas.drawLine(p1.x.toFloat(), p1.y.toFloat(), p2.x.toFloat(), p2.y.toFloat(), glowPaint)
+                corePaint.color = color.copy(alpha = 0.90f).toArgb()
+                canvas.drawLine(p1.x.toFloat(), p1.y.toFloat(), p2.x.toFloat(), p2.y.toFloat(), corePaint)
+            }
         }
     }
 }

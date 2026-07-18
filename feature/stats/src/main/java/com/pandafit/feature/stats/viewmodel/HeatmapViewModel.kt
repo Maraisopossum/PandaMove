@@ -10,8 +10,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.pandafit.core.database.analysis.HeatmapCell
-import com.pandafit.core.database.analysis.computeHeatmapCells
+import com.pandafit.core.database.analysis.HeatmapData
+import com.pandafit.core.database.analysis.computeHeatmapData
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,7 +28,7 @@ import kotlin.coroutines.resume
 
 data class HeatmapUiState(
     val isLoading: Boolean = true,
-    val cells: List<HeatmapCell> = emptyList(),
+    val data: HeatmapData? = null,
     /** Position actuelle (lat, lon) — utilisée pour centrer la carte à l'ouverture. */
     val currentLocation: Pair<Double, Double>? = null,
     /** Vrai une fois la tentative de localisation terminée (succès, échec ou permission absente) —
@@ -49,18 +49,18 @@ class HeatmapViewModel @Inject constructor(
     val uiState: StateFlow<HeatmapUiState> = _uiState.asStateFlow()
 
     init {
-        loadCells()
+        loadData()
         fetchCurrentLocationIfPermitted()
     }
 
-    private fun loadCells() {
+    private fun loadData() {
         viewModelScope.launch {
             // Lecture + binning (potentiellement des dizaines de milliers de points sur un
             // historique chargé) hors du thread principal.
-            val cells = withContext(Dispatchers.IO) {
-                computeHeatmapCells(gpsDao.getAll())
+            val data = withContext(Dispatchers.IO) {
+                computeHeatmapData(gpsDao.getAll())
             }
-            _uiState.value = _uiState.value.copy(isLoading = false, cells = cells)
+            _uiState.value = _uiState.value.copy(isLoading = false, data = data)
         }
     }
 
