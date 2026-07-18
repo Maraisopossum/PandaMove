@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.pandafit.core.database.entities.GpsTrackPointEntity
+import com.pandafit.core.database.entities.WorkoutType
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -30,6 +31,17 @@ interface GpsTrackPointDao {
      */
     @Query("SELECT * FROM gps_track_points ORDER BY workout_id ASC, point_index ASC")
     suspend fun getAll(): List<GpsTrackPointEntity>
+
+    /** Comme [getAll], filtré à un seul sport — pour le filtre de la heatmap globale. */
+    @Query(
+        """
+        SELECT gps_track_points.* FROM gps_track_points
+        INNER JOIN workouts ON gps_track_points.workout_id = workouts.id
+        WHERE workouts.workout_type = :type
+        ORDER BY gps_track_points.workout_id ASC, gps_track_points.point_index ASC
+        """
+    )
+    suspend fun getAllByWorkoutType(type: WorkoutType): List<GpsTrackPointEntity>
 
     @Query("SELECT * FROM gps_track_points WHERE workout_id = :workoutId ORDER BY point_index ASC")
     fun observeByWorkout(workoutId: Long): Flow<List<GpsTrackPointEntity>>

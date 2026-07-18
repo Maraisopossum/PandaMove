@@ -12,6 +12,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.pandafit.core.database.analysis.computeHeatmapPoints
 import com.pandafit.core.database.dao.GpsTrackPointDao
+import com.pandafit.core.database.entities.WorkoutType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,8 @@ import kotlin.coroutines.resume
 data class HeatmapUiState(
     val isLoading: Boolean = true,
     val points: List<Pair<Double, Double>> = emptyList(),
+    /** null = tous sports confondus. */
+    val selectedSport: WorkoutType? = null,
     /** Position actuelle (lat, lon) — utilisée pour centrer la carte à l'ouverture. */
     val currentLocation: Pair<Double, Double>? = null,
     /** Vrai une fois la tentative de localisation terminée (succès, échec ou permission absente) —
@@ -35,6 +38,9 @@ data class HeatmapUiState(
      * englober, ce qui empêcherait tout recentrage ultérieur (cf. [HeatmapMap], cadrage one-shot). */
     val isLocationResolved: Boolean = false,
 )
+
+/** Sports GPS pouvant alimenter la heatmap — STRENGTH exclu, jamais de tracé GPS. */
+val HEATMAP_SPORTS = listOf(WorkoutType.RUNNING, WorkoutType.CYCLING, WorkoutType.HIKING)
 
 @HiltViewModel
 class HeatmapViewModel @Inject constructor(
@@ -52,14 +58,26 @@ class HeatmapViewModel @Inject constructor(
         fetchCurrentLocationIfPermitted()
     }
 
+    /** Change le filtre sport et recharge — null pour revenir à "Tous sports". */
+    fun selectSport(sport: WorkoutType?) {
+        if (sport == _uiState.value.selectedSport) return
+        _uiState.value = _uiState.value.copy(selectedSport = sport, isLoading = true)
+        loadData()
+    }
+
     private fun loadData() {
+        val sport = _uiState.value.selectedSport
         viewModelScope.launch {
             // Lecture hors du thread principal — le calcul de densité/flou lui-même est fait par
             // HeatmapMap, également hors thread principal.
             val points = withContext(Dispatchers.IO) {
-                computeHeatmapPoints(gpsDao.getAll())
+                val entities = if (sport != null) gpsDao.getAllByWorkoutType(sport) else gpsDao.getAll()
+                computeHeatmapPoints(entities)
             }
-            _uiState.value = _uiState.value.copy(isLoading = false, points = points)
+            // Le filtre a pu changer pendant le chargement — n'écrase pas une sélection plus récente.
+            if (_uiState.value.selectedSport == sport) {
+                _uiState.value = _uiState.value.copy(isLoading = false, points = points)
+            }
         }
     }
 

@@ -19,6 +19,10 @@
     <string name="heatmap_screen_title">Heatmap</string>
     <string name="heatmap_empty_title">Pas encore de tracé GPS</string>
     <string name="heatmap_empty_description">Enregistre une sortie course, vélo ou randonnée avec le GPS pour voir apparaître tes zones les plus fréquentées.</string>
+    <string name="heatmap_filter_all">Tout</string>
+    <string name="heatmap_filter_running">Course</string>
+    <string name="heatmap_filter_cycling">Vélo</string>
+    <string name="heatmap_filter_hiking">Randonnée</string>
 
     <!-- Stats strings -->
     <string name="stats_screen_title">Statistiques</string>
