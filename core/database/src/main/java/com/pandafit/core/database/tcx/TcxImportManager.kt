@@ -365,6 +365,8 @@ private fun TcxLap.toIntervalRepResult(index: Int, isCycling: Boolean = false): 
         runningDone     = true,
         hrAvg           = avgHrBpm,
         hrMax           = maxHrBpm,
+        distanceM       = distanceM,
+        durationSec     = durationSec,
     )
 }
 

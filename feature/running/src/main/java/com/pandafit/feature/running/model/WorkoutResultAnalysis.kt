@@ -2,6 +2,8 @@ package com.pandafit.feature.running.model
 
 import com.pandafit.core.database.entities.RunTargetType
 import com.pandafit.core.database.entities.WorkoutEntity
+import kotlin.math.ceil
+import kotlin.math.floor
 
 /**
  * Vrai si la séance contient de vrais intervalles structurés (une cible d'allure/FC/cadence définie
@@ -70,6 +72,38 @@ data class WorkoutFeedback(val title: String, val message: String)
  * cela nécessite la classification réelle des efforts (étape ultérieure). `reps.done` ne reflète que
  * si la case a été cochée (toujours vrai pour un import TCX), pas si l'allure était dans la plage cible.
  */
+/**
+ * Génère des graduations "rondes" couvrant [min, max] à partir d'une liste de pas candidats
+ * (ex. secondes d'allure : 10/15/30/60/120s ; mètres de dénivelé : 5/10/20/50/100m), en choisissant
+ * le plus petit pas qui tient en ~[targetCount] graduations. Utilisé pour les axes Y du graphique
+ * de régularité — reproduit le rendu "propre" du mockup (ex. 4:30/5:30/6:30/7:30 par pas de 1:00).
+ */
+fun niceAxisTicks(
+    min: Double,
+    max: Double,
+    targetCount: Int,
+    candidateSteps: List<Double>,
+    /** false pour un axe pinné à [min] (ex. dénivelé qui part toujours de 0) — pas de marge en dessous. */
+    padMin: Boolean = true,
+): List<Double> {
+    val range = (max - min).coerceAtLeast(0.001)
+    val rawStep = range / (targetCount - 1).coerceAtLeast(1)
+    val step = candidateSteps.firstOrNull { it >= rawStep } ?: candidateSteps.last()
+    // Marge explicite avant l'arrondi (15% d'un pas) : sans ça, une valeur juste en dessous d'un
+    // multiple du pas (ex. max=449.9 avec pas=30) s'arrondit presque sans marge visible (450), et la
+    // courbe touche quasiment le bord du graphique — pas seulement dans le cas pile-exact.
+    val margin = step * 0.15
+    val niceMin = if (padMin) floor((min - margin) / step) * step else floor(min / step) * step
+    val niceMax = ceil((max + margin) / step) * step
+    val ticks = mutableListOf<Double>()
+    var v = niceMin
+    while (v <= niceMax + step * 0.5) {
+        ticks.add(v)
+        v += step
+    }
+    return ticks
+}
+
 fun computeFeedback(workout: WorkoutEntity, hasIntervals: Boolean): WorkoutFeedback? {
     val distanceKm = workout.resultDistanceKm ?: return null
     if (distanceKm <= 0) return null

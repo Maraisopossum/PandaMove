@@ -23,4 +23,8 @@ data class IntervalRepResult(
     val hrAvg: Int? = null,
     /** FC max sur l'intervalle (rempli à l'import TCX). */
     val hrMax: Int? = null,
+    /** Distance brute du lap en mètres (rempli à l'import TCX — utilisé pour le graphique de régularité). */
+    val distanceM: Double = 0.0,
+    /** Durée brute du lap en secondes (rempli à l'import TCX — utilisé pour le graphique de régularité). */
+    val durationSec: Double = 0.0,
 )

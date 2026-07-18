@@ -21,6 +21,7 @@ import com.pandafit.feature.running.model.IntervalAnalysis
 import com.pandafit.feature.running.model.computeAvailableMetrics
 import com.pandafit.feature.running.model.computeFeedback
 import com.pandafit.feature.running.model.computeFreeRunAnalysis
+import com.pandafit.feature.running.model.computeFreeRunAnalysisFromLaps
 import com.pandafit.feature.running.model.computeIntervalAnalysis
 import com.pandafit.feature.running.model.computeMascotVariant
 import com.pandafit.feature.running.model.computeSignatureMetric
@@ -103,7 +104,10 @@ class WorkoutResultViewModel @Inject constructor(
                 gpsPoints = gpsPoints,
                 mascotVariant = computeMascotVariant(isFemale),
                 intervalAnalysis = if (hasIntervals) computeIntervalAnalysis(repeatBlocks) else null,
-                freeRunAnalysis = if (!hasIntervals) computeFreeRunAnalysis(gpsTrackPoints) else null,
+                freeRunAnalysis = if (!hasIntervals) {
+                    computeFreeRunAnalysis(gpsTrackPoints)
+                        ?: computeFreeRunAnalysisFromLaps(repeatBlocks.flatMap { it.reps }, gpsTrackPoints)
+                } else null,
             )
         }
     }

@@ -1,6 +1,7 @@
 package com.pandafit.feature.running.model
 
 import com.pandafit.core.database.entities.GpsTrackPointEntity
+import com.pandafit.core.database.model.IntervalRepResult
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -118,5 +119,116 @@ class FreeRunAnalysisTest {
         assertTrue(analysis.bestSplit.paceSecPerKm in 200..280)
         assertTrue(analysis.worstSplit.paceSecPerKm in 400..480)
         assertTrue(analysis.bestSplit.paceSecPerKm < analysis.worstSplit.paceSecPerKm)
+    }
+
+    // ── computeFreeRunAnalysisFromLaps (splits TCX, sans horodatage point par point) ──────────
+
+    private fun lap(distanceM: Double, durationSec: Double) =
+        IntervalRepResult(repNumber = 0, distanceM = distanceM, durationSec = durationSec)
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps returns null when fewer than 2 valid laps`() {
+        assertNull(computeFreeRunAnalysisFromLaps(emptyList(), emptyList()))
+        assertNull(computeFreeRunAnalysisFromLaps(listOf(lap(1000.0, 300.0)), emptyList()))
+        // Un lap invalide (distance ou durée nulle) ne doit pas être compté comme valide.
+        assertNull(
+            computeFreeRunAnalysisFromLaps(
+                listOf(lap(1000.0, 300.0), lap(0.0, 0.0)),
+                emptyList(),
+            ),
+        )
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps computes pace per lap from raw distance and duration`() {
+        val laps = listOf(lap(1000.0, 300.0), lap(1000.0, 240.0), lap(500.0, 100.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, emptyList())
+        requireNotNull(analysis)
+        assertEquals(3, analysis.splits.size)
+        assertEquals(300, analysis.splits[0].paceSecPerKm)
+        assertEquals(240, analysis.splits[1].paceSecPerKm)
+        assertEquals(200, analysis.splits[2].paceSecPerKm) // 100s pour 500m -> 200s/km
+        assertEquals(200, analysis.bestSplit.paceSecPerKm)
+        assertEquals(300, analysis.worstSplit.paceSecPerKm)
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps ignores invalid laps but keeps valid ones`() {
+        val laps = listOf(lap(1000.0, 300.0), lap(0.0, 200.0), lap(1000.0, 0.0), lap(1000.0, 250.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, emptyList())
+        requireNotNull(analysis)
+        assertEquals(2, analysis.splits.size)
+        assertEquals(300, analysis.splits[0].paceSecPerKm)
+        assertEquals(250, analysis.splits[1].paceSecPerKm)
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps sets cumulative distance boundaries from lap distances`() {
+        val laps = listOf(lap(1000.0, 300.0), lap(1200.0, 360.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, emptyList())
+        requireNotNull(analysis)
+        assertEquals(1000.0, analysis.splits[0].cumulativeDistanceM, 0.001)
+        assertEquals(2200.0, analysis.splits[1].cumulativeDistanceM, 0.001)
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps returns null elevation when no GPS track available`() {
+        val laps = listOf(lap(1000.0, 300.0), lap(1000.0, 300.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, emptyList())
+        requireNotNull(analysis)
+        assertNull(analysis.splits[0].elevationGainM)
+        assertNull(analysis.splits[1].elevationGainM)
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps attributes elevation gain to laps by cumulative GPS distance`() {
+        // Piste de 2000m avec +2m d'altitude tous les 100m (20 segments, +40m au total).
+        val points = straightTrack(stepMeters = 100.0, stepSeconds = 30, count = 21, altitudeStep = 2.0)
+        val laps = listOf(lap(1000.0, 300.0), lap(1000.0, 300.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, points)
+        requireNotNull(analysis)
+        // Tolérance : comme pour les km GPS (cf. test computeFreeRunAnalysis plus haut), la frontière
+        // exacte du lap peut absorber un segment du split suivant à cause de l'imprécision flottante
+        // de la conversion degrés/mètres — on vérifie la répartition globale, pas un découpage au mètre près.
+        val gain0 = analysis.splits[0].elevationGainM
+        val gain1 = analysis.splits[1].elevationGainM
+        requireNotNull(gain0)
+        requireNotNull(gain1)
+        assertEquals(40, gain0 + gain1)
+        assertTrue(gain0 in 16..20)
+        assertTrue(gain1 in 20..24)
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps regularity is 100 for identical lap paces`() {
+        val laps = listOf(lap(1000.0, 300.0), lap(1000.0, 300.0), lap(1000.0, 300.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, emptyList())
+        requireNotNull(analysis)
+        assertEquals(100, analysis.regularityPercent)
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps excludes short laps from regularity and best-worst but keeps them as splits`() {
+        // Lap 2 = arrêt à un feu rouge (150m très lent) au milieu de deux laps réguliers à 300s-km.
+        val laps = listOf(lap(1000.0, 300.0), lap(150.0, 120.0), lap(1000.0, 300.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, emptyList())
+        requireNotNull(analysis)
+        // Toujours présent comme split (fidèle aux vrais laps Garmin, visible sur le graphique).
+        assertEquals(3, analysis.splits.size)
+        assertEquals(800, analysis.splits[1].paceSecPerKm) // 120s pour 150m -> 800s/km
+        // Exclu des stats : régularité 100 (les deux seuls laps comparés font 300s-km chacun).
+        assertEquals(100, analysis.regularityPercent)
+        assertEquals(300, analysis.bestSplit.paceSecPerKm)
+        assertEquals(300, analysis.worstSplit.paceSecPerKm)
+    }
+
+    @Test
+    fun `computeFreeRunAnalysisFromLaps falls back to all splits when fewer than 2 laps meet the stats threshold`() {
+        // Un seul lap franchit 200m -> repli sur tous les splits plutôt que stats manquantes.
+        val laps = listOf(lap(1000.0, 300.0), lap(150.0, 120.0), lap(100.0, 50.0))
+        val analysis = computeFreeRunAnalysisFromLaps(laps, emptyList())
+        requireNotNull(analysis)
+        assertEquals(3, analysis.splits.size)
+        assertTrue(analysis.regularityPercent != null)
     }
 }
