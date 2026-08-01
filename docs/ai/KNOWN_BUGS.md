@@ -2,6 +2,12 @@
 
 ## ✅ RÉSOLUS
 
+### Bug pause GPS — saut de distance à la reprise (running/cycling/hiking)
+- **Symptôme** : après un appui sur Pause puis Reprendre, la distance affichée augmente d'un coup au moment de la reprise, sans mouvement réel
+- **Cause** : pendant une pause (manuelle ou auto anti-drift), `addPoint()` n'ajoute plus de point à `points` (retour anticipé), mais au 1er fix reçu après la reprise, le calcul de distance utilisait toujours `prev.points.last()` — le dernier point connu **avant** la pause. Toute dérive GPS (jitter, léger déplacement pendant l'arrêt) entre ce point et le 1er fix post-reprise était comptée comme un déplacement instantané
+- **Fix** : flag `justResumed` (mis à `true` par `resumeTracking()` et par la branche de reprise auto dans `addPoint()`) — le 1er fix après reprise ré-ancre la position (`points` + `currentPosition`) sans contribuer à `distanceM`
+- **Fichier** : `core/database/catalog/GpsTrackingRepository.kt` — partagé par `RunningTrackingService`, `CyclingTrackingService`, `HikingTrackingService` (singleton)
+
 ### Bug import TCX — horodatage GPS toujours à 0
 - **Symptôme** : les points GPS d'une séance importée (`timestamp_ms`, `speed_mps`) sont systématiquement à 0/null, alors que la colonne existe pour ça (migration v19→v20) — impossible d'exploiter une trace importée pour une analyse temporelle (allure dans le temps, rejeu chronologique)
 - **Cause** : `TcxParser` ne parsait jamais la balise `<Time>` du `<Trackpoint>` (pourtant obligatoire dans le format TCX) — `TcxRawPoint` n'avait même pas de champ pour ça

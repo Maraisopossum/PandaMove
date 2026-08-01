@@ -56,6 +56,11 @@ class GpsTrackingRepository @Inject constructor(
     private var lowSpeedStreak: Int = 0
     @Volatile private var isAutoPaused: Boolean = false
     private var lastFixTimestampMs: Long = 0L
+    // Le 1er fix reçu après une reprise (manuelle ou auto) ne doit pas contribuer à la distance :
+    // aucun point n'est enregistré pendant la pause, donc le dernier point connu peut avoir dérivé
+    // (jitter GPS, léger déplacement pendant l'arrêt) — sans ce garde, ce fix crée un "saut" de
+    // distance instantané à la reprise (§KNOWN_BUGS.md).
+    @Volatile private var justResumed: Boolean = false
 
     // Chronomètre affiché indépendant de la cadence des fix GPS (§KNOWN_BUGS.md) : sans ce
     // ticker, durationSec n'avance qu'à l'arrivée d'un fix, ce qui fait "sauter" l'affichage
@@ -108,6 +113,7 @@ class GpsTrackingRepository @Inject constructor(
         lowSpeedStreak = 0
         isAutoPaused = false
         lastFixTimestampMs = 0L
+        justResumed = false
         _state.value = LiveTrackState(isTracking = true)
         startTicker()
     }
@@ -135,6 +141,7 @@ class GpsTrackingRepository @Inject constructor(
                 pauseStartMs = 0L
                 isAutoPaused = false
                 lowSpeedStreak = 0
+                justResumed = true
                 _state.value = _state.value.copy(isPaused = false, currentPosition = currentPos)
             } else {
                 _state.value = _state.value.copy(currentPosition = currentPos)
@@ -155,7 +162,11 @@ class GpsTrackingRepository @Inject constructor(
 
         val prev = _state.value
 
-        val distIncrement = if (prev.points.isNotEmpty()) {
+        // 1er fix après reprise : ré-ancre la position sans ajouter de distance (voir justResumed).
+        val skipDistance = justResumed
+        justResumed = false
+
+        val distIncrement = if (prev.points.isNotEmpty() && !skipDistance) {
             val (prevLat, prevLng) = prev.points.last()
             haversineM(prevLat, prevLng, lat, lng)
         } else 0.0
@@ -218,6 +229,7 @@ class GpsTrackingRepository @Inject constructor(
         }
         isAutoPaused = false
         lowSpeedStreak = 0
+        justResumed = true
         _state.value = _state.value.copy(isPaused = false)
     }
 
@@ -238,6 +250,7 @@ class GpsTrackingRepository @Inject constructor(
         lowSpeedStreak = 0
         isAutoPaused = false
         lastFixTimestampMs = 0L
+        justResumed = false
     }
 
     companion object {
