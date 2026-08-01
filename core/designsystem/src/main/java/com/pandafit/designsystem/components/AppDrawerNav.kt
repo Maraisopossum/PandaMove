@@ -137,6 +137,7 @@ fun AppDrawerNav(
     CompositionLocalProvider(LocalLayoutDirection provides outerLayoutDirection) {
         ModalNavigationDrawer(
             drawerState = drawerState,
+            gesturesEnabled = drawerState.isOpen,
             drawerContent = {
                 CompositionLocalProvider(LocalLayoutDirection provides baseLayoutDirection) {
                     ModalDrawerSheet(
