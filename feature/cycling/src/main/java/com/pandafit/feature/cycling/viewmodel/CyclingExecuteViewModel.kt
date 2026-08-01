@@ -59,6 +59,7 @@ class CyclingExecuteViewModel @Inject constructor(
 
     /** 0 = "sortie directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
     private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+    private var wasAutoCreated: Boolean = false
     private var countdownJob: Job? = null
 
     private val _uiState = MutableStateFlow(CyclingExecuteUiState())
@@ -112,6 +113,7 @@ class CyclingExecuteViewModel @Inject constructor(
             )
         )
         workoutId = id
+        wasAutoCreated = true
         val workout = workoutDao.getById(id)
         sessionManager.startWorkout(id, workout?.name ?: "Sortie vélo libre", WorkoutType.CYCLING)
         _uiState.value = _uiState.value.copy(workout = workout, workoutId = id)
@@ -231,10 +233,27 @@ class CyclingExecuteViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Arrête uniquement la calibration. Ne PAS arrêter le suivi GPS ni libérer la session active
+     * ici : le retour arrière (popBackStack) efface ce ViewModel alors que [GpsCyclingController]
+     * continue en arrière-plan (foreground service indépendant) — cf. cancelWorkout() pour l'arrêt explicite.
+     */
     override fun onCleared() {
         gpsController.stopCalibration()
-        sessionManager.endWorkout()
         super.onCleared()
+    }
+
+    /**
+     * Annule la sortie en cours (choix "Annuler la séance" au retour arrière) : arrête le suivi GPS,
+     * supprime le brouillon "sortie directe" s'il a été créé automatiquement, et libère la session active.
+     */
+    fun cancelWorkout() {
+        viewModelScope.launch {
+            if (liveTrackState.value.isTracking) gpsController.stop() else gpsController.stopCalibration()
+            gpsTrackingRepository.reset()
+            if (wasAutoCreated && workoutId > 0L) workoutDao.deleteById(workoutId)
+            sessionManager.endWorkout()
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

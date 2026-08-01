@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.DashPathEffect
 import android.graphics.drawable.BitmapDrawable
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -55,6 +56,7 @@ import java.util.Locale
 
 private val GrayBg    = Color(0xFFF4F4F7)
 private val DarkColor = Color(0xFF1A1A2E)
+private val RedColor  = Color(0xFFE53935)
 
 private const val GPS_READY_ACCURACY_M = 20f
 
@@ -99,6 +101,7 @@ fun CyclingWorkoutExecuteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val liveTrackState by viewModel.liveTrackState.collectAsStateWithLifecycle()
+    var showExitDialog by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     var locationPermissionGranted by remember {
         mutableStateOf(
@@ -115,6 +118,26 @@ fun CyclingWorkoutExecuteScreen(
 
     LaunchedEffect(locationPermissionGranted) {
         if (locationPermissionGranted) viewModel.startCalibration()
+    }
+
+    BackHandler(enabled = !uiState.isCompleted) { showExitDialog = true }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Sortie en cours", fontWeight = FontWeight.Bold) },
+            text = { Text("Le suivi GPS continue en arrière-plan si vous quittez sans l'annuler.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.cancelWorkout(); showExitDialog = false; onNavigateBack() }) {
+                    Text("Annuler la séance", color = RedColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false; onNavigateBack() }) {
+                    Text("Continuer en arrière-plan")
+                }
+            },
+        )
     }
 
     Scaffold(
@@ -136,7 +159,7 @@ fun CyclingWorkoutExecuteScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { if (uiState.isCompleted) onNavigateBack() else showExitDialog = true }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cycling_execute_back_cd))
                     }
                 },

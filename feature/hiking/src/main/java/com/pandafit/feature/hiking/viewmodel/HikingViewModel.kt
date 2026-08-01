@@ -263,6 +263,7 @@ class HikingExecuteViewModel @Inject constructor(
 
     /** 0 = "randonnée directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
     private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+    private var wasAutoCreated: Boolean = false
     private var countdownJob: Job? = null
     private val _uiState = MutableStateFlow(HikingExecuteUiState())
     val uiState: StateFlow<HikingExecuteUiState> = _uiState.asStateFlow()
@@ -310,6 +311,7 @@ class HikingExecuteViewModel @Inject constructor(
             )
         )
         workoutId = id
+        wasAutoCreated = true
         val workout = workoutDao.getById(id)
         sessionManager.startWorkout(id, workout?.name ?: "Randonnée libre", WorkoutType.HIKING)
         _uiState.value = _uiState.value.copy(workout = workout, workoutId = id)
@@ -422,10 +424,28 @@ class HikingExecuteViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Arrête uniquement la calibration. Ne PAS arrêter le suivi GPS ni libérer la session active
+     * ici : le retour arrière (popBackStack) efface ce ViewModel alors que [GpsHikingController]
+     * continue en arrière-plan (foreground service indépendant) — cf. cancelWorkout() pour l'arrêt explicite.
+     */
     override fun onCleared() {
         gpsTrackingController.stopCalibration()
-        sessionManager.endWorkout()
         super.onCleared()
+    }
+
+    /**
+     * Annule la randonnée en cours (choix "Annuler la séance" au retour arrière) : arrête le suivi
+     * GPS, supprime le brouillon "randonnée directe" s'il a été créé automatiquement, et libère la
+     * session active.
+     */
+    fun cancelWorkout() {
+        viewModelScope.launch {
+            if (liveTrackState.value.isTracking) gpsTrackingController.stop() else gpsTrackingController.stopCalibration()
+            gpsTrackingRepository.reset()
+            if (wasAutoCreated && workoutId > 0L) workoutDao.deleteById(workoutId)
+            sessionManager.endWorkout()
+        }
     }
 
     private fun parseDurationToSec(str: String): Int? {
