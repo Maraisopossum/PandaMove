@@ -3,6 +3,7 @@ package com.pandafit.feature.cycling.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.common.GpsSessionDefaults
 import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.catalog.GpsTrackingRepository
 import com.pandafit.core.database.catalog.LiveTrackState
@@ -11,6 +12,8 @@ import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.feature.cycling.GpsCyclingController
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +44,8 @@ data class CyclingExecuteUiState(
     val resultCalories: String = "",
     val resultRpe: String = "",
     val resultNotes: String = "",
+    /** Secondes restantes du décompte avant démarrage réel du GPS ; null = pas de décompte en cours. */
+    val startCountdownSeconds: Int? = null,
 )
 
 @HiltViewModel
@@ -54,6 +59,7 @@ class CyclingExecuteViewModel @Inject constructor(
 
     /** 0 = "sortie directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
     private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+    private var countdownJob: Job? = null
 
     private val _uiState = MutableStateFlow(CyclingExecuteUiState())
     val uiState: StateFlow<CyclingExecuteUiState> = _uiState.asStateFlow()
@@ -121,6 +127,25 @@ class CyclingExecuteViewModel @Inject constructor(
             val id = ensureWorkoutCreated()
             gpsController.start(id)
         }
+    }
+
+    /** Décompte de quelques secondes avant le vrai démarrage (le temps de ranger son téléphone). */
+    fun requestStartCountdown() {
+        if (countdownJob?.isActive == true) return
+        countdownJob = viewModelScope.launch {
+            for (s in GpsSessionDefaults.START_COUNTDOWN_SECONDS downTo 1) {
+                _uiState.value = _uiState.value.copy(startCountdownSeconds = s)
+                delay(1_000L)
+            }
+            _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
+            startGpsTracking()
+        }
+    }
+
+    fun cancelStartCountdown() {
+        countdownJob?.cancel()
+        countdownJob = null
+        _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
     }
 
     fun pauseGpsTracking() = gpsController.pause()

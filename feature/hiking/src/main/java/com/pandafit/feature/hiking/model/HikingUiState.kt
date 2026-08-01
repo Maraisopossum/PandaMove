@@ -32,6 +32,8 @@ data class HikingExecuteUiState(
     val resultCalories: String = "",
     val resultNotes: String = "",
     val isCompleted: Boolean = false,
+    /** Secondes restantes du décompte avant démarrage réel du GPS ; null = pas de décompte en cours. */
+    val startCountdownSeconds: Int? = null,
 )
 
 data class HikingDetailUiState(

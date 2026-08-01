@@ -90,6 +90,8 @@ data class RunningExecuteUiState(
     val resultNotes: String = "",
     val livePhase: LivePhaseUiState? = null,
     val timeline: List<TimelineStepUiState> = emptyList(),
+    /** Secondes restantes du décompte avant démarrage réel du GPS ; null = pas de décompte en cours. */
+    val startCountdownSeconds: Int? = null,
     /** Prévus pour un futur capteur FC/cadence — non alimentés aujourd'hui, jamais affichés tant que null. */
     val liveHrBpm: Int? = null,
     val liveCadencePpm: Int? = null,

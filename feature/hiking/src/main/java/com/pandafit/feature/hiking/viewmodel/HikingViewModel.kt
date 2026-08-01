@@ -3,6 +3,7 @@ package com.pandafit.feature.hiking.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.common.GpsSessionDefaults
 import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.analysis.SplitMetric
 import com.pandafit.core.database.analysis.computeAvailableMetrics
@@ -26,6 +27,8 @@ import com.pandafit.feature.hiking.model.HikingExecuteUiState
 import com.pandafit.feature.hiking.model.HikingListUiState
 import com.pandafit.feature.hiking.model.HikingReportUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -260,6 +263,7 @@ class HikingExecuteViewModel @Inject constructor(
 
     /** 0 = "randonnée directe" en brouillon, pas encore créée en base (créée au tap "Démarrer"). */
     private var workoutId: Long = requireNotNull(savedStateHandle.get<String>("workoutId")?.toLongOrNull())
+    private var countdownJob: Job? = null
     private val _uiState = MutableStateFlow(HikingExecuteUiState())
     val uiState: StateFlow<HikingExecuteUiState> = _uiState.asStateFlow()
 
@@ -321,6 +325,25 @@ class HikingExecuteViewModel @Inject constructor(
             gpsTrackingController.start(id)
         }
     }
+    /** Décompte de quelques secondes avant le vrai démarrage (le temps de ranger son téléphone). */
+    fun requestStartCountdown() {
+        if (countdownJob?.isActive == true) return
+        countdownJob = viewModelScope.launch {
+            for (s in GpsSessionDefaults.START_COUNTDOWN_SECONDS downTo 1) {
+                _uiState.value = _uiState.value.copy(startCountdownSeconds = s)
+                delay(1_000L)
+            }
+            _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
+            startGpsTracking()
+        }
+    }
+
+    fun cancelStartCountdown() {
+        countdownJob?.cancel()
+        countdownJob = null
+        _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
+    }
+
     fun pauseGpsTracking() = gpsTrackingController.pause()
     fun resumeGpsTracking() = gpsTrackingController.resume()
 

@@ -16,6 +16,7 @@ import com.pandafit.core.database.entities.RunStepType
 import com.pandafit.core.database.entities.RunTargetType
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
+import com.pandafit.core.common.GpsSessionDefaults
 import com.pandafit.feature.running.GpsTrackingController
 import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
@@ -34,6 +35,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -67,6 +70,7 @@ class RunningExecuteViewModel @Inject constructor(
 
     /** true si [workoutId] a été créé automatiquement par [ensureWorkoutCreated] ("séance directe"), à supprimer si annulée. */
     private var wasAutoCreated: Boolean = false
+    private var countdownJob: Job? = null
     private val _uiState = MutableStateFlow(RunningExecuteUiState())
     val uiState: StateFlow<RunningExecuteUiState> = _uiState.asStateFlow()
 
@@ -570,6 +574,25 @@ class RunningExecuteViewModel @Inject constructor(
             initAutoLapSegments(_uiState.value)
             gpsTrackingController.start(id)
         }
+    }
+
+    /** Décompte de quelques secondes avant le vrai démarrage (le temps de ranger son téléphone). */
+    fun requestStartCountdown() {
+        if (countdownJob?.isActive == true) return
+        countdownJob = viewModelScope.launch {
+            for (s in GpsSessionDefaults.START_COUNTDOWN_SECONDS downTo 1) {
+                _uiState.value = _uiState.value.copy(startCountdownSeconds = s)
+                delay(1_000L)
+            }
+            _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
+            startGpsTracking()
+        }
+    }
+
+    fun cancelStartCountdown() {
+        countdownJob?.cancel()
+        countdownJob = null
+        _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
     }
 
     fun pauseGpsTracking() {

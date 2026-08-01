@@ -34,7 +34,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pandafit.core.common.GpsSessionDefaults
 import com.pandafit.core.database.catalog.LiveTrackState
+import com.pandafit.designsystem.components.CircleActionButton
+import com.pandafit.designsystem.components.CountdownCircle
+import com.pandafit.designsystem.components.HoldToConfirmCircleButton
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaBlue
 import com.pandafit.designsystem.theme.PandaSubtext
@@ -55,6 +59,13 @@ private val DarkColor = Color(0xFF1A1A2E)
 private const val GPS_READY_ACCURACY_M = 20f
 
 private enum class GpsPhase { IDLE, CALIBRATING, RIDING, PAUSED }
+
+private fun LiveTrackState.gpsPhase(): GpsPhase = when {
+    isTracking && isPaused -> GpsPhase.PAUSED
+    isTracking             -> GpsPhase.RIDING
+    calibrationAccuracyM != null -> GpsPhase.CALIBRATING
+    else                    -> GpsPhase.IDLE
+}
 
 /** Découpe le tracé en segments contigus pleins / pointillés (signal GPS faible). */
 private fun trackSegments(
@@ -88,7 +99,6 @@ fun CyclingWorkoutExecuteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val liveTrackState by viewModel.liveTrackState.collectAsStateWithLifecycle()
-    var showFinishDialog by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     var locationPermissionGranted by remember {
         mutableStateOf(
@@ -105,20 +115,6 @@ fun CyclingWorkoutExecuteScreen(
 
     LaunchedEffect(locationPermissionGranted) {
         if (locationPermissionGranted) viewModel.startCalibration()
-    }
-
-    if (showFinishDialog) {
-        AlertDialog(
-            onDismissRequest = { showFinishDialog = false },
-            title = { Text(stringResource(R.string.cycling_execute_finish_dialog_title), fontWeight = FontWeight.Bold) },
-            text = { Text(stringResource(R.string.cycling_execute_finish_dialog_text)) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.finishWorkout(); showFinishDialog = false }) {
-                    Text(stringResource(R.string.cycling_execute_validate_button), color = PandaBlue, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = { TextButton(onClick = { showFinishDialog = false }) { Text(stringResource(R.string.common_cancel)) } },
-        )
     }
 
     Scaffold(
@@ -144,11 +140,6 @@ fun CyclingWorkoutExecuteScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cycling_execute_back_cd))
                     }
                 },
-                actions = {
-                    TextButton(onClick = { showFinishDialog = true }) {
-                        Text(stringResource(R.string.cycling_execute_validate_action), color = PandaBlue, fontWeight = FontWeight.Bold)
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
         },
@@ -166,12 +157,21 @@ fun CyclingWorkoutExecuteScreen(
                 GpsTrackBlock(
                     state = liveTrackState,
                     permissionGranted = locationPermissionGranted,
-                    onStart = { viewModel.startGpsTracking() },
-                    onPause = { viewModel.pauseGpsTracking() },
-                    onResume = { viewModel.resumeGpsTracking() },
                     onRequestPermission = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
                 )
                 Spacer(Modifier.height(16.dp))
+                if (locationPermissionGranted) {
+                    GpsControlsRow(
+                        state = liveTrackState,
+                        startCountdownSeconds = uiState.startCountdownSeconds,
+                        onStartRequested = viewModel::requestStartCountdown,
+                        onCancelCountdown = viewModel::cancelStartCountdown,
+                        onPause = viewModel::pauseGpsTracking,
+                        onResume = viewModel::resumeGpsTracking,
+                        onFinishConfirmed = viewModel::finishWorkout,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
             // ── Résultats globaux ─────────────────────────────────────────────
@@ -260,23 +260,6 @@ fun CyclingWorkoutExecuteScreen(
                 )
                 Spacer(Modifier.height(16.dp))
             }
-
-            // ── Bouton valider ────────────────────────────────────────────────
-            item {
-                Button(
-                    onClick = { showFinishDialog = true },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PandaBlue),
-                ) {
-                    Text(
-                        stringResource(R.string.cycling_execute_validate_seance_button),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
         }
     }
 }
@@ -287,9 +270,6 @@ fun CyclingWorkoutExecuteScreen(
 private fun GpsTrackBlock(
     state: LiveTrackState,
     permissionGranted: Boolean,
-    onStart: () -> Unit,
-    onPause: () -> Unit,
-    onResume: () -> Unit,
     onRequestPermission: () -> Unit,
 ) {
     Box(
@@ -372,12 +352,7 @@ private fun GpsTrackBlock(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            val phase = when {
-                state.isTracking && state.isPaused -> GpsPhase.PAUSED
-                state.isTracking                   -> GpsPhase.RIDING
-                state.calibrationAccuracyM != null -> GpsPhase.CALIBRATING
-                else                               -> GpsPhase.IDLE
-            }
+            val phase = state.gpsPhase()
 
             if (phase == GpsPhase.PAUSED) {
                 Box(
@@ -430,41 +405,60 @@ private fun GpsTrackBlock(
                 }
             }
 
-            // Bouton d'action (coin haut-droit)
-            Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-                when (phase) {
-                    GpsPhase.IDLE, GpsPhase.CALIBRATING -> {
-                        val ready = state.calibrationAccuracyM?.let { it <= GPS_READY_ACCURACY_M } ?: false
-                        Button(
-                            onClick = onStart,
-                            enabled = ready,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PandaBlue,
-                                disabledContainerColor = Color(0xFF666666),
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text("▶ Démarrer", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                        }
-                    }
-                    GpsPhase.RIDING -> {
-                        Button(
-                            onClick = onPause,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text("⏸ Pause", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                        }
-                    }
-                    GpsPhase.PAUSED -> {
-                        Button(
-                            onClick = onResume,
-                            colors = ButtonDefaults.buttonColors(containerColor = PandaBlue),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text("▶ Reprendre", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                        }
-                    }
+        }
+    }
+}
+
+/**
+ * Gros boutons ronds sous la carte GPS : Démarrer seul (avec décompte au tap), puis Pause/Reprendre
+ * + Fin de séance (hold-to-confirm) côte à côte une fois le suivi lancé.
+ */
+@Composable
+private fun GpsControlsRow(
+    state: LiveTrackState,
+    startCountdownSeconds: Int?,
+    onStartRequested: () -> Unit,
+    onCancelCountdown: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onFinishConfirmed: () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        if (startCountdownSeconds != null) {
+            CountdownCircle(
+                secondsLeft = startCountdownSeconds,
+                totalSeconds = GpsSessionDefaults.START_COUNTDOWN_SECONDS,
+                onClick = onCancelCountdown,
+                color = PandaBlue,
+            )
+        } else when (state.gpsPhase()) {
+            GpsPhase.IDLE, GpsPhase.CALIBRATING -> {
+                val ready = state.calibrationAccuracyM?.let { it <= GPS_READY_ACCURACY_M } ?: false
+                CircleActionButton(
+                    label = "▶ Démarrer",
+                    color = PandaBlue,
+                    enabled = ready,
+                    onClick = onStartRequested,
+                )
+            }
+            GpsPhase.RIDING -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    CircleActionButton(label = "⏸ Pause", color = Color(0xFFFF9800), onClick = onPause)
+                    HoldToConfirmCircleButton(
+                        label = "Fin",
+                        holdDurationMs = GpsSessionDefaults.FINISH_HOLD_DURATION_MS,
+                        onConfirmed = onFinishConfirmed,
+                    )
+                }
+            }
+            GpsPhase.PAUSED -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    CircleActionButton(label = "▶ Reprendre", color = PandaBlue, onClick = onResume)
+                    HoldToConfirmCircleButton(
+                        label = "Fin",
+                        holdDurationMs = GpsSessionDefaults.FINISH_HOLD_DURATION_MS,
+                        onConfirmed = onFinishConfirmed,
+                    )
                 }
             }
         }
