@@ -453,4 +453,61 @@ class DataExportManager @Inject constructor(
 
     private fun String.escapeCsv(): String =
         if (contains(';') || contains('"') || contains('\n')) "\"${replace("\"", "\"\"")}\"" else this
+
+    /**
+     * Export en masse du catalogue d'exercices (JSON) — indépendant du gros export v3.x,
+     * réutilisé par le menu ⋮ de l'écran Catalogue d'exercices.
+     */
+    suspend fun exportExercisesToJson(): File = withContext(Dispatchers.IO) {
+        context.cacheDir
+            .listFiles { f -> f.name.startsWith("pandamove_exercises_") && f.extension == "json" }
+            ?.forEach { it.delete() }
+
+        val dto = ExerciseCatalogExportDto(
+            exportDate = LocalDateTime.now().toString(),
+            exercises = exerciseDao.observeAll().first().map { e ->
+                CustomExerciseDto(
+                    id = e.id, name = e.name, description = e.description,
+                    category = e.category.name, muscleGroups = e.muscleGroups,
+                    exerciseType = e.exerciseType, equipment = e.equipment,
+                    musclePrimary = e.musclePrimary,
+                )
+            },
+        )
+        val fileName = "pandamove_exercises_${LocalDate.now()}.json"
+        val file = File(context.cacheDir, fileName)
+        try {
+            file.writeText(json.encodeToString(dto), Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+        file
+    }
+
+    /** Export en masse du catalogue d'exercices (CSV ';'). */
+    suspend fun exportExercisesToCsv(): File = withContext(Dispatchers.IO) {
+        context.cacheDir
+            .listFiles { f -> f.name.startsWith("pandamove_exercises_") && f.extension == "csv" }
+            ?.forEach { it.delete() }
+
+        val sb = StringBuilder()
+        sb.appendLine("name;category;muscleGroups;equipment;exerciseType;isBodyweight")
+        for (e in exerciseDao.observeAll().first()) {
+            sb.appendLine(
+                "${e.name.escapeCsv()};${e.category.name};${e.muscleGroups.joinToString(",").escapeCsv()};" +
+                    "${e.equipment.joinToString(",").escapeCsv()};${e.exerciseType};${e.isBodyweight}",
+            )
+        }
+
+        val fileName = "pandamove_exercises_${LocalDate.now()}.csv"
+        val file = File(context.cacheDir, fileName)
+        try {
+            file.writeText(sb.toString(), Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+        file
+    }
 }

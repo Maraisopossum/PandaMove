@@ -54,7 +54,7 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         CustomBreathingMethodEntity::class,
         ObjectifProgressionEntity::class,
     ],
-    version = 26,
+    version = 27,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -332,6 +332,20 @@ abstract class PandaFitDatabase : RoomDatabase() {
         val MIGRATION_25_26 = object : Migration(25, 26) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE run_repeats ADD COLUMN is_auto_lap INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v26 → v27 : unicité du nom d'exercice (fiabilise le dédoublonnage import/export du
+        // catalogue) — renomme d'abord les doublons existants (name + " (id)") pour ne jamais
+        // perdre de données, puis remplace l'index name par un index UNIQUE.
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """UPDATE exercises SET name = name || ' (' || id || ')'
+                        WHERE id NOT IN (SELECT MIN(id) FROM exercises GROUP BY name)"""
+                )
+                db.execSQL("DROP INDEX IF EXISTS index_exercises_name")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_exercises_name ON exercises(name)")
             }
         }
 

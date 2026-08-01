@@ -1,5 +1,8 @@
 package com.pandafit.feature.profile.viewmodel
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.common.normalizeSearch
@@ -12,14 +15,23 @@ import com.pandafit.core.database.catalog.rawEquipmentToCategory
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.entities.effectivePrimary
 import com.pandafit.core.database.entities.ExerciseEntity
+import com.pandafit.core.database.export.DataExportManager
+import com.pandafit.core.database.export.DataImportManager
+import com.pandafit.core.database.export.ImportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 // ===== État de la liste filtrée =====
@@ -40,6 +52,21 @@ data class CreateDialogState(
     val muscles: List<MuscleGroup> = emptyList(),
     val equipment: Set<EquipmentCategory> = emptySet(),
     val isBodyweight: Boolean = false,
+    /** Nom déjà utilisé par un autre exercice (name est unique en base depuis v27) — bloque la création. */
+    val nameError: Boolean = false,
+)
+
+// ===== État des menus / bottom sheets (top bar + réglages + import/export) =====
+
+enum class ExerciseExportImportStatus { IDLE, RUNNING, SUCCESS, ERROR }
+
+data class ExerciseMenuState(
+    val topBarMenuOpen: Boolean = false,
+    val settingsSheetOpen: Boolean = false,
+    val importExportSheetOpen: Boolean = false,
+    val status: ExerciseExportImportStatus = ExerciseExportImportStatus.IDLE,
+    val importResult: ImportResult? = null,
+    val errorMessage: String? = null,
 )
 
 // ===== État du dialogue d'édition =====
@@ -55,8 +82,11 @@ data class EditDialogState(
 
 @HiltViewModel
 class ExerciseCatalogViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val exerciseDao: ExerciseDao,
     private val equipmentRepository: EquipmentRepository,
+    private val exportManager: DataExportManager,
+    private val importManager: DataImportManager,
     @Suppress("UnusedPrivateMember") private val catalogRepository: CatalogRepository,
 ) : ViewModel() {
 
@@ -71,6 +101,13 @@ class ExerciseCatalogViewModel @Inject constructor(
 
     private val _editDialogState = MutableStateFlow(EditDialogState())
     val editDialogState: StateFlow<EditDialogState> = _editDialogState.asStateFlow()
+
+    // ===== Menus top bar / réglages / import-export =====
+    private val _menuState = MutableStateFlow(ExerciseMenuState())
+    val menuState: StateFlow<ExerciseMenuState> = _menuState.asStateFlow()
+
+    private val _shareIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
+    val shareIntent: SharedFlow<Intent> = _shareIntent.asSharedFlow()
 
     // StateFlow 1 : liste filtrée
     val listState: StateFlow<ExerciseListState> = combine(
@@ -121,7 +158,7 @@ class ExerciseCatalogViewModel @Inject constructor(
     // ===== Dialogue création =====
     fun openCreate() { _dialogState.value = CreateDialogState(visible = true) }
     fun closeCreate() { _dialogState.value = _dialogState.value.copy(visible = false) }
-    fun setNewName(n: String) { _dialogState.value = _dialogState.value.copy(name = n) }
+    fun setNewName(n: String) { _dialogState.value = _dialogState.value.copy(name = n, nameError = false) }
     fun toggleNewMuscle(g: MuscleGroup) {
         val current = _dialogState.value.muscles.toMutableList()
         if (g in current) current.remove(g) else current.add(g)
@@ -143,6 +180,12 @@ class ExerciseCatalogViewModel @Inject constructor(
         val muscles = state.muscles
         val primaryGroup = muscles.firstOrNull()
         viewModelScope.launch {
+            // name est unique en base (v27) — vérifié ici pour un message clair plutôt qu'un crash
+            // sur violation de contrainte.
+            if (exerciseDao.getByName(name) != null) {
+                _dialogState.value = _dialogState.value.copy(nameError = true)
+                return@launch
+            }
             exerciseDao.insertExercise(
                 ExerciseEntity(
                     name = name,
@@ -221,6 +264,86 @@ class ExerciseCatalogViewModel @Inject constructor(
                 )
             )
             _editDialogState.value = _editDialogState.value.copy(visible = false)
+        }
+    }
+
+    // ===== Menu top bar =====
+    fun openTopBarMenu() { _menuState.value = _menuState.value.copy(topBarMenuOpen = true) }
+    fun closeTopBarMenu() { _menuState.value = _menuState.value.copy(topBarMenuOpen = false) }
+
+    // ===== Réglages (filtre "Mon matériel") =====
+    fun openSettingsSheet() { _menuState.value = _menuState.value.copy(settingsSheetOpen = true) }
+    fun closeSettingsSheet() { _menuState.value = _menuState.value.copy(settingsSheetOpen = false) }
+
+    // ===== Import / export en masse =====
+    fun openImportExportSheet() {
+        _menuState.value = _menuState.value.copy(
+            importExportSheetOpen = true,
+            topBarMenuOpen = false,
+            status = ExerciseExportImportStatus.IDLE,
+        )
+    }
+    fun closeImportExportSheet() { _menuState.value = _menuState.value.copy(importExportSheetOpen = false) }
+
+    fun exportExercisesJson() {
+        viewModelScope.launch {
+            _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.RUNNING)
+            try {
+                val file = exportManager.exportExercisesToJson()
+                _shareIntent.tryEmit(exportManager.buildShareIntent(file))
+                _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.SUCCESS)
+            } catch (e: Exception) {
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.ERROR,
+                    errorMessage = e.message,
+                )
+            }
+        }
+    }
+
+    fun exportExercisesCsv() {
+        viewModelScope.launch {
+            _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.RUNNING)
+            try {
+                val file = exportManager.exportExercisesToCsv()
+                _shareIntent.tryEmit(exportManager.buildShareIntent(file, "text/csv"))
+                _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.SUCCESS)
+            } catch (e: Exception) {
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.ERROR,
+                    errorMessage = e.message,
+                )
+            }
+        }
+    }
+
+    /** Détecte le format (JSON vs CSV) au contenu — évite de faire choisir le format à l'utilisateur. */
+    fun importExercisesFromUri(uri: Uri) {
+        viewModelScope.launch {
+            _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.RUNNING)
+            try {
+                val content = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.readText()
+                } ?: run {
+                    _menuState.value = _menuState.value.copy(
+                        status = ExerciseExportImportStatus.ERROR,
+                        errorMessage = "Impossible de lire le fichier",
+                    )
+                    return@launch
+                }
+                val result = if (content.trimStart().startsWith("{")) importManager.importExercisesFromJson(content)
+                else importManager.importExercisesFromCsv(content)
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.SUCCESS,
+                    importResult = result,
+                    errorMessage = result.parseError,
+                )
+            } catch (e: Exception) {
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.ERROR,
+                    errorMessage = e.message,
+                )
+            }
         }
     }
 }

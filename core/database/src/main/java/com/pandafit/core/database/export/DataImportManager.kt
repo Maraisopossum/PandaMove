@@ -632,4 +632,79 @@ class DataImportManager @Inject constructor(
 
         ImportResult(imported = imported, skipped = skipped, errors = errors)
     }
+
+    /**
+     * Import en masse du catalogue d'exercices (JSON produit par [DataExportManager.exportExercisesToJson]).
+     * Dédoublonnage simple par nom (insensible à la casse) — les doublons sont ignorés, jamais fusionnés.
+     */
+    suspend fun importExercisesFromJson(jsonContent: String): ImportResult = withContext(Dispatchers.IO) {
+        val dto = runCatching { json.decodeFromString<ExerciseCatalogExportDto>(jsonContent) }
+            .getOrElse { return@withContext ImportResult(errors = 1, parseError = it.message) }
+        importExerciseDtos(dto.exercises)
+    }
+
+    /**
+     * Import en masse du catalogue d'exercices (CSV produit par [DataExportManager.exportExercisesToCsv]).
+     * Colonnes attendues : name;category;muscleGroups;equipment;exerciseType;isBodyweight
+     */
+    suspend fun importExercisesFromCsv(csvContent: String): ImportResult = withContext(Dispatchers.IO) {
+        val lines = csvContent.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
+        if (lines.isEmpty()) return@withContext ImportResult()
+        val dtos = lines.drop(1).mapNotNull { line ->
+            val cols = parseCsvLine(line)
+            if (cols.size < 6 || cols[0].isBlank()) return@mapNotNull null
+            CustomExerciseDto(
+                id = 0, name = cols[0], category = cols[1],
+                muscleGroups = cols[2].split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                equipment = cols[3].split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                exerciseType = cols[4],
+                musclePrimary = cols[2].split(",").firstOrNull()?.trim() ?: "",
+            )
+        }
+        importExerciseDtos(dtos)
+    }
+
+    private suspend fun importExerciseDtos(dtos: List<CustomExerciseDto>): ImportResult {
+        var imported = 0; var skipped = 0; var errors = 0
+        val existingNames = exerciseDao.observeAll().first().map { it.name.lowercase() }.toHashSet()
+        for (ex in dtos) {
+            if (ex.name.isBlank() || ex.name.lowercase() in existingNames) { skipped++; continue }
+            try {
+                exerciseDao.insertExercise(
+                    ExerciseEntity(
+                        name = ex.name, description = ex.description,
+                        category = runCatching { ExerciseCategory.valueOf(ex.category) }
+                            .getOrDefault(ExerciseCategory.OTHER),
+                        muscleGroups = ex.muscleGroups,
+                        exerciseType = ex.exerciseType, equipment = ex.equipment,
+                        musclePrimary = ex.musclePrimary, isCustom = true,
+                    )
+                )
+                existingNames.add(ex.name.lowercase())
+                imported++
+            } catch (_: Exception) {
+                errors++
+            }
+        }
+        return ImportResult(imported = imported, skipped = skipped, errors = errors)
+    }
+
+    private fun parseCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        val sb = StringBuilder()
+        var inQuotes = false
+        var i = 0
+        while (i < line.length) {
+            val c = line[i]
+            when {
+                inQuotes && c == '"' && i + 1 < line.length && line[i + 1] == '"' -> { sb.append('"'); i++ }
+                c == '"' -> inQuotes = !inQuotes
+                c == ';' && !inQuotes -> { result.add(sb.toString()); sb.clear() }
+                else -> sb.append(c)
+            }
+            i++
+        }
+        result.add(sb.toString())
+        return result
+    }
 }

@@ -4,13 +4,15 @@
 
 ```bash
 ./gradlew assembleDebug                        # APK debug
-./gradlew test                                 # Tests unitaires
+./gradlew test                                 # Tests unitaires (tous modules)
+./gradlew :core:database:test                  # Tests unitaires d'un module seul
+./gradlew :core:database:test --tests "*ProgressionEngineTest"   # Une classe de test seule
 ./gradlew installDebug                         # Déploiement device
-./gradlew :feature:strength:assembleDebug      # Module seul
+./gradlew :feature:strength:assembleDebug      # Build d'un module seul
 ```
 
 ## Stack
-Kotlin 2.0 • Compose + Material3 • Hilt • Room (schema v26) • Navigation Compose • DataStore  
+Kotlin 2.0 • Compose + Material3 • Hilt • Room (schema v27) • Navigation Compose • DataStore  
 OSMDroid 6.1.20 • play-services-location 21.3.0  
 minSdk 31 / targetSdk 35
 
@@ -18,21 +20,29 @@ minSdk 31 / targetSdk 35
 ```
 app/
   service/       → ActiveSessionService, RunningTrackingService (ForegroundService GPS)
-  navigation/    → NavHost, destinations, routes
+  navigation/    → NavHost (PandaFitNavHost.kt), PandaFitDestination.kt, routes
 core/
-  database/      → Room (schema v26), DAOs, migrations 3→26, ActiveSessionManager
+  database/      → Room (schema v27), DAOs, migrations 3→27, ActiveSessionManager
                    catalog/ → GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
                    catalog/ → EquipmentRepository (@Singleton, inventaire matériel + pas), EquipmentInventory.kt
                    progression/ → ProgressionEngine (moteur pur, incrément qualitatif bible §4)
   designsystem/  → PandaCard, PandaTopBar, AssignSessionDialogs, thème
   common/        → utilitaires partagés (normalizeSearch)
 feature/
-  home | running | cycling | strength | warmup | calendar | stats | profile | timer
+  home | running | cycling | strength | warmup | calendar | stats | profile | timer | breathing | hiking
 ```
+`build-logic/convention` : plugins Gradle partagés (convention plugins appliqués par chaque module).
 
 ## Pattern
 MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room  
-`collectAsStateWithLifecycle()` uniquement — jamais de logique dans les Composables
+`collectAsStateWithLifecycle()` uniquement — jamais de logique dans les Composables  
+Navigation : `NavHost → AppDrawerNav → Scaffold → composables` — args passés en `String` dans la route, lus via `SavedStateHandle` dans le ViewModel
+
+### Isolation template/instance (renforcement — critique)
+Une séance `strength` existe en deux formes dans les mêmes tables (`blocs_seance`, `exercices_seance`) :
+- **Template** : lignes où `instance_seance_id IS NULL`
+- **Instance** (séance jouée à une date) : au premier chargement, `InstanceExecuteViewModel` copie les blocs/exercices du template avec `instanceSeanceId = instanceId`
+- ⚠️ Toujours garder `filter { instanceSeanceId == null }` avant une copie — ne copier qu'une seule fois, sinon duplication silencieuse
 
 ## Règles
 - Commentaires en **français**
@@ -46,6 +56,10 @@ MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room
 - Migration Room : toujours `addMigrations(...)` dans `DatabaseModule` + incrémenter `version =`
 - MuscleGroup : 16 groupes (PECTORAUX, DOS, EPAULES, BICEPS, TRICEPS, QUADRICEPS, ISCHIO, FESSIERS, MOLLETS, ABDOMINAUX, TRAPEZES, LOMBAIRES, ADDUCTEURS, OBLIQUES + autres)
 - Dark mode : persisté via `ProfileViewModel.isDarkMode` → DataStore → `MainActivity`
+- Room `@Relation` ne garantit **pas** l'ordre des enfants → toujours `.sortedBy { position }` après récupération
+- Stats : les requêtes filtrent sur `scheduled_date`, pas `completed_at`
+- `RepsType.DURATION` : `repsRealisees` contient des secondes, pas des répétitions — à exclure des calculs de tonnage/reps
+- Affectation calendrier (icône 📅) : uniquement depuis les écrans **liste** (SeanceListScreen/RunningScreen/CyclingScreen), jamais Detail/Report
 
 ## Fichiers sensibles (ne jamais modifier)
 - `google-services.json`

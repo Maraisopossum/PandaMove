@@ -289,3 +289,12 @@ data class CustomExerciseDto(
     val equipment: List<String> = emptyList(),
     val musclePrimary: String = "",
 )
+
+// ── Export/import en masse du catalogue d'exercices (indépendant du gros export v3.x) ─
+
+@Serializable
+data class ExerciseCatalogExportDto(
+    val version: String = "1.0",
+    val exportDate: String = "",
+    val exercises: List<CustomExerciseDto> = emptyList(),
+)

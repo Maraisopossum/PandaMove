@@ -78,9 +78,29 @@ class PandaFitDatabaseMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate26to27_dedupesAndAddsUniqueNameIndex() {
+        val db26 = helper.createDatabase(TEST_DB, 26)
+        val insertExercise = """INSERT INTO exercises
+            (id, name, category, muscle_groups, description, is_favorite, is_custom, exercise_type, equipment, muscle_primary, is_bodyweight)
+            VALUES (%d, 'Squat', 'LEGS', '[]', '', 0, 1, '', '[]', '', 0)"""
+        db26.execSQL(insertExercise.format(1))
+        db26.execSQL(insertExercise.format(2))
+        db26.close()
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 27, true, PandaFitDatabase.MIGRATION_26_27)
+        db.query("SELECT name FROM exercises ORDER BY id").use { cursor ->
+            assertTrue(cursor.moveToNext())
+            assertTrue(cursor.getString(0) == "Squat")
+            assertTrue(cursor.moveToNext())
+            assertTrue(cursor.getString(0) == "Squat (2)")
+        }
+        db.close()
+    }
+
     companion object {
         private const val TEST_DB = "migration-test"
-        private const val CURRENT_VERSION = 26
+        private const val CURRENT_VERSION = 27
 
         private val ALL_MIGRATIONS = arrayOf(
             PandaFitDatabase.MIGRATION_3_4,
@@ -106,6 +126,7 @@ class PandaFitDatabaseMigrationTest {
             PandaFitDatabase.MIGRATION_23_24,
             PandaFitDatabase.MIGRATION_24_25,
             PandaFitDatabase.MIGRATION_25_26,
+            PandaFitDatabase.MIGRATION_26_27,
         )
     }
 }
