@@ -490,7 +490,7 @@ class RunningExecuteViewModel @Inject constructor(
      * pour que la carte de phase active/timeline s'affichent dès l'émission du nouvel état — pas
      * seulement au prochain tick GPS. Appelée AVANT d'assigner `_uiState.value` : le `combine()` de
      * `screenState` doit voir des segments déjà construits dès qu'il reçoit ce nouvel état.
-     * `startGpsTracking()` réarme ensuite les lignes de base au vrai début du tracé.
+     * `requestStartCountdown()` réarme ensuite les lignes de base au vrai début du tracé.
      */
     private fun initAutoLapSegments(state: RunningExecuteUiState) {
         autoLapSegments = buildAutoLapSegments(state)
@@ -568,24 +568,25 @@ class RunningExecuteViewModel @Inject constructor(
         gpsTrackingController.startCalibration()
     }
 
-    fun startGpsTracking() {
-        viewModelScope.launch {
-            val id = ensureWorkoutCreated()
-            initAutoLapSegments(_uiState.value)
-            gpsTrackingController.start(id)
-        }
-    }
-
-    /** Décompte de quelques secondes avant le vrai démarrage (le temps de ranger son téléphone). */
+    /**
+     * Décompte de quelques secondes avant le vrai démarrage (le temps de ranger son téléphone).
+     * Le service foreground GPS est démarré tout de suite (pendant que l'app est au premier
+     * plan) puis mis en pause le temps du décompte visuel — sinon, si l'écran est verrouillé
+     * pendant ces quelques secondes, `startForegroundService()` est appelé alors que l'app est
+     * déjà en arrière-plan, ce qu'Android 12+ interdit (crash silencieux, §KNOWN_BUGS.md).
+     */
     fun requestStartCountdown() {
         if (countdownJob?.isActive == true) return
         countdownJob = viewModelScope.launch {
+            val id = ensureWorkoutCreated()
+            gpsTrackingController.start(id, startPaused = true)
             for (s in GpsSessionDefaults.START_COUNTDOWN_SECONDS downTo 1) {
                 _uiState.value = _uiState.value.copy(startCountdownSeconds = s)
                 delay(1_000L)
             }
             _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
-            startGpsTracking()
+            initAutoLapSegments(_uiState.value)
+            gpsTrackingController.resume()
         }
     }
 
@@ -593,6 +594,7 @@ class RunningExecuteViewModel @Inject constructor(
         countdownJob?.cancel()
         countdownJob = null
         _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
+        gpsTrackingController.stop()
     }
 
     fun pauseGpsTracking() {

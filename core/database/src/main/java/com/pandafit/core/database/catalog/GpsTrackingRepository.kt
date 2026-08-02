@@ -103,18 +103,26 @@ class GpsTrackingRepository @Inject constructor(
 
     // ── Tracking ─────────────────────────────────────────────────────────────
 
-    fun startTracking(wId: Long) {
+    /**
+     * @param startPaused démarre le suivi déjà en pause (utilisé pour le décompte de démarrage :
+     * le service foreground doit être lancé pendant que l'app est au premier plan, mais aucune
+     * distance/durée ne doit s'accumuler avant la fin du décompte visuel). Fixer la pause ici,
+     * dans le même appel qui (ré)initialise l'état, évite la course où un `pauseTracking()`
+     * appelé séparément par le ViewModel serait écrasé par cet état initial arrivant après lui
+     * (le service démarre de façon asynchrone via Intent).
+     */
+    fun startTracking(wId: Long, startPaused: Boolean = false) {
         workoutId = wId
         pointIndex = 0
         startTimeMs = System.currentTimeMillis()
         lastAltitudeM = null
-        pauseStartMs = 0L
+        pauseStartMs = if (startPaused) startTimeMs else 0L
         totalPausedMs = 0L
         lowSpeedStreak = 0
         isAutoPaused = false
         lastFixTimestampMs = 0L
         justResumed = false
-        _state.value = LiveTrackState(isTracking = true)
+        _state.value = LiveTrackState(isTracking = true, isPaused = startPaused)
         startTicker()
     }
 

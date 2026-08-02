@@ -46,9 +46,9 @@ class CyclingTrackingController @Inject constructor(
         gpsTrackingRepository.clearCalibration()
     }
 
-    override fun start(workoutId: Long) {
+    override fun start(workoutId: Long, startPaused: Boolean) {
         stopCalibration()
-        CyclingTrackingService.start(context, workoutId)
+        CyclingTrackingService.start(context, workoutId, startPaused)
     }
 
     override fun stop() = CyclingTrackingService.stop(context)

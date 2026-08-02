@@ -124,23 +124,24 @@ class CyclingExecuteViewModel @Inject constructor(
 
     fun startCalibration() = gpsController.startCalibration()
 
-    fun startGpsTracking() {
-        viewModelScope.launch {
-            val id = ensureWorkoutCreated()
-            gpsController.start(id)
-        }
-    }
-
-    /** Décompte de quelques secondes avant le vrai démarrage (le temps de ranger son téléphone). */
+    /**
+     * Décompte de quelques secondes avant le vrai démarrage (le temps de ranger son téléphone).
+     * Le service foreground GPS est démarré tout de suite (pendant que l'app est au premier
+     * plan) puis mis en pause le temps du décompte visuel — sinon, si l'écran est verrouillé
+     * pendant ces quelques secondes, `startForegroundService()` est appelé alors que l'app est
+     * déjà en arrière-plan, ce qu'Android 12+ interdit (crash silencieux, §KNOWN_BUGS.md).
+     */
     fun requestStartCountdown() {
         if (countdownJob?.isActive == true) return
         countdownJob = viewModelScope.launch {
+            val id = ensureWorkoutCreated()
+            gpsController.start(id, startPaused = true)
             for (s in GpsSessionDefaults.START_COUNTDOWN_SECONDS downTo 1) {
                 _uiState.value = _uiState.value.copy(startCountdownSeconds = s)
                 delay(1_000L)
             }
             _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
-            startGpsTracking()
+            gpsController.resume()
         }
     }
 
@@ -148,6 +149,7 @@ class CyclingExecuteViewModel @Inject constructor(
         countdownJob?.cancel()
         countdownJob = null
         _uiState.value = _uiState.value.copy(startCountdownSeconds = null)
+        gpsController.stop()
     }
 
     fun pauseGpsTracking() = gpsController.pause()

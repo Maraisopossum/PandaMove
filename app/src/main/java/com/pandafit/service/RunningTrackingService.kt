@@ -62,15 +62,15 @@ class RunningTrackingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val workoutId = intent?.getLongExtra(EXTRA_WORKOUT_ID, -1L) ?: -1L
         when (intent?.action) {
-            ACTION_START -> startTracking(workoutId)
+            ACTION_START -> startTracking(workoutId, intent.getBooleanExtra(EXTRA_START_PAUSED, false))
             ACTION_STOP  -> stopTracking()
         }
         return START_NOT_STICKY
     }
 
-    private fun startTracking(workoutId: Long) {
+    private fun startTracking(workoutId: Long, startPaused: Boolean) {
         if (workoutId < 0) return
-        gpsTrackingRepository.startTracking(workoutId)
+        gpsTrackingRepository.startTracking(workoutId, startPaused)
         val notif = buildNotification(workoutId)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
@@ -178,6 +178,7 @@ class RunningTrackingService : Service() {
         const val ACTION_START       = "ACTION_START_GPS"
         const val ACTION_STOP        = "ACTION_STOP_GPS"
         const val EXTRA_WORKOUT_ID   = "extra_workout_id"
+        const val EXTRA_START_PAUSED = "extra_start_paused"
         private const val NOTIF_ID       = 4001
         private const val CHANNEL_ID     = "pandafit_gps"
         private const val INTERVAL_MS    = 1_000L
@@ -185,13 +186,17 @@ class RunningTrackingService : Service() {
         private const val MAX_DELAY_MS   = 2_000L
         private const val MAX_ACCURACY_M = 30f  // filtre les fixes GPS > 30 m d'imprécision
 
-        fun start(ctx: Context, workoutId: Long) {
-            ctx.startForegroundService(
-                Intent(ctx, RunningTrackingService::class.java).apply {
-                    action = ACTION_START
-                    putExtra(EXTRA_WORKOUT_ID, workoutId)
-                }
-            )
+        fun start(ctx: Context, workoutId: Long, startPaused: Boolean = false) {
+            val intent = Intent(ctx, RunningTrackingService::class.java).apply {
+                action = ACTION_START
+                putExtra(EXTRA_WORKOUT_ID, workoutId)
+                putExtra(EXTRA_START_PAUSED, startPaused)
+            }
+            // Peut être appelé alors que l'app vient de passer en arrière-plan (verrouillage
+            // pendant le décompte de démarrage) : sur Android 12+, l'OS peut refuser de démarrer
+            // un foreground service dans ce cas. On avale l'exception plutôt que de crasher —
+            // le pire résultat est une séance sans tracking GPS, pas un crash de l'app.
+            runCatching { ctx.startForegroundService(intent) }
         }
 
         fun stop(ctx: Context) {

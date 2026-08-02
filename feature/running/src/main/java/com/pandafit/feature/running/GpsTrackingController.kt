@@ -1,7 +1,7 @@
 package com.pandafit.feature.running
 
 interface GpsTrackingController {
-    fun start(workoutId: Long)
+    fun start(workoutId: Long, startPaused: Boolean = false)
     fun stop()
     fun startCalibration()
     fun stopCalibration()

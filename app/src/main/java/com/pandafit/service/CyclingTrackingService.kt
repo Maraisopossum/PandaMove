@@ -52,15 +52,15 @@ class CyclingTrackingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val workoutId = intent?.getLongExtra(EXTRA_WORKOUT_ID, -1L) ?: -1L
         when (intent?.action) {
-            ACTION_START -> startTracking(workoutId)
+            ACTION_START -> startTracking(workoutId, intent.getBooleanExtra(EXTRA_START_PAUSED, false))
             ACTION_STOP  -> stopTracking()
         }
         return START_NOT_STICKY
     }
 
-    private fun startTracking(workoutId: Long) {
+    private fun startTracking(workoutId: Long, startPaused: Boolean) {
         if (workoutId < 0) return
-        gpsTrackingRepository.startTracking(workoutId)
+        gpsTrackingRepository.startTracking(workoutId, startPaused)
         val notif = buildNotification(workoutId)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
@@ -142,6 +142,7 @@ class CyclingTrackingService : Service() {
         const val ACTION_START        = "ACTION_START_GPS_CYCLING"
         const val ACTION_STOP         = "ACTION_STOP_GPS_CYCLING"
         const val EXTRA_WORKOUT_ID    = "extra_workout_id"
+        const val EXTRA_START_PAUSED  = "extra_start_paused"
         private const val NOTIF_ID        = 4002
         private const val CHANNEL_ID      = "pandafit_gps_cycling"
         private const val INTERVAL_MS     = 1_000L
@@ -149,13 +150,15 @@ class CyclingTrackingService : Service() {
         private const val MAX_DELAY_MS    = 2_000L
         private const val MAX_ACCURACY_M  = 30f
 
-        fun start(ctx: Context, workoutId: Long) {
-            ctx.startForegroundService(
-                Intent(ctx, CyclingTrackingService::class.java).apply {
-                    action = ACTION_START
-                    putExtra(EXTRA_WORKOUT_ID, workoutId)
-                }
-            )
+        fun start(ctx: Context, workoutId: Long, startPaused: Boolean = false) {
+            val intent = Intent(ctx, CyclingTrackingService::class.java).apply {
+                action = ACTION_START
+                putExtra(EXTRA_WORKOUT_ID, workoutId)
+                putExtra(EXTRA_START_PAUSED, startPaused)
+            }
+            // Cf. RunningTrackingService.start() : évite un crash si l'app vient de passer en
+            // arrière-plan (écran verrouillé pendant le décompte de démarrage).
+            runCatching { ctx.startForegroundService(intent) }
         }
 
         fun stop(ctx: Context) {
