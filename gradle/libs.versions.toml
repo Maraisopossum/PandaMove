@@ -30,6 +30,7 @@ lottie = "6.4.0"
 play-services-location = "21.3.0"
 robolectric = "4.14.1"
 androidx-test-core = "1.6.1"
+garmin-fit = "21.205.0"
 
 [libraries]
 # Kotlin
@@ -112,6 +113,9 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidx-test-core" }
+
+# Garmin FIT SDK (format ouvert, aussi utilisé par Suunto/Polar/Wahoo)
+garmin-fit = { group = "com.garmin", name = "fit", version.ref = "garmin-fit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,4 +1,4 @@
-package com.pandafit.core.database.tcx
+package com.pandafit.core.database.activityimport
 
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.core.database.util.evaluateElevationSample
@@ -7,8 +7,6 @@ import kotlinx.coroutines.withContext
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
-import java.time.Instant
-import java.time.format.DateTimeParseException
 import javax.xml.parsers.SAXParserFactory
 
 // ── Public entry point ────────────────────────────────────────────────────────
@@ -16,15 +14,13 @@ import javax.xml.parsers.SAXParserFactory
 /**
  * Parse un fichier TCX Garmin depuis un [InputStream].
  * Retourne la première activité trouvée (Garmin n'en exporte qu'une par fichier).
- * Lance [TcxParseException] si le fichier est invalide ou ne contient aucune activité.
+ * Lance [ActivityParseException] si le fichier est invalide ou ne contient aucune activité.
  */
-suspend fun parseTcx(stream: InputStream): TcxParsedActivity = withContext(Dispatchers.IO) {
+suspend fun parseTcx(stream: InputStream): ParsedActivity = withContext(Dispatchers.IO) {
     val handler = TcxSaxHandler()
     SAXParserFactory.newInstance().newSAXParser().parse(stream, handler)
     handler.buildResult()
 }
-
-class TcxParseException(message: String) : Exception(message)
 
 // ── SAX handler ───────────────────────────────────────────────────────────────
 
@@ -39,7 +35,7 @@ private class TcxSaxHandler : DefaultHandler() {
     private var activityId: String = ""
 
     // ── Current lap accumulator ───────────────────────────────────────────────
-    private val laps = mutableListOf<TcxLap>()
+    private val laps = mutableListOf<ParsedLap>()
     private var lapDurationSec = 0.0
     private var lapDistanceM = 0.0
     private var lapCalories = 0
@@ -51,7 +47,7 @@ private class TcxSaxHandler : DefaultHandler() {
     private var inLapMaxHr = false
 
     // ── Trackpoint accumulator ────────────────────────────────────────────────
-    private val trackPoints = mutableListOf<TcxRawPoint>()
+    private val trackPoints = mutableListOf<ParsedTrackPoint>()
     private var tpLat: Double? = null
     private var tpLon: Double? = null
     private var tpAlt: Double? = null
@@ -169,7 +165,7 @@ private class TcxSaxHandler : DefaultHandler() {
     // ── Commit helpers ─────────────────────────────────────────────────────────
 
     private fun commitLap() {
-        laps.add(TcxLap(lapDurationSec, lapDistanceM, lapAvgHr, lapMaxHr, lapCalories, lapMaxSpeedMs, lapCadence))
+        laps.add(ParsedLap(lapDurationSec, lapDistanceM, lapAvgHr, lapMaxHr, lapCalories, lapMaxSpeedMs, lapCadence))
         totalDurationSec += lapDurationSec
         totalDistanceM += lapDistanceM
         totalCalories += lapCalories
@@ -182,7 +178,7 @@ private class TcxSaxHandler : DefaultHandler() {
     private fun commitTrackpoint() {
         val lat = tpLat ?: return
         val lon = tpLon ?: return
-        trackPoints.add(TcxRawPoint(lat, lon, tpAlt, tpTimeMs, tpSpeedMs))
+        trackPoints.add(ParsedTrackPoint(lat, lon, tpAlt, tpTimeMs, tpSpeedMs))
     }
 
     // ── Path helpers ──────────────────────────────────────────────────────────
@@ -193,8 +189,8 @@ private class TcxSaxHandler : DefaultHandler() {
 
     // ── Build result ──────────────────────────────────────────────────────────
 
-    fun buildResult(): TcxParsedActivity {
-        if (laps.isEmpty()) throw TcxParseException("Aucune activité trouvée dans le fichier TCX.")
+    fun buildResult(): ParsedActivity {
+        if (laps.isEmpty()) throw ActivityParseException("Aucune activité trouvée dans le fichier TCX.")
 
         val workoutType = when (sport.lowercase()) {
             "biking", "cycling" -> WorkoutType.CYCLING
@@ -209,7 +205,8 @@ private class TcxSaxHandler : DefaultHandler() {
 
         val avgCadence = if (lapCountWithCadence > 0) (totalCadenceSum / lapCountWithCadence) else null
 
-        return TcxParsedActivity(
+        return ParsedActivity(
+            sourceFormat   = ActivityFileFormat.TCX,
             sportRaw       = sport,
             workoutType    = workoutType,
             startTime      = activityId,
@@ -231,7 +228,7 @@ private class TcxSaxHandler : DefaultHandler() {
 
 /** Même filtre anti-bruit que le tracking live (voir [evaluateElevationSample]) — évite de compter
  *  les oscillations d'altitude bruitées d'un parcours plat comme du vrai dénivelé. */
-private fun computeElevationGain(points: List<TcxRawPoint>): Int? {
+private fun computeElevationGain(points: List<ParsedTrackPoint>): Int? {
     val altitudes = points.mapNotNull { it.altitudeM }
     if (altitudes.size < 2) return null
     var baseline: Double? = null
@@ -243,10 +240,3 @@ private fun computeElevationGain(points: List<TcxRawPoint>): Int? {
     }
     return gain.takeIf { it >= 0 }
 }
-
-// ── Time parsing ────────────────────────────────────────────────────────────
-
-/** Parse un timestamp ISO 8601 TCX (ex. "2026-07-10T08:15:32.000Z") en epoch millis, ou null si invalide. */
-private fun parseIsoInstantMs(value: String): Long? =
-    if (value.isBlank()) null
-    else try { Instant.parse(value).toEpochMilli() } catch (e: DateTimeParseException) { null }

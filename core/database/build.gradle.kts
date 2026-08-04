@@ -59,6 +59,8 @@ dependencies {
     ksp(libs.hilt.work.compiler)
     implementation(libs.documentfile)
 
+    implementation(libs.garmin.fit)
+
     testImplementation(libs.junit)
     testImplementation(libs.room.testing)
     testImplementation(libs.robolectric)

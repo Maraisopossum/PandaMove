@@ -55,22 +55,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pandafit.core.database.activityimport.ActivityFileFormat
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.PandaCard
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.profile.R
-import com.pandafit.feature.profile.viewmodel.TcxImportMode
-import com.pandafit.feature.profile.viewmodel.TcxImportStep
-import com.pandafit.feature.profile.viewmodel.TcxImportViewModel
+import com.pandafit.feature.profile.viewmodel.ActivityImportMode
+import com.pandafit.feature.profile.viewmodel.ActivityImportStep
+import com.pandafit.feature.profile.viewmodel.ActivityImportViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TcxImportScreen(
+fun ActivityImportScreen(
     onNavigateBack: () -> Unit,
     onNavigateToWorkout: ((workoutId: Long, workoutType: WorkoutType) -> Unit)? = null,
-    viewModel: TcxImportViewModel = hiltViewModel(),
+    viewModel: ActivityImportViewModel = hiltViewModel(),
 ) {
     val step by viewModel.step.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -87,10 +88,10 @@ fun TcxImportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.tcx_screen_title)) },
+                title = { Text(stringResource(R.string.activity_import_screen_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.tcx_back_cd))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.activity_import_back_cd))
                     }
                 },
             )
@@ -101,7 +102,7 @@ fun TcxImportScreen(
         when (val s = step) {
 
             // ── Idle ──────────────────────────────────────────────────────────
-            is TcxImportStep.Idle -> {
+            is ActivityImportStep.Idle -> {
                 IdleContent(
                     modifier = Modifier.padding(innerPadding),
                     onPickFile = { fileLauncher.launch("*/*") },
@@ -109,13 +110,13 @@ fun TcxImportScreen(
             }
 
             // ── Parsing / Importing ───────────────────────────────────────────
-            is TcxImportStep.Parsing, is TcxImportStep.Importing -> {
-                val label = if (s is TcxImportStep.Parsing) stringResource(R.string.tcx_parsing_label) else stringResource(R.string.tcx_importing_label)
+            is ActivityImportStep.Parsing, is ActivityImportStep.Importing -> {
+                val label = if (s is ActivityImportStep.Parsing) stringResource(R.string.activity_import_parsing_label) else stringResource(R.string.activity_import_importing_label)
                 LoadingContent(modifier = Modifier.padding(innerPadding), label = label)
             }
 
             // ── Preview ───────────────────────────────────────────────────────
-            is TcxImportStep.Preview -> {
+            is ActivityImportStep.Preview -> {
                 PreviewContent(
                     preview  = s,
                     modifier = Modifier.padding(innerPadding),
@@ -130,7 +131,7 @@ fun TcxImportScreen(
             }
 
             // ── Done ──────────────────────────────────────────────────────────
-            is TcxImportStep.Done -> {
+            is ActivityImportStep.Done -> {
                 DoneContent(
                     result   = s,
                     modifier = Modifier.padding(innerPadding),
@@ -143,7 +144,7 @@ fun TcxImportScreen(
             }
 
             // ── Error ─────────────────────────────────────────────────────────
-            is TcxImportStep.Failure -> {
+            is ActivityImportStep.Failure -> {
                 ErrorContent(
                     message  = s.message,
                     modifier = Modifier.padding(innerPadding),
@@ -173,13 +174,13 @@ private fun IdleContent(modifier: Modifier, onPickFile: () -> Unit) {
         )
         Spacer(Modifier.height(24.dp))
         Text(
-            stringResource(R.string.tcx_idle_title),
+            stringResource(R.string.activity_import_idle_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(R.string.tcx_idle_description),
+            stringResource(R.string.activity_import_idle_description),
             style = MaterialTheme.typography.bodyMedium,
             color = PandaSubtext,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -192,7 +193,7 @@ private fun IdleContent(modifier: Modifier, onPickFile: () -> Unit) {
         ) {
             Icon(Icons.Default.FileOpen, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.tcx_pick_file_button))
+            Text(stringResource(R.string.activity_import_pick_file_button))
         }
     }
 }
@@ -216,11 +217,11 @@ private fun LoadingContent(modifier: Modifier, label: String) {
 
 @Composable
 private fun PreviewContent(
-    preview: TcxImportStep.Preview,
+    preview: ActivityImportStep.Preview,
     modifier: Modifier,
     onUpdateName: (String) -> Unit,
     onUpdateType: (WorkoutType) -> Unit,
-    onUpdateMode: (TcxImportMode) -> Unit,
+    onUpdateMode: (ActivityImportMode) -> Unit,
     onUpdateTargetWorkout: (Long?) -> Unit,
     onUpdateWithStroller: (Boolean) -> Unit,
     onConfirm: () -> Unit,
@@ -251,34 +252,42 @@ private fun PreviewContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
 
-        // ── Global stats card ──────────────────────────────────────────────
+        // ── Format detected + global stats card ────────────────────────────
         item {
-            Text(stringResource(R.string.tcx_preview_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.activity_import_preview_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    StatRow(stringResource(R.string.tcx_stat_distance), "%.2f km".format(distKm))
-                    StatRow(stringResource(R.string.tcx_stat_duration), "%d:%02d".format(durMin, durSec))
+                    StatRow(stringResource(R.string.activity_import_stat_format), formatLabel(a.sourceFormat))
+                    StatRow(stringResource(R.string.activity_import_stat_distance), "%.2f km".format(distKm))
+                    StatRow(stringResource(R.string.activity_import_stat_duration), "%d:%02d".format(durMin, durSec))
                     StatRow(speedOrPaceLabel, speedOrPaceStr)
-                    if (a.avgHrBpm != null) StatRow(stringResource(R.string.tcx_stat_avg_hr), "${a.avgHrBpm} bpm")
-                    if (a.maxHrBpm != null) StatRow(stringResource(R.string.tcx_stat_max_hr), "${a.maxHrBpm} bpm")
-                    if (a.elevationGainM != null) StatRow(stringResource(R.string.tcx_stat_elevation), "${a.elevationGainM} m")
-                    StatRow(stringResource(R.string.tcx_stat_splits), "${a.laps.size} lap${if (a.laps.size > 1) "s" else ""}")
-                    StatRow(stringResource(R.string.tcx_stat_gps_points), "${a.rawTrackPoints.size} bruts → ~${estimateSimplified(a.rawTrackPoints.size)} après simplification")
+                    if (a.avgHrBpm != null) StatRow(stringResource(R.string.activity_import_stat_avg_hr), "${a.avgHrBpm} bpm")
+                    if (a.maxHrBpm != null) StatRow(stringResource(R.string.activity_import_stat_max_hr), "${a.maxHrBpm} bpm")
+                    if (a.elevationGainM != null) StatRow(stringResource(R.string.activity_import_stat_elevation), "${a.elevationGainM} m")
+                    StatRow(stringResource(R.string.activity_import_stat_splits), "${a.laps.size} lap${if (a.laps.size > 1) "s" else ""}")
+                    StatRow(stringResource(R.string.activity_import_stat_gps_points), "${a.rawTrackPoints.size} bruts → ~${estimateSimplified(a.rawTrackPoints.size)} après simplification")
+                    if (a.sourceFormat == ActivityFileFormat.GPX && a.totalCalories == 0) {
+                        Text(
+                            stringResource(R.string.activity_import_gpx_no_calories_notice),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PandaSubtext,
+                        )
+                    }
                 }
             }
         }
 
         // ── Sport type ─────────────────────────────────────────────────────
         item {
-            Text(stringResource(R.string.tcx_sport_type_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.activity_import_sport_type_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.selectableGroup()) {
                     listOf(
-                        Triple(WorkoutType.RUNNING, stringResource(R.string.tcx_sport_running), Icons.Default.DirectionsRun),
-                        Triple(WorkoutType.CYCLING, stringResource(R.string.tcx_sport_cycling), Icons.Default.DirectionsBike),
-                        Triple(WorkoutType.HIKING,  stringResource(R.string.tcx_sport_hiking),  Icons.Default.Landscape),
+                        Triple(WorkoutType.RUNNING, stringResource(R.string.activity_import_sport_running), Icons.Default.DirectionsRun),
+                        Triple(WorkoutType.CYCLING, stringResource(R.string.activity_import_sport_cycling), Icons.Default.DirectionsBike),
+                        Triple(WorkoutType.HIKING,  stringResource(R.string.activity_import_sport_hiking),  Icons.Default.Landscape),
                     ).forEachIndexed { index, (type, label, icon) ->
                         if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         val selected = preview.workoutType == type
@@ -301,35 +310,35 @@ private fun PreviewContent(
 
         // ── Import mode ────────────────────────────────────────────────────
         item {
-            Text(stringResource(R.string.tcx_import_as_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.activity_import_as_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             PandaCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(4.dp)) {
                     ImportModeRow(
-                        label    = stringResource(R.string.tcx_mode_new_label),
-                        subtitle = stringResource(R.string.tcx_mode_new_subtitle),
-                        selected = preview.mode == TcxImportMode.NEW,
-                        onClick  = { onUpdateMode(TcxImportMode.NEW) },
+                        label    = stringResource(R.string.activity_import_mode_new_label),
+                        subtitle = stringResource(R.string.activity_import_mode_new_subtitle),
+                        selected = preview.mode == ActivityImportMode.NEW,
+                        onClick  = { onUpdateMode(ActivityImportMode.NEW) },
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ImportModeRow(
-                        label    = stringResource(R.string.tcx_mode_existing_label),
+                        label    = stringResource(R.string.activity_import_mode_existing_label),
                         subtitle = if (preview.plannedWorkouts.isEmpty())
-                            stringResource(R.string.tcx_mode_no_planned)
+                            stringResource(R.string.activity_import_mode_no_planned)
                         else
                             "${preview.plannedWorkouts.size} séance${if (preview.plannedWorkouts.size > 1) "s" else ""} disponible${if (preview.plannedWorkouts.size > 1) "s" else ""}",
-                        selected = preview.mode == TcxImportMode.EXISTING,
+                        selected = preview.mode == ActivityImportMode.EXISTING,
                         enabled  = preview.plannedWorkouts.isNotEmpty(),
-                        onClick  = { onUpdateMode(TcxImportMode.EXISTING) },
+                        onClick  = { onUpdateMode(ActivityImportMode.EXISTING) },
                     )
                 }
             }
         }
 
         // ── Planned workouts picker (only when EXISTING) ───────────────────
-        if (preview.mode == TcxImportMode.EXISTING && preview.plannedWorkouts.isNotEmpty()) {
+        if (preview.mode == ActivityImportMode.EXISTING && preview.plannedWorkouts.isNotEmpty()) {
             item {
-                Text(stringResource(R.string.tcx_choose_session_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.activity_import_choose_session_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
             }
             items(preview.plannedWorkouts) { workout ->
@@ -342,12 +351,12 @@ private fun PreviewContent(
         }
 
         // ── Name field (only for NEW) ──────────────────────────────────────
-        if (preview.mode == TcxImportMode.NEW) {
+        if (preview.mode == ActivityImportMode.NEW) {
             item {
                 OutlinedTextField(
                     value         = preview.name,
                     onValueChange = onUpdateName,
-                    label         = { Text(stringResource(R.string.tcx_session_name_label)) },
+                    label         = { Text(stringResource(R.string.activity_import_session_name_label)) },
                     singleLine    = true,
                     modifier      = Modifier.fillMaxWidth(),
                 )
@@ -370,7 +379,7 @@ private fun PreviewContent(
                         colors = CheckboxDefaults.colors(checkedColor = KalyptusGreen),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.tcx_with_stroller), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.activity_import_with_stroller), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -378,8 +387,8 @@ private fun PreviewContent(
         // ── Confirm / pick another ─────────────────────────────────────────
         item {
             val canConfirm = when (preview.mode) {
-                TcxImportMode.NEW      -> preview.name.isNotBlank()
-                TcxImportMode.EXISTING -> preview.targetWorkoutId != null
+                ActivityImportMode.NEW      -> preview.name.isNotBlank()
+                ActivityImportMode.EXISTING -> preview.targetWorkoutId != null
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
@@ -387,11 +396,11 @@ private fun PreviewContent(
                     enabled  = canConfirm,
                     modifier = Modifier.fillMaxWidth(),
                     colors   = ButtonDefaults.buttonColors(containerColor = KalyptusGreen),
-                ) { Text(stringResource(R.string.tcx_import_button)) }
+                ) { Text(stringResource(R.string.activity_import_button)) }
                 androidx.compose.material3.OutlinedButton(
                     onClick  = onPickAnother,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.tcx_pick_another_button)) }
+                ) { Text(stringResource(R.string.activity_import_pick_another_button)) }
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -402,7 +411,7 @@ private fun PreviewContent(
 
 @Composable
 private fun DoneContent(
-    result: TcxImportStep.Done,
+    result: ActivityImportStep.Done,
     modifier: Modifier,
     onImportAnother: () -> Unit,
     onBack: () -> Unit,
@@ -415,7 +424,7 @@ private fun DoneContent(
     ) {
         Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(64.dp), tint = KalyptusGreen)
         Spacer(Modifier.height(24.dp))
-        Text(stringResource(R.string.tcx_done_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.activity_import_done_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
         Text(
             "${result.result.lapsImported} split${if (result.result.lapsImported > 1) "s" else ""} · ${result.result.gpsPointsImported} points GPS",
@@ -428,19 +437,19 @@ private fun DoneContent(
                 onClick  = onNavigateToWorkout,
                 modifier = Modifier.fillMaxWidth(0.7f),
                 colors   = ButtonDefaults.buttonColors(containerColor = KalyptusGreen),
-            ) { Text(stringResource(R.string.tcx_view_session_button)) }
+            ) { Text(stringResource(R.string.activity_import_view_session_button)) }
             Spacer(Modifier.height(8.dp))
         }
         Button(
             onClick  = onBack,
             modifier = Modifier.fillMaxWidth(0.7f),
             colors   = ButtonDefaults.buttonColors(containerColor = if (onNavigateToWorkout != null) MaterialTheme.colorScheme.secondary else KalyptusGreen),
-        ) { Text(stringResource(R.string.tcx_back_to_profile_button)) }
+        ) { Text(stringResource(R.string.activity_import_back_to_profile_button)) }
         Spacer(Modifier.height(8.dp))
         androidx.compose.material3.OutlinedButton(
             onClick  = onImportAnother,
             modifier = Modifier.fillMaxWidth(0.7f),
-        ) { Text(stringResource(R.string.tcx_import_another_button)) }
+        ) { Text(stringResource(R.string.activity_import_another_button)) }
     }
 }
 
@@ -455,7 +464,7 @@ private fun ErrorContent(message: String, modifier: Modifier, onRetry: () -> Uni
     ) {
         Icon(Icons.Default.Error, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
         Spacer(Modifier.height(24.dp))
-        Text(stringResource(R.string.tcx_error_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.activity_import_error_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(message, style = MaterialTheme.typography.bodyMedium, color = PandaSubtext,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -464,7 +473,7 @@ private fun ErrorContent(message: String, modifier: Modifier, onRetry: () -> Uni
             onClick  = onRetry,
             modifier = Modifier.fillMaxWidth(0.7f),
             colors   = ButtonDefaults.buttonColors(containerColor = KalyptusGreen),
-        ) { Text(stringResource(R.string.tcx_retry_button)) }
+        ) { Text(stringResource(R.string.activity_import_retry_button)) }
     }
 }
 
@@ -542,4 +551,10 @@ private fun estimateSimplified(rawCount: Int): String {
     val low = (rawCount * 0.05).toInt().coerceAtLeast(2)
     val high = (rawCount * 0.12).toInt().coerceAtLeast(low + 1)
     return "$low–$high"
+}
+
+private fun formatLabel(format: ActivityFileFormat): String = when (format) {
+    ActivityFileFormat.TCX -> "TCX (Garmin)"
+    ActivityFileFormat.GPX -> "GPX"
+    ActivityFileFormat.FIT -> "FIT"
 }

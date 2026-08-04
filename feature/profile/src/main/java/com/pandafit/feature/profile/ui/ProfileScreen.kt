@@ -82,7 +82,7 @@ fun ProfileScreen(
     onNavigateToEquipment: () -> Unit = {},
     onNavigateToExerciseCatalog: () -> Unit = {},
     onNavigateToStatsConfig: () -> Unit = {},
-    onNavigateToTcxImport: () -> Unit = {},
+    onNavigateToActivityImport: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
@@ -179,6 +179,27 @@ fun ProfileScreen(
             confirmButton = {
                 TextButton(onClick = { viewModel.clearStatus() }) { Text("OK") }
             },
+        )
+    }
+
+    if (uiState.showExportOptionsDialog) {
+        ExportOptionsDialog(
+            selected    = uiState.selectedExportCategories,
+            onToggle    = viewModel::toggleExportCategory,
+            onToggleAll = viewModel::toggleAllExportCategories,
+            onConfirm   = viewModel::confirmExport,
+            onDismiss   = viewModel::dismissExportDialog,
+        )
+    }
+
+    if (uiState.showImportOptionsDialog) {
+        ImportOptionsDialog(
+            available   = uiState.availableImportCategories,
+            selected    = uiState.selectedImportCategories,
+            onToggle    = viewModel::toggleImportCategory,
+            onToggleAll = viewModel::toggleAllImportCategories,
+            onConfirm   = viewModel::confirmImport,
+            onDismiss   = viewModel::dismissImportDialog,
         )
     }
 
@@ -379,7 +400,7 @@ fun ProfileScreen(
                             },
                             onClick = {
                                 if (uiState.exportImportStatus != ExportImportStatus.EXPORTING) {
-                                    viewModel.exportData()
+                                    viewModel.onExportClick()
                                 }
                             },
                         )
@@ -402,9 +423,9 @@ fun ProfileScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(
                             icon = Icons.Default.Route,
-                            title = stringResource(R.string.profile_tcx_title),
-                            subtitle = stringResource(R.string.profile_tcx_subtitle),
-                            onClick = onNavigateToTcxImport,
+                            title = stringResource(R.string.profile_activity_import_title),
+                            subtitle = stringResource(R.string.profile_activity_import_subtitle),
+                            onClick = onNavigateToActivityImport,
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         SettingsActionRow(

@@ -1,4 +1,4 @@
-package com.pandafit.core.database.tcx
+package com.pandafit.core.database.activityimport
 
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.dao.RunRepeatDao
@@ -15,12 +15,11 @@ import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutSource
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.core.database.model.IntervalRepResult
-import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.InputStream
+import java.io.ByteArrayInputStream
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.math.round
@@ -30,10 +29,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Résultat d'un import TCX.
+ * Résultat d'un import d'activité (TCX, GPX ou FIT).
  * [workoutId] est l'ID du workout créé ou mis à jour.
  */
-data class TcxImportResult(
+data class ActivityImportResult(
     val workoutId: Long,
     val workoutType: WorkoutType,
     val lapsImported: Int,
@@ -43,7 +42,7 @@ data class TcxImportResult(
 )
 
 @Singleton
-class TcxImportManager @Inject constructor(
+class ActivityImportManager @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val repeatDao: RunRepeatDao,
     private val stepDao: RunStepDao,
@@ -54,29 +53,38 @@ class TcxImportManager @Inject constructor(
     // ── 1. Parse only (no DB write) ───────────────────────────────────────────
 
     /**
-     * Parse le fichier TCX et retourne les données brutes.
+     * Détecte le format (TCX/GPX/FIT) et parse le fichier d'activité.
      * Aucune écriture en base. Appeler depuis le ViewModel pour afficher
      * un aperçu avant confirmation.
      */
-    suspend fun parse(stream: InputStream): TcxParsedActivity = parseTcx(stream)
+    suspend fun parse(bytes: ByteArray): ParsedActivity {
+        return when (detectActivityFormat(bytes)) {
+            ActivityFileFormat.TCX -> parseTcx(ByteArrayInputStream(bytes))
+            ActivityFileFormat.GPX -> parseGpx(ByteArrayInputStream(bytes))
+            ActivityFileFormat.FIT -> parseFit(bytes)
+            null -> throw ActivityParseException(
+                "Format de fichier non reconnu. Formats supportés : .tcx, .gpx, .fit"
+            )
+        }
+    }
 
     // ── 2a. Import as a brand-new free session ────────────────────────────────
 
     /**
-     * Crée un nouveau workout (séance libre) à partir d'une activité TCX.
+     * Crée un nouveau workout (séance libre) à partir d'une activité importée.
      *
      * @param activity   Activité parsée.
-     * @param date       Date à assigner (par défaut : extraite du TCX, sinon aujourd'hui).
+     * @param date       Date à assigner (par défaut : extraite du fichier, sinon aujourd'hui).
      * @param type       Type de sport — permet à l'utilisateur de corriger si mal détecté.
      * @param name       Nom du workout.
      */
     suspend fun importAsNew(
-        activity: TcxParsedActivity,
+        activity: ParsedActivity,
         date: LocalDate = activity.startTimeAsDate(),
         type: WorkoutType = activity.workoutType,
         name: String = activity.defaultName(),
         withStroller: Boolean = false,
-    ): TcxImportResult = withContext(Dispatchers.IO) {
+    ): ActivityImportResult = withContext(Dispatchers.IO) {
 
         val now = LocalDateTime.now()
         val completedAt = activity.startTimeAsDateTime() ?: now
@@ -112,24 +120,24 @@ class TcxImportManager @Inject constructor(
         val gpsCount = insertGpsTrack(workoutId, activity.rawTrackPoints)
         val lapsCount = insertLapSplits(workoutId, activity.laps, type == WorkoutType.CYCLING)
 
-        TcxImportResult(workoutId, type, lapsCount, gpsCount, isNewWorkout = true)
+        ActivityImportResult(workoutId, type, lapsCount, gpsCount, isNewWorkout = true)
     }
 
     // ── 2b. Import into an existing planned session ───────────────────────────
 
     /**
-     * Remplit les résultats d'un workout existant (séance programmée) depuis un TCX.
+     * Remplit les résultats d'un workout existant (séance programmée) depuis une activité importée.
      * Les résultats globaux et les splits sont écrasés.
      * Le tracé GPS est ajouté (le précédent est supprimé d'abord).
      *
      * @param type  Si non null, permet de forcer le type (ex : correction running/cycling).
      */
     suspend fun importIntoExisting(
-        activity: TcxParsedActivity,
+        activity: ParsedActivity,
         workoutId: Long,
         type: WorkoutType? = null,
         withStroller: Boolean = false,
-    ): TcxImportResult = withContext(Dispatchers.IO) {
+    ): ActivityImportResult = withContext(Dispatchers.IO) {
 
         val completedAt = activity.startTimeAsDateTime() ?: LocalDateTime.now()
 
@@ -186,12 +194,12 @@ class TcxImportManager @Inject constructor(
             workoutDao.update(existing.copy(withStroller = withStroller, updatedAt = LocalDateTime.now(), source = WorkoutSource.TCX_IMPORT))
         }
 
-        TcxImportResult(workoutId, effectiveType ?: WorkoutType.RUNNING, lapsCount, gpsCount, isNewWorkout = false)
+        ActivityImportResult(workoutId, effectiveType ?: WorkoutType.RUNNING, lapsCount, gpsCount, isNewWorkout = false)
     }
 
     // ── GPS track insertion with Douglas-Peucker ──────────────────────────────
 
-    private suspend fun insertGpsTrack(workoutId: Long, rawPoints: List<TcxRawPoint>): Int {
+    private suspend fun insertGpsTrack(workoutId: Long, rawPoints: List<ParsedTrackPoint>): Int {
         if (rawPoints.isEmpty()) return 0
         val simplified = douglasPeucker(rawPoints, epsilonDegrees = 0.000045) // ~5 m
         val entities = simplified.mapIndexed { idx, p ->
@@ -211,7 +219,7 @@ class TcxImportManager @Inject constructor(
 
     // ── Lap splits as a RunRepeatEntity with IntervalRepResults ───────────────
 
-    private suspend fun insertLapSplits(workoutId: Long, laps: List<TcxLap>, isCycling: Boolean = false): Int {
+    private suspend fun insertLapSplits(workoutId: Long, laps: List<ParsedLap>, isCycling: Boolean = false): Int {
         if (laps.isEmpty()) return 0
         val results = laps.mapIndexed { i, lap -> lap.toIntervalRepResult(i, isCycling) }
         val repeatId = repeatDao.insert(
@@ -242,10 +250,10 @@ class TcxImportManager @Inject constructor(
     }
 
     /**
-     * Pour une séance programmée : met à jour le premier repeat trouvé avec les splits TCX.
+     * Pour une séance programmée : met à jour le premier repeat trouvé avec les splits.
      * Si aucun repeat n'existe, en crée un.
      */
-    private suspend fun insertOrUpdateLapSplits(workoutId: Long, laps: List<TcxLap>, isCycling: Boolean = false): Int {
+    private suspend fun insertOrUpdateLapSplits(workoutId: Long, laps: List<ParsedLap>, isCycling: Boolean = false): Int {
         if (laps.isEmpty()) return 0
         val results = laps.mapIndexed { i, lap -> lap.toIntervalRepResult(i, isCycling) }
         val existingRepeats = repeatDao.getByWorkout(workoutId)
@@ -265,7 +273,7 @@ class TcxImportManager @Inject constructor(
  * Simplifie une polyligne GPS par l'algorithme de Ramer-Douglas-Peucker.
  * [epsilonDegrees] est la tolérance en degrés décimaux (~0.000045° ≈ 5 m à la latitude de Paris).
  */
-internal fun douglasPeucker(points: List<TcxRawPoint>, epsilonDegrees: Double): List<TcxRawPoint> {
+internal fun douglasPeucker(points: List<ParsedTrackPoint>, epsilonDegrees: Double): List<ParsedTrackPoint> {
     if (points.size <= 2) return points
     val result = BooleanArray(points.size) { false }
     result[0] = true
@@ -275,7 +283,7 @@ internal fun douglasPeucker(points: List<TcxRawPoint>, epsilonDegrees: Double): 
 }
 
 private fun dpRecurse(
-    pts: List<TcxRawPoint>,
+    pts: List<ParsedTrackPoint>,
     keep: BooleanArray,
     start: Int,
     end: Int,
@@ -297,7 +305,7 @@ private fun dpRecurse(
 }
 
 /** Distance perpendiculaire point-à-segment en degrés décimaux (approximation plane). */
-private fun perpendicularDistanceDeg(p: TcxRawPoint, a: TcxRawPoint, b: TcxRawPoint): Double {
+private fun perpendicularDistanceDeg(p: ParsedTrackPoint, a: ParsedTrackPoint, b: ParsedTrackPoint): Double {
     val dx = b.longitude - a.longitude
     val dy = b.latitude - a.latitude
     val lenSq = dx * dx + dy * dy
@@ -316,35 +324,35 @@ private fun perpendicularDistanceDeg(p: TcxRawPoint, a: TcxRawPoint, b: TcxRawPo
 
 // ── Extension helpers ─────────────────────────────────────────────────────────
 
-private fun TcxParsedActivity.startTimeAsDate(): LocalDate =
+private fun ParsedActivity.startTimeAsDate(): LocalDate =
     try { ZonedDateTime.parse(startTime).toLocalDate() }
     catch (_: DateTimeParseException) { LocalDate.now() }
     catch (_: Exception) { LocalDate.now() }
 
-private fun TcxParsedActivity.startTimeAsDateTime(): LocalDateTime? =
+private fun ParsedActivity.startTimeAsDateTime(): LocalDateTime? =
     try { ZonedDateTime.parse(startTime).toLocalDateTime() }
     catch (_: Exception) { null }
 
-private fun TcxParsedActivity.avgPaceMinPerKm(): Double? {
+private fun ParsedActivity.avgPaceMinPerKm(): Double? {
     if (totalDistanceM < 1.0) return null
     return (totalDurationSec / 60.0) / (totalDistanceM / 1000.0)
 }
 
-private fun TcxParsedActivity.avgSpeedKmh(): Double? {
+private fun ParsedActivity.avgSpeedKmh(): Double? {
     if (totalDistanceM < 1.0 || totalDurationSec <= 0.0) return null
     val kmh = (totalDistanceM / 1000.0) / (totalDurationSec / 3600.0)
     return (kmh * 10).toLong() / 10.0 // arrondi à 1 décimale
 }
 
-fun TcxParsedActivity.defaultName(): String = defaultNameForType(workoutType)
+fun ParsedActivity.defaultName(): String = defaultNameForType(workoutType)
 
 /**
  * Nom par défaut pour un [type] donné — distinct de [workoutType] (le sport détecté du fichier)
  * pour permettre de recalculer le nom quand l'utilisateur corrige le sport dans l'aperçu d'import
- * (cf. [com.pandafit.feature.profile.viewmodel.TcxImportViewModel.updateType]), sans quoi le nom
+ * (cf. [com.pandafit.feature.profile.viewmodel.ActivityImportViewModel.updateType]), sans quoi le nom
  * garde l'intitulé de l'ancien sport (ex. "Course du ..." sur une séance reclassée en randonnée).
  */
-fun TcxParsedActivity.defaultNameForType(type: WorkoutType): String {
+fun ParsedActivity.defaultNameForType(type: WorkoutType): String {
     val date = startTimeAsDate()
     return when (type) {
         WorkoutType.RUNNING -> "Course du $date"
@@ -354,7 +362,7 @@ fun TcxParsedActivity.defaultNameForType(type: WorkoutType): String {
     }
 }
 
-private fun TcxLap.toIntervalRepResult(index: Int, isCycling: Boolean = false): IntervalRepResult {
+private fun ParsedLap.toIntervalRepResult(index: Int, isCycling: Boolean = false): IntervalRepResult {
     val intensity = if (isCycling) {
         if (distanceM > 1.0 && durationSec > 0.0) {
             val speedKmh = (distanceM / 1000.0) / (durationSec / 3600.0)

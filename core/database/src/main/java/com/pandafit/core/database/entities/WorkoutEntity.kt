@@ -109,6 +109,6 @@ enum class WorkoutType {
 enum class WorkoutSource {
     /** Saisie/exécutée directement dans PandaMove (manuelle ou GPS live). */
     NATIVE,
-    /** Importée depuis un fichier TCX (Garmin Connect ou équivalent). */
+    /** Importée depuis un fichier d'activité (TCX, GPX ou FIT — Garmin Connect, Strava, Suunto, Polar, etc.). */
     TCX_IMPORT,
 }

@@ -130,6 +130,46 @@ class DataImportManager @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
+     * Décode un JSON d'export (v2.0 ou v3.0) vers la structure v3.0.
+     * Toujours essayer v3 en premier (couvre les exports sans champ "version"),
+     * puis v2 comme fallback si v3 échoue (ancien format avec strengthSessions en liste plate).
+     */
+    private fun decodeExport(jsonContent: String): Result<PandaMoveExport> =
+        runCatching { json.decodeFromString<PandaMoveExport>(jsonContent) }
+            .recoverCatching { json.decodeFromString<PandaMoveExportV2>(jsonContent).toV3() }
+
+    /**
+     * Décode [jsonContent] et retourne l'ensemble des [DataCategory] non-vides présentes —
+     * pilote l'UI de sélection des catégories à importer. Retourne un ensemble vide si le
+     * JSON est invalide.
+     */
+    suspend fun detectAvailableCategories(jsonContent: String): Set<DataCategory> = withContext(Dispatchers.IO) {
+        val export = decodeExport(jsonContent).getOrNull() ?: return@withContext emptySet()
+        buildSet {
+            if (export.strengthTemplates.isNotEmpty() ||
+                export.strengthSessions.completed.isNotEmpty() ||
+                export.strengthSessions.planned.isNotEmpty()
+            ) add(DataCategory.STRENGTH)
+            if (export.runTemplates.isNotEmpty() ||
+                export.runSessions.completed.isNotEmpty() ||
+                export.runSessions.planned.isNotEmpty()
+            ) add(DataCategory.RUNNING)
+            if (export.cyclingTemplates.isNotEmpty() ||
+                export.cyclingSessions.completed.isNotEmpty() ||
+                export.cyclingSessions.planned.isNotEmpty()
+            ) add(DataCategory.CYCLING)
+            if (export.hikingTemplates.isNotEmpty() ||
+                export.hikingSessions.completed.isNotEmpty() ||
+                export.hikingSessions.planned.isNotEmpty()
+            ) add(DataCategory.HIKING)
+            if (export.breathingSessions.isNotEmpty()) add(DataCategory.BREATHING)
+            if (export.customExercises.isNotEmpty()) add(DataCategory.CUSTOM_EXERCISES)
+            if (export.objectifsProgression.isNotEmpty()) add(DataCategory.PROGRESSION_OBJECTIVES)
+            if (export.equipmentConfig != null) add(DataCategory.EQUIPMENT)
+        }
+    }
+
+    /**
      * Importe un fichier JSON (v2.0 ou v3.0) dans la base Room.
      * [options] permet de n'importer qu'une partie des sections.
      * Par défaut, toutes les sections sont importées.
@@ -140,18 +180,8 @@ class DataImportManager @Inject constructor(
     ): ImportResult = withContext(Dispatchers.IO) {
         var imported = 0; var skipped = 0; var errors = 0
 
-        // Toujours essayer v3 en premier (couvre les exports sans champ "version"),
-        // puis v2 comme fallback si v3 échoue (ancien format avec strengthSessions en liste plate).
-        val export: PandaMoveExport = runCatching {
-            json.decodeFromString<PandaMoveExport>(jsonContent)
-        }.getOrNull() ?: run {
-            val v2Result = runCatching { json.decodeFromString<PandaMoveExportV2>(jsonContent) }
-            val legacy = v2Result.getOrNull()
-                ?: return@withContext ImportResult(
-                    errors = 1,
-                    parseError = v2Result.exceptionOrNull()?.message,
-                )
-            legacy.toV3()
+        val export: PandaMoveExport = decodeExport(jsonContent).getOrElse {
+            return@withContext ImportResult(errors = 1, parseError = it.message)
         }
 
         // ── 1. Exercices personnalisés (à importer en premier — les séances y réfèrent) ──

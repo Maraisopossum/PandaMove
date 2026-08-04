@@ -63,7 +63,7 @@ import com.pandafit.feature.home.ui.HomeScreen
 import com.pandafit.feature.profile.ui.EquipmentScreen
 import com.pandafit.feature.profile.ui.ExerciseCatalogScreen
 import com.pandafit.feature.profile.ui.ProfileScreen
-import com.pandafit.feature.profile.ui.TcxImportScreen
+import com.pandafit.feature.profile.ui.ActivityImportScreen
 import com.pandafit.feature.running.ui.RunningScreen
 import com.pandafit.feature.running.ui.RunningWorkoutDetailScreen
 import com.pandafit.feature.running.ui.RunningWorkoutExecuteScreen
@@ -507,7 +507,7 @@ fun PandaFitNavHost() {
                     onNavigateToEquipment = { navController.navigate("profile/equipment") },
                     onNavigateToExerciseCatalog = { navController.navigate("profile/exercises") },
                     onNavigateToStatsConfig = { navController.navigate(ProfileRoutes.STATS_CONFIG) },
-                    onNavigateToTcxImport = { navController.navigate(ProfileRoutes.TCX_IMPORT) },
+                    onNavigateToActivityImport = { navController.navigate(ProfileRoutes.ACTIVITY_IMPORT) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                 )
             }
@@ -520,8 +520,8 @@ fun PandaFitNavHost() {
             composable(ProfileRoutes.STATS_CONFIG) {
                 StatsConfigScreen(onNavigateBack = { navController.popBackStack() })
             }
-            composable(ProfileRoutes.TCX_IMPORT) {
-                TcxImportScreen(
+            composable(ProfileRoutes.ACTIVITY_IMPORT) {
+                ActivityImportScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToWorkout = { id, type ->
                         navController.popBackStack()
@@ -529,7 +529,7 @@ fun PandaFitNavHost() {
                             WorkoutType.RUNNING  -> navController.navigate(RunningRoutes.detail(id))
                             WorkoutType.CYCLING  -> navController.navigate(CyclingRoutes.report(id))
                             WorkoutType.HIKING   -> navController.navigate(HikingRoutes.report(id))
-                            else                 -> { /* STRENGTH: pas de rapport TCX */ }
+                            else                 -> { /* STRENGTH: pas de rapport d'import */ }
                         }
                     },
                 )

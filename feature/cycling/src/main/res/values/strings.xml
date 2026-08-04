@@ -119,6 +119,6 @@
     <string name="cycling_report_worst_km_label">Split le plus lent</string>
     <string name="cycling_report_speed_legend">Vitesse (km/h)</string>
     <string name="cycling_report_elevation_legend">Dénivelé (m)</string>
-    <string name="cycling_report_imported_tcx_suffix">Importée depuis TCX</string>
+    <string name="cycling_report_imported_tcx_suffix">Importée depuis un fichier</string>
 
 </resources>

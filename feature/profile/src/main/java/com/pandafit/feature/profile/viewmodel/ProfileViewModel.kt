@@ -11,10 +11,14 @@ import androidx.work.WorkManager
 import com.pandafit.core.database.catalog.BackupPreferencesRepository
 import com.pandafit.core.database.catalog.UserPreferencesRepository
 import com.pandafit.core.database.dao.ExerciseDao
+import com.pandafit.core.database.export.DataCategory
 import com.pandafit.core.database.export.DataExportManager
 import com.pandafit.core.database.export.DataImportManager
+import com.pandafit.core.database.export.ExportOptions
 import com.pandafit.core.database.export.ExportType
+import com.pandafit.core.database.export.ImportOptions
 import com.pandafit.core.database.export.ImportResult
+import com.pandafit.core.database.export.forCategories
 import com.pandafit.core.database.worker.DriveBackupWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -54,6 +58,11 @@ data class ProfileUiState(
     val lastBackupDate: String? = null,
     val importResult: ImportResult? = null,
     val errorMessage: String? = null,
+    val showExportOptionsDialog: Boolean = false,
+    val selectedExportCategories: Set<DataCategory> = DataCategory.entries.toSet(),
+    val showImportOptionsDialog: Boolean = false,
+    val availableImportCategories: Set<DataCategory> = emptySet(),
+    val selectedImportCategories: Set<DataCategory> = emptySet(),
 )
 
 @HiltViewModel
@@ -191,11 +200,38 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun exportData() {
+    fun onExportClick() {
+        _uiState.value = _uiState.value.copy(
+            showExportOptionsDialog = true,
+            selectedExportCategories = DataCategory.entries.toSet(),
+        )
+    }
+
+    fun toggleExportCategory(category: DataCategory) {
+        val current = _uiState.value.selectedExportCategories
+        _uiState.value = _uiState.value.copy(
+            selectedExportCategories = if (category in current) current - category else current + category,
+        )
+    }
+
+    fun toggleAllExportCategories() {
+        val current = _uiState.value.selectedExportCategories
+        _uiState.value = _uiState.value.copy(
+            selectedExportCategories = if (current.size == DataCategory.entries.size) emptySet() else DataCategory.entries.toSet(),
+        )
+    }
+
+    fun dismissExportDialog() {
+        _uiState.value = _uiState.value.copy(showExportOptionsDialog = false)
+    }
+
+    fun confirmExport() {
+        val categories = _uiState.value.selectedExportCategories
+        _uiState.value = _uiState.value.copy(showExportOptionsDialog = false)
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.EXPORTING)
             try {
-                val file = exportManager.export()
+                val file = exportManager.export(ExportOptions.forCategories(categories))
                 _shareIntent.tryEmit(exportManager.buildShareIntent(file))
                 _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.SUCCESS_EXPORT)
             } catch (e: Exception) {
@@ -239,6 +275,9 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** JSON déjà lu, en attente de confirmation des catégories choisies par l'utilisateur. */
+    private var pendingImportJson: String? = null
+
     fun importDataFromUri(uri: Uri) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.IMPORTING)
@@ -252,7 +291,59 @@ class ProfileViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                val result = importManager.import(jsonContent)
+                val available = importManager.detectAvailableCategories(jsonContent)
+                if (available.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        exportImportStatus = ExportImportStatus.ERROR,
+                        errorMessage = "Fichier JSON invalide ou vide",
+                    )
+                    return@launch
+                }
+                pendingImportJson = jsonContent
+                _uiState.value = _uiState.value.copy(
+                    exportImportStatus = ExportImportStatus.IDLE,
+                    showImportOptionsDialog = true,
+                    availableImportCategories = available,
+                    selectedImportCategories = available,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    exportImportStatus = ExportImportStatus.ERROR,
+                    errorMessage = e.message ?: "Erreur d'import",
+                )
+            }
+        }
+    }
+
+    fun toggleImportCategory(category: DataCategory) {
+        val current = _uiState.value.selectedImportCategories
+        _uiState.value = _uiState.value.copy(
+            selectedImportCategories = if (category in current) current - category else current + category,
+        )
+    }
+
+    fun toggleAllImportCategories() {
+        val state = _uiState.value
+        _uiState.value = state.copy(
+            selectedImportCategories = if (state.selectedImportCategories.size == state.availableImportCategories.size)
+                emptySet() else state.availableImportCategories,
+        )
+    }
+
+    fun dismissImportDialog() {
+        pendingImportJson = null
+        _uiState.value = _uiState.value.copy(showImportOptionsDialog = false)
+    }
+
+    fun confirmImport() {
+        val jsonContent = pendingImportJson ?: return
+        val categories = _uiState.value.selectedImportCategories
+        pendingImportJson = null
+        _uiState.value = _uiState.value.copy(showImportOptionsDialog = false)
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.IMPORTING)
+            try {
+                val result = importManager.import(jsonContent, ImportOptions.forCategories(categories))
                 _uiState.value = _uiState.value.copy(
                     exportImportStatus = ExportImportStatus.SUCCESS_IMPORT,
                     importResult = result,

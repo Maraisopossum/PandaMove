@@ -2,80 +2,79 @@ package com.pandafit.feature.profile.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.activityimport.ActivityImportManager
+import com.pandafit.core.database.activityimport.ActivityImportResult
+import com.pandafit.core.database.activityimport.ParsedActivity
+import com.pandafit.core.database.activityimport.defaultName
+import com.pandafit.core.database.activityimport.defaultNameForType
 import com.pandafit.core.database.dao.WorkoutDao
 import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
-import com.pandafit.core.database.tcx.TcxImportManager
-import com.pandafit.core.database.tcx.TcxImportResult
-import com.pandafit.core.database.tcx.TcxParsedActivity
-import com.pandafit.core.database.tcx.defaultName
-import com.pandafit.core.database.tcx.defaultNameForType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.io.ByteArrayInputStream
 import java.time.LocalDate
 import javax.inject.Inject
 
 // ── UI state ──────────────────────────────────────────────────────────────────
 
-enum class TcxImportMode { NEW, EXISTING }
+enum class ActivityImportMode { NEW, EXISTING }
 
-sealed class TcxImportStep {
-    object Idle : TcxImportStep()
-    object Parsing : TcxImportStep()
+sealed class ActivityImportStep {
+    object Idle : ActivityImportStep()
+    object Parsing : ActivityImportStep()
     data class Preview(
-        val activity: TcxParsedActivity,
+        val activity: ParsedActivity,
         val date: LocalDate,
         val workoutType: WorkoutType,
         val name: String,
-        val mode: TcxImportMode,
+        val mode: ActivityImportMode,
         /** Workout sélectionné quand mode == EXISTING. */
         val targetWorkoutId: Long?,
         /** Séances planifiées du type détecté — pour le picker EXISTING. */
         val plannedWorkouts: List<WorkoutEntity>,
         val withStroller: Boolean = false,
-    ) : TcxImportStep()
-    object Importing : TcxImportStep()
-    data class Done(val result: TcxImportResult) : TcxImportStep()
-    data class Failure(val message: String) : TcxImportStep()
+    ) : ActivityImportStep()
+    object Importing : ActivityImportStep()
+    data class Done(val result: ActivityImportResult) : ActivityImportStep()
+    data class Failure(val message: String) : ActivityImportStep()
 }
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 
 @HiltViewModel
-class TcxImportViewModel @Inject constructor(
-    private val tcxImportManager: TcxImportManager,
+class ActivityImportViewModel @Inject constructor(
+    private val activityImportManager: ActivityImportManager,
     private val workoutDao: WorkoutDao,
 ) : ViewModel() {
 
-    private val _step = MutableStateFlow<TcxImportStep>(TcxImportStep.Idle)
-    val step: StateFlow<TcxImportStep> = _step.asStateFlow()
+    private val _step = MutableStateFlow<ActivityImportStep>(ActivityImportStep.Idle)
+    val step: StateFlow<ActivityImportStep> = _step.asStateFlow()
 
     // ── File picked by the user ───────────────────────────────────────────────
 
     fun onFilePicked(bytes: ByteArray) {
         viewModelScope.launch {
-            _step.value = TcxImportStep.Parsing
+            _step.value = ActivityImportStep.Parsing
             try {
-                val activity = tcxImportManager.parse(ByteArrayInputStream(bytes))
+                val activity = activityImportManager.parse(bytes)
                 val planned = workoutDao
                     .observePlannedByType(activity.workoutType)
                     .first()
-                _step.value = TcxImportStep.Preview(
+                _step.value = ActivityImportStep.Preview(
                     activity        = activity,
                     date            = tryParseDate(activity.startTime),
                     workoutType     = activity.workoutType,
                     name            = activity.defaultName(),
-                    mode            = TcxImportMode.NEW,
+                    mode            = ActivityImportMode.NEW,
                     targetWorkoutId = null,
                     plannedWorkouts = planned,
                 )
             } catch (e: Exception) {
-                _step.value = TcxImportStep.Failure(e.message ?: "Impossible de lire le fichier TCX.")
+                _step.value = ActivityImportStep.Failure(e.message ?: "Impossible de lire le fichier d'activité.")
             }
         }
     }
@@ -86,7 +85,7 @@ class TcxImportViewModel @Inject constructor(
     fun updateName(name: String) = updatePreview { it.copy(name = name) }
     fun updateType(type: WorkoutType) {
         viewModelScope.launch {
-            val preview = _step.value as? TcxImportStep.Preview ?: return@launch
+            val preview = _step.value as? ActivityImportStep.Preview ?: return@launch
             val planned = workoutDao.observePlannedByType(type).first()
             // Ne recalcule le nom que si l'utilisateur n'a pas encore personnalisé celui proposé par
             // défaut pour le sport détecté — sinon le changement de sport écraserait un nom saisi
@@ -104,34 +103,34 @@ class TcxImportViewModel @Inject constructor(
             )
         }
     }
-    fun updateMode(mode: TcxImportMode) = updatePreview {
+    fun updateMode(mode: ActivityImportMode) = updatePreview {
         it.copy(mode = mode, targetWorkoutId = null)
     }
     fun updateTargetWorkout(workoutId: Long?) = updatePreview { it.copy(targetWorkoutId = workoutId) }
     fun updateWithStroller(v: Boolean) = updatePreview { it.copy(withStroller = v) }
 
-    private inline fun updatePreview(transform: (TcxImportStep.Preview) -> TcxImportStep.Preview) {
-        val current = _step.value as? TcxImportStep.Preview ?: return
+    private inline fun updatePreview(transform: (ActivityImportStep.Preview) -> ActivityImportStep.Preview) {
+        val current = _step.value as? ActivityImportStep.Preview ?: return
         _step.value = transform(current)
     }
 
     // ── Confirm import ────────────────────────────────────────────────────────
 
     fun confirm() {
-        val preview = _step.value as? TcxImportStep.Preview ?: return
+        val preview = _step.value as? ActivityImportStep.Preview ?: return
         viewModelScope.launch {
-            _step.value = TcxImportStep.Importing
+            _step.value = ActivityImportStep.Importing
             try {
                 val result = when {
-                    preview.mode == TcxImportMode.EXISTING && preview.targetWorkoutId != null ->
-                        tcxImportManager.importIntoExisting(
+                    preview.mode == ActivityImportMode.EXISTING && preview.targetWorkoutId != null ->
+                        activityImportManager.importIntoExisting(
                             activity      = preview.activity,
                             workoutId     = preview.targetWorkoutId,
                             type          = preview.workoutType,
                             withStroller  = preview.withStroller,
                         )
                     else ->
-                        tcxImportManager.importAsNew(
+                        activityImportManager.importAsNew(
                             activity      = preview.activity,
                             date          = preview.date,
                             type          = preview.workoutType,
@@ -139,16 +138,16 @@ class TcxImportViewModel @Inject constructor(
                             withStroller  = preview.withStroller,
                         )
                 }
-                _step.value = TcxImportStep.Done(result)
+                _step.value = ActivityImportStep.Done(result)
             } catch (e: Exception) {
-                _step.value = TcxImportStep.Failure(e.message ?: "Erreur lors de l'import.")
+                _step.value = ActivityImportStep.Failure(e.message ?: "Erreur lors de l'import.")
             }
         }
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────
 
-    fun reset() { _step.value = TcxImportStep.Idle }
+    fun reset() { _step.value = ActivityImportStep.Idle }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

@@ -117,8 +117,8 @@
     <string name="workout_result_metrics_title">MÉTRIQUES</string>
     <string name="workout_result_view_details_button">Voir tous les détails</string>
     <string name="workout_result_share_button">Partager</string>
-    <string name="workout_result_imported_tcx_suffix">Importée depuis TCX</string>
-    <string name="workout_result_data_source_tcx_notice">Séance importée depuis un fichier TCX. Certaines données peuvent être incomplètes.</string>
+    <string name="workout_result_imported_tcx_suffix">Importée depuis un fichier</string>
+    <string name="workout_result_data_source_tcx_notice">Séance importée depuis un fichier TCX/GPX/FIT. Certaines données peuvent être incomplètes.</string>
     <string name="workout_result_objective_label">OBJECTIF</string>
     <string name="workout_result_in_target_label">dans la cible</string>
     <string name="workout_result_faster_label">plus rapide</string>
