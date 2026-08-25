@@ -276,6 +276,15 @@ data class EquipmentConfigDto(
     val cable: PlageConfig? = null,
 )
 
+/** Export standalone de "Mon matériel" (indépendant du gros export v3.x) — réutilisé par ex. par
+ * support/seance-builder.html pour calculer les charges réellement composables hors de l'app. */
+@Serializable
+data class EquipmentConfigExportDto(
+    val version: String = "1.0",
+    val exportDate: String = "",
+    val config: EquipmentConfigDto = EquipmentConfigDto(),
+)
+
 // ── Exercices personnalisés ───────────────────────────────────────────────────
 
 @Serializable

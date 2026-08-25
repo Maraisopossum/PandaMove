@@ -65,6 +65,7 @@
     <string name="equipment_deselect_all">Tout désélectionner</string>
     <string name="equipment_pas_label">Pas (kg)</string>
     <string name="equipment_configure_cd">Configurer</string>
+    <string name="equipment_export_cd">Exporter mon matériel</string>
     <string name="equipment_charges_count">%1$d charges déclarées</string>
     <string name="equipment_charges_none">Aucune charge déclarée</string>
     <string name="equipment_dialog_save">Enregistrer</string>

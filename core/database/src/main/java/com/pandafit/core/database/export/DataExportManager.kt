@@ -437,4 +437,39 @@ class DataExportManager @Inject constructor(
         }
         file
     }
+
+    /**
+     * Export standalone de "Mon matériel" (JSON) — indépendant du gros export v3.x, réutilisé par
+     * le bouton d'export de EquipmentScreen. Alimente notamment support/seance-builder.html, qui a
+     * besoin de l'inventaire réel pour calculer les charges composables hors de l'app.
+     */
+    suspend fun exportEquipmentToJson(): File = withContext(Dispatchers.IO) {
+        context.cacheDir
+            .listFiles { f -> f.name.startsWith("pandamove_equipment_") && f.extension == "json" }
+            ?.forEach { it.delete() }
+
+        val selected = equipmentRepository.selectedEquipment.first()
+        val pas = equipmentRepository.pasParCategorie.first()
+        val inventaire = equipmentRepository.inventaire.first()
+        val dto = EquipmentConfigExportDto(
+            exportDate = LocalDateTime.now().toString(),
+            config = EquipmentConfigDto(
+                selectedCategories = selected.map { it.name },
+                pasParCategorie = pas.mapKeys { it.key.name },
+                halteres = inventaire.halteres,
+                barre = inventaire.barre,
+                kettlebell = inventaire.kettlebell,
+                cable = inventaire.cable,
+            ),
+        )
+        val fileName = "pandamove_equipment_${LocalDate.now()}.json"
+        val file = File(context.cacheDir, fileName)
+        try {
+            file.writeText(json.encodeToString(dto), Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+        file
+    }
 }

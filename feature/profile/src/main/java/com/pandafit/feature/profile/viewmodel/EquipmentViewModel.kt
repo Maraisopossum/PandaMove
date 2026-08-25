@@ -1,5 +1,6 @@
 package com.pandafit.feature.profile.viewmodel
 
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.database.catalog.DisquesConfig
@@ -8,9 +9,13 @@ import com.pandafit.core.database.catalog.EquipmentInventaire
 import com.pandafit.core.database.catalog.EquipmentRepository
 import com.pandafit.core.database.catalog.HalteresConfig
 import com.pandafit.core.database.catalog.PlageConfig
+import com.pandafit.core.database.export.DataExportManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -18,7 +23,11 @@ import javax.inject.Inject
 @HiltViewModel
 class EquipmentViewModel @Inject constructor(
     private val repository: EquipmentRepository,
+    private val exportManager: DataExportManager,
 ) : ViewModel() {
+
+    private val _shareIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
+    val shareIntent: SharedFlow<Intent> = _shareIntent.asSharedFlow()
 
     val selected: StateFlow<Set<EquipmentCategory>> = repository.selectedEquipment
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), setOf(EquipmentCategory.POIDS_DE_CORPS))
@@ -61,5 +70,12 @@ class EquipmentViewModel @Inject constructor(
 
     fun updateCable(config: PlageConfig) {
         viewModelScope.launch { repository.setCableConfig(config) }
+    }
+
+    fun exportEquipment() {
+        viewModelScope.launch {
+            val file = exportManager.exportEquipmentToJson()
+            _shareIntent.tryEmit(exportManager.buildShareIntent(file))
+        }
     }
 }
