@@ -218,10 +218,13 @@ data class InstanceExecuteUiState(
         val es = exercices.find { it.exerciceSeance.id == exerciceId }?.exerciceSeance ?: return null
         if (!es.progressionActivee) return null
         val preview = progressionPreview[exerciceId] ?: return null
+        // repsCibles est un texte libre ("10", "15-20", "10/jambe") : on prend la borne basse si ce n'est pas un entier pur
+        val repsCiblesInt = es.repsCibles.toIntOrNull()
+            ?: es.repsCibles.split("-").firstOrNull()?.trim()?.toIntOrNull()
         val cible = CibleExercice(
             chargeKg = parseChargeKg(parseChargeLabel(es.chargeCible)),
-            reps = es.repsCibles.toIntOrNull(),
-            dureeSec = es.repsCibles.toIntOrNull().takeIf { es.repsType == RepsType.DURATION },
+            reps = repsCiblesInt,
+            dureeSec = repsCiblesInt.takeIf { es.repsType == RepsType.DURATION },
         )
         val series = seriesForExercice(exerciceId)
         val reussies = series.count { it.isCompleted && serieReussie(es, cible, it.toEntity()) }
