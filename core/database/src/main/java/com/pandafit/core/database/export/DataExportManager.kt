@@ -102,6 +102,7 @@ class DataExportManager @Inject constructor(
                             incrementKg = e.incrementKg, incrementDureeSec = e.incrementDureeSec,
                             seuilDeload = e.seuilDeload,
                             typeExercice = e.typeExercice?.name, incrementPct = e.incrementPct,
+                            isBodyweight = e.isBodyweight,
                         )
                     },
                 )
@@ -169,6 +170,7 @@ class DataExportManager @Inject constructor(
                         incrementKg = e.incrementKg, incrementDureeSec = e.incrementDureeSec,
                         seuilDeload = e.seuilDeload,
                         typeExercice = e.typeExercice?.name, incrementPct = e.incrementPct,
+                        isBodyweight = e.isBodyweight,
                     )
                 },
             )

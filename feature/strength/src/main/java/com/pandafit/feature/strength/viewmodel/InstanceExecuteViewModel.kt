@@ -279,7 +279,7 @@ class InstanceExecuteViewModel @Inject constructor(
             val es = exWithEx.exerciceSeance
             if (!es.progressionActivee) return@map exWithEx
             val objectif = objectifProgressionDao.getBySeanceAndExercice(seanceId, exWithEx.exercise.id) ?: return@map exWithEx
-            val nouvelleChargeCible = formatChargeCibleFraiche(objectif.chargeCible) ?: es.chargeCible
+            val nouvelleChargeCible = formatChargeCibleFraiche(objectif.chargeCible, es.isBodyweight) ?: es.chargeCible
             val nouveauxRepsCibles = when (es.repsType) {
                 RepsType.DURATION -> objectif.dureeCibleSec?.toString() ?: es.repsCibles
                 RepsType.REPS -> objectif.repsCible?.toString() ?: es.repsCibles
@@ -291,8 +291,11 @@ class InstanceExecuteViewModel @Inject constructor(
         }
     }
 
-    private fun formatChargeCibleFraiche(chargeKg: Float?): String? {
+    private fun formatChargeCibleFraiche(chargeKg: Float?, isBodyweight: Boolean): String? {
         if (chargeKg == null) return null
+        // Poids de corps sans charge additionnelle (ProgressionEngine ne fait qu'y stocker 0f faute de
+        // charge réelle) — ne pas écraser le libellé "PDC" du template par "0 kg".
+        if (isBodyweight && chargeKg == 0f) return null
         return if (chargeKg == chargeKg.toInt().toFloat()) "${chargeKg.toInt()} kg" else "$chargeKg kg"
     }
 

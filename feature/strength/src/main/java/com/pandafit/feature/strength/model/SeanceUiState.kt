@@ -45,6 +45,7 @@ fun parseChargeLabel(chargeCible: String): String {
 data class SeanceListUiState(
     val isLoading: Boolean = true,
     val seances: List<SeanceEntity> = emptyList(),
+    val archivedSeances: List<SeanceEntity> = emptyList(),
     val instances: List<InstanceSeanceEntity> = emptyList(),
     val seancesById: Map<Long, SeanceEntity> = emptyMap(),
     val error: String? = null,

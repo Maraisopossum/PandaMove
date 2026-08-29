@@ -138,6 +138,22 @@ class ProgressionEngineTest {
     }
 
     @Test
+    fun `deload isBodyweight - ne reduit pas la charge fixe, ne fait que retomber a repsMin`() {
+        val cible = CibleExercice(chargeKg = 10f, reps = 15, dureeSec = null)
+        val series = listOf(serie(1, 10, 10f), serie(2, 10, 10f), serie(3, 10, 10f))
+
+        val proposition = evaluerExercice(
+            config(repsMin = 10, repsMax = 15, isBodyweight = true),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(StatutExercice.ECHEC_MARQUE, proposition.statut)
+        assertTrue(proposition.deload)
+        assertEquals(10f, proposition.nouvelleChargeCible)
+        assertEquals(10, proposition.nouveauRepsCible)
+    }
+
+    @Test
     fun `compteur echec atteint le seuil de deload apres plusieurs echecs legers`() {
         val cible = CibleExercice(chargeKg = 50f, reps = 12, dureeSec = null)
         val series = listOf(serie(1, 12, 50f), serie(2, 12, 50f), serie(3, 11, 50f))

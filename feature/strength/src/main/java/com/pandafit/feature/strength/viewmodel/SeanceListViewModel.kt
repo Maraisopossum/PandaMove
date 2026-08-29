@@ -40,13 +40,18 @@ class SeanceListViewModel @Inject constructor(
             combine(
                 seanceDao.observeByCategory(SeanceCategory.STRENGTH),
                 seanceDao.observeByCategory(SeanceCategory.STRENGTH_ONESHOT),
+                seanceDao.observeArchivedByCategory(SeanceCategory.STRENGTH),
                 instanceSeanceDao.observeAll(),
-            ) { seances, oneShotSeances, instances ->
+            ) { seances, oneShotSeances, archivedSeances, instances ->
                 // seances = templates affichés dans "Séances types"
                 // oneShotSeances = séances directes (ne s'affichent pas comme templates)
-                // byId = union des deux → résolution du nom sur toutes les cartes instances
-                val byId = (seances + oneShotSeances).associateBy { it.id }
-                SeanceListUiState(isLoading = false, seances = seances, instances = instances, seancesById = byId)
+                // archivedSeances = templates masqués (cf. deleteSeances) — affichés à part, purgeables
+                // byId = union des trois → résolution du nom sur toutes les cartes instances
+                val byId = (seances + oneShotSeances + archivedSeances).associateBy { it.id }
+                SeanceListUiState(
+                    isLoading = false, seances = seances, archivedSeances = archivedSeances,
+                    instances = instances, seancesById = byId,
+                )
             }
                 .catch { e -> _uiState.value = _uiState.value.copy(error = e.message) }
                 .collect { _uiState.value = it }
@@ -54,11 +59,15 @@ class SeanceListViewModel @Inject constructor(
     }
 
     /** Supprime le template, sauf s'il a déjà des instances : dans ce cas on l'archive (masqué de la
-     * liste mais conservé en base) pour ne jamais perdre l'historique des séances déjà réalisées. */
+     * liste "Séances types" mais conservé en base, visible dans "Séances archivées") pour ne jamais
+     * perdre l'historique des séances déjà réalisées. Un template déjà archivé qu'on sélectionne à
+     * nouveau ici est une purge définitive assumée — il est supprimé pour de bon, quel que soit son
+     * nombre d'instances restantes (KNOWN_BUGS.md : sans ce second passage, un template archivé était
+     * un mort-vivant en base, ni supprimable ni ré-importable). */
     fun deleteSeances(ids: Set<Long>) {
         viewModelScope.launch {
-            _uiState.value.seances.filter { it.id in ids }.forEach { seance ->
-                if (instanceSeanceDao.countForSeance(seance.id) > 0) {
+            (_uiState.value.seances + _uiState.value.archivedSeances).filter { it.id in ids }.forEach { seance ->
+                if (!seance.isArchived && instanceSeanceDao.countForSeance(seance.id) > 0) {
                     seanceDao.updateSeance(seance.copy(isArchived = true))
                 } else {
                     seanceDao.deleteSeance(seance)

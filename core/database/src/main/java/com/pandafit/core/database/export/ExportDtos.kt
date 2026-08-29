@@ -112,6 +112,9 @@ data class ExerciceDto(
     val seuilDeload: Int = 3,
     val typeExercice: String? = null,
     val incrementPct: Float? = null,
+    // Poids de corps — pilote l'ajout de série (plutôt qu'une hausse de charge inexistante) au
+    // plafond de reps en système DOUBLE (ProgressionEngine.proposerMontee, ajouté v3.3)
+    val isBodyweight: Boolean = false,
 )
 
 @Serializable

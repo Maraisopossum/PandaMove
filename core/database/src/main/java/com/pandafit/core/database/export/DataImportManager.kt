@@ -293,6 +293,7 @@ class DataImportManager @Inject constructor(
                                     runCatching { TypeExercice.valueOf(it) }.getOrNull()
                                 },
                                 incrementPct = ex.incrementPct,
+                                isBodyweight = ex.isBodyweight,
                             )
                         )
                         if (r > 0) imported++ else skipped++
@@ -379,6 +380,7 @@ class DataImportManager @Inject constructor(
                                     runCatching { TypeExercice.valueOf(it) }.getOrNull()
                                 },
                                 incrementPct = ex.incrementPct,
+                                isBodyweight = ex.isBodyweight,
                             )
                         )
                         if (r > 0) imported++ else skipped++

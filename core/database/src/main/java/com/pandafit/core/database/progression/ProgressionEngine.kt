@@ -326,7 +326,13 @@ fun calculerIncrementQualitatif(
 }
 
 private fun proposerDeload(config: ExerciceSeanceEntity, cible: CibleExercice): PropositionProgression {
-    val nouvelleCharge = cible.chargeKg?.let { arrondirIncrement(it * (1 - POURCENTAGE_DELOAD), config.incrementKg) }
+    // Poids de corps / charge externe fixe (isBodyweight) : pas de -10% sur la charge, qui n'a pas de
+    // sens sur un équipement non modulable (ex. sac lesté fixe) — le retour à repsMin suffit comme deload.
+    val nouvelleCharge = if (config.isBodyweight) {
+        cible.chargeKg
+    } else {
+        cible.chargeKg?.let { arrondirIncrement(it * (1 - POURCENTAGE_DELOAD), config.incrementKg) }
+    }
     return PropositionProgression(
         statut = StatutExercice.ECHEC_MARQUE,
         nouvelleChargeCible = nouvelleCharge ?: cible.chargeKg,

@@ -436,6 +436,34 @@ fun SeanceListScreen(
                             }
                         }
                     }
+
+                    // ===== SÉANCES ARCHIVÉES =====
+                    // Templates masqués par deleteSeances() car ils avaient des instances au moment de
+                    // la suppression. Sélectionner puis supprimer ici purge pour de bon (deleteSeances
+                    // traite un template déjà archivé comme une purge assumée, pas un ré-archivage).
+                    if (uiState.archivedSeances.isNotEmpty()) {
+                        item { SeanceSectionHeader(stringResource(R.string.seance_list_section_archived)) }
+                        item {
+                            Text(
+                                stringResource(R.string.seance_list_archived_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = PandaSubtext,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                            )
+                        }
+                        items(uiState.archivedSeances, key = { "sa_${it.id}" }) { seance ->
+                            val isSelected = seance.id in selectedSeanceIds
+                            androidx.compose.foundation.layout.Box(modifier = Modifier.alpha(0.6f)) {
+                                SelectableSeanceTypeCard(
+                                    seance = seance,
+                                    isSelected = isSelected,
+                                    isSelectionMode = isSelectionMode,
+                                    onClick = { toggleSeance(seance.id) },
+                                    onLongClick = { selectedSeanceIds = selectedSeanceIds + seance.id },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -73,6 +73,8 @@
     <string name="seance_list_section_types">Séances types</string>
     <string name="seance_list_section_planned">Séances planifiées</string>
     <string name="seance_list_section_completed">Séances terminées</string>
+    <string name="seance_list_section_archived">Séances archivées</string>
+    <string name="seance_list_archived_hint">Masquées de la liste, conservées pour l\'historique. Sélectionner puis supprimer les efface définitivement.</string>
 
     <!-- Toggle voir-plus / réduire -->
     <string name="seance_list_collapse_label">Réduire</string>
