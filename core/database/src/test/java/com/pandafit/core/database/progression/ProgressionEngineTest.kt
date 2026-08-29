@@ -78,6 +78,24 @@ class ProgressionEngineTest {
     }
 
     @Test
+    fun `double progression - cas depassement saute directement au palier de charge meme si la cible affichee etait sous le plafond`() {
+        // Cible affichée avant la séance : 8 reps (sous repsMax=10). L'utilisateur logue 10 reps
+        // sur toutes les séries -> bible §2.2 "cas dépassement" : on saute directement à charge+incrément
+        // au lieu du simple +1 rep classique (8 -> 9) qui ignorerait la performance réelle.
+        val cible = CibleExercice(chargeKg = 20f, reps = 8, dureeSec = null)
+        val series = listOf(serie(1, 10, 20f), serie(2, 10, 20f), serie(3, 10, 20f))
+
+        val proposition = evaluerExercice(
+            config(repsMin = 8, repsMax = 10),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(StatutExercice.SUCCES, proposition.statut)
+        assertEquals(22.5f, proposition.nouvelleChargeCible)
+        assertEquals(8, proposition.nouveauRepsCible)
+    }
+
+    @Test
     fun `lineaire - succes incremente toujours la charge`() {
         val cible = CibleExercice(chargeKg = 60f, reps = 5, dureeSec = null)
         val series = listOf(serie(1, 5, 60f), serie(2, 5, 60f), serie(3, 5, 60f))
