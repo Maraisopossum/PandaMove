@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { ignorerOnboarding } from './onboarding.ts'
 
 // Barrière de l'étape 1 : une écriture faite hors ligne arrive sur un second appareil après reconnexion.
 // Prérequis : Supabase local + PowerSync (dev/docker-compose.powersync.yml), web/.env.local renseigné,
@@ -18,6 +19,7 @@ test('une séance créée hors ligne est synchronisée vers un second appareil',
   test.skip(!email || !motDePasse, 'E2E_EMAIL et E2E_PASSWORD sont requis')
 
   const contexteA = await browser.newContext()
+  await ignorerOnboarding(contexteA)
   const pageA = await contexteA.newPage()
   await seConnecter(pageA)
   await expect(pageA.getByTestId('sync-state')).toHaveText('en ligne', { timeout: 30_000 })
@@ -37,6 +39,7 @@ test('une séance créée hors ligne est synchronisée vers un second appareil',
 
   // Second appareil (contexte isolé, donc base locale vierge) : la séance doit arriver par la synchro
   const contexteB = await browser.newContext()
+  await ignorerOnboarding(contexteB)
   const pageB = await contexteB.newPage()
   await seConnecter(pageB)
   await expect(pageB.getByRole('main').getByRole('listitem').filter({ hasText: nomLocal })).toBeVisible({ timeout: 60_000 })

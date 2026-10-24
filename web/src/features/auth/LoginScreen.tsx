@@ -1,5 +1,10 @@
 import { useActionState } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { pandaImage } from '../../core/images/pandaImage'
+
+// Splash commun aux deux variantes (la variante n'est connue qu'après connexion) ; précaché par le service worker
+const SPLASH = pandaImage('splash', 'male', 'sm')
 
 // Écran de connexion : le formulaire ne fait qu'appeler useAuth() ; l'état du message est géré par l'action.
 export default function LoginScreen() {
@@ -26,7 +31,8 @@ export default function LoginScreen() {
   }, null)
 
   return (
-    <main>
+    <main className="connexion">
+      <PandaIllustration image={SPLASH} sizes="200px" prioritaire className="connexion__splash" />
       <h1>Connexion</h1>
       <form action={action}>
         <label>

@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router'
+import { PandaIllustration } from '../../../core/images/PandaIllustration'
 import { ProgressionRecapDialog } from './ProgressionRecapDialog'
 import { useEcranBilan } from './useEcranBilan'
 
@@ -34,6 +35,7 @@ export default function ReportScreen() {
         </>
       ) : (
         <>
+          <PandaIllustration image={b.pandaVictoire} sizes="120px" className="bilan__panda" />
           <section aria-label="Résumé">
             <dl className="bilan__kpis">
               <div className="bilan__kpi">

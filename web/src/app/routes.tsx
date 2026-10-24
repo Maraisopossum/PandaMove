@@ -1,18 +1,15 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { RouteObject } from 'react-router'
 import {
-  CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, ImportScreen, ProfileScreen, ReportScreen, SeanceEditScreen, SeanceListScreen, StatsScreen,
+  CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ProfileScreen, ReportScreen, SeanceEditScreen, SeanceListScreen, StatsScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
-import { PagePlaceholder } from './PagePlaceholder'
 
 // L'import dynamique est gardé par `import.meta.env.DEV` : Vite le remplace par `false` en production,
 // donc le chunk de l'écran de debug n'est jamais émis dans le build.
 const chargerDebug = import.meta.env.DEV ? () => import('../features/debug/DebugWriteScreen') : null
 const DebugWriteScreen = chargerDebug ? lazy(chargerDebug) : null
-
-const placeholder = (titre: string) => <PagePlaceholder titre={titre} />
 
 // Écrans chargés à la demande : un seul fallback commun
 const chargement = (ecran: ReactNode) => <Suspense fallback={<p>Chargement…</p>}>{ecran}</Suspense>
@@ -21,7 +18,7 @@ const chargement = (ecran: ReactNode) => <Suspense fallback={<p>Chargement…</p
 // `dev` est paramétrable pour tester l'absence de la route de debug hors développement.
 export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.env.DEV): RouteObject[] {
   const enfants: RouteObject[] = [
-    { index: true, element: placeholder('Accueil') },
+    { index: true, element: chargement(<HomeScreen />) },
     { path: 'strength', element: chargement(<SeanceListScreen />) },
     { path: 'strength/new', element: chargement(<SeanceEditScreen />) },
     { path: 'strength/:id/edit', element: chargement(<SeanceEditScreen />) },

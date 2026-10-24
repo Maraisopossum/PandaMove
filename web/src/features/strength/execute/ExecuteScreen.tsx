@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { Link, useParams } from 'react-router'
+import { PandaIllustration } from '../../../core/images/PandaIllustration'
 import { ChampNombreFacultatif } from '../champs'
 import { useEcranExecution } from './useEcranExecution'
 import { useSaisieSerie } from './useSaisieSerie'
@@ -14,6 +15,9 @@ export default function ExecuteScreen() {
   return (
     <div className="execution">
       <header className="execution__entete">
+        {e.pandaMotivation !== undefined && (
+          <PandaIllustration image={e.pandaMotivation} sizes="96px" decoratif className="execution__panda" />
+        )}
         <h1>{e.chargement ? 'Séance' : e.nomSeance}</h1>
         <p className="execution__chrono" role="timer" aria-live="off" aria-label={e.libelleChrono}>
           {e.chrono}

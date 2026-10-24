@@ -1,4 +1,6 @@
 import { useCallback, useState } from 'react'
+import { useAuth } from '../../core/auth/AuthProvider'
+import { useImagePanda } from '../../core/images/usePandaVariante'
 import { moisDe, moisPrecedent, moisSuivant, formaterJourLong, formaterMois, isoDepuisParties, type Mois } from './grille'
 import type { InstanceVue } from './types'
 import { useCalendar, type DepsCalendrier } from './useCalendar'
@@ -12,6 +14,8 @@ export function useEcranCalendrier(deps: DepsCalendrier = {}) {
   const [mois, setMois] = useState<Mois>(() => moisDe(aujourdhui))
   const [jourChoisi, setJourChoisi] = useState<string | null>(null)
   const cal = useCalendar(mois, deps)
+  const { session } = useAuth()
+  const pandaRepos = useImagePanda('pose_sitting', { db: deps.db, userId: session?.user.id, taille: 'sm' })
   const { deplacer, supprimerInstance } = cal
 
   // Sans choix explicite, le jour sélectionné est aujourd'hui s'il est dans le mois affiché
@@ -72,6 +76,7 @@ export function useEcranCalendrier(deps: DepsCalendrier = {}) {
     titreDetail: detail ? formaterJourLong(detail.dateIso) : null,
     detail,
     aucuneSeanceCeMois: nbInstancesMois === 0,
+    pandaRepos,
     cibleDate, dateSaisie, setDateSaisie, ouvrirDate, fermerDate, confirmerDate,
     cibleSuppression, ouvrirSuppression: setCibleSuppression, fermerSuppression, confirmerSuppression,
     enCours,

@@ -1,11 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryRouter, matchRoutes, Outlet, RouterProvider } from 'react-router'
 import { MODULES, moduleActif } from './modules'
 import { construireRoutes } from './routes'
 
 afterEach(cleanup)
+
+// L'accueil lit la variante du panda : sans session, aucune lecture de base n'a lieu
+vi.mock('../core/auth/AuthProvider', () => ({ useAuth: () => ({ session: null }) }))
+vi.mock('../core/db/client', () => ({ getDb: () => { throw new Error('base non disponible dans ce test') } }))
 
 // Coque neutre : on ne teste ici que la table de routes, pas la synchro ni le drawer.
 const coque = <Outlet />
@@ -53,11 +57,11 @@ describe('table de routes', () => {
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeDefined()
   })
 
-  it('une route connue rend son écran', () => {
-    // L'accueil est encore un écran provisoire, rendu sans chargement à la demande
+  it('une route connue rend son écran', async () => {
+    // L'accueil est chargé à la demande comme les autres écrans
     const routeur = createMemoryRouter(routes(false), { initialEntries: ['/'] })
     render(<RouterProvider router={routeur} />)
-    expect(screen.getByRole('heading', { name: 'Accueil' })).toBeDefined()
+    expect(await screen.findByRole('heading', { name: 'Accueil' })).toBeDefined()
   })
 
   it("/debug/write n'est pas enregistrée hors développement", () => {

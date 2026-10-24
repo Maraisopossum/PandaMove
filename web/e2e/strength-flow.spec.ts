@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
+import { ignorerOnboarding } from './onboarding.ts'
 
 // Parcours renforcement complet, au cœur de la règle « ne jamais perdre une série » :
 // import du fixture synthétique, affectation depuis la liste, exécution, 3 séries saisies réseau
@@ -23,6 +24,7 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   test.skip(!email || !motDePasse, 'E2E_EMAIL et E2E_PASSWORD sont requis')
 
   const contexteA = await browser.newContext()
+  await ignorerOnboarding(contexteA)
   const page = await contexteA.newPage()
 
   // 1. Import du fixture (idempotent : rejouer le test ne duplique rien)
@@ -75,6 +77,7 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
 
   // 6. Second appareil : les 3 séries arrivent par la synchro
   const contexteB = await browser.newContext()
+  await ignorerOnboarding(contexteB)
   const pageB = await contexteB.newPage()
   await seConnecter(pageB, new URL(urlSeance).pathname)
   const exerciceB = pageB.getByRole('article').first()

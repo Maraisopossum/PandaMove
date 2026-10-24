@@ -8,6 +8,7 @@ import { createTestDb } from '../../test/sqliteDb'
 
 let base: Db
 vi.mock('../../core/db/client', () => ({ getDb: () => base }))
+vi.mock('../../core/auth/AuthProvider', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }))
 
 import CalendarScreen from './CalendarScreen'
 
@@ -127,6 +128,13 @@ describe('CalendarScreen', () => {
     expect(await screen.findByText('Aucune séance ce mois-ci.')).toBeTruthy()
     expect(screen.getByText('Aucune séance à venir.')).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
+    // Panda au repos, décoratif (le texte porte le sens), dimensionné, chargé à la demande
+    await waitFor(() => expect(document.querySelector('img.calendrier__panda')).not.toBeNull())
+    const panda = document.querySelector('img.calendrier__panda')!
+    expect(panda.getAttribute('alt')).toBe('')
+    expect(panda.getAttribute('src')).toBe('/panda/pose-sitting-male-sm.webp')
+    expect(panda.getAttribute('loading')).toBe('lazy')
+    expect(panda.getAttribute('width')).toBe('320')
   })
 
   it('aucune icône 📅 dans le calendrier (réservée à la liste des séances)', async () => {

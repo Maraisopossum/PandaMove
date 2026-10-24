@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { DateDialog } from './DateDialog'
 import { JOURS_SEMAINE, formaterJourCourt, formaterJourLong } from './grille'
 import { SupprimerInstanceDialog } from './SupprimerInstanceDialog'
@@ -144,7 +145,12 @@ export default function CalendarScreen() {
             ))}
           </div>
 
-          {c.aucuneSeanceCeMois && <p>Aucune séance ce mois-ci.</p>}
+          {c.aucuneSeanceCeMois && (
+            <div className="calendrier__vide">
+              <PandaIllustration image={c.pandaRepos} sizes="96px" decoratif className="calendrier__panda" />
+              <p>Aucune séance ce mois-ci.</p>
+            </div>
+          )}
 
           {c.detail && (
             <section aria-labelledby="calendrier-detail" className="calendrier__section">

@@ -90,6 +90,10 @@ describe('ReportScreen', () => {
     expect(within(bilan).getByText('1 / 2 séries')).toBeTruthy()
     expect(container.textContent).not.toContain('📅')
     expect(document.body.textContent).not.toContain('📅')
+    // Panda de victoire (variante par défaut : aucun réglage enregistré)
+    const panda = await screen.findByRole('img', { name: 'Panda qui célèbre sa victoire' })
+    expect(panda.getAttribute('src')).toBe('/panda/victory-male-sm.webp')
+    expect(panda.getAttribute('loading')).toBe('lazy')
   })
 
   it('ouvre le récap (dialogue accessible) avec le deload proposé ; « Oui » l’écrit', async () => {

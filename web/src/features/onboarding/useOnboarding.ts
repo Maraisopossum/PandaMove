@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { pandaImage } from '../../core/images/pandaImage'
 import { ETAPES_ONBOARDING, lireVu, marquerVu, type AccesStockage } from './onboarding'
 
 export interface DepsOnboarding {
@@ -37,6 +38,8 @@ export function useOnboarding({ stockage }: DepsOnboarding = {}) {
     index,
     total: ETAPES_ONBOARDING.length,
     etape: ETAPES_ONBOARDING[index],
+    // Images communes aux deux variantes (la variante n'est pas encore connue avant la connexion)
+    image: pandaImage(ETAPES_ONBOARDING[index].image, 'male'),
     estPremiere: index === 0,
     estDerniere: index === DERNIERE,
     libelleProgression: `Étape ${index + 1} sur ${ETAPES_ONBOARDING.length}`,

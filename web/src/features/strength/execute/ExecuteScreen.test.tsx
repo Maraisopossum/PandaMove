@@ -70,6 +70,10 @@ describe('ExecuteScreen', () => {
     // DURATION : le champ est libellé en secondes
     expect(within(carte('Gainage planche')).getByLabelText('Durée (s)')).toBeTruthy()
     expect(within(carte('Développé couché')).getByLabelText('Répétitions')).toBeTruthy()
+    // Panda de motivation avant le démarrage, décoratif
+    await waitFor(() => expect(document.querySelector('img.execution__panda')).not.toBeNull())
+    expect(document.querySelector('img.execution__panda')!.getAttribute('alt')).toBe('')
+    expect(document.querySelector('img.execution__panda')!.getAttribute('src')).toMatch(/^\/panda\/motivation-male-sm\.webp$/)
   })
 
   it('démarre, valide une série avec une charge décimale « 17,5 » puis la corrige en place', async () => {
@@ -77,6 +81,8 @@ describe('ExecuteScreen', () => {
     monter('i-saisie')
     fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
     expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy()
+    // Séance démarrée : le panda de motivation laisse la place à la saisie
+    expect(document.querySelector('.execution__panda')).toBeNull()
 
     const dc = carte('Développé couché')
     fireEvent.change(within(dc).getByLabelText('Répétitions'), { target: { value: '8' } })

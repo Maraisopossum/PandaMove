@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useAuth } from '../../../core/auth/AuthProvider'
+import { useImagePanda } from '../../../core/images/usePandaVariante'
 import { chargeLisible } from '../../../core/progression/chargeLisible'
 import { formaterDureeBilan, formaterTonnage, texteProposition, texteStatut } from './bilan'
 import type { DecisionEnregistree } from '../../../core/progression/marqueur'
@@ -54,6 +55,7 @@ const versLigneRecap = (p: PropositionBilan): LigneRecap => ({
 export function useEcranBilan(instanceId: string) {
   const { session } = useAuth()
   const r = useReport(instanceId, { userId: session?.user.id })
+  const pandaVictoire = useImagePanda('victory', { userId: session?.user.id, taille: 'sm' })
   const [ouvert, setOuvert] = useState<boolean | null>(null)
   const { accepter, refuser, ajuster } = r
 
@@ -102,5 +104,6 @@ export function useEcranBilan(instanceId: string) {
       [ajuster, garderOuvert],
     ),
     lienSeance: `/strength/instance/${instanceId}`,
+    pandaVictoire,
   }
 }

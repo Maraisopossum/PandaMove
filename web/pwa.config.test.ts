@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { pwaOptions } from './pwa.config.ts'
@@ -27,9 +27,12 @@ describe('configuration PWA', () => {
     }
   })
 
-  it("ne précache que le shell de l'application (pas d'images hors icônes)", () => {
+  it("ne précache que le shell de l'application (images : icônes et splash seulement)", () => {
     const motifs = pwaOptions.workbox?.globPatterns ?? []
-    expect(motifs.some((m) => /png|jpg|jpeg|webp|svg/.test(m) && !m.includes('icons'))).toBe(false)
+    const motifsImages = motifs.filter((m) => /png|jpg|jpeg|webp|svg/.test(m))
+    expect(motifsImages.sort()).toEqual(['icons/*.png', 'panda/splash-*.webp'])
+    // Le motif du splash désigne bien des fichiers produits par scripts/build-images.mjs
+    expect(readdirSync(join(__dirname, 'public', 'panda')).filter((f) => /^splash-.*\.webp$/.test(f)).length).toBeGreaterThan(0)
     expect(motifs.join(',')).toMatch(/js/)
     expect(motifs.join(',')).toMatch(/html/)
   })

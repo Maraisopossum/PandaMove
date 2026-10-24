@@ -1046,3 +1046,147 @@ h1 {
   border-bottom: 1px solid var(--bord);
   text-align: left;
 }
+
+/* Illustrations du panda : largeur fixée par la classe d'usage, hauteur déduite de width/height */
+.panda-illustration {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Place réservée tant que la variante du panda n'est pas connue (personnages au format 2:3) */
+.panda-illustration--attente {
+  aspect-ratio: 2 / 3;
+}
+
+.accueil {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+}
+
+.accueil__panda {
+  width: 160px;
+}
+
+.accueil__texte {
+  margin: 0;
+  color: var(--texte-secondaire);
+}
+
+.accueil__liens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.execution__panda {
+  width: 96px;
+  margin: 0 auto 0.5rem;
+}
+
+.bilan__panda {
+  width: 120px;
+  margin: 0 auto;
+}
+
+.calendrier__vide {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.calendrier__panda {
+  flex: none;
+  width: 96px;
+}
+
+.connexion {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.connexion__splash {
+  width: 200px;
+  margin: 0 auto 1rem;
+  border-radius: 28px;
+}
+
+/* Onboarding du premier lancement : plein écran, centré, utilisable au pouce */
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 28rem;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+.onboarding__haut {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.onboarding__progression {
+  margin: 0;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.onboarding__image {
+  width: min(60vw, 280px);
+}
+
+.onboarding__titre {
+  margin: 0;
+}
+
+.onboarding__titre:focus {
+  outline: none;
+}
+
+.onboarding__titre:focus-visible {
+  outline: 3px solid var(--focus);
+}
+
+.onboarding__texte {
+  margin: 0;
+  color: var(--texte-secondaire);
+}
+
+.onboarding__points {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding__point {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bord);
+}
+
+.onboarding__point--actif {
+  background: #5b3d9e;
+}
+
+.onboarding__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.onboarding__actions .bouton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

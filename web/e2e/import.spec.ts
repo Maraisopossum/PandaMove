@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
+import { ignorerOnboarding } from './onboarding.ts'
 
 // Import d'un export Android synthétique v3.2 : aperçu, confirmation, résumé.
 // Mêmes prérequis que offline-sync.spec.ts : Supabase local + PowerSync, web/.env.local,
@@ -12,6 +13,7 @@ const fixture = path.resolve(import.meta.dirname, '../src/core/import/__fixtures
 test("l'import d'un export v3.2 affiche l'aperçu puis le résumé", async ({ page }) => {
   test.skip(!email || !motDePasse, 'E2E_EMAIL et E2E_PASSWORD sont requis')
 
+  await ignorerOnboarding(page.context())
   await page.goto('/import')
   await page.getByLabel('Adresse e-mail').fill(email!)
   await page.getByLabel('Mot de passe').fill(motDePasse!)
