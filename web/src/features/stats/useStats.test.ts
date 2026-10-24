@@ -41,7 +41,7 @@ afterEach(() => {
 })
 
 describe('useStats', () => {
-  it('charge la période par défaut (30 jours) puis recharge quand la période change, et la retient', async () => {
+  it('charge la période par défaut (1 mois) puis recharge quand la période change, et la retient', async () => {
     const { result } = renderHook(() => useStats({ db, nowFn }))
     await waitFor(() => expect(result.current.chargement).toBe(false))
     expect(result.current.periode).toBe('30j')

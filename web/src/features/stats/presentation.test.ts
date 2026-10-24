@@ -44,6 +44,10 @@ describe('presentation', () => {
 
   it('graphique : poids du corps -> reps ; DURATION -> secondes ; vide -> aucun point', () => {
     expect(construireGraphique([{ dateIso: '2026-10-01', maxChargeKg: 0, reps: 8, enSecondes: false }]).unite).toBe('reps')
+    expect(construireGraphique([{ dateIso: '2026-10-01', maxChargeKg: 0, reps: 60, enSecondes: true }]).unite).toBe('s')
+    expect(construireGraphique([]).points).toEqual([])
+    expect(formaterValeur(62.5, 'kg')).toBe('62,5 kg')
+    expect(formaterValeur(60, 's')).toBe('60 s')
   })
 
   it('historique mixte (séances au poids du corps et chargées) : les points sans charge ne sont pas tracés à 0 kg', () => {
@@ -55,9 +59,5 @@ describe('presentation', () => {
     expect(g.unite).toBe('kg')
     expect(g.points.map((p) => [p.dateIso, p.valeur])).toEqual([['2026-10-01', 20], ['2026-10-09', 25]])
     expect(g.min).toBe(20)
-    expect(construireGraphique([{ dateIso: '2026-10-01', maxChargeKg: 0, reps: 60, enSecondes: true }]).unite).toBe('s')
-    expect(construireGraphique([]).points).toEqual([])
-    expect(formaterValeur(62.5, 'kg')).toBe('62,5 kg')
-    expect(formaterValeur(60, 's')).toBe('60 s')
   })
 })

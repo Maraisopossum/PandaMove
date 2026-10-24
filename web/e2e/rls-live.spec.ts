@@ -97,18 +97,29 @@ test.describe('RLS sur Supabase réel', () => {
     const lignesA = pageA.getByRole('main').getByRole('listitem')
     await expect(lignesA.first()).toContainText('Debug ')
     const nomA = (await lignesA.first().textContent())!.trim()
-    // Envoi terminé côté A avant de regarder B
-    await expect(pageA.getByTestId('sync-state')).toHaveText('en ligne', { timeout: 60_000 })
+    // Preuve côté SERVEUR que la séance de A est arrivée (« en ligne » ne garantit pas la fin de l'envoi) :
+    // sans cela, un envoi jamais parti laisserait B vide et le test passerait à tort.
+    const a = await connecter(process.env.E2E_EMAIL!, process.env.E2E_PASSWORD!)
+    try {
+      await expect
+        .poll(async () => (await a.client.from('seances').select('id').eq('nom', nomA)).data?.length ?? 0, {
+          timeout: 60_000,
+        })
+        .toBe(1)
 
-    const contexteB = await browser.newContext()
-    await ignorerOnboarding(contexteB)
-    const pageB = await contexteB.newPage()
-    await seConnecter(pageB, process.env.E2E_EMAIL2!, process.env.E2E_PASSWORD2!)
-    // Laisse le temps à une éventuelle synchro (fuite) d'arriver, puis vérifie l'absence
-    await pageB.waitForTimeout(5_000)
-    await expect(pageB.getByRole('main').getByRole('listitem').filter({ hasText: nomA })).toHaveCount(0)
-
-    await contexteA.close()
-    await contexteB.close()
+      const contexteB = await browser.newContext()
+      await ignorerOnboarding(contexteB)
+      const pageB = await contexteB.newPage()
+      await seConnecter(pageB, process.env.E2E_EMAIL2!, process.env.E2E_PASSWORD2!)
+      // Laisse le temps à une éventuelle synchro (fuite) d'arriver, puis vérifie l'absence
+      await pageB.waitForTimeout(5_000)
+      await expect(pageB.getByRole('main').getByRole('listitem').filter({ hasText: nomA })).toHaveCount(0)
+      await contexteB.close()
+    } finally {
+      // Nettoyage : suppression logique de la séance de debug de A (pas de DELETE physique)
+      await a.client.from('seances').update({ deleted_at: new Date().toISOString() }).eq('nom', nomA)
+      await a.client.auth.signOut()
+      await contexteA.close()
+    }
   })
 })

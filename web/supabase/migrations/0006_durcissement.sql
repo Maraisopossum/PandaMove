@@ -59,7 +59,10 @@ grant select, insert, update on table
   public.instances_seance, public.series_realisees, public.objectifs_progression, public.user_settings
 to authenticated;
 
--- Tables créées plus tard par ce même rôle : plus aucun droit implicite pour anon.
+-- Tables créées plus tard PAR LE RÔLE QUI EXÉCUTE CETTE MIGRATION (postgres dans l'éditeur SQL) :
+-- plus de droit implicite pour anon. Sans effet sur les objets créés par d'autres rôles.
+-- (Pour les fonctions, EXECUTE reste accordé à PUBLIC par défaut, dont anon hérite : d'où le
+-- revoke explicite sur set_updated_at plus bas.)
 alter default privileges in schema public revoke all on tables from anon;
 alter default privileges in schema public revoke all on functions from anon;
 

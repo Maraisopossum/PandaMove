@@ -33,7 +33,7 @@ describe('persistance de la période', () => {
     vi.restoreAllMocks()
   })
 
-  it('défaut « 30 jours » comme Android (StatsPeriod.MONTH)', () => {
+  it('défaut « 1 mois » comme Android (StatsPeriod.MONTH)', () => {
     expect(PERIODE_DEFAUT).toBe('30j')
     expect(lirePeriode()).toBe('30j')
     expect(PERIODES.map((p) => p.id)).toEqual(['7j', '30j', '3m', '12m', 'tout'])
