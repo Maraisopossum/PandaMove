@@ -1,0 +1,15 @@
+# Règles de synchro PowerSync : un seul bucket par utilisateur, paramétré par l'id du JWT Supabase.
+# Syntaxe écrite d'après la documentation PowerSync (bucket_definitions) ; à valider dans la tâche 4
+# avec une vraie instance PowerSync.
+bucket_definitions:
+  user_data:
+    parameters: select request.user_id() as user_id
+    data:
+      - select * from exercises where user_id = bucket.user_id
+      - select * from seances where user_id = bucket.user_id
+      - select * from blocs_seance where user_id = bucket.user_id
+      - select * from exercices_seance where user_id = bucket.user_id
+      - select * from instances_seance where user_id = bucket.user_id
+      - select * from series_realisees where user_id = bucket.user_id
+      - select * from objectifs_progression where user_id = bucket.user_id
+      - select * from user_settings where user_id = bucket.user_id
