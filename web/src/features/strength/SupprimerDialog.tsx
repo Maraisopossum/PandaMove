@@ -14,10 +14,11 @@ interface Props {
 // sans historique : une seule confirmation. Focus piégé, Échap ferme, le focus revient au bouton d'origine.
 export function SupprimerDialog({ nomSeance, historique, enCours, onChoisir, onFermer }: Props) {
   const racine = useRef<HTMLDivElement>(null)
+  const boutonAnnuler = useRef<HTMLButtonElement>(null)
   const idTitre = useId()
   const idGarder = useId()
   const idTout = useId()
-  usePiegeFocus(racine, onFermer)
+  usePiegeFocus(racine, onFermer, boutonAnnuler) // focus initial non destructif
   const aHistorique = historique.planifiees + historique.realisees > 0
 
   return (
@@ -52,7 +53,7 @@ export function SupprimerDialog({ nomSeance, historique, enCours, onChoisir, onF
           </div>
         )}
         <div className="formulaire__ligne">
-          <button type="button" className="bouton" onClick={onFermer}>
+          <button ref={boutonAnnuler} type="button" className="bouton" onClick={onFermer}>
             Annuler
           </button>
         </div>

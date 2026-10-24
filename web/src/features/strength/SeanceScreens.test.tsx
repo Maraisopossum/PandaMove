@@ -217,6 +217,34 @@ describe('Suppression depuis la liste', () => {
     expect(l.deleted_at).toBeNull()
   })
 
+  it("focus initial sur « Annuler » (variante avec historique) : activer le bouton focalisé ne supprime rien", async () => {
+    await seance('s7', 'Fente')
+    await instance('s7-ic', 's7', 1)
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Fente' }))
+    await screen.findByRole('dialog')
+    const annuler = screen.getByRole('button', { name: 'Annuler' })
+    await waitFor(() => expect(document.activeElement).toBe(annuler))
+    // Entrée / Espace sur un bouton déclenchent son clic : on simule cette activation (pas de user-event installé)
+    ;(document.activeElement as HTMLElement).click()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const l = await base.get<{ deleted_at: string | null }>('SELECT deleted_at FROM seances WHERE id = ?', ['s7'])
+    expect(l.deleted_at).toBeNull()
+  })
+
+  it("focus initial sur « Annuler » (variante sans historique) : activer le bouton focalisé ne supprime rien", async () => {
+    await seance('s8', 'Gainage')
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Gainage' }))
+    await screen.findByRole('dialog')
+    const annuler = screen.getByRole('button', { name: 'Annuler' })
+    await waitFor(() => expect(document.activeElement).toBe(annuler))
+    ;(document.activeElement as HTMLElement).click()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const l = await base.get<{ deleted_at: string | null }>('SELECT deleted_at FROM seances WHERE id = ?', ['s8'])
+    expect(l.deleted_at).toBeNull()
+  })
+
   it("« Garder l'historique » supprime le modèle et conserve les séances réalisées", async () => {
     monter('/strength')
     fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Squat' }))
