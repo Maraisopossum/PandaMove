@@ -8,6 +8,23 @@ import { rejetsEnvoi } from './rejetsEnvoi'
 // droits RLS) : classes 22xxx, 23xxx et 42501. On les écarte pour ne pas bloquer la file d'envoi.
 const ERREUR_DEFINITIVE = /^(22\d{3}|23\d{3}|42501)$/
 
+type Operation = { op: UpdateType; table: string; id: string }
+
+// Une opération CRUD locale traduite en requête Supabase (payload fourni, pour pouvoir le réduire).
+function envoyer(supabase: SupabaseClient, entry: Operation, opData: Record<string, unknown> | undefined) {
+  const table = supabase.from(entry.table)
+  if (entry.op === UpdateType.PUT) return table.upsert({ ...opData, id: entry.id })
+  // opData est partiel : un upsert violerait les NOT NULL (23502), d'où un update ciblé
+  if (entry.op === UpdateType.PATCH) return table.update({ ...opData }).eq('id', entry.id)
+  // Suppression logique : la ligne reste en base avec deleted_at (voir spec)
+  return table.update({ deleted_at: new Date().toISOString() }).eq('id', entry.id)
+}
+
+// PGRST204 = colonne inconnue du cache de schéma PostgREST ; seule validated_at est tolérée.
+function estColonneValidatedAtAbsente(erreur: { code?: string; message?: string } | null): boolean {
+  return erreur?.code === 'PGRST204' && /validated_at/.test(erreur.message ?? '')
+}
+
 export class SupabaseConnector implements PowerSyncBackendConnector {
   private readonly client: () => SupabaseClient
 
@@ -40,16 +57,18 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
       try {
         for (const entry of tx.crud) {
           enCours = entry
-          const table = supabase.from(entry.table)
-          let resultat
-          if (entry.op === UpdateType.PUT) {
-            resultat = await table.upsert({ ...entry.opData, id: entry.id })
-          } else if (entry.op === UpdateType.PATCH) {
-            // opData est partiel : un upsert violerait les NOT NULL (23502), d'où un update ciblé
-            resultat = await table.update({ ...entry.opData }).eq('id', entry.id)
-          } else {
-            // Suppression logique : la ligne reste en base avec deleted_at (voir spec)
-            resultat = await table.update({ deleted_at: new Date().toISOString() }).eq('id', entry.id)
+          let resultat = await envoyer(supabase, entry, entry.opData)
+          // Migration 0006 pas encore passée sur le serveur : la colonne validated_at (ancre du repos)
+          // n'existe pas (PGRST204). Sans ce repli, TOUTE la file d'envoi resterait bloquée. On renvoie
+          // une fois sans cette colonne (le serveur n'aura pas l'ancre : repli sur updated_at).
+          if (estColonneValidatedAtAbsente(resultat.error) && entry.opData && 'validated_at' in entry.opData) {
+            console.warn(
+              'Colonne validated_at absente côté serveur : exécuter la migration 0006. Envoi sans cette colonne.',
+              { table: entry.table, id: entry.id },
+            )
+            const { validated_at: _retiree, ...sansAncre } = entry.opData
+            void _retiree
+            resultat = await envoyer(supabase, entry, sansAncre)
           }
           if (resultat.error) throw resultat.error
         }

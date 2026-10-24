@@ -123,6 +123,32 @@ describe('SupabaseConnector.uploadData', () => {
     expect(rejetsEnvoi.dernier()).toBeNull()
   })
 
+  it('PGRST204 sur validated_at (migration 0006 absente) : renvoie sans la colonne, journalise, la file avance', async () => {
+    const avert = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { client, appels } = fauxSupabase([
+      { code: 'PGRST204', message: "Could not find the 'validated_at' column of 'series_realisees' in the schema cache" },
+      null,
+    ])
+    const { db, complete } = fausseBase([
+      { op: UpdateType.PUT, table: 'series_realisees', id: 'r1', opData: { numero_serie: 1, validated_at: '2026-10-24T09:00:00.000Z' } },
+    ])
+    await new SupabaseConnector(() => client).uploadData(db)
+    expect(appels.map((a) => a.args[0])).toEqual([
+      { numero_serie: 1, validated_at: '2026-10-24T09:00:00.000Z', id: 'r1' },
+      { numero_serie: 1, id: 'r1' },
+    ])
+    expect(complete).toHaveBeenCalledTimes(1)
+    expect(String(avert.mock.calls[0][0])).toMatch(/0006/)
+  })
+
+  it('PGRST204 sur une autre colonne : relancé tel quel (aucune colonne retirée en silence)', async () => {
+    const { client, appels } = fauxSupabase({ code: 'PGRST204', message: "Could not find the 'nom' column of 'seances'" })
+    const { db, complete } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: { nom: 'x' } }])
+    await expect(new SupabaseConnector(() => client).uploadData(db)).rejects.toThrow()
+    expect(appels).toHaveLength(1)
+    expect(complete).not.toHaveBeenCalled()
+  })
+
   it('sans session, lève une erreur (nouvel essai) et ne complète pas la transaction', async () => {
     const { client, appels } = fauxSupabase(null, null)
     const { db, complete } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} }])
