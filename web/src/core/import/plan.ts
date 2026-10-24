@@ -1,7 +1,7 @@
 import { normalizeSearch } from '../common/normalizeSearch'
 import { deterministicId } from '../db/ids'
 import type { Ligne } from '../db/repos/mappers'
-import type { EquipmentCategory, EquipmentInventaire } from '../progression/types'
+import { construirePatch, type EquipmentPatch } from './equipment'
 import {
   analyser,
   detecterTypeExport,
@@ -24,9 +24,11 @@ import {
 //  - lignes à id Long Android : deterministicId(`${userId}:${table}`, String(idLong)) ;
 //  - exercices : deterministicId(`${userId}:exercises`, normalizeSearch(nom)), car l'export ne
 //    contient pas le catalogue de base et les ids Long du catalogue diffèrent d'un téléphone à l'autre ;
-//  - réglages : deterministicId(userId, 'user_settings') (même id que repos/settings.ts).
+//  - matériel : pas de ligne user_settings, un patch fusionné par Task 10 via mergeEquipment.
 
 export { detecterTypeExport, ImportError }
+export { mergeEquipment, type EquipmentPatch, type EquipmentStocke } from './equipment'
+export { verifierIntegrite } from './integrite'
 export type { TypeExport } from './schema'
 
 export type TableName =
@@ -58,6 +60,9 @@ export interface ImportPlan {
   /** Ids des lignes `exercises` minimales : à insérer seulement si absentes (ne jamais écraser
    * une fiche plus riche déjà importée depuis un catalogue). */
   exercisesMinimauxIds: string[]
+  /** Patch « Mon matériel » à fusionner (mergeEquipment) dans les réglages ; null si le fichier n'en a pas.
+   * rows.user_settings reste toujours vide. */
+  equipmentPatch: EquipmentPatch | null
 }
 
 export interface ImportOptions {
@@ -72,10 +77,6 @@ const REPS_TYPES = ['REPS', 'DURATION']
 const TYPES_EXERCICE = ['COMPOSE_BAS', 'COMPOSE_HAUT', 'ISOLATION', 'MACHINE', 'PDC']
 const SYSTEMES_PROGRESSION = ['LINEAIRE', 'DOUBLE', 'TEMPORELLE']
 const EXERCISE_CATEGORIES = ['CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'LEGS', 'GLUTES', 'CORE', 'CARDIO', 'FULL_BODY', 'OTHER']
-const EQUIPMENT_CATEGORIES: readonly EquipmentCategory[] = [
-  'POIDS_DE_CORPS', 'HALTERES', 'BARRE', 'KETTLEBELL', 'MACHINE', 'CABLE', 'BANC', 'RACK',
-  'BARRE_TRACTION', 'ELASTIQUE', 'ACCESSOIRES',
-]
 
 const enumOu = (valeur: string, valides: string[], defaut: string) => (valides.includes(valeur) ? valeur : defaut)
 const enumOuNull = (valeur: string | null, valides: string[]) => (valeur !== null && valides.includes(valeur) ? valeur : null)
@@ -120,6 +121,8 @@ class Constructeur {
   private readonly minimaux = new Set<string>()
   readonly ignores: string[] = []
   private exercicesSansNom = 0
+  private objectifsSansExercice = 0
+  private equipmentPatch: EquipmentPatch | null = null
   private readonly userId: string
   readonly now: string
 
@@ -289,9 +292,16 @@ class Constructeur {
   }
 
   objectif(o: PandaMoveExport['objectifsProgression'][number]) {
+    // Pas de fiche minimale pour un objectif : un exercice qu'aucune séance ni fiche du fichier ne
+    // connaît rend l'objectif orphelin (écarté et signalé, comme errors++ côté Android).
+    const exerciseId = normalizeSearch(o.exerciceName) ? this.idExercice(o.exerciceName) : null
+    if (exerciseId === null || !(this.tables.get('exercises') as Map<string, Row>).has(exerciseId)) {
+      this.objectifsSansExercice++
+      return
+    }
     this.ajouter('objectifs_progression', this.id('objectifs_progression', o.id), {
       seance_id: this.id('seances', o.seanceId),
-      exercise_id: this.referenceExercice(o.exerciceName, o.exerciceId),
+      exercise_id: exerciseId,
       charge_cible: o.chargeCible,
       reps_cible: o.repsCible,
       duree_cible_sec: o.dureeCibleSec,
@@ -301,43 +311,61 @@ class Constructeur {
     })
   }
 
-  /** Réglages : seules les colonnes réellement présentes dans le fichier (jamais de défaut écrasant). */
-  reglages(config: EquipmentConfigDto, exportDate: string) {
-    const inventaire: EquipmentInventaire = {
-      halteres: config.halteres ?? { poidsFixes: [], chargeable: null },
-      barre: config.barre,
-      kettlebell: config.kettlebell,
-      cable: config.cable,
-    }
-    // Catégories et pas inconnus filtrés comme EquipmentCategory.entries.find côté Kotlin
-    const pas: Record<string, number> = {}
-    for (const [cat, valeur] of Object.entries(config.pasParCategorie)) {
-      if ((EQUIPMENT_CATEGORIES as readonly string[]).includes(cat)) pas[cat] = valeur
-    }
-    const equipment = {
-      ...inventaire,
-      selectedCategories: config.selectedCategories.filter((c) => (EQUIPMENT_CATEGORIES as readonly string[]).includes(c)),
-      pasParCategorie: pas,
-    }
-    const id = deterministicId(this.userId, 'user_settings')
-    const t = this.tables.get('user_settings') as Map<string, Row>
-    t.set(id, {
-      id,
-      user_id: this.userId,
-      updated_at: dateHeure(exportDate) ?? this.now,
-      deleted_at: null,
-      equipment_json: JSON.stringify(equipment),
-    })
+  equipement(config: EquipmentConfigDto) {
+    this.equipmentPatch = construirePatch(config)
   }
 
   plan(): ImportPlan {
-    const rows = Object.fromEntries(
-      TABLES.map((t) => [t, [...(this.tables.get(t) as Map<string, Row>).values()]]),
-    ) as Record<TableName, Row[]>
+    const table = (t: TableName) => this.tables.get(t) as Map<string, Row>
     const ignores = [...this.ignores]
     if (this.exercicesSansNom > 0) {
       ignores.push(`${this.exercicesSansNom} référence(s) d'exercice sans nom : rattachée(s) à « Exercice inconnu #id »`)
     }
+
+    // Orphelins : écartés (référence obligatoire non résolue) dans l'ordre des dépendances, puis signalés.
+    const ecarter = (t: TableName, garder: (r: Row) => boolean): number => {
+      let n = 0
+      for (const [id, r] of table(t)) if (!garder(r)) { table(t).delete(id); n++ }
+      return n
+    }
+    const existe = (t: TableName, id: Row[string]) => typeof id === 'string' && table(t).has(id)
+    const facultatifOk = (t: TableName, id: Row[string]) => id === null || existe(t, id)
+
+    const instances = ecarter('instances_seance', (r) => existe('seances', r.seance_id))
+    const blocs = ecarter('blocs_seance', (r) => existe('seances', r.seance_id) && facultatifOk('instances_seance', r.instance_seance_id))
+    const exercices = ecarter('exercices_seance', (r) => existe('seances', r.seance_id) && facultatifOk('instances_seance', r.instance_seance_id))
+    const series = ecarter('series_realisees', (r) => existe('instances_seance', r.instance_seance_id) && existe('exercices_seance', r.exercice_seance_id))
+    const objectifs = this.objectifsSansExercice + ecarter('objectifs_progression', (r) => existe('seances', r.seance_id))
+
+    // Références facultatives non résolues : remises à null, et signalées (jamais en silence)
+    let facultatives = 0
+    const nettoyer = (t: TableName, colonne: string, cible: TableName) => {
+      for (const [id, r] of table(t)) {
+        if (!facultatifOk(cible, r[colonne])) { table(t).set(id, { ...r, [colonne]: null }); facultatives++ }
+      }
+    }
+    nettoyer('blocs_seance', 'bloc_source_id', 'blocs_seance')
+    nettoyer('exercices_seance', 'bloc_id', 'blocs_seance')
+    nettoyer('exercices_seance', 'exercice_source_id', 'exercices_seance')
+
+    // Fiches minimales créées seulement par des lignes écartées : retirées
+    const references = new Set<Row[string]>([
+      ...[...table('exercices_seance').values()].map((r) => r.exercise_id),
+      ...[...table('objectifs_progression').values()].map((r) => r.exercise_id),
+    ])
+    for (const id of [...this.minimaux]) {
+      if (!references.has(id)) { this.minimaux.delete(id); table('exercises').delete(id) }
+    }
+
+    const signaler = (n: number, message: string) => { if (n > 0) ignores.push(`${n} ${message}`) }
+    signaler(instances, "instance(s) ignorée(s) : séance d'origine absente du fichier")
+    signaler(blocs, 'bloc(s) ignoré(s) : séance ou instance absente du fichier')
+    signaler(exercices, 'exercice(s) de séance ignoré(s) : séance ou instance absente du fichier')
+    signaler(series, 'série(s) ignorée(s) : instance ou exercice de séance introuvable')
+    signaler(objectifs, 'objectif(s) de progression ignoré(s) : séance ou exercice introuvable')
+    signaler(facultatives, 'référence(s) facultative(s) (bloc ou ligne source) introuvable(s) : remise(s) à vide')
+
+    const rows = Object.fromEntries(TABLES.map((t) => [t, [...table(t).values()]])) as Record<TableName, Row[]>
     return {
       rows,
       report: {
@@ -349,6 +377,7 @@ class Constructeur {
         ignores,
       },
       exercisesMinimauxIds: [...this.minimaux],
+      equipmentPatch: this.equipmentPatch,
     }
   }
 }
@@ -418,7 +447,7 @@ function planComplet(input: Record<string, unknown>, c: Constructeur): void {
 
   // 4. Objectifs de progression, 5. matériel (seulement s'il est présent dans le fichier)
   for (const o of exp.objectifsProgression) c.objectif(o)
-  if (exp.equipmentConfig) c.reglages(exp.equipmentConfig, exp.exportDate)
+  if (exp.equipmentConfig) c.equipement(exp.equipmentConfig)
 }
 
 /**
@@ -435,8 +464,7 @@ export function buildImportPlan(input: unknown, userId: string, opts: ImportOpti
     // Import en masse Android : doublon de nom ignoré (le premier gagne)
     for (const ex of analyser(ExerciseCatalogExportSchema, objet).exercises) c.exercice(ex, false)
   } else {
-    const exp = analyser(EquipmentConfigExportSchema, objet)
-    c.reglages(exp.config, exp.exportDate)
+    c.equipement(analyser(EquipmentConfigExportSchema, objet).config)
   }
   return c.plan()
 }

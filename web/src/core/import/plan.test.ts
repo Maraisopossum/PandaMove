@@ -4,7 +4,7 @@ import catalogue from './__fixtures__/catalogue.json'
 import exportV30 from './__fixtures__/export-v3.0.json'
 import exportV32 from './__fixtures__/export-v3.2.json'
 import materiel from './__fixtures__/materiel.json'
-import { buildImportPlan, detecterTypeExport, ImportError, type ImportPlan, type Row } from './plan'
+import { buildImportPlan, detecterTypeExport, ImportError, verifierIntegrite, type ImportPlan, type Row } from './plan'
 
 const USER = '11111111-1111-4111-8111-111111111111'
 const AUTRE_USER = '22222222-2222-4222-8222-222222222222'
@@ -227,21 +227,18 @@ describe('buildImportPlan — export complet v3.2', () => {
     expect(p.exercisesMinimauxIds).toHaveLength(3)
   })
 
-  it('produit user_settings avec un inventaire complet (haltères par défaut, clés Float normalisées)', () => {
+  it('produit un patch matériel (haltères par défaut, clés Float normalisées, absents omis) et aucune ligne user_settings', () => {
     const p = plan(exportV32)
-    expect(p.rows.user_settings).toHaveLength(1)
-    const r = p.rows.user_settings[0]
-    expect(r.id).toBe(deterministicId(USER, 'user_settings'))
-    expect(r).toMatchObject({ user_id: USER, deleted_at: null, updated_at: '2026-02-15T10:00:00.123456' })
-    expect(Object.keys(r).sort()).toEqual(['deleted_at', 'equipment_json', 'id', 'updated_at', 'user_id'])
-    expect(JSON.parse(r.equipment_json as string)).toEqual({
-      halteres: { poidsFixes: [], chargeable: null },
-      barre: { barreKg: 20, disques: { '20': 2, '10': 4, '1.25': 4 } },
-      kettlebell: null,
-      cable: { minKg: 2.5, maxKg: 50, pasKg: 2.5 },
+    expect(p.rows.user_settings).toEqual([])
+    // kettlebell null dans le fichier -> clé absente du patch (l'existant sera conservé)
+    expect(p.equipmentPatch).toEqual({
       selectedCategories: ['HALTERES', 'BARRE', 'MACHINE', 'CABLE'],
       pasParCategorie: { MACHINE: 5 },
+      halteres: { poidsFixes: [], chargeable: null },
+      barre: { barreKg: 20, disques: { '20': 2, '10': 4, '1.25': 4 } },
+      cable: { minKg: 2.5, maxKg: 50, pasKg: 2.5 },
     })
+    expect(p.equipmentPatch).not.toHaveProperty('kettlebell')
   })
 
   it('signale les sections hors périmètre ignorées', () => {
@@ -378,23 +375,103 @@ describe('exports autonomes', () => {
     expect(plan(exportV30).rows.exercises[0].id).toBe(parId(p.rows.exercises, idExercice('squat barre')).id)
   })
 
-  it('un export matériel autonome produit uniquement user_settings', () => {
+  it('un export matériel autonome produit uniquement un patch matériel', () => {
+    expect(detecterTypeExport(materiel)).toBe('materiel')
     const p = plan(materiel)
-    expect(p.rows.exercises).toEqual([])
-    expect(p.rows.user_settings).toHaveLength(1)
-    expect(JSON.parse(p.rows.user_settings[0].equipment_json as string)).toEqual({
-      halteres: { poidsFixes: [5, 7.5], chargeable: null },
-      barre: null,
-      kettlebell: { minKg: 8, maxKg: 24, pasKg: 4 },
-      cable: null,
+    for (const lignes of Object.values(p.rows)) expect(lignes).toEqual([])
+    expect(p.equipmentPatch).toEqual({
       selectedCategories: ['HALTERES', 'KETTLEBELL'],
       pasParCategorie: {},
+      halteres: { poidsFixes: [5, 7.5], chargeable: null },
+      kettlebell: { minKg: 8, maxKg: 24, pasKg: 4 },
     })
+  })
+
+  it('le patch matériel ne contient que les clés non nulles et des haltères par défaut si null', () => {
+    const m = structuredClone(materiel) as { config: Record<string, unknown> }
+    m.config.halteres = null
+    m.config.kettlebell = null
+    expect(plan(m).equipmentPatch).toEqual({
+      selectedCategories: ['HALTERES', 'KETTLEBELL'],
+      pasParCategorie: {},
+      halteres: { poidsFixes: [], chargeable: null },
+    })
+  })
+
+  it('un export complet sans equipmentConfig donne un patch null', () => {
+    expect(plan(exportV30).equipmentPatch).toBeNull()
+    expect(plan(catalogue).equipmentPatch).toBeNull()
   })
 
   it('une clé de disque non numérique est refusée avec son chemin', () => {
     const m = structuredClone(materiel)
     ;(m.config as Record<string, unknown>).barre = { barreKg: 20, disques: { abc: 2 } }
     expect(erreurDe(() => plan(m)).chemin).toBe('config.barre.disques.abc')
+  })
+})
+
+describe('intégrité référentielle (orphelins : écartés et signalés)', () => {
+  it('verifierIntegrite ne signale rien sur les plans de toutes les fixtures', () => {
+    for (const f of [exportV32, exportV30, catalogue, materiel]) expect(verifierIntegrite(plan(f))).toEqual([])
+  })
+
+  it('verifierIntegrite détecte une référence non résolue', () => {
+    const p = plan(exportV32)
+    p.rows.series_realisees[0] = { ...p.rows.series_realisees[0], exercice_seance_id: 'inexistant' }
+    p.rows.exercices_seance[0] = { ...p.rows.exercices_seance[0], bloc_id: 'bloc-fantome' }
+    const v = verifierIntegrite(p)
+    expect(v).toHaveLength(2)
+    expect(v.some((m) => m.includes('series_realisees') && m.includes('exercice_seance_id'))).toBe(true)
+    expect(v.some((m) => m.includes('exercices_seance') && m.includes('bloc_id'))).toBe(true)
+  })
+
+  it('écarte séries, blocs, exercices, instances et objectifs orphelins et le signale', () => {
+    const e = structuredClone(exportV32) as unknown as {
+      strengthTemplates: { blocs: object[]; exercices: object[] }[]
+      strengthSessions: { completed: { series: object[] }[]; planned: object[] }
+      objectifsProgression: object[]
+    }
+    const serie = (id: number, inst: number, ex: number) => ({ id, instanceSeanceId: inst, exerciceSeanceId: ex, numeroSerie: 9 })
+    // Séries : exercice de séance inconnu, instance inconnue
+    e.strengthSessions.completed[0].series.push(serie(599, 401, 9999), serie(598, 4999, 311))
+    // Bloc et exercice dont la séance est absente
+    e.strengthTemplates[0].blocs.push({ id: 299, seanceId: 777, nom: 'Orphelin' })
+    e.strengthTemplates[0].exercices.push({ id: 399, seanceId: 777, exerciceId: 1, exerciceName: 'Exercice Fantôme' })
+    // Exercice dont le bloc (facultatif) est inconnu : conservé, bloc_id remis à null
+    e.strengthTemplates[1].exercices.push({ id: 307, seanceId: 102, exerciceId: 9003, exerciceName: 'Planche', blocId: 2999, position: 3 })
+    // Instance sans template (et sa copie d'exercice + sa série)
+    e.strengthSessions.planned.push({
+      instance: { id: 499, seanceId: 888, date: '2026-03-01' },
+      exercices: [{ id: 398, seanceId: 888, exerciceId: 9002, exerciceName: 'Tractions', instanceSeanceId: 499 }],
+      series: [serie(597, 499, 398)],
+    })
+    // Objectifs : exercice inconnu, séance inconnue
+    e.objectifsProgression.push(
+      { id: 699, seanceId: 101, exerciceId: 5, exerciceName: 'Inexistant' },
+      { id: 698, seanceId: 999, exerciceId: 9001, exerciceName: 'Développé couché' },
+    )
+
+    const p = plan(e)
+    const ids = (rows: Row[]) => rows.map((r) => r.id)
+    for (const legacy of [599, 598, 597]) expect(ids(p.rows.series_realisees)).not.toContain(idDe('series_realisees', legacy))
+    expect(ids(p.rows.blocs_seance)).not.toContain(idDe('blocs_seance', 299))
+    expect(ids(p.rows.exercices_seance)).not.toContain(idDe('exercices_seance', 399))
+    expect(ids(p.rows.exercices_seance)).not.toContain(idDe('exercices_seance', 398))
+    expect(ids(p.rows.instances_seance)).not.toContain(idDe('instances_seance', 499))
+    expect(ids(p.rows.objectifs_progression)).toEqual([idDe('objectifs_progression', 601)])
+    expect(parId(p.rows.exercices_seance, idDe('exercices_seance', 307)).bloc_id).toBeNull()
+    // L'exercice minimal créé uniquement par une ligne écartée ne subsiste pas
+    expect(ids(p.rows.exercises)).not.toContain(idExercice('exercice fantome'))
+    expect(ids(p.rows.exercises)).not.toContain(idExercice('inexistant'))
+    expect(p.report).toMatchObject({ seances: 2, instances: 2, series: 3, exercises: 5, exercisesCrees: 3 })
+
+    const ig = p.report.ignores.join('\n')
+    expect(ig).toMatch(/3 série\(s\) ignorée\(s\)/)
+    expect(ig).toMatch(/1 bloc\(s\) ignoré\(s\)/)
+    expect(ig).toMatch(/2 exercice\(s\) de séance ignoré\(s\)/)
+    expect(ig).toMatch(/1 instance\(s\) ignorée\(s\)/)
+    expect(ig).toMatch(/2 objectif\(s\) de progression ignoré\(s\)/)
+    expect(ig).toMatch(/1 référence\(s\) facultative\(s\)/)
+    expect(verifierIntegrite(p)).toEqual([])
   })
 })

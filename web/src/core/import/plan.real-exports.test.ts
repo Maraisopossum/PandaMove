@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildImportPlan, detecterTypeExport } from './plan'
+import { buildImportPlan, detecterTypeExport, verifierIntegrite } from './plan'
 import { EquipmentConfigExportSchema, ExerciseCatalogExportSchema } from './schema'
 
 // Test optionnel sur de VRAIS exports Android (données personnelles, jamais commitées).
@@ -32,8 +32,10 @@ describe.skipIf(!dir)('exports réels (PANDAMOVE_REAL_EXPORTS_DIR)', () => {
     for (const lignes of Object.values(p1.rows)) {
       expect(new Set(lignes.map((l) => l.id)).size).toBe(lignes.length)
     }
+    // Aucune référence orpheline dans le plan
+    expect(verifierIntegrite(p1)).toEqual([])
     // Comptes seulement (aucun contenu personnel dans la sortie)
-    console.info(nom, type, JSON.stringify(p1.report), Object.fromEntries(
+    console.info(nom, type, JSON.stringify(p1.report), 'patch matériel :', p1.equipmentPatch !== null, Object.fromEntries(
       Object.entries(p1.rows).map(([t, l]) => [t, l.length]),
     ))
   })
