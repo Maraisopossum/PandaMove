@@ -12,6 +12,9 @@ storage:
 
 port: !env PS_PORT
 
+# Pointe vers le même fichier que la version Cloud (web/powersync/sync-rules.yaml, Sync Streams édition 3).
+# À vérifier : le nom de la clé de configuration des règles de synchro pour l'auto-hébergement
+# (ici sync_rules, ancien format) doit être confronté à la documentation PowerSync self-host.
 sync_rules:
   path: /config/sync-rules.yaml
 
