@@ -1,0 +1,79 @@
+import { Link } from 'react-router'
+import { lireGroupes } from './catalog/filtreCatalogue'
+import { libelleMuscle } from './catalog/libelles'
+import { AssignDialog } from './AssignDialog'
+import { useListeSeancesEcran } from './useListeSeancesEcran'
+
+// Liste des séances modèles. Seul écran de renforcement à porter le bouton d'affectation au
+// calendrier : jamais sur l'édition, le détail ni le bilan (règle CLAUDE.md).
+export default function SeanceListScreen() {
+  const l = useListeSeancesEcran()
+  const a = l.affectation
+
+  return (
+    <>
+      <h1>Renforcement</h1>
+      <div className="formulaire__ligne">
+        <Link to="/strength/new" className="bouton lien-bouton">
+          <span aria-hidden="true">＋ </span>Nouvelle séance
+        </Link>
+        <Link to="/strength/catalog" className="bouton lien-bouton">
+          Catalogue d'exercices
+        </Link>
+      </div>
+
+      {l.erreur && (
+        <p role="alert" className="import__erreur">
+          {l.erreur}
+        </p>
+      )}
+      {a.confirmation && <p role="status">{a.confirmation}</p>}
+
+      {!l.charge ? (
+        <p>Chargement…</p>
+      ) : l.seances.length === 0 ? (
+        <p>Aucune séance. Créez votre première séance avec « Nouvelle séance ».</p>
+      ) : (
+        <ul className="seances__liste">
+          {l.seances.map((s) => {
+            const muscles = lireGroupes(s.groupesMusculaires).map(libelleMuscle).join(', ')
+            const nb = l.nbExercices[s.id] ?? 0
+            return (
+              <li key={s.id} className="seance__carte">
+                <div className="seance__texte">
+                  <h2 className="seance__nom">{s.nom}</h2>
+                  <p className="seance__details">
+                    {muscles || 'Aucun muscle'} · {s.dureeEstimeeMin} min · {nb} exercice{nb > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="seance__actions">
+                  <button type="button" className="bouton" aria-label="Affecter à une date" onClick={() => a.ouvrir(s)}>
+                    <span aria-hidden="true">📅</span>
+                  </button>
+                  <Link to={`/strength/${s.id}/edit`} className="bouton lien-bouton" aria-label={`Modifier ${s.nom}`}>
+                    Modifier
+                  </Link>
+                  <button type="button" className="bouton" aria-label={`Archiver ${s.nom}`} onClick={() => void l.demanderArchivage(s)}>
+                    Archiver
+                  </button>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {a.cible && (
+        <AssignDialog
+          nomSeance={a.cible.nom}
+          date={a.date}
+          erreur={a.erreur}
+          enCours={a.enCours}
+          onDate={a.setDate}
+          onConfirmer={() => void a.confirmer()}
+          onFermer={a.fermer}
+        />
+      )}
+    </>
+  )
+}

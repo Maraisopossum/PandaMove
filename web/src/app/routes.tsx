@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { RouteObject } from 'react-router'
-import { CatalogScreen, EquipmentScreen, ImportScreen, ProfileScreen } from './EcransChargesALaDemande'
+import { CatalogScreen, EquipmentScreen, ImportScreen, ProfileScreen, SeanceEditScreen, SeanceListScreen } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
 import { PagePlaceholder } from './PagePlaceholder'
@@ -20,9 +20,9 @@ const chargement = (ecran: ReactNode) => <Suspense fallback={<p>Chargement…</p
 export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.env.DEV): RouteObject[] {
   const enfants: RouteObject[] = [
     { index: true, element: placeholder('Accueil') },
-    { path: 'strength', element: placeholder('Renforcement') },
-    { path: 'strength/new', element: placeholder('Nouvelle séance') },
-    { path: 'strength/:id/edit', element: placeholder('Modifier la séance') },
+    { path: 'strength', element: chargement(<SeanceListScreen />) },
+    { path: 'strength/new', element: chargement(<SeanceEditScreen />) },
+    { path: 'strength/:id/edit', element: chargement(<SeanceEditScreen />) },
     { path: 'strength/instance/:id', element: placeholder('Séance') },
     { path: 'strength/instance/:id/report', element: placeholder('Bilan de séance') },
     { path: 'calendar', element: placeholder('Calendrier') },
