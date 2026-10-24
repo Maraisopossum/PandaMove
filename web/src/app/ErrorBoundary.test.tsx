@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ErrorBoundary } from './ErrorBoundary'
+import { AuthProvider } from '../core/auth/AuthProvider'
 import { messageErreur, MESSAGE_CONFIGURATION } from './erreurs'
 
 beforeEach(() => {
@@ -10,6 +11,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -36,6 +38,21 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     )
     expect(screen.getByRole('alert').textContent).toContain('Une erreur est survenue')
+  })
+
+  it("capte l'erreur levée par getSupabase() dans l'effet d'AuthProvider (variables vides)", () => {
+    vi.stubEnv('VITE_SUPABASE_URL', '')
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', '')
+    vi.stubEnv('VITE_POWERSYNC_URL', '')
+    render(
+      <ErrorBoundary>
+        <AuthProvider>
+          <p>contenu</p>
+        </AuthProvider>
+      </ErrorBoundary>,
+    )
+    expect(screen.getByRole('alert').textContent).toContain('Configuration manquante : renseignez')
+    expect(screen.queryByText('contenu')).toBeNull()
   })
 
   it('rend les enfants quand tout va bien', () => {

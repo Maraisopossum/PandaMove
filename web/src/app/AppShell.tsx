@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { Outlet } from 'react-router'
 import { SyncIndicator } from '../core/sync/SyncIndicator'
 import { Drawer } from './Drawer'
@@ -9,6 +9,8 @@ import { useAppShell } from './useAppShell'
 interface VueProps {
   module: ModuleInfo
   drawer: { ouvert: boolean; basculer: () => void; fermer: () => void }
+  refBascule: RefObject<HTMLButtonElement | null>
+  refDrawer: RefObject<HTMLElement | null>
   sombre: { dark: boolean; setDark: (valeur: boolean) => void }
   deconnexion: Deconnexion
   messageAutreCompte: string | null
@@ -18,18 +20,19 @@ interface VueProps {
 }
 
 // Présentation pure de la coque : lien d'évitement, drawer, barre du haut colorée par module, contenu.
-export function AppShellView({ module, drawer, sombre, deconnexion, messageAutreCompte, demanderAbandon, indicateurSynchro, children }: VueProps) {
+export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon, indicateurSynchro, children }: VueProps) {
   return (
     <div className="coque">
       <a className="coque__evitement" href="#contenu">
         Aller au contenu
       </a>
-      <Drawer ouvert={drawer.ouvert} onNavigation={drawer.fermer} deconnexion={deconnexion} sombre={sombre} />
+      <Drawer refNav={refDrawer} ouvert={drawer.ouvert} onNavigation={drawer.fermer} deconnexion={deconnexion} sombre={sombre} />
       {drawer.ouvert && <div className="coque__voile" aria-hidden="true" onClick={drawer.fermer} />}
       <div className="coque__corps">
         <header className="barre" style={{ '--couleur-module': module.color } as CSSProperties}>
           <button
             type="button"
+            ref={refBascule}
             className="barre__menu"
             aria-label="Menu de navigation"
             aria-expanded={drawer.ouvert}

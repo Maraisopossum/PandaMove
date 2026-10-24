@@ -1,9 +1,10 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import { NavLink } from 'react-router'
 import { MODULES } from './modules'
 import type { Deconnexion } from './useDeconnexion'
 
 interface Props {
+  refNav?: Ref<HTMLElement>
   ouvert: boolean
   onNavigation: () => void
   deconnexion: Deconnexion
@@ -11,9 +12,9 @@ interface Props {
 }
 
 // Drawer de navigation : permanent au-dessus de 1024 px, rétractable en dessous (voir app.css).
-export function Drawer({ ouvert, onNavigation, deconnexion, sombre }: Props) {
+export function Drawer({ refNav, ouvert, onNavigation, deconnexion, sombre }: Props) {
   return (
-    <nav id="drawer" className={`drawer${ouvert ? ' drawer--ouvert' : ''}`} aria-label="Navigation principale">
+    <nav ref={refNav} id="drawer" className={`drawer${ouvert ? ' drawer--ouvert' : ''}`} aria-label="Navigation principale">
       <p className="drawer__marque">PandaMove</p>
       {Object.values(MODULES).map(({ path, label, color }) => (
         <NavLink

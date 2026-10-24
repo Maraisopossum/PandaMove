@@ -188,7 +188,8 @@ h1 {
 .sync {
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.2);
+  /* fond du badge posé en ligne (contraste calculé et testé dans contraste.ts) */
+  color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
 }

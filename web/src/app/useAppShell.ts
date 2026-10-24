@@ -18,7 +18,7 @@ export function useAppShell() {
     userId: session?.user.id ?? null,
     signOut,
   })
-  const drawer = useDrawer()
+  const { refBascule, refDrawer, ...drawer } = useDrawer()
   const sombre = useDarkMode()
   const deconnexion = useDeconnexion(signOutSafely)
 
@@ -26,5 +26,5 @@ export function useAppShell() {
     if (window.confirm(CONFIRMATION_ABANDON)) void abandonnerDonneesLocales()
   }, [abandonnerDonneesLocales])
 
-  return { module: MODULES[moduleActif(pathname)], drawer, sombre, deconnexion, messageAutreCompte, demanderAbandon }
+  return { module: MODULES[moduleActif(pathname)], drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon }
 }
