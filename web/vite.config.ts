@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react()],
   test: {
     // Les tests e2e Playwright vivent dans e2e/ et ne doivent pas être collectés par Vitest
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'supabase/tests/**/*.test.ts'],
   },
 })
