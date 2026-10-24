@@ -9,3 +9,4 @@ export const CatalogScreen = lazy(() => import('../features/strength/catalog/Cat
 export const SeanceListScreen = lazy(() => import('../features/strength/SeanceListScreen'))
 export const SeanceEditScreen = lazy(() => import('../features/strength/SeanceEditScreen'))
 export const ExecuteScreen = lazy(() => import('../features/strength/execute/ExecuteScreen'))
+export const ReportScreen = lazy(() => import('../features/strength/report/ReportScreen'))
