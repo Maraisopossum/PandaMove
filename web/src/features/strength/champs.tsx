@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react'
-import { texteNombre, versNombre, versNombreOuNull } from './saisie'
+import { useChampNombre } from './useChampNombre'
 
 // Champs de formulaire étiquetés, sans logique métier : la conversion texte -> valeur vit dans saisie.ts.
 
@@ -15,20 +15,23 @@ export function ChampTexte({ libelle, valeur, onChange }: { libelle: string; val
 
 export function ChampNombre({ libelle, valeur, onChange }: { libelle: string; valeur: number; onChange: (v: number) => void }) {
   const id = useId()
+  // Champ obligatoire : la saisie vide donne NaN, que la validation refuse.
+  const { texte, changer } = useChampNombre(valeur, false, (v) => onChange(v ?? Number.NaN))
   return (
     <div className="formulaire__champ">
       <label htmlFor={id}>{libelle}</label>
-      <input id={id} type="text" inputMode="decimal" value={texteNombre(valeur)} onChange={(e) => onChange(versNombre(e.target.value))} />
+      <input id={id} type="text" inputMode="decimal" value={texte} onChange={(e) => changer(e.target.value)} />
     </div>
   )
 }
 
 export function ChampNombreFacultatif({ libelle, valeur, onChange }: { libelle: string; valeur: number | null; onChange: (v: number | null) => void }) {
   const id = useId()
+  const { texte, changer } = useChampNombre(valeur, true, onChange)
   return (
     <div className="formulaire__champ">
       <label htmlFor={id}>{libelle}</label>
-      <input id={id} type="text" inputMode="decimal" value={texteNombre(valeur)} onChange={(e) => onChange(versNombreOuNull(e.target.value))} />
+      <input id={id} type="text" inputMode="decimal" value={texte} onChange={(e) => changer(e.target.value)} />
     </div>
   )
 }
