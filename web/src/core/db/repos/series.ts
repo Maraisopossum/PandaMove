@@ -1,4 +1,4 @@
-import type { Db } from '../Db'
+import type { Db, DbLecture } from '../Db'
 import { newId } from '../ids'
 import type { SerieRealisee } from '../types'
 import { mapSerie, type Ligne } from './mappers'
@@ -53,7 +53,7 @@ export async function updateSerie(
 
 // Séries d'une instance. Si deux appareils ont créé la même (exercice, numéro) hors-ligne,
 // seule la ligne au updated_at le plus récent est conservée (dédoublonnage à la lecture).
-export async function listSeries(db: Db, instanceId: string): Promise<SerieRealisee[]> {
+export async function listSeries(db: DbLecture, instanceId: string): Promise<SerieRealisee[]> {
   const lignes = await db.getAll<Ligne>(
     'SELECT * FROM series_realisees WHERE instance_seance_id = ? AND deleted_at IS NULL',
     [instanceId],

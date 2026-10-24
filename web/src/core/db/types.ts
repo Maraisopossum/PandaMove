@@ -1,3 +1,5 @@
+import type { EtatProgression } from '../progression/marqueur'
+
 // Types de domaine camelCase (les lignes SQL sont en snake_case, voir mappers dans repos/).
 // Miroir de l'enum Kotlin MuscleGroup (16 valeurs, dont AVANT_BRAS et AUTRE).
 export const MUSCLE_GROUPS = [
@@ -84,6 +86,8 @@ export interface InstanceSeance {
   startedAt: string | null
   // Pauses en JSON [{ fromMs, toMs | null }] (voir features/strength/execute/sessionClock.ts)
   pausedJson: string | null
+  // Marqueur de progression (progression_json) ; null = absent ou illisible (voir core/progression/marqueur.ts)
+  progression: EtatProgression | null
 }
 
 export interface SerieRealisee {

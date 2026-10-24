@@ -50,6 +50,7 @@ beforeAll(async () => {
   await db.exec(migration('0002_rls.sql'))
   await db.exec(migration('0003_dark_mode_nullable.sql'))
   await db.exec(migration('0004_instance_clock.sql'))
+  await db.exec(migration('0005_instance_progression.sql'))
   await db.exec(`
     grant usage on schema public, auth to authenticated;
     grant all on all tables in schema public to authenticated;
@@ -161,6 +162,16 @@ describe('0004 : horloge de séance', () => {
       { column_name: 'paused_json', data_type: 'text', is_nullable: 'YES', column_default: null },
       { column_name: 'started_at', data_type: 'timestamp with time zone', is_nullable: 'YES', column_default: null },
     ])
+  })
+})
+
+describe('0005 : marqueur de progression', () => {
+  it('instances_seance porte progression_json (text), nullable et sans défaut', async () => {
+    const r = await db.query<{ column_name: string; data_type: string; is_nullable: string; column_default: string | null }>(
+      `select column_name, data_type, is_nullable, column_default from information_schema.columns
+       where table_name = 'instances_seance' and column_name = 'progression_json'`,
+    )
+    expect(r.rows).toEqual([{ column_name: 'progression_json', data_type: 'text', is_nullable: 'YES', column_default: null }])
   })
 })
 

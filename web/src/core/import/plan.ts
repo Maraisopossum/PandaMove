@@ -86,6 +86,9 @@ const bool = (v: boolean) => (v ? 1 : 0)
 // Listes : même encodage que le ListConverters Room (JSON d'un tableau de chaînes)
 const liste = (v: string[]) => JSON.stringify(v)
 
+// Marqueur de progression d'une instance terminée importée (forme de core/progression/marqueur.ts)
+const MARQUEUR_IMPORT = '{"evaluee":true,"decisions":{}}'
+
 // ── Dates (parité parseDateTimeFlexible / LocalDate.parse) ──────────────────────
 const RE_DATE_HEURE = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?$/
 const RE_DATE_HEURE_LEGACY = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2}:\d{2})$/
@@ -264,6 +267,9 @@ class Constructeur {
       completed_at: completedAt,
       duration_seconds: inst.durationSeconds,
       created_at: createdAt ?? this.now,
+      // Android applique toujours la progression avant finishInstance : une instance terminée importée
+      // est déjà évaluée (jamais ré-évaluée ici) ; une instance planifiée sera évaluée à sa fin.
+      progression_json: inst.isCompleted ? MARQUEUR_IMPORT : null,
     })
     // Copies d'instance : isolées par instance_seance_id (forcé sur l'instance de la session si
     // absent, pour ne jamais créer de faux template) et reliées au template d'origine.

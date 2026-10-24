@@ -37,8 +37,16 @@ describe('mappers : ligne entièrement NULL', () => {
   it('mapInstance applique les défauts', () => {
     expect(mapInstance(vide)).toEqual({
       id: 'x', seanceId: '', date: '', notes: '', isCompleted: false, completedAt: null,
-      durationSeconds: 0, createdAt: '', updatedAt: '', startedAt: null, pausedJson: null,
+      durationSeconds: 0, createdAt: '', updatedAt: '', startedAt: null, pausedJson: null, progression: null,
     })
+  })
+
+  it('mapInstance lit le marqueur de progression, défensivement', () => {
+    expect(mapInstance({ ...vide, progression_json: '{"evaluee":true,"decisions":{"e1":"refusee"}}' }).progression).toEqual({
+      evaluee: true,
+      decisions: { e1: 'refusee' },
+    })
+    expect(mapInstance({ ...vide, progression_json: '{malformé' }).progression).toBeNull()
   })
 
   it('mapSerie applique les défauts et garde les mesures nulles', () => {

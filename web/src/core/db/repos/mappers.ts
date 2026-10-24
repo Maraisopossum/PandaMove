@@ -2,6 +2,7 @@ import type {
   BlocSeance, ExerciceSeance, Exercise, InstanceSeance, ObjectifProgression, Seance, SerieRealisee,
   RepsType, TypeExercice,
 } from '../types'
+import { lireProgression } from '../../progression/marqueur'
 
 // Une ligne SQL brute : snake_case, booléens en 0/1, valeurs nullables.
 export type Ligne = Record<string, string | number | null>
@@ -88,6 +89,7 @@ export const mapInstance = (l: Ligne): InstanceSeance => ({
   updatedAt: s(l, 'updated_at'),
   startedAt: sn(l, 'started_at'),
   pausedJson: sn(l, 'paused_json'),
+  progression: lireProgression(sn(l, 'progression_json')),
 })
 
 export const mapSerie = (l: Ligne): SerieRealisee => ({

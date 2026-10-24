@@ -1,4 +1,4 @@
-import type { Db } from '../Db'
+import type { Db, DbLecture, DbTx } from '../Db'
 import { deterministicId, newId } from '../ids'
 import { upsertRow } from '../upsert'
 import type { InstanceSeance } from '../types'
@@ -17,7 +17,7 @@ export async function createInstance(db: Db, seanceId: string, date: string): Pr
   return id
 }
 
-export async function getInstance(db: Db, id: string): Promise<InstanceSeance | null> {
+export async function getInstance(db: DbLecture, id: string): Promise<InstanceSeance | null> {
   const ligne = await db.getOptional<Ligne>('SELECT * FROM instances_seance WHERE id = ? AND deleted_at IS NULL', [id])
   return ligne ? mapInstance(ligne) : null
 }
@@ -45,7 +45,7 @@ export async function enregistrerPauses(db: Db, id: string, pausedJson: string, 
 
 // Termine l'instance. Idempotent : une instance déjà terminée n'est plus modifiée.
 export async function terminerInstance(
-  db: Db,
+  db: DbTx,
   id: string,
   fin: { completedAt: string; durationSeconds: number; pausedJson: string },
 ): Promise<void> {
@@ -53,6 +53,14 @@ export async function terminerInstance(
     `UPDATE instances_seance SET is_completed = 1, completed_at = ?, duration_seconds = ?, paused_json = ?, updated_at = ?
      WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL`,
     [fin.completedAt, fin.durationSeconds, fin.pausedJson, fin.completedAt, id],
+  )
+}
+
+// Remplace le marqueur de progression (JSON sérialisé par core/progression/marqueur.ts).
+export async function enregistrerProgression(db: DbTx, id: string, progressionJson: string, maintenantIso: string): Promise<void> {
+  await db.execute(
+    'UPDATE instances_seance SET progression_json = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+    [progressionJson, maintenantIso, id],
   )
 }
 

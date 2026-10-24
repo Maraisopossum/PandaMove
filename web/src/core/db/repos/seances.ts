@@ -1,5 +1,5 @@
 import { AppSchema } from '../schema'
-import type { Db } from '../Db'
+import type { Db, DbLecture } from '../Db'
 import type { BlocSeance, ExerciceSeance, Seance } from '../types'
 import { mapBloc, mapExerciceSeance, mapSeance, type Ligne } from './mappers'
 
@@ -13,7 +13,7 @@ export async function listSeanceTemplates(db: Db): Promise<Seance[]> {
 // sinon uniquement les lignes copiées pour cette instance (isolation template/instance).
 // Les enfants sont toujours triés par position (l'ordre n'est jamais garanti sans tri explicite).
 export async function getSeanceTree(
-  db: Db,
+  db: DbLecture,
   seanceId: string,
   instanceId: string | null,
 ): Promise<{ blocs: BlocSeance[]; exercices: ExerciceSeance[] }> {

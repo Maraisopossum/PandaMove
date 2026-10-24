@@ -160,12 +160,15 @@ describe('buildImportPlan — export complet v3.2', () => {
       completed_at: '2026-02-03T19:05:00',
       duration_seconds: 3300,
       created_at: '2026-02-01T08:00:00',
+      // Instance Android terminée : progression déjà appliquée avant finishInstance -> marquée évaluée
+      progression_json: '{"evaluee":true,"decisions":{}}',
     })
     expect(parId(p.rows.instances_seance, idDe('instances_seance', 402))).toMatchObject({
       seance_id: idDe('seances', 102),
       is_completed: 0,
       completed_at: null,
       updated_at: '2026-02-04T12:00:00',
+      progression_json: null,
     })
   })
 
