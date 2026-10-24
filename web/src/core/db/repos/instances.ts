@@ -1,5 +1,6 @@
 import type { Db } from '../Db'
-import { newId } from '../ids'
+import { deterministicId, newId } from '../ids'
+import { upsertRow } from '../upsert'
 import type { InstanceSeance } from '../types'
 import { mapInstance, type Ligne } from './mappers'
 
@@ -24,4 +25,68 @@ export async function getInstance(db: Db, id: string): Promise<InstanceSeance | 
 export async function listInstances(db: Db): Promise<InstanceSeance[]> {
   const lignes = await db.getAll<Ligne>('SELECT * FROM instances_seance WHERE deleted_at IS NULL ORDER BY date, id')
   return lignes.map(mapInstance)
+}
+
+export class ErreurInstance extends Error {}
+
+// Copie les blocs et exercices du modèle de la séance vers l'instance (équivalent web de la
+// copie « lazy » d'InstanceExecuteViewModel). Une seule transaction ; idempotente :
+// - garde : si l'instance possède déjà des lignes (copie précédente ou import), on ne fait rien ;
+// - ids déterministes (instanceId + id source) : deux appareils hors ligne produisent les mêmes
+//   clés primaires, donc aucun doublon après synchro.
+// Seules les lignes du modèle (instance_seance_id IS NULL, non supprimées) sont lues et jamais modifiées.
+// Les séries réalisées et objectifs de progression ne sont pas copiés.
+export async function copyTemplateToInstance(db: Db, instanceId: string): Promise<void> {
+  await db.writeTransaction(async (tx) => {
+    const instance = await tx.getOptional<{ seance_id: string }>(
+      'SELECT seance_id FROM instances_seance WHERE id = ? AND deleted_at IS NULL',
+      [instanceId],
+    )
+    if (!instance) throw new ErreurInstance('Instance introuvable')
+    const seance = await tx.getOptional<{ id: string }>('SELECT id FROM seances WHERE id = ? AND deleted_at IS NULL', [
+      instance.seance_id,
+    ])
+    if (!seance) throw new ErreurInstance("La séance de cette instance est introuvable ou supprimée")
+
+    const dejaCopie = await tx.getOptional<{ one: number }>(
+      `SELECT 1 AS one FROM blocs_seance WHERE instance_seance_id = ? AND deleted_at IS NULL
+       UNION ALL
+       SELECT 1 AS one FROM exercices_seance WHERE instance_seance_id = ? AND deleted_at IS NULL`,
+      [instanceId, instanceId],
+    )
+    if (dejaCopie) return
+
+    const blocs = await tx.getAll<Ligne>(
+      'SELECT * FROM blocs_seance WHERE seance_id = ? AND instance_seance_id IS NULL AND deleted_at IS NULL ORDER BY position, id',
+      [instance.seance_id],
+    )
+    const exercices = await tx.getAll<Ligne>(
+      'SELECT * FROM exercices_seance WHERE seance_id = ? AND instance_seance_id IS NULL AND deleted_at IS NULL ORDER BY position, id',
+      [instance.seance_id],
+    )
+    const maintenant = new Date().toISOString()
+
+    // Blocs d'abord : les exercices référencent l'id du bloc copié.
+    const idBlocCopie = new Map<string, string>()
+    for (const bloc of blocs) {
+      const idSource = String(bloc.id)
+      const id = deterministicId(instanceId, idSource)
+      idBlocCopie.set(idSource, id)
+      await upsertRow(tx, 'blocs_seance', {
+        ...bloc, id, instance_seance_id: instanceId, bloc_source_id: idSource, updated_at: maintenant,
+      })
+    }
+    for (const exercice of exercices) {
+      const idSource = String(exercice.id)
+      const blocSource = exercice.bloc_id == null ? null : String(exercice.bloc_id)
+      await upsertRow(tx, 'exercices_seance', {
+        ...exercice,
+        id: deterministicId(instanceId, idSource),
+        bloc_id: blocSource === null ? null : (idBlocCopie.get(blocSource) ?? null),
+        instance_seance_id: instanceId,
+        exercice_source_id: idSource,
+        updated_at: maintenant,
+      })
+    }
+  })
 }
