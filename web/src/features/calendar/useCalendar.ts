@@ -38,7 +38,7 @@ export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
   const debut = squelette[0].dateIso
   const fin = squelette[squelette.length - 1].dateIso
 
-  // Clé de la plage affichée : « chargement » tant que les données lues ne correspondent pas à elle
+  // ClÃ© de la plage affichÃ©e : Â« chargement Â» tant que les donnÃ©es lues ne correspondent pas Ã  elle
   const cle = `${debut}|${fin}|${aujourdhui}`
   const chargement = cleChargee !== cle
 

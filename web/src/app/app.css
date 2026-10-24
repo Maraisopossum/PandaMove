@@ -768,3 +768,106 @@ h1 {
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
+
+/* Calendrier : en-tête du mois, grille des jours (lundi en premier), séances */
+.calendrier__entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.calendrier__mois {
+  flex: 1 1 8rem;
+  margin: 0;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.calendrier__grille {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 1rem 0;
+}
+
+.calendrier__semaine {
+  text-align: center;
+  color: var(--texte-secondaire);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.calendrier__jour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 4px 0;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.calendrier__jour--hors {
+  color: var(--texte-secondaire);
+  opacity: 0.7;
+}
+
+.calendrier__jour--auj {
+  border-color: #e65100;
+  box-shadow: inset 0 0 0 1px #e65100;
+}
+
+.calendrier__jour[aria-pressed='true'] {
+  background: color-mix(in srgb, #e65100 15%, var(--surface));
+  border-color: var(--focus);
+}
+
+.calendrier__points {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.6875rem;
+}
+
+.calendrier__point {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e65100;
+}
+
+.calendrier__point--terminee {
+  background: #2e7d32;
+}
+
+.calendrier__point--en_cours {
+  background: #1565c0;
+}
+
+.calendrier__section {
+  margin: 1.5rem 0;
+}
+
+.calendrier__seance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bord);
+  border-left: 4px solid #e65100;
+  border-radius: 12px;
+  background: color-mix(in srgb, #e65100 8%, var(--surface));
+}
