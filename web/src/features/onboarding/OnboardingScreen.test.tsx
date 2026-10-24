@@ -26,7 +26,8 @@ describe('OnboardingScreen', () => {
     expect(img.getAttribute('src')).toMatch(/^\/panda\/onboarding-01-lg\.webp$/)
     expect(img.getAttribute('width')).toBe('640')
     expect(img.getAttribute('height')).toBe('960')
-    expect(img.getAttribute('loading')).toBe('lazy')
+    // Étape 1 au-dessus de la ligne de flottaison : pas de chargement différé
+    expect(img.getAttribute('loading')).toBe('eager')
     expect((screen.getByRole('button', { name: 'Précédent' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
@@ -36,6 +37,7 @@ describe('OnboardingScreen', () => {
     expect(titre().textContent).toBe('Vos séances de renforcement')
     expect(document.activeElement).toBe(titre())
     expect(screen.getByText('Étape 2 sur 5')).toBeTruthy()
+    expect(screen.getByRole('img').getAttribute('loading')).toBe('lazy')
   })
 
   it('flèches du clavier pour naviguer', () => {

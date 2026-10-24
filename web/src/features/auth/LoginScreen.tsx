@@ -32,7 +32,7 @@ export default function LoginScreen() {
 
   return (
     <main className="connexion">
-      <PandaIllustration image={SPLASH} sizes="200px" prioritaire className="connexion__splash" />
+      <PandaIllustration image={SPLASH} sizes="130px" prioritaire className="connexion__splash" />
       <h1>Connexion</h1>
       <form action={action}>
         <label>

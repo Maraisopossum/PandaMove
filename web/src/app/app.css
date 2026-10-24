@@ -1059,6 +1059,14 @@ h1 {
   aspect-ratio: 2 / 3;
 }
 
+/* Thème sombre : personnages surtout noirs sur fond transparent, invisibles sur --fond (#121214,
+   contraste ~1,1:1). Assise claire en carte arrondie à halo elliptique (#ececf2 contre noir ~16:1).
+   Le splash, opaque, n'en a pas besoin. */
+:root[data-theme='dark'] .panda-illustration:not(.connexion__splash) {
+  border-radius: 28px;
+  background: radial-gradient(60% 60% at 50% 55%, #ececf2 60%, rgb(236 236 242 / 0) 100%);
+}
+
 .accueil {
   display: grid;
   justify-items: start;
@@ -1109,7 +1117,7 @@ h1 {
 }
 
 .connexion__splash {
-  width: 200px;
+  width: 130px;
   margin: 0 auto 1rem;
   border-radius: 28px;
 }

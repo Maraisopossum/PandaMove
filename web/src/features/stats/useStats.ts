@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
-import { getSettings } from '../../core/db/repos/settings'
-import type { MuscleGroup, PandaVariant } from '../../core/db/types'
+import type { MuscleGroup } from '../../core/db/types'
+import { usePandaVariante } from '../../core/images/usePandaVariante'
 import { imageHeatmap, type VueHeatmap } from './heatmapZones'
 import { bornesPeriode, ecrirePeriode, lirePeriode, type PeriodeId } from './periode'
 import { construireGraphique, groupesVue } from './presentation'
@@ -34,7 +34,8 @@ const RESUME_VIDE: ResumePeriode = { tonnageKg: 0, seancesTerminees: 0, seriesTo
 export function useStats({ db, nowFn, userId }: DepsStats = {}) {
   const [periode, setPeriode] = useState<PeriodeId>(lirePeriode)
   const [vue, setVue] = useState<VueHeatmap>('face')
-  const [variante, setVariante] = useState<PandaVariant>('male')
+  // Variante du panda (lecture partagée avec les autres écrans) ; male pendant la lecture
+  const variante = usePandaVariante({ db, userId }) ?? 'male'
   const [donnees, setDonnees] = useState<DonneesPeriode>({ resume: RESUME_VIDE, volume: volumeVide() })
   const [cleChargee, setCleChargee] = useState<string | null>(null)
   // Erreur rattachée à la plage qui l'a produite : un nouveau chargement (autre plage) la masque d'office,
@@ -76,7 +77,7 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     }
   }, [db, from, to])
 
-  // Exercices disponibles pour l'historique (toutes dates) et variante du panda
+  // Exercices disponibles pour l'historique (toutes dates)
   useEffect(() => {
     let annule = false
     const base = db ?? getDb()
@@ -88,17 +89,10 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
         console.error('Chargement des exercices impossible', e)
         if (!annule) setErreurHistorique(ECHEC_HISTORIQUE)
       })
-    if (userId) {
-      getSettings(base, userId)
-        .then((s) => {
-          if (!annule) setVariante(s.pandaVariant)
-        })
-        .catch((e: unknown) => console.error('Lecture de la variante du panda impossible', e))
-    }
     return () => {
       annule = true
     }
-  }, [db, userId])
+  }, [db])
 
   // Sans choix explicite (ou choix disparu), le premier exercice de la liste
   const exerciceId =
