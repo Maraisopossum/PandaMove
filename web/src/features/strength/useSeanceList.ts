@@ -4,6 +4,7 @@ import type { Db } from '../../core/db/Db'
 import { listSeanceTemplates } from '../../core/db/repos/seances'
 import type { Seance } from '../../core/db/types'
 import { archiverSeance, assignerSeance, ErreurSeance } from './affectation'
+import { compterHistorique, supprimerSeance, type Historique, type ModeSuppression } from './suppression'
 
 export interface DepsListeSeances {
   /** Base à utiliser (défaut : base de l'application, résolue à l'usage). */
@@ -82,5 +83,44 @@ export function useSeanceList({ db }: DepsListeSeances = {}) {
     [db, recharger],
   )
 
-  return { seances: donnees.seances, nbExercices: donnees.nbExercices, charge, erreur, archiver, assigner }
+  // Effectifs de l'historique pour le dialogue de suppression ; null (et message) en cas d'échec.
+  const compter = useCallback(
+    async (seanceId: string): Promise<Historique | null> => {
+      setErreur(null)
+      try {
+        return await compterHistorique(db ?? getDb(), seanceId)
+      } catch (e) {
+        console.error("Décompte de l'historique impossible", e)
+        setErreur("Le décompte de l'historique a échoué.")
+        return null
+      }
+    },
+    [db],
+  )
+
+  // Suppression logique (voir suppression.ts). Renvoie true en cas de succès ; sinon le message
+  // français est dans `erreur` (jamais de rejet non géré).
+  const supprimer = useCallback(
+    async (seanceId: string, mode: ModeSuppression): Promise<boolean> => {
+      setErreur(null)
+      try {
+        await supprimerSeance(db ?? getDb(), seanceId, mode)
+        await recharger()
+        return true
+      } catch (e) {
+        if (e instanceof ErreurSeance) setErreur(e.message)
+        else {
+          console.error('Suppression de la séance impossible', e)
+          setErreur('La suppression a échoué.')
+        }
+        return false
+      }
+    },
+    [db, recharger],
+  )
+
+  return {
+    seances: donnees.seances, nbExercices: donnees.nbExercices, charge, erreur, archiver, assigner,
+    compterHistorique: compter, supprimer,
+  }
 }

@@ -467,6 +467,18 @@ h1 {
   color: var(--texte);
 }
 
+.dialogue__choix {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.dialogue__aide {
+  margin: 0 0 0.5rem;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
 .formulaire__grille {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));

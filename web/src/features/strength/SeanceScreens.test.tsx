@@ -164,3 +164,107 @@ describe('SeanceEditScreen', () => {
     expect(screen.getByRole('heading', { name: 'Nouvelle séance' })).toBeTruthy()
   })
 })
+
+describe('Suppression depuis la liste', () => {
+  const instance = (id: string, seanceId: string, fait: number) =>
+    inserer(base, 'instances_seance', {
+      id, user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: seanceId, date: '2026-10-01', is_completed: fait,
+    })
+
+  it('chaque carte propose Supprimer, Archiver et 📅', async () => {
+    monter('/strength')
+    const carte = (await screen.findByText('Pull')).closest('li') as HTMLElement
+    expect(carte.querySelector('[aria-label="Supprimer Pull"]')).not.toBeNull()
+    expect(carte.querySelector('[aria-label="Archiver Pull"]')).not.toBeNull()
+    expect(carte.querySelector('[aria-label="Affecter à une date"]')).not.toBeNull()
+    expect(carte.textContent).toContain('📅')
+  })
+
+  it("dialogue : effectifs, avertissement, deux choix expliqués, a11y ; Échap rend le focus ; rien n'est supprimé", async () => {
+    await seance('s3', 'Squat')
+    await instance('s3-ip', 's3', 0)
+    await instance('s3-ic1', 's3', 1)
+    await instance('s3-ic2', 's3', 1)
+    monter('/strength')
+    await screen.findByText('Squat')
+    const declencheur = screen.getByRole('button', { name: 'Supprimer Squat' })
+    declencheur.focus()
+    fireEvent.click(declencheur)
+
+    const dialogue = await screen.findByRole('dialog', { name: 'Supprimer cette séance ?' })
+    expect(dialogue.getAttribute('aria-modal')).toBe('true')
+    expect(dialogue.className).toBe('dialogue')
+    expect(dialogue.textContent).toContain('1 séance planifiée et 2 séances réalisées liées à ce modèle')
+    expect(dialogue.textContent).toContain('Cette action est définitive')
+    expect(dialogue.textContent).toContain(
+      "Supprime le modèle et les séances planifiées, conserve les séances déjà réalisées (calendrier, statistiques)",
+    )
+    expect(dialogue.textContent).toContain('Supprime aussi les séances réalisées et leurs séries')
+    for (const nom of ["Garder l'historique", 'Tout supprimer', 'Annuler']) {
+      expect(screen.getByRole('button', { name: nom })).toBeTruthy()
+    }
+    await waitFor(() => expect(dialogue.contains(document.activeElement)).toBe(true))
+
+    // focus piégé
+    screen.getByRole('button', { name: 'Annuler' }).focus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(dialogue.contains(document.activeElement)).toBe(true)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(declencheur)
+    const l = await base.get<{ deleted_at: string | null }>('SELECT deleted_at FROM seances WHERE id = ?', ['s3'])
+    expect(l.deleted_at).toBeNull()
+  })
+
+  it("« Garder l'historique » supprime le modèle et conserve les séances réalisées", async () => {
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Squat' }))
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: "Garder l'historique" }))
+    await waitFor(() => expect(screen.queryByText('Squat')).toBeNull())
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const rows = await base.getAll<{ id: string; deleted_at: string | null }>(
+      "SELECT id, deleted_at FROM instances_seance WHERE seance_id = 's3' ORDER BY id",
+    )
+    expect(rows.map((r) => [r.id, r.deleted_at !== null])).toEqual([['s3-ic1', false], ['s3-ic2', false], ['s3-ip', true]])
+  })
+
+  it('« Tout supprimer » supprime aussi les séances réalisées', async () => {
+    await seance('s5', 'Tractions')
+    await instance('s5-ic', 's5', 1)
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Tractions' }))
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Tout supprimer' }))
+    await waitFor(() => expect(screen.queryByText('Tractions')).toBeNull())
+    const r = await base.get<{ deleted_at: string | null }>('SELECT deleted_at FROM instances_seance WHERE id = ?', ['s5-ic'])
+    expect(r.deleted_at).not.toBeNull()
+  })
+
+  it("sans historique : une seule confirmation « Supprimer », pas de choix", async () => {
+    await seance('s4', 'Vierge')
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Vierge' }))
+    const dialogue = await screen.findByRole('dialog', { name: 'Supprimer cette séance ?' })
+    expect(dialogue.textContent).toContain('Cette action est définitive')
+    expect(screen.queryByRole('button', { name: "Garder l'historique" })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Tout supprimer' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Annuler' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
+    await waitFor(() => expect(screen.queryByText('Vierge')).toBeNull())
+    const l = await base.get<{ deleted_at: string | null }>('SELECT deleted_at FROM seances WHERE id = ?', ['s4'])
+    expect(l.deleted_at).not.toBeNull()
+  })
+
+  it("erreur (séance disparue entre-temps) : message français dans la liste, dialogue fermé", async () => {
+    await seance('s6', 'Fantôme')
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Fantôme' }))
+    await screen.findByRole('dialog')
+    await base.execute("UPDATE seances SET deleted_at = 'x' WHERE id = 's6'")
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Séance introuvable.')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})

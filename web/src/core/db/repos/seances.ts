@@ -39,3 +39,11 @@ export async function softDelete(db: Db, table: string, id: string): Promise<voi
   const maintenant = new Date().toISOString()
   await db.execute(`UPDATE ${table} SET deleted_at = ?, updated_at = ? WHERE id = ?`, [maintenant, maintenant, id])
 }
+
+// Nom d'une séance, MÊME SI elle a été supprimée logiquement : le calendrier et les statistiques
+// en ont besoin pour libeller l'historique conservé après une suppression « garder l'historique ».
+// Renvoie null uniquement si la ligne n'a jamais existé.
+export async function lireNomSeance(db: DbLecture, seanceId: string): Promise<string | null> {
+  const ligne = await db.getOptional<{ nom: string }>('SELECT nom FROM seances WHERE id = ?', [seanceId])
+  return ligne ? ligne.nom : null
+}

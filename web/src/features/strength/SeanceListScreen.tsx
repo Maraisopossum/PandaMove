@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { lireGroupes } from './catalog/filtreCatalogue'
 import { libelleMuscle } from './catalog/libelles'
 import { AssignDialog } from './AssignDialog'
+import { SupprimerDialog } from './SupprimerDialog'
 import { useListeSeancesEcran } from './useListeSeancesEcran'
 
 // Liste des séances modèles. Seul écran de renforcement à porter le bouton d'affectation au
@@ -9,6 +10,7 @@ import { useListeSeancesEcran } from './useListeSeancesEcran'
 export default function SeanceListScreen() {
   const l = useListeSeancesEcran()
   const a = l.affectation
+  const d = l.suppression
 
   return (
     <>
@@ -65,6 +67,9 @@ export default function SeanceListScreen() {
                   <button type="button" className="bouton" aria-label={`Archiver ${s.nom}`} onClick={() => void l.demanderArchivage(s)}>
                     Archiver
                   </button>
+                  <button type="button" className="bouton" aria-label={`Supprimer ${s.nom}`} onClick={() => void d.ouvrir(s)}>
+                    Supprimer
+                  </button>
                 </div>
               </li>
             )
@@ -81,6 +86,16 @@ export default function SeanceListScreen() {
           onDate={a.setDate}
           onConfirmer={() => void a.confirmer()}
           onFermer={a.fermer}
+        />
+      )}
+
+      {d.cible && d.historique && (
+        <SupprimerDialog
+          nomSeance={d.cible.nom}
+          historique={d.historique}
+          enCours={d.enCours}
+          onChoisir={(mode) => void d.confirmer(mode)}
+          onFermer={d.fermer}
         />
       )}
     </>

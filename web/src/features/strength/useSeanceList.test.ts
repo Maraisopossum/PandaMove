@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Db } from '../../core/db/Db'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
@@ -129,5 +129,63 @@ describe('useSeanceList', () => {
     premier.unmount()
     const second = await monter(db)
     expect(second.result.current.seances.map((s) => s.id)).toEqual(['s1'])
+  })
+
+  it('supprimer retire la séance de la liste (suppression logique) ; compterHistorique renvoie les effectifs', async () => {
+    const db = await base()
+    for (const [id, fait] of [['ip', 0], ['ic', 1]] as const) {
+      await inserer(db, 'instances_seance', {
+        id, user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 's1', date: 'd', is_completed: fait,
+      })
+    }
+    const { result } = await monter(db)
+    expect(await result.current.compterHistorique('s1')).toEqual({ planifiees: 1, realisees: 1 })
+    let ok = false
+    await act(async () => {
+      ok = await result.current.supprimer('s1', 'garder_historique')
+    })
+    expect(ok).toBe(true)
+    expect(result.current.seances.map((s) => s.id)).toEqual(['s2'])
+    const l = await db.get<{ deleted_at: string | null }>('SELECT deleted_at FROM seances WHERE id = ?', ['s1'])
+    expect(l.deleted_at).not.toBeNull()
+    const ic = await db.get<{ deleted_at: string | null }>('SELECT deleted_at FROM instances_seance WHERE id = ?', ['ic'])
+    expect(ic.deleted_at).toBeNull()
+  })
+
+  it('supprimer une séance inconnue expose un message français, sans rejet non géré', async () => {
+    const { result } = await monter(await base())
+    let ok = true
+    await act(async () => {
+      ok = await result.current.supprimer('nope', 'tout')
+    })
+    expect(ok).toBe(false)
+    expect(result.current.erreur).toMatch(/introuvable/i)
+    expect(result.current.seances).toHaveLength(2)
+  })
+
+  it('une panne inattendue de suppression donne un message générique', async () => {
+    const db = await base()
+    const casse: Db = { ...db, writeTransaction: () => Promise.reject(new Error('boum')) }
+    const rendu = renderHook(() => useSeanceList({ db: casse }))
+    await waitFor(() => expect(rendu.result.current.charge).toBe(true))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await act(async () => {
+      await rendu.result.current.supprimer('s1', 'tout')
+    })
+    expect(rendu.result.current.erreur).toBe('La suppression a échoué.')
+  })
+
+  it('compterHistorique en échec renvoie null et expose une erreur', async () => {
+    const db = await base()
+    const casse: Db = { ...db, get: () => Promise.reject(new Error('x')) }
+    const rendu = renderHook(() => useSeanceList({ db: casse }))
+    await waitFor(() => expect(rendu.result.current.charge).toBe(true))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    let c: unknown = 'x'
+    await act(async () => {
+      c = await rendu.result.current.compterHistorique('s1')
+    })
+    expect(c).toBeNull()
+    expect(rendu.result.current.erreur).toBe("Le décompte de l'historique a échoué.")
   })
 })

@@ -2,12 +2,15 @@ import { useCallback } from 'react'
 import type { Seance } from '../../core/db/types'
 import { useAffectation } from './useAffectation'
 import { useSeanceList } from './useSeanceList'
+import { useSuppression } from './useSuppression'
 
-// Orchestration de l'écran liste : liste, affectation à une date, archivage après confirmation.
+// Orchestration de l'écran liste : liste, affectation à une date, archivage après confirmation,
+// suppression avec choix du sort de l'historique.
 export function useListeSeancesEcran() {
   const liste = useSeanceList()
   const { archiver } = liste
   const affectation = useAffectation(liste.assigner)
+  const suppression = useSuppression(liste.compterHistorique, liste.supprimer)
 
   const demanderArchivage = useCallback(
     async (seance: Seance) => {
@@ -17,5 +20,5 @@ export function useListeSeancesEcran() {
     [archiver],
   )
 
-  return { ...liste, affectation, demanderArchivage }
+  return { ...liste, affectation, suppression, demanderArchivage }
 }
