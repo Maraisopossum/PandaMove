@@ -5,7 +5,7 @@ import { formaterDureeBilan, formaterTonnage, resumerSeance, texteProposition } 
 
 const serie = (champs: Partial<SerieRealisee>): SerieRealisee => ({
   id: 's', instanceSeanceId: 'i1', exerciceSeanceId: 'e1', numeroSerie: 1, repsRealisees: 10, chargeKg: 60,
-  chargeLabel: null, rpe: null, notes: '', isCompleted: true, updatedAt: 'u', ...champs,
+  chargeLabel: null, rpe: null, notes: '', isCompleted: true, updatedAt: 'u', validatedAt: null, ...champs,
 })
 
 const proposition = (champs: Partial<PropositionProgression> = {}): PropositionProgression => ({

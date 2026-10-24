@@ -11,6 +11,8 @@ export interface SerieVue {
   chargeKg: number | null
   rpe: number | null
   updatedAt: string
+  // Ancre du repos : instant de validation (validated_at), à défaut updated_at (séries antérieures à 0006)
+  valideeA: string
 }
 
 export interface ExerciceVue {
@@ -57,7 +59,7 @@ export function construireVue(
   const parExercice = new Map<string, SerieVue[]>()
   for (const s of series) {
     const liste = parExercice.get(s.exerciceSeanceId) ?? []
-    liste.push({ id: s.id, numero: s.numeroSerie, reps: s.repsRealisees, chargeKg: s.chargeKg, rpe: s.rpe, updatedAt: s.updatedAt })
+    liste.push({ id: s.id, numero: s.numeroSerie, reps: s.repsRealisees, chargeKg: s.chargeKg, rpe: s.rpe, updatedAt: s.updatedAt, valideeA: s.validatedAt ?? s.updatedAt })
     parExercice.set(s.exerciceSeanceId, liste)
   }
   const versVue = (e: ExerciceSeance): ExerciceVue => ({
@@ -104,13 +106,13 @@ export function verifierMesures(m: Partial<Mesures>, repsType: RepsType): string
   return null
 }
 
-// Repos restant (ms) : dernière série saisie (updated_at le plus récent) + repos de son exercice − maintenant,
+// Repos restant (ms) : dernière série validée (validated_at le plus récent, repli updated_at) + repos de son exercice − maintenant,
 // borné à 0. null s'il n'y a encore aucune série. Dérivé uniquement d'horodatages stockés.
 export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | null {
   let derniere: { ms: number; reposSec: number } | null = null
   for (const e of exercices) {
     for (const s of e.series) {
-      const ms = parseTimestamp(s.updatedAt)
+      const ms = parseTimestamp(s.valideeA)
       if (ms !== null && (derniere === null || ms > derniere.ms)) derniere = { ms, reposSec: e.tempsReposSec }
     }
   }

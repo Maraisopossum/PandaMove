@@ -333,6 +333,14 @@ describe('0006 : durcissement', () => {
     expect(ancien.rows).toEqual([])
   })
 
+  it("series_realisees porte validated_at (timestamptz), nullable et sans défaut, jamais réécrit par le trigger", async () => {
+    const r = await db.query<{ data_type: string; is_nullable: string; column_default: string | null }>(
+      `select data_type, is_nullable, column_default from information_schema.columns
+       where table_name = 'series_realisees' and column_name = 'validated_at'`,
+    )
+    expect(r.rows).toEqual([{ data_type: 'timestamp with time zone', is_nullable: 'YES', column_default: null }])
+  })
+
   it('la migration est rejouable sans erreur (idempotente)', async () => {
     await db.exec(migration('0006_durcissement.sql'))
     const r = await db.query<{ n: number }>(`select count(*)::int as n from pg_policies where schemaname = 'public'`)

@@ -4,23 +4,24 @@ import { newId } from '../ids'
 import type { SerieRealisee } from '../types'
 import { mapSerie, type Ligne } from './mappers'
 
-export type NouvelleSerie = Omit<SerieRealisee, 'id' | 'updatedAt'>
+export type NouvelleSerie = Omit<SerieRealisee, 'id' | 'updatedAt' | 'validatedAt'>
 export type ModifSerie = Partial<Pick<SerieRealisee,
   'repsRealisees' | 'chargeKg' | 'chargeLabel' | 'rpe' | 'notes' | 'isCompleted'>>
 
 // Séries en ajout seul : chaque série a son propre uuid, on n'écrase jamais la ligne d'un autre appareil.
-// `maintenant` (ISO) horodate la ligne ; l'exécution de séance le fournit pour dater le repos.
+// `maintenant` (ISO) horodate la ligne ET pose validated_at, l'ancre du repos : contrairement à
+// updated_at (réécrit par le trigger serveur à l'envoi et par une correction), il ne bouge plus.
 export async function addSerie(db: Db, serie: NouvelleSerie, maintenant: string = new Date().toISOString()): Promise<string> {
   const id = newId()
   await db.execute(
     `INSERT INTO series_realisees
        (id, instance_seance_id, exercice_seance_id, numero_serie, reps_realisees, charge_kg,
-        charge_label, rpe, notes, is_completed, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        charge_label, rpe, notes, is_completed, updated_at, validated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, serie.instanceSeanceId, serie.exerciceSeanceId, serie.numeroSerie, serie.repsRealisees,
       serie.chargeKg, serie.chargeLabel, serie.rpe, serie.notes, serie.isCompleted ? 1 : 0,
-      maintenant,
+      maintenant, maintenant,
     ],
   )
   return id

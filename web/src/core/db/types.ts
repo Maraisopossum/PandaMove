@@ -102,6 +102,8 @@ export interface SerieRealisee {
   notes: string
   isCompleted: boolean
   updatedAt: string
+  /** Instant de validation (ancre du repos) ; null pour une série antérieure à la migration 0006. */
+  validatedAt: string | null
 }
 
 export interface ObjectifProgression {

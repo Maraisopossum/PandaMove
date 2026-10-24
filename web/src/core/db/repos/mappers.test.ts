@@ -52,7 +52,7 @@ describe('mappers : ligne entièrement NULL', () => {
   it('mapSerie applique les défauts et garde les mesures nulles', () => {
     expect(mapSerie(vide)).toEqual({
       id: 'x', instanceSeanceId: '', exerciceSeanceId: '', numeroSerie: 0, repsRealisees: null,
-      chargeKg: null, chargeLabel: null, rpe: null, notes: '', isCompleted: false, updatedAt: '',
+      chargeKg: null, chargeLabel: null, rpe: null, notes: '', isCompleted: false, updatedAt: '', validatedAt: null,
     })
   })
 

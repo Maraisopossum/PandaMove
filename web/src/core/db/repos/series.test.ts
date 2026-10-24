@@ -28,6 +28,13 @@ describe('series', () => {
     expect(lue).toMatchObject({ id, repsRealisees: 8, chargeKg: 52.5, rpe: 8.5, isCompleted: true, numeroSerie: 1 })
   })
 
+  it("addSerie pose validated_at (ancre du repos) ; updateSerie ne le modifie jamais", async () => {
+    const id = await addSerie(db, serie(), '2026-10-24T10:00:00.000Z')
+    await updateSerie(db, id, { repsRealisees: 6 }, '2026-10-24T10:05:00.000Z')
+    const [lue] = await listSeries(db, 'i1')
+    expect(lue).toMatchObject({ validatedAt: '2026-10-24T10:00:00.000Z', updatedAt: '2026-10-24T10:05:00.000Z' })
+  })
+
   it('updateSerie modifie une série par son uuid et rafraîchit updated_at', async () => {
     const id = await addSerie(db, serie({ isCompleted: false }))
     await db.execute('UPDATE series_realisees SET updated_at = ? WHERE id = ?', ['2000-01-01T00:00:00.000Z', id])

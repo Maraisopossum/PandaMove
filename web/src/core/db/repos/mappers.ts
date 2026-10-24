@@ -104,6 +104,7 @@ export const mapSerie = (l: Ligne): SerieRealisee => ({
   notes: s(l, 'notes'),
   isCompleted: b(l, 'is_completed'),
   updatedAt: s(l, 'updated_at'),
+  validatedAt: sn(l, 'validated_at'),
 })
 
 export const mapObjectif = (l: Ligne): ObjectifProgression => ({

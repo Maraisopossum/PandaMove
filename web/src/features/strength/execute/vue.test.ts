@@ -62,6 +62,31 @@ describe('reposRestant', () => {
     expect(reposRestant([], t)).toBeNull()
   })
 
+  it("l'ancre est validated_at (instant de validation), pas updated_at réécrit par une correction ou le serveur", () => {
+    const vue = construireVue(
+      [],
+      [mapExerciceSeance({ id: 'a', temps_repos_sec: 60 })],
+      [
+        mapSerie({
+          id: '1', exercice_seance_id: 'a', numero_serie: 1,
+          validated_at: '2026-10-24T10:00:00.000Z', updated_at: '2026-10-24 10:00:40+00',
+        }),
+      ],
+      new Map(),
+    )
+    expect(reposRestant(vue.exercices, Date.parse('2026-10-24T10:00:50.000Z'))).toBe(10_000)
+  })
+
+  it('série sans validated_at (antérieure à la migration 0006) : repli sur updated_at', () => {
+    const vue = construireVue(
+      [],
+      [mapExerciceSeance({ id: 'a', temps_repos_sec: 60 })],
+      [mapSerie({ id: '1', exercice_seance_id: 'a', numero_serie: 1, validated_at: null, updated_at: '2026-10-24T10:00:00.000Z' })],
+      new Map(),
+    )
+    expect(reposRestant(vue.exercices, Date.parse('2026-10-24T10:00:50.000Z'))).toBe(10_000)
+  })
+
   it('formats mélangés (série synchronisée « 2026-10-24 10:02:00+00 » et série locale ISO) : la plus récente gagne', () => {
     const vue = construireVue(
       [],

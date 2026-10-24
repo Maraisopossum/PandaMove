@@ -11,10 +11,12 @@
 --   4. Index uniques partiels incluant user_id (un utilisateur ne peut pas bloquer les écritures d'un
 --      autre), anti-doublon de la copie des blocs d'instance, une seule ligne user_settings vivante
 --      par utilisateur.
+--   5. Colonne series_realisees.validated_at : ancre fiable du chrono de repos (jamais réécrite par
+--      le trigger serveur ni par une correction de série, contrairement à updated_at).
 --
 -- PowerSync : AUCUN droit n'est retiré au rôle de réplication (ex. powersync_role, ou postgres), ni à
 -- postgres / service_role. Seuls `anon` et `authenticated` sont concernés. La publication `powersync`
--- n'est pas modifiée.
+-- n'est pas modifiée ; la nouvelle colonne y est incluse d'office (publication sans liste de colonnes).
 
 begin;
 
@@ -111,5 +113,10 @@ create unique index if not exists blocs_seance_user_instance_source_uniq
 create unique index if not exists user_settings_user_uniq
   on public.user_settings (user_id)
   where deleted_at is null;
+
+-- ── 5. Ancre du chrono de repos ──
+-- Instant de validation de la série, posé par le client à l'ajout et jamais modifié ensuite.
+-- NULL pour les séries antérieures (le client retombe alors sur updated_at).
+alter table public.series_realisees add column if not exists validated_at timestamptz;
 
 commit;

@@ -199,6 +199,16 @@ describe('useExecute : séries', () => {
     expect(r.result.current.exercices[0].series).toMatchObject([{ id: avant.id, reps: 7, rpe: 9 }])
   })
 
+  it('corriger une série ne relance pas le décompte du repos (ancre = instant de validation)', async () => {
+    const r = await monter()
+    await act(() => r.result.current.demarrer())
+    await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null }))
+    t = T0 + 30_000
+    const [serie] = await lignesSeries()
+    await act(() => r.result.current.corrigerSerie(serie.id, { reps: 7 }))
+    expect(r.result.current.reposRestantMs).toBe(60_000)
+  })
+
   it('DURATION : la valeur saisie est en secondes et le libellé le dit', async () => {
     const r = await monter()
     const gainage = r.result.current.exercices[1]

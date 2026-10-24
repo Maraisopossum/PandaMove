@@ -104,6 +104,8 @@ export const AppSchema = new Schema({
     rpe: r,
     notes: t,
     is_completed: i,
+    // Instant de validation (migration 0006) : ancre du repos, jamais modifiée après l'ajout
+    validated_at: t,
   }),
   objectifs_progression: new Table({
     ...sync,
