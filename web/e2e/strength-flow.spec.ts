@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { ignorerOnboarding } from './onboarding.ts'
+import { exigerVariables } from './prerequis.ts'
 
 // Parcours renforcement complet, au cœur de la règle « ne jamais perdre une série » :
 // import du fixture synthétique, affectation depuis la liste, exécution, 3 séries saisies réseau
@@ -21,7 +22,7 @@ async function seConnecter(page: Page, chemin: string) {
 }
 
 test('séries saisies hors ligne : conservées au rechargement puis synchronisées', async ({ browser }) => {
-  test.skip(!email || !motDePasse, 'E2E_EMAIL et E2E_PASSWORD sont requis')
+  exigerVariables('E2E_EMAIL', 'E2E_PASSWORD')
 
   const contexteA = await browser.newContext()
   await ignorerOnboarding(contexteA)

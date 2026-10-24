@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { ignorerOnboarding } from './onboarding.ts'
+import { exigerVariables } from './prerequis.ts'
 
 // Barrière de l'étape 1 : une écriture faite hors ligne arrive sur un second appareil après reconnexion.
 // Prérequis : Supabase local + PowerSync (dev/docker-compose.powersync.yml), web/.env.local renseigné,
@@ -16,7 +17,7 @@ async function seConnecter(page: Page) {
 }
 
 test('une séance créée hors ligne est synchronisée vers un second appareil', async ({ browser }) => {
-  test.skip(!email || !motDePasse, 'E2E_EMAIL et E2E_PASSWORD sont requis')
+  exigerVariables('E2E_EMAIL', 'E2E_PASSWORD')
 
   const contexteA = await browser.newContext()
   await ignorerOnboarding(contexteA)

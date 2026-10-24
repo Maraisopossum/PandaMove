@@ -8,7 +8,7 @@
 services:
   mongo:
     # Stockage interne de PowerSync (jeu de réplicas à un nœud, requis par le service)
-    image: mongo:7
+    image: mongo:7.0.43
     command: ['--replSet', 'rs0', '--bind_ip_all']
     healthcheck:
       test: ['CMD', 'mongosh', '--quiet', '--eval', "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"]
@@ -18,7 +18,9 @@ services:
       - mongo-data:/data/db
 
   powersync:
-    image: journeyapps/powersync-service:latest
+    # Version épinglée (jamais :latest) : un service de synchro qui change seul casserait le dev.
+    # Mettre à jour volontairement après lecture du changelog PowerSync.
+    image: journeyapps/powersync-service:1.27.0
     depends_on:
       mongo:
         condition: service_healthy

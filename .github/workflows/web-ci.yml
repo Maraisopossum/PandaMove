@@ -30,3 +30,5 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+      # Les e2e Playwright (web/e2e/*.spec.ts) ne tournent pas ici : ils exigent Supabase, PowerSync et
+      # des comptes de test (voir web/README.md). Ils se lancent en local avec E2E_REQUIRED=1.
