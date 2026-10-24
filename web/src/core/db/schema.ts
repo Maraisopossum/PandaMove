@@ -87,6 +87,9 @@ export const AppSchema = new Schema({
     completed_at: t,
     duration_seconds: i,
     created_at: t,
+    // Horloge de séance (migration 0004) : instant de démarrage ISO et pauses en JSON
+    started_at: t,
+    paused_json: t,
   }),
   series_realisees: new Table({
     ...sync,

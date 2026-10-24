@@ -4,7 +4,9 @@ import { createTestDb } from '../../../test/sqliteDb'
 import type { Db } from '../Db'
 import { deterministicId } from '../ids'
 import { upsertRow } from '../upsert'
-import { copyTemplateToInstance, createInstance, getInstance, listInstances } from './instances'
+import {
+  copyTemplateToInstance, createInstance, demarrerInstance, enregistrerPauses, getInstance, listInstances, terminerInstance,
+} from './instances'
 import { softDelete } from './seances'
 
 let db: Db
@@ -27,6 +29,35 @@ describe('instances', () => {
     await softDelete(db, 'instances_seance', b)
     expect((await listInstances(db)).map((i) => i.id)).toEqual([a])
     expect(await getInstance(db, b)).toBeNull()
+  })
+})
+
+describe('horloge et fin de séance', () => {
+  it("une instance créée n'est pas démarrée et n'a pas de pauses", async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    expect(await getInstance(db, id)).toMatchObject({ startedAt: null, pausedJson: null })
+  })
+
+  it('demarrerInstance écrit started_at une seule fois (idempotent)', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await demarrerInstance(db, id, '2026-06-01T10:00:00.000Z')
+    await demarrerInstance(db, id, '2026-06-01T11:00:00.000Z')
+    expect(await getInstance(db, id)).toMatchObject({ startedAt: '2026-06-01T10:00:00.000Z', updatedAt: '2026-06-01T10:00:00.000Z' })
+  })
+
+  it('enregistrerPauses remplace paused_json', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await enregistrerPauses(db, id, '[{"fromMs":1,"toMs":null}]', '2026-06-01T10:05:00.000Z')
+    expect(await getInstance(db, id)).toMatchObject({ pausedJson: '[{"fromMs":1,"toMs":null}]', updatedAt: '2026-06-01T10:05:00.000Z' })
+  })
+
+  it('terminerInstance renseigne les champs de fin une seule fois (idempotent)', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await terminerInstance(db, id, { completedAt: '2026-06-01T11:00:00.000Z', durationSeconds: 3600, pausedJson: '[]' })
+    await terminerInstance(db, id, { completedAt: '2026-06-01T12:00:00.000Z', durationSeconds: 99, pausedJson: '[{"fromMs":1,"toMs":2}]' })
+    expect(await getInstance(db, id)).toMatchObject({
+      isCompleted: true, completedAt: '2026-06-01T11:00:00.000Z', durationSeconds: 3600, pausedJson: '[]',
+    })
   })
 })
 

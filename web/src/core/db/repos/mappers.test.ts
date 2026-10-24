@@ -37,7 +37,7 @@ describe('mappers : ligne entièrement NULL', () => {
   it('mapInstance applique les défauts', () => {
     expect(mapInstance(vide)).toEqual({
       id: 'x', seanceId: '', date: '', notes: '', isCompleted: false, completedAt: null,
-      durationSeconds: 0, createdAt: '', updatedAt: '',
+      durationSeconds: 0, createdAt: '', updatedAt: '', startedAt: null, pausedJson: null,
     })
   })
 

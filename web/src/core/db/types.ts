@@ -80,6 +80,10 @@ export interface InstanceSeance {
   durationSeconds: number
   createdAt: string
   updatedAt: string
+  // Démarrage de l'exécution (ISO) ; null = jamais démarrée
+  startedAt: string | null
+  // Pauses en JSON [{ fromMs, toMs | null }] (voir features/strength/execute/sessionClock.ts)
+  pausedJson: string | null
 }
 
 export interface SerieRealisee {

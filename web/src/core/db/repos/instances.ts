@@ -27,6 +27,35 @@ export async function listInstances(db: Db): Promise<InstanceSeance[]> {
   return lignes.map(mapInstance)
 }
 
+// Démarre l'exécution : started_at n'est écrit qu'une fois (un second appel garde la première valeur).
+export async function demarrerInstance(db: Db, id: string, startedAtIso: string): Promise<void> {
+  await db.execute(
+    'UPDATE instances_seance SET started_at = ?, updated_at = ? WHERE id = ? AND started_at IS NULL AND deleted_at IS NULL',
+    [startedAtIso, startedAtIso, id],
+  )
+}
+
+// Remplace la liste des pauses (JSON sérialisé par sessionClock) d'une instance non terminée.
+export async function enregistrerPauses(db: Db, id: string, pausedJson: string, maintenantIso: string): Promise<void> {
+  await db.execute(
+    'UPDATE instances_seance SET paused_json = ?, updated_at = ? WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL',
+    [pausedJson, maintenantIso, id],
+  )
+}
+
+// Termine l'instance. Idempotent : une instance déjà terminée n'est plus modifiée.
+export async function terminerInstance(
+  db: Db,
+  id: string,
+  fin: { completedAt: string; durationSeconds: number; pausedJson: string },
+): Promise<void> {
+  await db.execute(
+    `UPDATE instances_seance SET is_completed = 1, completed_at = ?, duration_seconds = ?, paused_json = ?, updated_at = ?
+     WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL`,
+    [fin.completedAt, fin.durationSeconds, fin.pausedJson, fin.completedAt, id],
+  )
+}
+
 export class ErreurInstance extends Error {}
 
 // Copie les blocs et exercices du modèle de la séance vers l'instance (équivalent web de la

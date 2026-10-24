@@ -49,6 +49,7 @@ beforeAll(async () => {
   await db.exec(migration('0001_schema.sql'))
   await db.exec(migration('0002_rls.sql'))
   await db.exec(migration('0003_dark_mode_nullable.sql'))
+  await db.exec(migration('0004_instance_clock.sql'))
   await db.exec(`
     grant usage on schema public, auth to authenticated;
     grant all on all tables in schema public to authenticated;
@@ -147,6 +148,19 @@ describe('contraintes', () => {
       db.query<{ panda_variant: string; dark_mode: boolean | null }>('select panda_variant, dark_mode from user_settings'),
     )
     expect(r.rows).toEqual([{ panda_variant: 'male', dark_mode: null }])
+  })
+})
+
+describe('0004 : horloge de séance', () => {
+  it('instances_seance porte started_at (timestamptz) et paused_json (text), nullables et sans défaut', async () => {
+    const r = await db.query<{ column_name: string; data_type: string; is_nullable: string; column_default: string | null }>(
+      `select column_name, data_type, is_nullable, column_default from information_schema.columns
+       where table_name = 'instances_seance' and column_name in ('started_at', 'paused_json') order by column_name`,
+    )
+    expect(r.rows).toEqual([
+      { column_name: 'paused_json', data_type: 'text', is_nullable: 'YES', column_default: null },
+      { column_name: 'started_at', data_type: 'timestamp with time zone', is_nullable: 'YES', column_default: null },
+    ])
   })
 })
 

@@ -86,6 +86,8 @@ export const mapInstance = (l: Ligne): InstanceSeance => ({
   durationSeconds: n(l, 'duration_seconds'),
   createdAt: s(l, 'created_at'),
   updatedAt: s(l, 'updated_at'),
+  startedAt: sn(l, 'started_at'),
+  pausedJson: sn(l, 'paused_json'),
 })
 
 export const mapSerie = (l: Ligne): SerieRealisee => ({
