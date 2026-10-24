@@ -1,0 +1,32 @@
+# Configuration Supabase locale (développement uniquement).
+# ATTENTION : ce fichier a été écrit à la main, sans la CLI Supabase (absente de la machine de départ).
+# À vérifier sur une machine qui dispose de la CLI : lancer `supabase init` dans un dossier vide et
+# comparer (diff) avec ce fichier, puis reprendre les clés manquantes ou renommées.
+project_id = "pandamove"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+
+[db]
+port = 54322
+shadow_port = 54320
+# Version majeure de Postgres : 17 par défaut (à aligner sur la version du projet hébergé)
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Pas de confirmation par e-mail en local, pour que les comptes de test (e2e) se connectent aussitôt
+enable_confirmations = false

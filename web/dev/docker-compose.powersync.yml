@@ -1,0 +1,43 @@
+# PowerSync auto-hébergé pour le développement local (best effort, NON VALIDÉ : écrit sans Docker).
+# Lancement : docker compose -f dev/docker-compose.powersync.yml up   (depuis web/, après `supabase start`)
+# Prérequis côté Postgres Supabase local : un rôle de réplication et une publication, par exemple
+#   create role powersync_role with replication bypassrls login password '<mot de passe local>';
+#   grant select on all tables in schema public to powersync_role;
+#   create publication powersync for all tables;
+# Variables attendues (voir dev/powersync.env.example) : aucune valeur secrète n'est versionnée.
+services:
+  mongo:
+    # Stockage interne de PowerSync (jeu de réplicas à un nœud, requis par le service)
+    image: mongo:7
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"]
+      interval: 5s
+      retries: 20
+    volumes:
+      - mongo-data:/data/db
+
+  powersync:
+    image: journeyapps/powersync-service:latest
+    depends_on:
+      mongo:
+        condition: service_healthy
+    command: ['start', '-r', 'unified']
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/powersync.yaml
+      # Postgres Supabase local, vu depuis le conteneur (port par défaut de `supabase start` : 54322)
+      PS_DATA_SOURCE_URI: postgresql://${POWERSYNC_DB_USER:-powersync_role}:${POWERSYNC_DB_PASSWORD:?à définir}@host.docker.internal:54322/postgres
+      PS_MONGO_URI: mongodb://mongo:27017/powersync?replicaSet=rs0
+      # Secret JWT du Supabase local (affiché par `supabase status`), pour valider les jetons des clients
+      PS_SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?à définir}
+      PS_PORT: 8080
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./powersync/powersync.yaml:/config/powersync.yaml:ro
+      - ../powersync/sync-rules.yaml:/config/sync-rules.yaml:ro
+
+volumes:
+  mongo-data:

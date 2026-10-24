@@ -13,3 +13,6 @@ playwright-report
 
 # Logs
 *.log
+
+# Variables locales de la pile de dev (compose PowerSync)
+dev/.env
