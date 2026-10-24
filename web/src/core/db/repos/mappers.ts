@@ -6,9 +6,14 @@ import type {
 // Une ligne SQL brute : snake_case, booléens en 0/1, valeurs nullables.
 export type Ligne = Record<string, string | number | null>
 
-const s = (l: Ligne, k: string) => l[k] as string
+// Les colonnes PowerSync sont toutes nullables : chaque champ typé non-nul reçoit une valeur
+// par défaut, alignée sur les défauts Android (entités Room et ExerciceDto dans ExportDtos.kt) :
+// dureeEstimeeMin 60, tempsReposInterSec 20, tempsReposFinRoundSec 120, nombreSeriesPrevues 3,
+// tempsReposSec 90, incrementDureeSec 5, seuilDeload 3, repsType REPS, seanceCategory STRENGTH,
+// type de bloc ECHAUFFEMENT, le reste à 0 / '' / false.
+const s = (l: Ligne, k: string, defaut = '') => (l[k] ?? defaut) as string
 const sn = (l: Ligne, k: string) => (l[k] ?? null) as string | null
-const n = (l: Ligne, k: string) => l[k] as number
+const n = (l: Ligne, k: string, defaut = 0) => (l[k] ?? defaut) as number
 const nn = (l: Ligne, k: string) => (l[k] ?? null) as number | null
 const b = (l: Ligne, k: string) => l[k] === 1
 
@@ -16,9 +21,9 @@ export const mapSeance = (l: Ligne): Seance => ({
   id: s(l, 'id'),
   nom: s(l, 'nom'),
   groupesMusculaires: s(l, 'groupes_musculaires'),
-  dureeEstimeeMin: n(l, 'duree_estimee_min'),
+  dureeEstimeeMin: n(l, 'duree_estimee_min', 60),
   notes: s(l, 'notes'),
-  seanceCategory: s(l, 'seance_category'),
+  seanceCategory: s(l, 'seance_category', 'STRENGTH'),
   createdAt: s(l, 'created_at'),
   isArchived: b(l, 'is_archived'),
   updatedAt: s(l, 'updated_at'),
@@ -28,12 +33,12 @@ export const mapBloc = (l: Ligne): BlocSeance => ({
   id: s(l, 'id'),
   seanceId: s(l, 'seance_id'),
   nom: s(l, 'nom'),
-  type: s(l, 'type'),
+  type: s(l, 'type', 'ECHAUFFEMENT'),
   position: n(l, 'position'),
   dureeMin: nn(l, 'duree_min'),
   description: s(l, 'description'),
-  tempsReposInterSec: n(l, 'temps_repos_inter_sec'),
-  tempsReposFinRoundSec: n(l, 'temps_repos_fin_round_sec'),
+  tempsReposInterSec: n(l, 'temps_repos_inter_sec', 20),
+  tempsReposFinRoundSec: n(l, 'temps_repos_fin_round_sec', 120),
   instanceSeanceId: sn(l, 'instance_seance_id'),
   blocSourceId: sn(l, 'bloc_source_id'),
   updatedAt: s(l, 'updated_at'),
@@ -46,12 +51,12 @@ export const mapExerciceSeance = (l: Ligne): ExerciceSeance => ({
   blocId: sn(l, 'bloc_id'),
   supersetGroupe: sn(l, 'superset_groupe'),
   position: n(l, 'position'),
-  nombreSeriesPrevues: n(l, 'nombre_series_prevues'),
+  nombreSeriesPrevues: n(l, 'nombre_series_prevues', 3),
   repsCibles: s(l, 'reps_cibles'),
   chargeCible: s(l, 'charge_cible'),
   tempo: s(l, 'tempo'),
-  repsType: s(l, 'reps_type') as RepsType,
-  tempsReposSec: n(l, 'temps_repos_sec'),
+  repsType: s(l, 'reps_type', 'REPS') as RepsType,
+  tempsReposSec: n(l, 'temps_repos_sec', 90),
   consigneCle: s(l, 'consigne_cle'),
   equipement: s(l, 'equipement'),
   avertissement: s(l, 'avertissement'),
@@ -63,8 +68,8 @@ export const mapExerciceSeance = (l: Ligne): ExerciceSeance => ({
   repsMin: nn(l, 'reps_min'),
   repsMax: nn(l, 'reps_max'),
   incrementKg: nn(l, 'increment_kg'),
-  incrementDureeSec: n(l, 'increment_duree_sec'),
-  seuilDeload: n(l, 'seuil_deload'),
+  incrementDureeSec: n(l, 'increment_duree_sec', 5),
+  seuilDeload: n(l, 'seuil_deload', 3),
   typeExercice: sn(l, 'type_exercice') as TypeExercice | null,
   incrementPct: nn(l, 'increment_pct'),
   isBodyweight: b(l, 'is_bodyweight'),
