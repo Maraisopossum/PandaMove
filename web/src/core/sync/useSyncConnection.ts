@@ -1,7 +1,7 @@
 import type { PowerSyncBackendConnector, PowerSyncDatabase } from '@powersync/web'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { getDb } from '../../core/db/client'
-import { SupabaseConnector } from '../../core/sync/connector'
+import { getDb } from '../db/client'
+import { SupabaseConnector } from './connector'
 
 const CLE_DERNIER_UTILISATEUR = 'pandamove.dernierUtilisateur'
 

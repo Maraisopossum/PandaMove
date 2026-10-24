@@ -1,0 +1,242 @@
+/* Thème : variables clair / sombre. DESIGN.md : surfaces neutres, couleur de module sur la barre du haut. */
+:root {
+  --fond: #f6f6f8;
+  --surface: #ffffff;
+  --texte: #1e1e22;
+  --texte-secondaire: #5c5c66;
+  --bord: #dedee4;
+  --focus: #1565c0;
+  --drawer-largeur: 280px;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --fond: #121214;
+  --surface: #1e1e22;
+  --texte: #f2f2f5;
+  --texte-secondaire: #a8a8b3;
+  --bord: #34343c;
+  --focus: #90caf9;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.erreur-racine {
+  max-width: 40rem;
+  margin: 4rem auto;
+  padding: 0 1rem;
+}
+
+/* Boutons : cible tactile de 44 px minimum */
+.bouton,
+.barre__menu {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bouton[aria-pressed='true'] {
+  border-color: var(--focus);
+  box-shadow: inset 0 0 0 1px var(--focus);
+}
+
+/* Coque : drawer à gauche (permanent au-dessus de 1024 px), corps à droite */
+.coque {
+  min-height: 100dvh;
+}
+
+.coque__evitement {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  z-index: 40;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--texte);
+}
+
+.coque__evitement:focus {
+  top: 0.5rem;
+}
+
+.drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: min(var(--drawer-largeur), 85vw);
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--bord);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+
+.drawer--ouvert {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.2s ease;
+}
+
+.drawer__marque {
+  margin: 0 0.75rem 1rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.drawer__lien {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+  color: var(--texte);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.drawer__lien[aria-current='page'] {
+  border-left-color: var(--couleur-module);
+  background: color-mix(in srgb, var(--couleur-module) 14%, transparent);
+  font-weight: 800;
+}
+
+.drawer__pied {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.drawer__alerte {
+  margin: 0;
+  color: var(--texte-secondaire);
+  font-size: 0.9rem;
+}
+
+.coque__voile {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(0 0 0 / 0.45);
+}
+
+.barre {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 56px;
+  padding: 0 0.75rem;
+  background: var(--couleur-module);
+  color: #fff;
+}
+
+.barre__menu {
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+  font-size: 1.5rem;
+}
+
+.barre__titre {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.sync {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.2);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.bandeau {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--bord);
+}
+
+.bandeau p {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+
+.contenu {
+  padding: 1.25rem 1rem;
+}
+
+.contenu:focus {
+  outline: none;
+}
+
+/* Au-dessus de 1024 px : drawer permanent, plus de bouton de menu ni de voile */
+@media (min-width: 1025px) {
+  .drawer {
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
+
+  .coque__corps {
+    margin-left: var(--drawer-largeur);
+  }
+
+  .barre__menu,
+  .coque__voile {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .drawer--ouvert {
+    transition: none;
+  }
+}

@@ -27,7 +27,7 @@ test('une séance créée hors ligne est synchronisée vers un second appareil',
   await expect(pageA.getByTestId('sync-state')).toHaveText('hors ligne', { timeout: 30_000 })
   await pageA.getByRole('button', { name: 'Ajouter une séance' }).click()
   // La ligne est visible localement même sans réseau ; la liste est triée de la plus récente à la plus ancienne
-  const lignes = pageA.getByRole('listitem')
+  const lignes = pageA.getByRole('main').getByRole('listitem')
   await expect(lignes.first()).toContainText('Debug ')
   const nomLocal = (await lignes.first().textContent())!.trim()
 
@@ -39,7 +39,7 @@ test('une séance créée hors ligne est synchronisée vers un second appareil',
   const contexteB = await browser.newContext()
   const pageB = await contexteB.newPage()
   await seConnecter(pageB)
-  await expect(pageB.getByRole('listitem').filter({ hasText: nomLocal })).toBeVisible({ timeout: 60_000 })
+  await expect(pageB.getByRole('main').getByRole('listitem').filter({ hasText: nomLocal })).toBeVisible({ timeout: 60_000 })
 
   await contexteA.close()
   await contexteB.close()

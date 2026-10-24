@@ -1,38 +1,28 @@
+import { useState } from 'react'
+import { createBrowserRouter, RouterProvider } from 'react-router'
+import { AppShell } from './app/AppShell'
+import { ErrorBoundary } from './app/ErrorBoundary'
+import { construireRoutes } from './app/routes'
 import { AuthProvider, useAuth } from './core/auth/AuthProvider'
-import DebugWriteScreen from './features/debug/DebugWriteScreen'
-import { useSyncConnection } from './features/debug/useSyncConnection'
 import LoginScreen from './features/auth/LoginScreen'
 
-// Page de debug : uniquement en développement. Le futur routeur (tâche 5) l'absorbera.
-const DEBUG_ACTIF = import.meta.env.DEV && window.location.pathname === '/debug/write'
-
-function Contenu() {
-  const { session, signOut } = useAuth()
-  const { signOutSafely, abandonnerDonneesLocales, messageAutreCompte } = useSyncConnection({
-    userId: session?.user.id ?? null,
-    signOut,
-  })
-
-  if (DEBUG_ACTIF) {
-    return session ? (
-      <DebugWriteScreen
-        userId={session.user.id}
-        signOutSafely={signOutSafely}
-        abandonnerDonneesLocales={abandonnerDonneesLocales}
-        messageAutreCompte={messageAutreCompte}
-      />
-    ) : (
-      <LoginScreen />
-    )
-  }
-  return <h1>PandaMove</h1>
+// Routeur créé une seule fois par session de connexion ; la coque monte la synchro pour toute route.
+function Connecte() {
+  const [routeur] = useState(() => createBrowserRouter(construireRoutes(<AppShell />)))
+  return <RouterProvider router={routeur} />
 }
 
-// Composant racine minimal : le routage et les écrans arrivent dans les tâches suivantes.
+function Contenu() {
+  const { session } = useAuth()
+  return session ? <Connecte /> : <LoginScreen />
+}
+
 export default function App() {
   return (
-    <AuthProvider>
-      <Contenu />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Contenu />
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
