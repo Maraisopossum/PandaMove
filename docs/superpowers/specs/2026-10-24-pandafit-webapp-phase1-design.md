@@ -1,11 +1,11 @@
-# PandaFit WebApp — Phase 1 (Renforcement) — Design
+# PandaMove WebApp — Phase 1 (Renforcement) — Design
 
 Date : 2026-10-24
 Statut : à relire par l'utilisateur avant le plan d'implémentation
 
 ## 1. Objectif et contexte
 
-PandaFit est aujourd'hui une application Android (Kotlin, Compose, Room v27, 11 modules).
+PandaFit (nom de l'app Android actuelle) est aujourd'hui une application Android (Kotlin, Compose, Room v27, 11 modules).
 L'utilisateur veut une **WebApp** pour utiliser PandaFit sur plusieurs appareils (PC, iPhone, Android) avec les **mêmes données synchronisées**.
 
 Critère de succès de la phase 1 : l'utilisateur peut, depuis un navigateur ou la PWA installée, importer ses données existantes, créer et affecter des séances de renforcement, les exécuter **sans réseau** en salle, voir la progression proposée, consulter calendrier et stats, et retrouver le tout identique sur un autre appareil.
