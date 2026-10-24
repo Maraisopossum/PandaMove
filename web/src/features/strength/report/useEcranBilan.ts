@@ -30,6 +30,7 @@ const LIBELLES_DECISION: Record<DecisionEnregistree, string> = {
   acceptee: 'Acceptée',
   refusee: 'Refusée',
   ajustee: 'Ajustée',
+  appliquee_auto: 'Appliquée automatiquement',
 }
 
 function libelleEtat(p: PropositionBilan): string {

@@ -1,17 +1,19 @@
 // Marqueur de progression d'une instance (instances_seance.progression_json, migration 0005).
-// Forme stockée : { "evaluee": true, "decisions": { "<exerciceId>": "acceptee" | "refusee" | "ajustee" } }
+// Forme stockée : { "evaluee": true, "decisions": { "<exerciceId>": "acceptee" | "refusee" | "ajustee" | "appliquee_auto" } }
+// « appliquee_auto » : issue appliquée à la fin de séance SANS validation (échec simple : compteur +1),
+// distincte d'un « Oui » explicite (« acceptee »).
 // - evaluee : l'évaluation de fin de séance a eu lieu (échecs simples appliqués) ; jamais refaite ;
 // - decisions : choix enregistré par exercice d'instance ; une décision n'est jamais rejouée.
 // Remplace toute garde temporelle (derniere_maj comparée à completed_at).
 
-export type DecisionEnregistree = 'acceptee' | 'refusee' | 'ajustee'
+export type DecisionEnregistree = 'acceptee' | 'refusee' | 'ajustee' | 'appliquee_auto'
 
 export interface EtatProgression {
   evaluee: boolean
   decisions: Record<string, DecisionEnregistree>
 }
 
-const DECISIONS: readonly string[] = ['acceptee', 'refusee', 'ajustee']
+const DECISIONS: readonly string[] = ['acceptee', 'refusee', 'ajustee', 'appliquee_auto']
 
 /** Lit le JSON stocké ; absent ou malformé -> null (traité comme absent), jamais d'exception. */
 export function lireProgression(json: string | null | undefined): EtatProgression | null {

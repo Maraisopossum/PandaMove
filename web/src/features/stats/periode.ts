@@ -6,7 +6,9 @@ export type PeriodeId = '7j' | '30j' | '3m' | '12m' | 'tout'
 
 export const PERIODES: { id: PeriodeId; libelle: string }[] = [
   { id: '7j', libelle: '7 jours' },
-  { id: '30j', libelle: '30 jours' },
+  // Recul d'un mois calendaire (minusMonths(1) Android) : 28 à 31 jours, d'où « 1 mois » et non « 30 jours ».
+  // L'id '30j' est conservé pour les choix déjà enregistrés dans localStorage.
+  { id: '30j', libelle: '1 mois' },
   { id: '3m', libelle: '3 mois' },
   { id: '12m', libelle: '12 mois' },
   { id: 'tout', libelle: 'Tout' },

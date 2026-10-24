@@ -1,4 +1,4 @@
-import type { Db } from '../db/Db'
+import type { Db, DbTx } from '../db/Db'
 import { getSettings, saveSettingsTx } from '../db/repos/settings'
 import { upsertRow } from '../db/upsert'
 import { mergeEquipment, type ImportPlan, type TableName } from './plan'
@@ -18,6 +18,21 @@ const ORDRE: TableName[] = [
   'series_realisees', 'objectifs_progression',
 ]
 
+// Exception à « l'export gagne » : le marqueur de progression local d'une instance (évaluation faite,
+// décisions Oui / Non / Ajuster prises sur le web) n'est jamais remplacé par celui du fichier ;
+// sinon une proposition déjà décidée serait reproposée, ou une évaluation rejouée.
+async function sansEcraserMarqueur(tx: DbTx, table: TableName, ligne: Record<string, unknown>) {
+  if (table !== 'instances_seance' || !('progression_json' in ligne)) return ligne
+  const locale = await tx.getOptional<{ progression_json: string | null }>(
+    'SELECT progression_json FROM instances_seance WHERE id = ?',
+    [ligne.id],
+  )
+  if (!locale || locale.progression_json === null) return ligne
+  const { progression_json: _ignore, ...reste } = ligne
+  void _ignore
+  return reste
+}
+
 // Applique un plan d'import en UNE transaction : la moindre erreur annule tout (rien n'est écrit)
 // et est relancée. « L'export gagne » : une ligne complète remplace la ligne locale de même id
 // (réimporter deux fois donne les mêmes comptes). Les exercices minimaux (créés pour une référence
@@ -33,7 +48,7 @@ export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportR
           const presente = await tx.getOptional('SELECT 1 AS one FROM exercises WHERE id = ?', [ligne.id])
           if (presente) continue
         }
-        await upsertRow(tx, table, ligne)
+        await upsertRow(tx, table, await sansEcraserMarqueur(tx, table, ligne))
         n++
       }
       ecrites[table] = n

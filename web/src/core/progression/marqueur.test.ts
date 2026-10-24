@@ -26,6 +26,13 @@ describe('lireProgression', () => {
     })
     expect(lireProgression('{"evaluee":true}')).toEqual({ evaluee: true, decisions: {} })
   })
+
+  it('lit la décision appliquee_auto (issue appliquée sans validation, ex. échec simple)', () => {
+    expect(lireProgression('{"evaluee":true,"decisions":{"e1":"appliquee_auto"}}')).toEqual({
+      evaluee: true,
+      decisions: { e1: 'appliquee_auto' },
+    })
+  })
 })
 
 describe('marquerEvaluee / enregistrerDecision', () => {

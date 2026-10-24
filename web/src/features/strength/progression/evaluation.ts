@@ -75,7 +75,7 @@ export async function evaluerInstance(db: DbLecture, instanceId: string, userId?
 /**
  * Évaluation de fin de séance, dans la transaction fournie (celle qui clôt l'instance) : applique
  * UNIQUEMENT les issues qui ne demandent pas de validation (échec simple : compteur +1, cible
- * maintenue), les enregistre comme décisions « acceptee » et marque l'instance `evaluee`. Les
+ * maintenue), les enregistre comme décisions « appliquee_auto » et marque l'instance `evaluee`. Les
  * propositions à valider (succès, deload, non loggé) ne sont PAS écrites : le bilan les présente.
  * Idempotente : une instance déjà évaluée n'est jamais ré-évaluée. Renvoie true si elle a évalué.
  */
@@ -93,7 +93,7 @@ export async function evaluerEtAppliquerSilencieux(
     if (e.aValider) continue
     const existant = await getObjectif(tx, e.ctx.seanceId, e.ctx.exerciseId)
     await saveObjectif(tx, objectifApresDecision({ type: 'accepter' }, e.proposition, existant, e.ctx, dateLocale(maintenantMs)), iso)
-    etat = enregistrerDecision(etat, e.exerciceId, 'acceptee')
+    etat = enregistrerDecision(etat, e.exerciceId, 'appliquee_auto')
   }
   await enregistrerProgression(tx, instanceId, serialiserProgression(etat), iso)
   return true

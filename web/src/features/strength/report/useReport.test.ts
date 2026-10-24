@@ -269,12 +269,13 @@ describe('useReport : propositions', () => {
     await objectifStocke('x1', { charge_cible: 50, reps_cible: 8, compteur_echec: 0 })
     await series('e1', [[7, 50], [7, 50], [7, 50]])
     const r = await monter()
-    expect(propositionDe(r, 'e1')).toMatchObject({ etat: 'acceptee', actionnable: false, proposition: null })
+    // Échec simple appliqué sans validation : « appliquee_auto », jamais confondu avec un « Oui » explicite
+    expect(propositionDe(r, 'e1')).toMatchObject({ etat: 'appliquee_auto', actionnable: false, proposition: null })
     expect(await objectifs()).toEqual([expect.objectContaining({ charge_cible: 50, compteur_echec: 1, derniere_maj: JOUR })])
-    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'acceptee' } })
+    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'appliquee_auto' } })
     r.unmount()
     const bis = await monter()
-    expect(propositionDe(bis, 'e1')?.etat).toBe('acceptee')
+    expect(propositionDe(bis, 'e1')?.etat).toBe('appliquee_auto')
     expect(await objectifs()).toEqual([expect.objectContaining({ compteur_echec: 1 })])
   })
 

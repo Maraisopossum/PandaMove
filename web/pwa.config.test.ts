@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { pwaOptions } from './pwa.config.ts'
@@ -35,5 +35,12 @@ describe('configuration PWA', () => {
     expect(readdirSync(join(__dirname, 'public', 'panda')).filter((f) => /^splash-.*\.webp$/.test(f)).length).toBeGreaterThan(0)
     expect(motifs.join(',')).toMatch(/js/)
     expect(motifs.join(',')).toMatch(/html/)
+  })
+
+  it('icônes légères (précachées à l’installation) : chacune < 150 Ko', () => {
+    for (const icone of manifest.icons) {
+      const taille = statSync(join(import.meta.dirname, 'public', icone.src)).size
+      expect(taille, icone.src).toBeLessThan(150 * 1024)
+    }
   })
 })

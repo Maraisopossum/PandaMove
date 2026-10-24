@@ -56,6 +56,23 @@ describe('applyImportPlan', () => {
     expect(rapport2.series).toBe(p.rows.series_realisees.length)
   })
 
+  it("réimport : un marqueur de progression local (décisions déjà prises) n'est jamais écrasé", async () => {
+    const p = plan(exportV32)
+    await applyImportPlan(db, p)
+    const [planifiee] = p.rows.instances_seance.filter((l) => l.progression_json === null)
+    const [terminee] = p.rows.instances_seance.filter((l) => l.progression_json !== null)
+    expect(planifiee && terminee).toBeTruthy()
+    const local = JSON.stringify({ evaluee: true, decisions: { e1: 'acceptee' } })
+    for (const id of [planifiee.id, terminee.id]) {
+      await db.execute('UPDATE instances_seance SET progression_json = ? WHERE id = ?', [local, id])
+    }
+    await applyImportPlan(db, p)
+    for (const id of [planifiee.id, terminee.id]) {
+      const l = await db.get<{ progression_json: string | null }>('SELECT progression_json FROM instances_seance WHERE id = ?', [id])
+      expect(l.progression_json).toBe(local)
+    }
+  })
+
   it("l'export gagne : une ligne locale de même id est remplacée par le contenu du fichier", async () => {
     const p = plan(exportV32)
     await applyImportPlan(db, p)

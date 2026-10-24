@@ -68,9 +68,12 @@ const HAUTEUR = 160
 const MARGE = 20
 
 // Courbe de l'historique : la charge max, ou à défaut (poids du corps, gainage) les reps / secondes.
-export function construireGraphique(historique: PointHistorique[]): Graphique {
-  const avecCharge = historique.some((p) => p.maxChargeKg > 0)
-  const unite: UniteHistorique = avecCharge ? 'kg' : historique.some((p) => p.enSecondes) ? 's' : 'reps'
+// Historique mixte (certaines séances au poids du corps) : en kg, les points sans charge sont écartés
+// plutôt que tracés à 0 kg, ce qui ferait croire à une chute de charge.
+export function construireGraphique(tout: PointHistorique[]): Graphique {
+  const avecCharge = tout.some((p) => p.maxChargeKg > 0)
+  const historique = avecCharge ? tout.filter((p) => p.maxChargeKg > 0) : tout
+  const unite: UniteHistorique = avecCharge ? 'kg' : tout.some((p) => p.enSecondes) ? 's' : 'reps'
   const valeurs = historique.map((p) => (avecCharge ? p.maxChargeKg : p.reps))
   const min = valeurs.length ? Math.min(...valeurs) : 0
   const max = valeurs.length ? Math.max(...valeurs) : 0

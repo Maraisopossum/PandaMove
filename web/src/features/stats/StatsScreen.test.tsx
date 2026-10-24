@@ -54,7 +54,7 @@ describe('StatsScreen', () => {
     const resume = await screen.findByRole('region', { name: 'Résumé de la période' })
     await waitFor(() => expect(texte(resume)).toContain('1 200 kg'))
     expect(texte(resume)).toMatch(/1\s*séance terminée/)
-    expect(screen.getByRole('button', { name: '30 jours' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: '1 mois' }).getAttribute('aria-pressed')).toBe('true')
 
     const liste = screen.getByRole('list', { name: 'Séries par groupe musculaire' })
     expect(within(liste).getAllByRole('listitem')).toHaveLength(MUSCLE_GROUPS.length)

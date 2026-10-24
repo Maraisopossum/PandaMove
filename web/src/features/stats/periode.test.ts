@@ -37,6 +37,8 @@ describe('persistance de la période', () => {
     expect(PERIODE_DEFAUT).toBe('30j')
     expect(lirePeriode()).toBe('30j')
     expect(PERIODES.map((p) => p.id)).toEqual(['7j', '30j', '3m', '12m', 'tout'])
+    // Le libellé dit ce que fait le calcul (recul d'un mois calendaire, minusMonths(1) Android)
+    expect(PERIODES.find((p) => p.id === '30j')?.libelle).toBe('1 mois')
   })
 
   it('écrit puis relit la période', () => {

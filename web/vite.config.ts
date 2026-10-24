@@ -12,7 +12,7 @@ export default defineConfig({
   // (le worker et les .wasm sont résolus via new URL(..., import.meta.url)) et utiliser des workers ES.
   optimizeDeps: { exclude: ['@journeyapps/wa-sqlite', '@powersync/web'] },
   worker: { format: 'es' },
-  // Le SDK PowerSync + Supabase pèsse ~550 Kio : seuil relevé pour garder un build sans avertissement
+  // Le SDK PowerSync + Supabase pèse ~550 Kio : seuil relevé pour garder un build sans avertissement
   build: { chunkSizeWarningLimit: 800 },
   test: {
     // Les tests e2e Playwright vivent dans e2e/ et ne doivent pas être collectés par Vitest
