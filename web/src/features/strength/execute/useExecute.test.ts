@@ -174,18 +174,76 @@ describe('useExecute : séries', () => {
     expect(r.result.current.demarre).toBe(true)
   })
 
-  it('deux validerSerie rapides donnent les numéros 1 et 2 avec des UUID distincts (file sérialisée)', async () => {
+  it('double appui sur « Valider la série » : une seule série enregistrée, le second appui est ignoré', async () => {
     const r = await monter()
+    let resultats: boolean[] = []
     await act(async () => {
-      await Promise.all([
+      resultats = await Promise.all([
         r.result.current.validerSerie(E1, { reps: 10, chargeKg: 60, rpe: null }),
-        r.result.current.validerSerie(E1, { reps: 9, chargeKg: 60, rpe: null }),
+        r.result.current.validerSerie(E1, { reps: 10, chargeKg: 60, rpe: null }),
       ])
     })
+    expect(resultats).toEqual([true, false])
+    expect((await lignesSeries()).map((l) => [l.numero_serie, l.reps_realisees])).toEqual([[1, 10]])
+    expect(r.result.current.validationEnCours(E1)).toBe(false)
+  })
+
+  it("validationEnCours vaut vrai pendant l'enregistrement, pour cet exercice seulement", async () => {
+    let liberer: () => void = () => {}
+    let bloquer = false
+    const bloquee: Db = {
+      ...db,
+      writeTransaction: async (fn) => {
+        if (bloquer) await new Promise<void>((ok) => (liberer = ok))
+        return db.writeTransaction(fn)
+      },
+    }
+    const r = await monter('i1', bloquee)
+    bloquer = true
+    let enCours: Promise<boolean> = Promise.resolve(false)
+    act(() => {
+      enCours = r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null })
+    })
+    await waitFor(() => expect(r.result.current.validationEnCours(E1)).toBe(true))
+    expect(r.result.current.validationEnCours(E2)).toBe(false)
+    await act(async () => {
+      liberer()
+      await enCours
+    })
+    expect(r.result.current.validationEnCours(E1)).toBe(false)
+  })
+
+  it('deux séries successives donnent les numéros 1 et 2 avec des UUID distincts', async () => {
+    const r = await monter()
+    await act(() => r.result.current.validerSerie(E1, { reps: 10, chargeKg: 60, rpe: null }))
+    await act(() => r.result.current.validerSerie(E1, { reps: 9, chargeKg: 60, rpe: null }))
     const lignes = await lignesSeries()
     expect(lignes.map((l) => [l.numero_serie, l.reps_realisees])).toEqual([[1, 10], [2, 9]])
     expect(new Set(lignes.map((l) => l.id)).size).toBe(2)
     expect(r.result.current.exercices[0].series.map((s) => s.numero)).toEqual([1, 2])
+  })
+
+  it("le numéro de série (max + 1) et l'insertion sont faits dans UNE transaction", async () => {
+    const horsTransaction: string[] = []
+    const espion: Db = {
+      ...db,
+      execute: async (sql, params) => {
+        horsTransaction.push(sql)
+        return db.execute(sql, params)
+      },
+      getAll: async (sql, params) => {
+        horsTransaction.push(sql)
+        return db.getAll(sql, params)
+      },
+    }
+    const r = await monter('i1', espion)
+    horsTransaction.length = 0
+    await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null }))
+    expect(await lignesSeries()).toHaveLength(1)
+    // Ni la lecture des séries existantes ni l'INSERT ne passent par la base hors transaction
+    // (seule la relecture d'affichage, après coup, lit les séries hors transaction)
+    const ecritures = horsTransaction.filter((sql) => /INSERT INTO series_realisees/.test(sql))
+    expect(ecritures).toEqual([])
   })
 
   it('corrigerSerie modifie la même ligne (aucune nouvelle ligne)', async () => {
@@ -239,10 +297,16 @@ describe('useExecute : séries', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const panne: Db = {
       ...db,
-      execute: async (sql, params) => {
-        if (/INTO series_realisees/.test(sql)) throw new Error('disque plein')
-        return db.execute(sql, params)
-      },
+      writeTransaction: (fn) =>
+        db.writeTransaction((tx) =>
+          fn({
+            ...tx,
+            execute: async (sql, params) => {
+              if (/INTO series_realisees/.test(sql)) throw new Error('disque plein')
+              return tx.execute(sql, params)
+            },
+          }),
+        ),
     }
     const r = await monter('i1', panne)
     await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null }))

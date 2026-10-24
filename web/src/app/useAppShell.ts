@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useLocation } from 'react-router'
-import { useAuth } from '../core/auth/AuthProvider'
+import { deconnecterSupabaseBrut, useAuth } from '../core/auth/AuthProvider'
 import { useSyncConnection } from '../core/sync/useSyncConnection'
 import { MODULES, moduleActif } from './modules'
 import { useDarkMode } from './theme'
@@ -12,11 +12,11 @@ const CONFIRMATION_ABANDON =
 
 // État de la coque : synchro (montée pour toutes les routes), module actif, drawer, thème, déconnexion.
 export function useAppShell() {
-  const { session, signOut } = useAuth()
+  const { session } = useAuth()
   const { pathname } = useLocation()
   const { signOutSafely, abandonnerDonneesLocales, messageAutreCompte } = useSyncConnection({
     userId: session?.user.id ?? null,
-    signOut,
+    signOut: deconnecterSupabaseBrut,
   })
   const { refBascule, refDrawer, ...drawer } = useDrawer()
   const sombre = useDarkMode({ userId: session?.user.id })

@@ -50,6 +50,7 @@ export default function ExecuteScreen() {
                 key={ex.id}
                 exercice={ex}
                 lectureSeule={e.terminee}
+                validationEnCours={e.validationEnCours(ex.id)}
                 onValider={(m) => void e.validerSerie(ex.id, m)}
                 onCorriger={(serieId, m) => void e.corrigerSerie(serieId, m)}
               />
@@ -91,10 +92,11 @@ export default function ExecuteScreen() {
 }
 
 function CarteExercice({
-  exercice: ex, lectureSeule, onValider, onCorriger,
+  exercice: ex, lectureSeule, validationEnCours, onValider, onCorriger,
 }: {
   exercice: ExerciceVue
   lectureSeule: boolean
+  validationEnCours: boolean
   onValider: (m: Mesures) => void
   onCorriger: (serieId: string, m: Mesures) => void
 }) {
@@ -128,6 +130,7 @@ function CarteExercice({
         <FormulaireSerie
           libelleReps={ex.libelleReps}
           initial={{ reps: derniere?.reps ?? null, chargeKg: derniere?.chargeKg ?? null, rpe: null }}
+          enCours={validationEnCours}
           onValider={onValider}
         />
       )}
@@ -159,10 +162,12 @@ function LigneSerie({ serie, libelleReps, onCorriger }: { serie: SerieVue; libel
 }
 
 function FormulaireSerie({
-  libelleReps, initial, onValider,
+  libelleReps, initial, enCours, onValider,
 }: {
   libelleReps: string
   initial: { reps: number | null; chargeKg: number | null; rpe: number | null }
+  // Enregistrement en cours : bouton désactivé (anti double appui, doublé par la garde de useExecute)
+  enCours: boolean
   onValider: (m: Mesures) => void
 }) {
   const saisie = useSaisieSerie(initial)
@@ -175,7 +180,7 @@ function FormulaireSerie({
       }}
     >
       <ChampsSerie libelleReps={libelleReps} saisie={saisie} />
-      <button type="submit" className="bouton bouton--principal">
+      <button type="submit" className="bouton bouton--principal" disabled={enCours} aria-busy={enCours}>
         Valider la série
       </button>
     </form>

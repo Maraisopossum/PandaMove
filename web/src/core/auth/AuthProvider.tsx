@@ -8,7 +8,15 @@ export interface AuthContextValue {
   signIn(email: string, password: string): Promise<void>
   signUp(email: string, password: string): Promise<void>
   signInWithMagicLink(email: string): Promise<void>
-  signOut(): Promise<void>
+  // Pas de signOut ici : la déconnexion passe uniquement par signOutSafely (useSyncConnection),
+  // qui protège les modifications locales non envoyées.
+}
+
+// Déconnexion Supabase brute, réservée à la coque qui la confie à useSyncConnection (signOutSafely).
+// Ne jamais l'appeler directement depuis un écran.
+export async function deconnecterSupabaseBrut(): Promise<void> {
+  const { error } = await getSupabase().auth.signOut()
+  if (error) throw error
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -40,10 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           options: { emailRedirectTo: window.location.origin },
         })
-        if (error) throw error
-      },
-      async signOut() {
-        const { error } = await getSupabase().auth.signOut()
         if (error) throw error
       },
     }),

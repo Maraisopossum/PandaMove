@@ -1,5 +1,5 @@
 import { comparerHorodatages } from '../../common/parseTimestamp'
-import type { Db, DbLecture } from '../Db'
+import type { Db, DbLecture, DbTx } from '../Db'
 import { newId } from '../ids'
 import type { SerieRealisee } from '../types'
 import { mapSerie, type Ligne } from './mappers'
@@ -11,7 +11,7 @@ export type ModifSerie = Partial<Pick<SerieRealisee,
 // Séries en ajout seul : chaque série a son propre uuid, on n'écrase jamais la ligne d'un autre appareil.
 // `maintenant` (ISO) horodate la ligne ET pose validated_at, l'ancre du repos : contrairement à
 // updated_at (réécrit par le trigger serveur à l'envoi et par une correction), il ne bouge plus.
-export async function addSerie(db: Db, serie: NouvelleSerie, maintenant: string = new Date().toISOString()): Promise<string> {
+export async function addSerie(db: Db | DbTx, serie: NouvelleSerie, maintenant: string = new Date().toISOString()): Promise<string> {
   const id = newId()
   await db.execute(
     `INSERT INTO series_realisees

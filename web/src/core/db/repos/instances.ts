@@ -28,7 +28,7 @@ export async function listInstances(db: Db): Promise<InstanceSeance[]> {
 }
 
 // Démarre l'exécution : started_at n'est écrit qu'une fois (un second appel garde la première valeur).
-export async function demarrerInstance(db: Db, id: string, startedAtIso: string): Promise<void> {
+export async function demarrerInstance(db: Db | DbTx, id: string, startedAtIso: string): Promise<void> {
   await db.execute(
     'UPDATE instances_seance SET started_at = ?, updated_at = ? WHERE id = ? AND started_at IS NULL AND deleted_at IS NULL',
     [startedAtIso, startedAtIso, id],

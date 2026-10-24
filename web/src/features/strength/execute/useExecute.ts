@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDb } from '../../../core/db/client'
-import type { Db } from '../../../core/db/Db'
+import type { Db, DbLecture } from '../../../core/db/Db'
 import {
   copyTemplateToInstance, demarrerInstance, enregistrerPauses, ErreurInstance, getInstance, terminerInstance,
 } from '../../../core/db/repos/instances'
@@ -62,14 +62,14 @@ async function lire(db: Db, instanceId: string): Promise<Donnees> {
 }
 
 // Instance vivante et non terminée, relue en base (jamais depuis l'état React, qui peut être en retard).
-async function instanceModifiable(db: Db, instanceId: string): Promise<InstanceSeance> {
+async function instanceModifiable(db: DbLecture, instanceId: string): Promise<InstanceSeance> {
   const instance = await getInstance(db, instanceId)
   if (!instance) throw new ErreurExecution('Séance introuvable.')
   if (instance.isCompleted) throw new ErreurExecution(TERMINEE)
   return instance
 }
 
-async function repsTypeExercice(db: Db, instanceId: string, exerciceId: string): Promise<RepsType> {
+async function repsTypeExercice(db: DbLecture, instanceId: string, exerciceId: string): Promise<RepsType> {
   const ligne = await db.getOptional<{ reps_type: string | null }>(
     'SELECT reps_type FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
     [exerciceId, instanceId],
@@ -87,6 +87,15 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
   const file = useRef<Promise<unknown>>(Promise.resolve())
+  // Exercices dont une validation de série est en cours : la ref garde contre un double appui
+  // (synchrone), l'état sert à désactiver le bouton à l'écran.
+  const validationsRef = useRef(new Set<string>())
+  const [validations, setValidations] = useState<ReadonlySet<string>>(() => new Set())
+  const marquerValidation = useCallback((exerciceId: string, enCours: boolean) => {
+    if (enCours) validationsRef.current.add(exerciceId)
+    else validationsRef.current.delete(exerciceId)
+    setValidations(new Set(validationsRef.current))
+  }, [])
 
   const instance = donnees.instance
   const horloge = instance ? horlogeDe(instance) : SANS_HORLOGE
@@ -216,34 +225,42 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   )
 
   const validerSerie = useCallback(
-    (exerciceId: string, s: Mesures) =>
-      ecrire(async (base, maintenant) => {
-        const inst = await instanceModifiable(base, instanceId)
-        const repsType = await repsTypeExercice(base, instanceId, exerciceId)
-        const invalide = verifierMesures(s, repsType)
-        if (invalide) throw new ErreurExecution(invalide)
+    (exerciceId: string, s: Mesures): Promise<boolean> => {
+      // Anti double appui : une seconde validation du même exercice, tant que la première n'est pas
+      // terminée, est ignorée (sinon deux séries identiques seraient enregistrées).
+      if (validationsRef.current.has(exerciceId)) return Promise.resolve(false)
+      marquerValidation(exerciceId, true)
+      return ecrire(async (base, maintenant) => {
         const iso = new Date(maintenant).toISOString()
-        // Valider une série sans avoir appuyé sur « Démarrer » lance le chrono (aucune saisie perdue).
-        if (inst.startedAt === null) await demarrerInstance(base, instanceId, iso)
-        const existantes = (await listSeries(base, instanceId)).filter((x) => x.exerciceSeanceId === exerciceId)
-        const numero = 1 + existantes.reduce((max, x) => Math.max(max, x.numeroSerie), 0)
-        await addSerie(
-          base,
-          {
-            instanceSeanceId: instanceId,
-            exerciceSeanceId: exerciceId,
-            numeroSerie: numero,
-            repsRealisees: s.reps,
-            chargeKg: s.chargeKg,
-            chargeLabel: null,
-            rpe: s.rpe,
-            notes: '',
-            isCompleted: true,
-          },
-          iso,
-        )
-      }, "L'enregistrement de la série a échoué. Réessayez."),
-    [ecrire, instanceId],
+        // Lecture du numéro max ET insertion dans UNE transaction : aucun autre écrit ne s'intercale.
+        await base.writeTransaction(async (tx) => {
+          const inst = await instanceModifiable(tx, instanceId)
+          const repsType = await repsTypeExercice(tx, instanceId, exerciceId)
+          const invalide = verifierMesures(s, repsType)
+          if (invalide) throw new ErreurExecution(invalide)
+          // Valider une série sans avoir appuyé sur « Démarrer » lance le chrono (aucune saisie perdue).
+          if (inst.startedAt === null) await demarrerInstance(tx, instanceId, iso)
+          const existantes = (await listSeries(tx, instanceId)).filter((x) => x.exerciceSeanceId === exerciceId)
+          const numero = 1 + existantes.reduce((max, x) => Math.max(max, x.numeroSerie), 0)
+          await addSerie(
+            tx,
+            {
+              instanceSeanceId: instanceId,
+              exerciceSeanceId: exerciceId,
+              numeroSerie: numero,
+              repsRealisees: s.reps,
+              chargeKg: s.chargeKg,
+              chargeLabel: null,
+              rpe: s.rpe,
+              notes: '',
+              isCompleted: true,
+            },
+            iso,
+          )
+        })
+      }, "L'enregistrement de la série a échoué. Réessayez.").finally(() => marquerValidation(exerciceId, false))
+    },
+    [ecrire, instanceId, marquerValidation],
   )
 
   const corrigerSerie = useCallback(
@@ -288,5 +305,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     terminer,
     validerSerie,
     corrigerSerie,
+    /** Vrai pendant l'enregistrement d'une série de cet exercice (bouton « Valider » désactivé). */
+    validationEnCours: (exerciceId: string) => validations.has(exerciceId),
   }
 }
