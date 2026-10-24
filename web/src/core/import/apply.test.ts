@@ -141,6 +141,11 @@ describe('applyImportPlan', () => {
     expect(stocke.kettlebell).toBeTruthy()
   })
 
+  it("matériel : l'import laisse dark_mode à NULL (aucun faux choix de thème)", async () => {
+    await applyImportPlan(db, plan(materiel))
+    expect((await getSettings(db, USER)).darkMode).toBeNull()
+  })
+
   it("matériel : l'échec d'une table annule aussi l'écriture des réglages", async () => {
     const p = plan(exportV32)
     expect(p.equipmentPatch).not.toBeNull()

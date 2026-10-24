@@ -127,7 +127,8 @@ export interface Exercise {
 
 export interface UserSettings {
   pandaVariant: PandaVariant
-  darkMode: boolean
+  // null = aucun choix explicite (suivre la préférence du système)
+  darkMode: boolean | null
   // JSON sérialisé de l'inventaire matériel ; '{}' par défaut (aucun matériel déclaré)
   equipmentJson: string
 }

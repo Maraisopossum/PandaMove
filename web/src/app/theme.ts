@@ -75,7 +75,8 @@ export function useDarkMode({ db, userId }: DepsTheme = {}) {
     const version = versionChoix
     getSettingsExistants(db ?? getDb(), userId)
       .then((reglages) => {
-        if (annule || !reglages || version !== versionChoix) return
+        // null = aucun choix explicite : on garde le cache local / la préférence du système
+        if (annule || !reglages || reglages.darkMode === null || version !== versionChoix) return
         ecrireMemorise(reglages.darkMode)
         setDarkEtat(reglages.darkMode)
       })

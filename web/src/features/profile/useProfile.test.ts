@@ -64,6 +64,28 @@ describe('useProfile', () => {
     expect(localStorage.getItem(CLE_THEME)).toBe('dark')
   })
 
+  it('changer la variante laisse dark_mode à NULL', async () => {
+    const db = createTestDb()
+    const { result } = await monter(db)
+    await act(() => result.current.setPandaVariant('female'))
+    expect((await getSettings(db, USER)).darkMode).toBeNull()
+  })
+
+  it('OS sombre + ligne de réglages à dark_mode NULL : le thème reste sombre, puis un choix explicite gagne', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('dark') }))
+    const db = createTestDb()
+    await saveSettings(db, USER, { pandaVariant: 'female' })
+    const { result } = await monter(db)
+    expect(result.current.dark).toBe(true)
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    await act(() => result.current.setDark(false))
+    expect((await getSettings(db, USER)).darkMode).toBe(false)
+    const second = await monter(db)
+    expect(second.result.current.dark).toBe(false)
+    await act(() => second.result.current.setDark(true))
+    expect((await getSettings(db, USER)).darkMode).toBe(true)
+  })
+
   it('changer la variante ne touche pas au mode sombre ni au matériel', async () => {
     const db = createTestDb()
     await saveSettings(db, USER, { darkMode: true, equipmentJson: '{"a":1}' })

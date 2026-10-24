@@ -48,6 +48,7 @@ beforeAll(async () => {
   `)
   await db.exec(migration('0001_schema.sql'))
   await db.exec(migration('0002_rls.sql'))
+  await db.exec(migration('0003_dark_mode_nullable.sql'))
   await db.exec(`
     grant usage on schema public, auth to authenticated;
     grant all on all tables in schema public to authenticated;
@@ -143,9 +144,9 @@ describe('contraintes', () => {
     ).rejects.toThrow(/panda_variant/)
     await commeUtilisateur(A, () => db.exec(`insert into user_settings (id) values ('50000000-0000-4000-8000-000000000002')`))
     const r = await commeUtilisateur(A, () =>
-      db.query<{ panda_variant: string; dark_mode: boolean }>('select panda_variant, dark_mode from user_settings'),
+      db.query<{ panda_variant: string; dark_mode: boolean | null }>('select panda_variant, dark_mode from user_settings'),
     )
-    expect(r.rows).toEqual([{ panda_variant: 'male', dark_mode: false }])
+    expect(r.rows).toEqual([{ panda_variant: 'male', dark_mode: null }])
   })
 })
 

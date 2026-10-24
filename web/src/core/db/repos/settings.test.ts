@@ -11,7 +11,7 @@ beforeEach(() => {
 
 describe('settings', () => {
   it('renvoie les valeurs par défaut quand aucune ligne', async () => {
-    expect(await getSettings(db, 'u1')).toEqual({ pandaVariant: 'male', darkMode: false, equipmentJson: '{}' })
+    expect(await getSettings(db, 'u1')).toEqual({ pandaVariant: 'male', darkMode: null, equipmentJson: '{}' })
   })
 
   it('upsert sur un id déterministe : une seule ligne par utilisateur', async () => {
@@ -23,8 +23,18 @@ describe('settings', () => {
     expect(lignes).toEqual([{ id: deterministicId('u1', 'user_settings'), user_id: 'u1' }])
   })
 
+  it("une écriture sans darkMode laisse la colonne à NULL (aucun faux choix « clair »)", async () => {
+    await saveSettings(db, 'u1', { equipmentJson: '{"a":1}' })
+    await saveSettings(db, 'u1', { pandaVariant: 'female' })
+    const l = await db.get<{ dark_mode: number | null }>('SELECT dark_mode FROM user_settings')
+    expect(l.dark_mode).toBeNull()
+    expect((await getSettings(db, 'u1')).darkMode).toBeNull()
+    await saveSettings(db, 'u1', { darkMode: false })
+    expect((await getSettings(db, 'u1')).darkMode).toBe(false)
+  })
+
   it('deux utilisateurs ont deux lignes distinctes', async () => {
     await saveSettings(db, 'u1', { darkMode: true })
-    expect((await getSettings(db, 'u2')).darkMode).toBe(false)
+    expect((await getSettings(db, 'u2')).darkMode).toBeNull()
   })
 })

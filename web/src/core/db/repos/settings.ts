@@ -4,7 +4,7 @@ import type { PandaVariant, UserSettings } from '../types'
 import type { Ligne } from './mappers'
 
 // Valeurs par défaut quand aucune ligne n'existe (equipmentJson '{}' = aucun matériel déclaré).
-const DEFAUTS: UserSettings = { pandaVariant: 'male', darkMode: false, equipmentJson: '{}' }
+const DEFAUTS: UserSettings = { pandaVariant: 'male', darkMode: null, equipmentJson: '{}' }
 
 // Une seule ligne par utilisateur : l'id est déterministe pour que deux appareils hors-ligne
 // convergent vers la même ligne au lieu d'en créer deux.
@@ -20,7 +20,7 @@ export async function getSettingsExistants(db: DbLecture, userId: string): Promi
   if (!ligne) return null
   return {
     pandaVariant: ((ligne.panda_variant as string | null) ?? DEFAUTS.pandaVariant) as PandaVariant,
-    darkMode: ligne.dark_mode === 1,
+    darkMode: ligne.dark_mode === null || ligne.dark_mode === undefined ? null : ligne.dark_mode === 1,
     equipmentJson: (ligne.equipment_json as string | null) ?? DEFAUTS.equipmentJson,
   }
 }
@@ -38,12 +38,12 @@ export async function saveSettingsTx(tx: DbTx, userId: string, patch: Partial<Us
   const courant = existante && existante.deleted_at === null
     ? {
         pandaVariant: ((existante.panda_variant as string | null) ?? DEFAUTS.pandaVariant) as PandaVariant,
-        darkMode: existante.dark_mode === 1,
+        darkMode: existante.dark_mode === null ? null : existante.dark_mode === 1,
         equipmentJson: (existante.equipment_json as string | null) ?? DEFAUTS.equipmentJson,
       }
     : DEFAUTS
   const fusion = { ...courant, ...patch }
-  const valeurs = [fusion.equipmentJson, fusion.pandaVariant, fusion.darkMode ? 1 : 0, new Date().toISOString()]
+  const valeurs = [fusion.equipmentJson, fusion.pandaVariant, fusion.darkMode === null ? null : fusion.darkMode ? 1 : 0, new Date().toISOString()]
   if (existante) {
     await tx.execute(
       'UPDATE user_settings SET equipment_json = ?, panda_variant = ?, dark_mode = ?, updated_at = ?, deleted_at = NULL WHERE id = ?',

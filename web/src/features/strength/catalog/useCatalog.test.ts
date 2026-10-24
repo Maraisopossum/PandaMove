@@ -105,6 +105,17 @@ describe('useCatalog', () => {
     expect(n.n).toBe(5)
   })
 
+  it('creerPersonnalise refuse de remplacer un exercice vivant renommé (même id déterministe)', async () => {
+    const db = createTestDb()
+    const id = deterministicId(`${USER}:exercises`, 'squat')
+    // Importé « Squat » (id X) puis renommé « Back squat »
+    await exo(db, id, 'Back squat', { is_favorite: 1 })
+    const { result } = await monter(db)
+    await expect(result.current.creerPersonnalise({ name: 'Squat', muscleGroups: [] })).rejects.toThrow(/existe déjà/)
+    const l = await db.get<{ name: string }>('SELECT name FROM exercises WHERE id = ?', [id])
+    expect(l.name).toBe('Back squat')
+  })
+
   it('un exercice supprimé libère son nom (ressuscité, pas dupliqué)', async () => {
     const db = createTestDb()
     const id = deterministicId(`${USER}:exercises`, 'squat')

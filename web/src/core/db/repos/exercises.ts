@@ -62,7 +62,12 @@ export async function creerExercice(db: Db, userId: string, e: NewExercise): Pro
   const maintenant = new Date().toISOString()
   await db.writeTransaction(async (tx) => {
     if (await nomPris(tx, e.name, null)) throw new ErreurExercice(MESSAGE_DOUBLON)
-    const existante = await tx.getOptional<{ is_favorite: number | null }>('SELECT is_favorite FROM exercises WHERE id = ?', [id])
+    const existante = await tx.getOptional<{ is_favorite: number | null; deleted_at: string | null }>(
+      'SELECT is_favorite, deleted_at FROM exercises WHERE id = ?',
+      [id],
+    )
+    // Une ligne vivante portant déjà cet id (exercice renommé depuis) ne doit jamais être écrasée
+    if (existante && existante.deleted_at === null) throw new ErreurExercice(MESSAGE_DOUBLON)
     await upsertRow(tx, 'exercises', {
       id,
       user_id: userId,
@@ -70,7 +75,7 @@ export async function creerExercice(db: Db, userId: string, e: NewExercise): Pro
       deleted_at: null,
       ...champs(e),
       is_custom: 1,
-      is_favorite: existante?.is_favorite ?? 0,
+      is_favorite: 0,
       image_url: null,
     })
   })

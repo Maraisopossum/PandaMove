@@ -40,6 +40,14 @@ describe('useEquipment', () => {
     expect(n.n).toBe(0)
   })
 
+  it("enregistrer du matériel laisse dark_mode à NULL", async () => {
+    const db = createTestDb()
+    const { result } = await monter(db)
+    await act(() => result.current.setBarre(BARRE))
+    const l = await db.get<{ dark_mode: number | null }>('SELECT dark_mode FROM user_settings')
+    expect(l.dark_mode).toBeNull()
+  })
+
   it('tolère un equipment_json malformé', async () => {
     const db = createTestDb()
     await saveSettings(db, USER, { equipmentJson: 'pas du json' })
