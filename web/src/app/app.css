@@ -871,3 +871,178 @@ h1 {
   border-radius: 12px;
   background: color-mix(in srgb, #e65100 8%, var(--surface));
 }
+
+/* Statistiques (module orange #BF360C) : cartes chiffres-clés, heatmap musculaire, historique */
+.stats__section {
+  margin: 1.5rem 0;
+}
+
+.stats__vide {
+  margin: 1.5rem 0;
+  color: var(--texte-secondaire);
+}
+
+.stats__cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+}
+
+.stats__carte {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bord);
+  border-left: 4px solid #bf360c;
+  border-radius: 12px;
+  background: color-mix(in srgb, #bf360c 8%, var(--surface));
+}
+
+.stats__carte p {
+  margin: 0;
+}
+
+.stats__valeur {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.stats__libelle {
+  color: var(--texte-secondaire);
+}
+
+.heatmap {
+  margin: 1rem 0 0.5rem;
+}
+
+.heatmap__cadre {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  aspect-ratio: 2 / 3;
+}
+
+.heatmap__image,
+.heatmap__calque {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.heatmap__zone {
+  fill-opacity: 0.72;
+  stroke: #5d1a00;
+  stroke-width: 2;
+}
+
+.heatmap__zone--vide {
+  fill-opacity: 0;
+  stroke: #5c5c66;
+  stroke-dasharray: 6 4;
+  stroke-width: 1.5;
+}
+
+.heatmap__legende {
+  margin-top: 0.5rem;
+  text-align: center;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.heatmap__niveaux {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.heatmap__niveaux li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.heatmap__pastille {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--texte-secondaire);
+  border-radius: 4px;
+}
+
+.stats__barres {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats__barre {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) 2fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 32px;
+}
+
+.stats__barre-lieu {
+  color: var(--texte-secondaire);
+  font-size: 0.8125rem;
+}
+
+.stats__barre-piste {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bord);
+  overflow: hidden;
+}
+
+.stats__barre-remplie {
+  display: block;
+  height: 100%;
+}
+
+.stats__barre-valeur {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats__graphique {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  margin: 0.5rem 0 1rem;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.stats__courbe {
+  stroke: #bf360c;
+  stroke-width: 3;
+}
+
+.stats__point {
+  fill: #bf360c;
+}
+
+.stats__tableau {
+  border-collapse: collapse;
+  min-width: 16rem;
+}
+
+.stats__tableau caption {
+  text-align: left;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.stats__tableau th,
+.stats__tableau td {
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--bord);
+  text-align: left;
+}

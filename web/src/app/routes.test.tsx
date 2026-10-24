@@ -54,9 +54,10 @@ describe('table de routes', () => {
   })
 
   it('une route connue rend son écran', () => {
-    const routeur = createMemoryRouter(routes(false), { initialEntries: ['/stats'] })
+    // L'accueil est encore un écran provisoire, rendu sans chargement à la demande
+    const routeur = createMemoryRouter(routes(false), { initialEntries: ['/'] })
     render(<RouterProvider router={routeur} />)
-    expect(screen.getByRole('heading', { name: 'Statistiques' })).toBeDefined()
+    expect(screen.getByRole('heading', { name: 'Accueil' })).toBeDefined()
   })
 
   it("/debug/write n'est pas enregistrée hors développement", () => {
