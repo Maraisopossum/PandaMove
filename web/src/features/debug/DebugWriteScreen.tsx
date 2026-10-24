@@ -1,5 +1,7 @@
+import { useActionState } from 'react'
 import { useSyncStatus, type SyncState } from '../../core/sync/useSyncStatus'
 import { useDebugSeances } from './useDebugSeances'
+import type { ResultatDeconnexion } from './useSyncConnection'
 
 const LIBELLES: Record<SyncState, string> = {
   offline: 'hors ligne',
@@ -9,9 +11,16 @@ const LIBELLES: Record<SyncState, string> = {
 
 // Page de debug (dev uniquement) : écrit une séance en local et affiche l'état de synchro.
 // Les textes d'état sont vérifiés par le test e2e (e2e/offline-sync.spec.ts).
-export default function DebugWriteScreen({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
+export default function DebugWriteScreen({
+  userId,
+  signOutSafely,
+}: {
+  userId: string
+  signOutSafely: () => Promise<ResultatDeconnexion>
+}) {
   const { state } = useSyncStatus()
   const { seances, ajouter } = useDebugSeances(userId)
+  const [avertissement, deconnecter] = useActionState(async () => (await signOutSafely()).message ?? null, null)
 
   return (
     <main>
@@ -20,9 +29,10 @@ export default function DebugWriteScreen({ userId, onSignOut }: { userId: string
       <button type="button" onClick={() => void ajouter()}>
         Ajouter une séance
       </button>
-      <button type="button" onClick={onSignOut}>
-        Se déconnecter
-      </button>
+      <form action={deconnecter}>
+        <button type="submit">Se déconnecter</button>
+      </form>
+      {avertissement && <p role="alert">{avertissement}</p>}
       <ul>
         {seances.map((s) => (
           <li key={s.id}>{s.nom}</li>
