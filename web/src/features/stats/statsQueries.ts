@@ -1,3 +1,4 @@
+import { comparerHorodatages } from '../../core/common/parseTimestamp'
 import { normalizeSearch } from '../../core/common/normalizeSearch'
 import { muscleToGroup } from '../../core/catalogue/muscleToGroup'
 import type { DbLecture } from '../../core/db/Db'
@@ -67,9 +68,9 @@ function seriesRetenues(lignes: LigneSerie[]): LigneSerie[] {
   for (const l of lignes) {
     const cle = `${l.instance_seance_id}#${l.exercice_seance_id}#${l.numero_serie}`
     const existante = gardees.get(cle)
-    const maj = l.updated_at ?? ''
-    const majExistante = existante?.updated_at ?? ''
-    if (!existante || maj > majExistante || (maj === majExistante && l.id > existante.id)) gardees.set(cle, l)
+    // Comparaison par instant (formats ISO client et Postgres mélangés), pas par ordre alphabétique
+    const ordre = existante ? comparerHorodatages(l.updated_at, existante.updated_at) : 1
+    if (!existante || ordre > 0 || (ordre === 0 && l.id > existante.id)) gardees.set(cle, l)
   }
   return [...gardees.values()].filter((l) => l.is_completed === 1)
 }

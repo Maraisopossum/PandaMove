@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mapBloc, mapExerciceSeance, mapSerie } from '../../../core/db/repos/mappers'
 import { construireVue, formaterDuree, libelleDureeAccessible, reposRestant } from './vue'
 
@@ -60,5 +60,25 @@ describe('reposRestant', () => {
     expect(reposRestant(vue.exercices, t)).toBe(90_000)
     expect(reposRestant(vue.exercices, t + 600_000)).toBe(0)
     expect(reposRestant([], t)).toBeNull()
+  })
+
+  it('formats mélangés (série synchronisée « 2026-10-24 10:02:00+00 » et série locale ISO) : la plus récente gagne', () => {
+    const vue = construireVue(
+      [],
+      [mapExerciceSeance({ id: 'a', temps_repos_sec: 60 }), mapExerciceSeance({ id: 'b', temps_repos_sec: 120 })],
+      [
+        mapSerie({ id: '1', exercice_seance_id: 'a', numero_serie: 1, updated_at: '2026-10-24 10:02:00+00' }),
+        mapSerie({ id: '2', exercice_seance_id: 'b', numero_serie: 1, updated_at: '2026-10-24T10:01:00.000Z' }),
+      ],
+      new Map(),
+    )
+    const t = Date.parse('2026-10-24T10:02:30.000Z')
+    // Safari / iOS : Date.parse du format Postgres renvoie NaN
+    const safari = vi.spyOn(Date, 'parse').mockReturnValue(Number.NaN)
+    try {
+      expect(reposRestant(vue.exercices, t)).toBe(30_000)
+    } finally {
+      safari.mockRestore()
+    }
   })
 })

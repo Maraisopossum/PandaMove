@@ -47,6 +47,16 @@ describe('series', () => {
     expect(series[0].id).toBe(b)
   })
 
+  it('doublon aux formats mélangés (Postgres vs ISO) : compare les instants, pas le texte', async () => {
+    const a = await addSerie(db, serie({ repsRealisees: 5 }))
+    const b = await addSerie(db, serie({ repsRealisees: 9 }))
+    // « 2026-05-01 12:00:00+00 » est plus récent mais trié AVANT « 2026-05-01T11:00 » par ordre alphabétique
+    await db.execute('UPDATE series_realisees SET updated_at = ? WHERE id = ?', ['2026-05-01 12:00:00+00', a])
+    await db.execute('UPDATE series_realisees SET updated_at = ? WHERE id = ?', ['2026-05-01T11:00:00.000Z', b])
+    const series = await listSeries(db, 'i1')
+    expect(series.map((s) => s.id)).toEqual([a])
+  })
+
   it('ne dédoublonne pas des numéros ou exercices différents, trie par exercice puis numéro', async () => {
     await addSerie(db, serie({ numeroSerie: 2 }))
     await addSerie(db, serie({ numeroSerie: 1 }))

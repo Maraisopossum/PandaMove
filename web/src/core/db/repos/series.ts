@@ -1,3 +1,4 @@
+import { comparerHorodatages } from '../../common/parseTimestamp'
 import type { Db, DbLecture } from '../Db'
 import { newId } from '../ids'
 import type { SerieRealisee } from '../types'
@@ -53,6 +54,8 @@ export async function updateSerie(
 
 // Séries d'une instance. Si deux appareils ont créé la même (exercice, numéro) hors-ligne,
 // seule la ligne au updated_at le plus récent est conservée (dédoublonnage à la lecture).
+// Comparaison par instant : une ligne synchronisée (« 2026-10-24 16:00:00+00 ») et une ligne locale
+// (« 2026-10-24T16:00:00.000Z ») ne se comparent pas correctement comme du texte.
 export async function listSeries(db: DbLecture, instanceId: string): Promise<SerieRealisee[]> {
   const lignes = await db.getAll<Ligne>(
     'SELECT * FROM series_realisees WHERE instance_seance_id = ? AND deleted_at IS NULL',
@@ -62,7 +65,8 @@ export async function listSeries(db: DbLecture, instanceId: string): Promise<Ser
   for (const serie of lignes.map(mapSerie)) {
     const cle = `${serie.exerciceSeanceId}#${serie.numeroSerie}`
     const existante = gardees.get(cle)
-    if (!existante || serie.updatedAt > existante.updatedAt || (serie.updatedAt === existante.updatedAt && serie.id > existante.id)) {
+    const ordre = existante ? comparerHorodatages(serie.updatedAt, existante.updatedAt) : 1
+    if (!existante || ordre > 0 || (ordre === 0 && serie.id > existante.id)) {
       gardees.set(cle, serie)
     }
   }

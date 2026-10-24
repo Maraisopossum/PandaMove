@@ -1,3 +1,4 @@
+import { parseTimestamp } from '../../../core/common/parseTimestamp'
 import type { BlocSeance, ExerciceSeance, RepsType, SerieRealisee } from '../../../core/db/types'
 
 // Fonctions pures de l'écran d'exécution : construction de la vue, validation des mesures, formats.
@@ -109,8 +110,8 @@ export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | 
   let derniere: { ms: number; reposSec: number } | null = null
   for (const e of exercices) {
     for (const s of e.series) {
-      const ms = Date.parse(s.updatedAt)
-      if (Number.isFinite(ms) && (derniere === null || ms > derniere.ms)) derniere = { ms, reposSec: e.tempsReposSec }
+      const ms = parseTimestamp(s.updatedAt)
+      if (ms !== null && (derniere === null || ms > derniere.ms)) derniere = { ms, reposSec: e.tempsReposSec }
     }
   }
   if (derniere === null) return null

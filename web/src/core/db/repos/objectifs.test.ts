@@ -42,6 +42,12 @@ describe('getObjectif', () => {
     expect(await getObjectif(db, 's1', 'x1')).toMatchObject({ id: 'web-b', chargeCible: 45, compteurEchec: 0 })
   })
 
+  it('formats mélangés (synchronisé Postgres vs ISO local) : compare les instants, pas le texte', async () => {
+    await ligne('synchro', { charge_cible: 47.5, updated_at: '2026-03-01 12:00:00+00' })
+    await ligne('local', { charge_cible: 45, updated_at: '2026-03-01T11:00:00.000Z' })
+    expect((await getObjectif(db, 's1', 'x1'))?.id).toBe('synchro')
+  })
+
   it('ignore les lignes supprimées', async () => {
     await ligne('vivante', { charge_cible: 40, updated_at: '2026-01-01T00:00:00.000Z' })
     await ligne('supprimee', { charge_cible: 45, updated_at: '2026-03-01T00:00:00.000Z', deleted_at: '2026-03-02T00:00:00.000Z' })

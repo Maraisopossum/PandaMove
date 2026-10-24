@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { clockFromRow, clockToRow, elapsedMs, type SessionClock } from './sessionClock'
 
 const T0 = Date.parse('2026-10-24T10:00:00.000Z')
@@ -89,5 +89,16 @@ describe('clockFromRow / clockToRow', () => {
 
   it('une date de démarrage illisible est traitée comme non démarrée', () => {
     expect(clockFromRow({ started_at: 'n importe quoi', paused_json: '[]' }).startedAtMs).toBeNull()
+  })
+
+  it("lit started_at au format Postgres / PowerSync même quand Date.parse échoue (Safari / iOS)", () => {
+    const safari = vi.spyOn(Date, 'parse').mockReturnValue(Number.NaN)
+    try {
+      expect(clockFromRow({ started_at: '2026-10-24 10:00:00.123456+00', paused_json: null }).startedAtMs).toBe(
+        Date.UTC(2026, 9, 24, 10, 0, 0, 123),
+      )
+    } finally {
+      safari.mockRestore()
+    }
   })
 })

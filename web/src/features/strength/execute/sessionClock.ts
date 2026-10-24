@@ -1,3 +1,5 @@
+import { parseTimestamp } from '../../../core/common/parseTimestamp'
+
 // Horloge de la séance en cours, pure : le temps écoulé est TOUJOURS recalculé depuis des
 // horodatages stockés (instances_seance.started_at / paused_json), jamais incrémenté en mémoire.
 // Ainsi un rechargement de la page, un onglet en arrière-plan ou une mise en veille ne perdent rien.
@@ -66,8 +68,8 @@ function lirePauses(json: string | null): Pause[] {
 }
 
 export function clockFromRow(ligne: LigneHorloge): SessionClock {
-  const ms = ligne.started_at === null ? Number.NaN : Date.parse(ligne.started_at)
-  return { startedAtMs: Number.isFinite(ms) ? ms : null, pauses: lirePauses(ligne.paused_json) }
+  // started_at synchronisé arrive au format Postgres (« 2026-10-24 10:00:00+00 ») : lecture tolérante
+  return { startedAtMs: parseTimestamp(ligne.started_at), pauses: lirePauses(ligne.paused_json) }
 }
 
 export function clockToRow(clock: SessionClock): { started_at: string | null; paused_json: string } {

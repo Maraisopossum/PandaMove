@@ -1,3 +1,4 @@
+import { comparerHorodatages } from '../../common/parseTimestamp'
 import { chargeLisible } from '../../progression/chargeLisible'
 import type { Db, DbLecture, DbTx } from '../Db'
 import { deterministicId } from '../ids'
@@ -15,12 +16,18 @@ export type ObjectifAEcrire = Omit<ObjectifProgression, 'id' | 'updatedAt'>
 
 const SELECT_COUPLE =
   `SELECT * FROM objectifs_progression
-   WHERE seance_id = ? AND exercise_id = ? AND deleted_at IS NULL
-   ORDER BY updated_at DESC, id DESC LIMIT 1`
+   WHERE seance_id = ? AND exercise_id = ? AND deleted_at IS NULL`
 
+// La plus récente est choisie en JS par instant (comparerHorodatages) : un ORDER BY SQL sur le texte
+// classerait mal une ligne synchronisée (« 2026-03-01 12:00:00+00 ») face à une ligne locale ISO.
 export async function getObjectif(db: DbLecture, seanceId: string, exerciseId: string): Promise<ObjectifProgression | null> {
-  const ligne = await db.getOptional<Ligne>(SELECT_COUPLE, [seanceId, exerciseId])
-  return ligne ? mapObjectif(ligne) : null
+  const lignes = (await db.getAll<Ligne>(SELECT_COUPLE, [seanceId, exerciseId])).map(mapObjectif)
+  let retenue: ObjectifProgression | null = null
+  for (const o of lignes) {
+    const ordre = retenue ? comparerHorodatages(o.updatedAt, retenue.updatedAt) : 1
+    if (!retenue || ordre > 0 || (ordre === 0 && o.id > retenue.id)) retenue = o
+  }
+  return retenue
 }
 
 async function ecrire(tx: DbTx, o: ObjectifAEcrire, maintenant: string): Promise<string> {

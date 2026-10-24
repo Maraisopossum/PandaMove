@@ -136,6 +136,16 @@ describe('statsQueries', () => {
     })
   })
 
+  it('doublon aux formats mélangés (Postgres vs ISO) : la ligne la plus récente en temps gagne', async () => {
+    const d = createTestDb()
+    await exercice(d, 'ex', 'Curl', ['BICEPS'])
+    await instance(d, 'i', '2026-10-01', true)
+    await exSeance(d, 'es', 'i', 'ex')
+    await serie(d, 'i', 'es', 1, 10, 10, { updated_at: '2026-10-01 12:00:00+00' })
+    await serie(d, 'i', 'es', 1, 10, 20, { updated_at: '2026-10-01T11:00:00Z' })
+    expect(await tonnagePeriode(d, '2026-10-01', '2026-10-01')).toBe(100)
+  })
+
   it('volume par muscle : nombre de séries terminées par muscle principal (règle Android), 16 clés', async () => {
     const v = await volumeParMuscle(db, '2026-10-01', '2026-10-31')
     expect(v).toEqual({ ...zeros(), PECTORAUX: 2, QUADRICEPS: 1, ABDOMINAUX: 2, DOS: 1 })
