@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { getDb } from '../core/db/client'
+import type { Db } from '../core/db/Db'
+import { getSettingsExistants, saveSettings } from '../core/db/repos/settings'
 
 export const CLE_THEME = 'pandamove.theme'
 
@@ -38,17 +41,68 @@ export function initialiserTheme() {
   appliquer(resoudreSombre(lireMemorise(), prefereSombre()))
 }
 
-// Mode sombre. Tâche 11 : le persister dans `user_settings` (le dépôt des réglages n'existe
-// pas encore) ; en attendant, localStorage + préférence du système.
-export function useDarkMode() {
+// Plusieurs composants (coque, écran de profil) montent chacun le hook : un petit bus les garde
+// synchronisés quand l'un d'eux change le thème.
+const ecouteurs = new Set<(dark: boolean) => void>()
+// Incrémenté à chaque choix explicite : une lecture de la base démarrée avant un choix est périmée.
+let versionChoix = 0
+
+export interface DepsTheme {
+  /** Base des réglages (défaut : base de l'application, résolue à l'usage). */
+  db?: Db
+  /** Utilisateur connecté ; sans lui, le choix reste local (localStorage). */
+  userId?: string
+}
+
+// Mode sombre. Premier rendu : choix mémorisé en localStorage (évite le flash de thème) puis
+// préférence système. Avec un utilisateur, la valeur de `user_settings.dark_mode` l'emporte dès
+// qu'elle est chargée (seulement si une ligne de réglages existe déjà) et chaque changement y est écrit.
+export function useDarkMode({ db, userId }: DepsTheme = {}) {
   const [dark, setDarkEtat] = useState(() => resoudreSombre(lireMemorise(), prefereSombre()))
 
   useEffect(() => appliquer(dark), [dark])
 
-  const setDark = useCallback((valeur: boolean) => {
-    setDarkEtat(valeur)
-    ecrireMemorise(valeur)
+  useEffect(() => {
+    ecouteurs.add(setDarkEtat)
+    return () => {
+      ecouteurs.delete(setDarkEtat)
+    }
   }, [])
 
-  return { dark, setDark }
+  useEffect(() => {
+    if (!userId) return
+    let annule = false
+    const version = versionChoix
+    getSettingsExistants(db ?? getDb(), userId)
+      .then((reglages) => {
+        if (annule || !reglages || version !== versionChoix) return
+        ecrireMemorise(reglages.darkMode)
+        setDarkEtat(reglages.darkMode)
+      })
+      .catch((e: unknown) => console.error('Lecture du mode sombre impossible', e))
+    return () => {
+      annule = true
+    }
+  }, [db, userId])
+
+  // Version asynchrone : la promesse se résout quand le choix est enregistré en base.
+  const enregistrerDark = useCallback(
+    async (valeur: boolean) => {
+      versionChoix++
+      setDarkEtat(valeur)
+      ecrireMemorise(valeur)
+      for (const ecouteur of ecouteurs) ecouteur(valeur)
+      if (userId) await saveSettings(db ?? getDb(), userId, { darkMode: valeur })
+    },
+    [db, userId],
+  )
+
+  const setDark = useCallback(
+    (valeur: boolean) => {
+      enregistrerDark(valeur).catch((e: unknown) => console.error('Enregistrement du mode sombre impossible', e))
+    },
+    [enregistrerDark],
+  )
+
+  return { dark, setDark, enregistrerDark }
 }

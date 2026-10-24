@@ -19,7 +19,7 @@ export function useAppShell() {
     signOut,
   })
   const { refBascule, refDrawer, ...drawer } = useDrawer()
-  const sombre = useDarkMode()
+  const sombre = useDarkMode({ userId: session?.user.id })
   const deconnexion = useDeconnexion(signOutSafely)
 
   const demanderAbandon = useCallback(() => {

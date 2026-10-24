@@ -22,6 +22,8 @@ const CHEMINS_ATTENDUS = [
   '/calendar',
   '/stats',
   '/profile',
+  '/profile/equipment',
+  '/strength/catalog',
   '/import',
 ]
 

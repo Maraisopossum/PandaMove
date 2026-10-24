@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { RouteObject } from 'react-router'
-import { ImportScreen } from './EcransChargesALaDemande'
+import { CatalogScreen, EquipmentScreen, ImportScreen, ProfileScreen } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
 import { PagePlaceholder } from './PagePlaceholder'
@@ -11,6 +11,9 @@ const chargerDebug = import.meta.env.DEV ? () => import('../features/debug/Debug
 const DebugWriteScreen = chargerDebug ? lazy(chargerDebug) : null
 
 const placeholder = (titre: string) => <PagePlaceholder titre={titre} />
+
+// Écrans chargés à la demande : un seul fallback commun
+const chargement = (ecran: ReactNode) => <Suspense fallback={<p>Chargement…</p>}>{ecran}</Suspense>
 
 // Table de routes : `coque` est le layout commun (drawer, barre du haut, <Outlet />).
 // `dev` est paramétrable pour tester l'absence de la route de debug hors développement.
@@ -24,15 +27,10 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
     { path: 'strength/instance/:id/report', element: placeholder('Bilan de séance') },
     { path: 'calendar', element: placeholder('Calendrier') },
     { path: 'stats', element: placeholder('Statistiques') },
-    { path: 'profile', element: placeholder('Profil') },
-    {
-      path: 'import',
-      element: (
-        <Suspense fallback={<p>Chargement…</p>}>
-          <ImportScreen />
-        </Suspense>
-      ),
-    },
+    { path: 'strength/catalog', element: chargement(<CatalogScreen />) },
+    { path: 'profile', element: chargement(<ProfileScreen />) },
+    { path: 'profile/equipment', element: chargement(<EquipmentScreen />) },
+    { path: 'import', element: chargement(<ImportScreen />) },
   ]
   if (dev && DebugWriteScreen) {
     enfants.push({

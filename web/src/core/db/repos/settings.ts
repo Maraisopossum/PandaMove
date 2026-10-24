@@ -10,17 +10,23 @@ const DEFAUTS: UserSettings = { pandaVariant: 'male', darkMode: false, equipment
 // convergent vers la même ligne au lieu d'en créer deux.
 const idReglages = (userId: string) => deterministicId(userId, 'user_settings')
 
-export async function getSettings(db: DbLecture, userId: string): Promise<UserSettings> {
+// Réglages enregistrés, ou null si l'utilisateur n'en a encore jamais écrit (permet de distinguer
+// « jamais configuré » d'un réglage explicitement à sa valeur par défaut).
+export async function getSettingsExistants(db: DbLecture, userId: string): Promise<UserSettings | null> {
   const ligne = await db.getOptional<Ligne>(
     'SELECT * FROM user_settings WHERE id = ? AND deleted_at IS NULL',
     [idReglages(userId)],
   )
-  if (!ligne) return { ...DEFAUTS }
+  if (!ligne) return null
   return {
     pandaVariant: ((ligne.panda_variant as string | null) ?? DEFAUTS.pandaVariant) as PandaVariant,
     darkMode: ligne.dark_mode === 1,
     equipmentJson: (ligne.equipment_json as string | null) ?? DEFAUTS.equipmentJson,
   }
+}
+
+export async function getSettings(db: DbLecture, userId: string): Promise<UserSettings> {
+  return (await getSettingsExistants(db, userId)) ?? { ...DEFAUTS }
 }
 
 // Version transactionnelle (réutilisée par l'import, qui regroupe tout dans une seule transaction).

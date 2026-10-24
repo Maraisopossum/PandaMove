@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { DisquesConfig, EquipmentCategory, EquipmentInventaire, HalteresConfig, PlageConfig } from '../progression/types'
-import { DisquesConfigSchema, PlageConfigSchema, type EquipmentConfigDto } from './schema'
+import { DisquesConfigSchema, HalteresConfigSchema, PlageConfigSchema, type EquipmentConfigDto } from './schema'
 
 // Import de « Mon matériel » : le plan ne produit pas de ligne user_settings mais un PATCH, appliqué
 // sur l'inventaire existant avec les règles de DataImportManager.kt (section 9) :
@@ -25,12 +25,12 @@ export type EquipmentStocke = EquipmentInventaire & {
   pasParCategorie: Record<string, number>
 }
 
-const EQUIPMENT_CATEGORIES: readonly string[] = [
+export const EQUIPMENT_CATEGORIES: readonly string[] = [
   'POIDS_DE_CORPS', 'HALTERES', 'BARRE', 'KETTLEBELL', 'MACHINE', 'CABLE', 'BANC', 'RACK',
   'BARRE_TRACTION', 'ELASTIQUE', 'ACCESSOIRES',
 ] satisfies readonly EquipmentCategory[]
 
-const HALTERES_DEFAUT: HalteresConfig = { poidsFixes: [], chargeable: null }
+export const HALTERES_DEFAUT: HalteresConfig = { poidsFixes: [], chargeable: null }
 
 /** Construit le patch depuis la config du fichier (catégories inconnues filtrées comme le Kotlin). */
 export function construirePatch(config: EquipmentConfigDto): EquipmentPatch {
@@ -81,5 +81,22 @@ export function mergeEquipment(existant: unknown, patch: EquipmentPatch): Equipm
     cable: patch.cable ?? lire(PlageConfigSchema, base.cable),
     selectedCategories: patch.selectedCategories,
     pasParCategorie: { ...pasExistants, ...patch.pasParCategorie },
+  }
+}
+
+/**
+ * Lit equipment_json (chaîne) en forme stockée complète. Jamais d'exception : JSON absent ou
+ * malformé -> inventaire vide valide ; chaque partie invalide est remplacée par sa valeur vide.
+ */
+export function lireEquipementStocke(equipmentJson: unknown): EquipmentStocke {
+  const base = lireExistant(equipmentJson)
+  const categories = lire(z.array(z.string()), base.selectedCategories) ?? []
+  return {
+    halteres: lire(HalteresConfigSchema, base.halteres) ?? { ...HALTERES_DEFAUT },
+    barre: lire(DisquesConfigSchema, base.barre),
+    kettlebell: lire(PlageConfigSchema, base.kettlebell),
+    cable: lire(PlageConfigSchema, base.cable),
+    selectedCategories: categories.filter((c) => EQUIPMENT_CATEGORIES.includes(c)),
+    pasParCategorie: lire(z.record(z.string(), z.number()), base.pasParCategorie) ?? {},
   }
 }
