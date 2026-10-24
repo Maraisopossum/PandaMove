@@ -1,7 +1,8 @@
 import type { MuscleGroup, PandaVariant } from '../../core/db/types'
+import { pandaImage } from '../../core/images/pandaImage'
 
 // Zones de la heatmap musculaire, superposées aux fonds public/panda/heatmap-{variante}-{vue}.webp
-// (600 × 900, générés par scripts/make-heatmaps.mjs depuis assets/11_Heatmaps).
+// (600 × 900, générés par scripts/build-images.mjs depuis assets/11_Heatmaps ; taille unique, fixée par ces tracés).
 // Tracés à la main sur une grille de 50 px posée sur chaque image : polygones approximatifs, mais
 // placés sur la bonne région. Silhouettes male et female trop différentes (bras, buste, bassin) :
 // chaque variante a son propre tracé. Les zones paires sont tracées à gauche de l'image puis
@@ -69,7 +70,8 @@ const FEMALE: Record<MuscleGroup, ZoneHeatmap> = {
 
 export const HEATMAP_ZONES: Record<PandaVariant, Record<MuscleGroup, ZoneHeatmap>> = { male: MALE, female: FEMALE }
 
-export const imageHeatmap = (variante: PandaVariant, vue: VueHeatmap) => `/panda/heatmap-${variante}-${vue}.webp`
+export const imageHeatmap = (variante: PandaVariant, vue: VueHeatmap) =>
+  pandaImage(vue === 'face' ? 'heatmap_face' : 'heatmap_dos', variante).src
 
 // Échelle séquentielle (famille orange du module Statistiques) : niveau 0 = aucune série (pas de
 // couleur), puis 4 niveaux par quart du groupe le plus travaillé. La couleur n'est jamais seule :

@@ -10,7 +10,8 @@
     "typecheck": "tsc -b",
     "test": "cross-env NODE_OPTIONS=--disable-warning=ExperimentalWarning vitest run",
     "test:e2e": "playwright test",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "images": "node scripts/build-images.mjs"
   },
   "dependencies": {
     "@journeyapps/wa-sqlite": "^2.0.8",
