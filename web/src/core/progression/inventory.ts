@@ -11,7 +11,8 @@ import type {
   PlageConfig,
 } from './types'
 
-const f32 = Math.fround
+/** Arrondi au Float 32 bits le plus proche (sémantique d'une opération Float Kotlin). */
+export const f32 = Math.fround
 
 // Plafond défensif de paires par dénomination (contre une saisie aberrante).
 const MAX_PAIRES_PAR_DENOMINATION = 30
