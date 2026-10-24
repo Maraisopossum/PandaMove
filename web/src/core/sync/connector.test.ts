@@ -7,9 +7,10 @@ import { SupabaseConnector } from './connector'
 type Erreur = { code?: string; message: string } | null
 
 // Faux client Supabase : enregistre les appels et renvoie l'erreur configurée.
-function fauxSupabase(erreur: Erreur = null) {
+function fauxSupabase(erreur: Erreur = null, session: object | null = { access_token: 'jwt' }) {
   const appels: { table: string; op: string; args: unknown[] }[] = []
   const client = {
+    auth: { getSession: () => Promise.resolve({ data: { session }, error: null }) },
     from(table: string) {
       return {
         upsert: (...args: unknown[]) => {
@@ -68,11 +69,12 @@ describe('SupabaseConnector.uploadData', () => {
     expect(appels).toEqual([{ table: 'exercises', op: 'upsert', args: [{ name: 'Squat', id: 'e1' }] }])
   })
 
-  it('applique PATCH en upsert fusionnant opData et id', async () => {
+  it('applique PATCH en update partiel (jamais en upsert, pour ne pas violer les NOT NULL)', async () => {
     const { client, appels } = fauxSupabase()
     const { db } = fausseBase([{ op: UpdateType.PATCH, table: 'seances', id: 's1', opData: { nom: 'Haut' } }])
     await new SupabaseConnector(() => client).uploadData(db)
-    expect(appels).toEqual([{ table: 'seances', op: 'upsert', args: [{ nom: 'Haut', id: 's1' }] }])
+    expect(appels).toEqual([{ table: 'seances', op: 'update', args: [{ nom: 'Haut' }, 'id', 's1'] }])
+    expect(appels.some((a) => a.op === 'upsert')).toBe(false)
   })
 
   it('ne fait rien sans transaction en attente', async () => {
@@ -82,11 +84,24 @@ describe('SupabaseConnector.uploadData', () => {
     expect(appels).toEqual([])
   })
 
-  it('complète la transaction sur une erreur Postgres non récupérable (23xxx) pour ne pas bloquer la file', async () => {
+  it('avec session, complète la transaction sur une erreur 23xxx et la journalise', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { client } = fauxSupabase({ code: '23505', message: 'duplicate key' })
     const { db, complete } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} }])
     await new SupabaseConnector(() => client).uploadData(db)
     expect(complete).toHaveBeenCalledTimes(1)
+    expect(spy).toHaveBeenCalledTimes(1)
+    const trace = JSON.stringify(spy.mock.calls[0])
+    for (const v of ['seances', 'PUT', 's1', '23505']) expect(trace).toContain(v)
+    spy.mockRestore()
+  })
+
+  it('sans session, lève une erreur (nouvel essai) et ne complète pas la transaction', async () => {
+    const { client, appels } = fauxSupabase(null, null)
+    const { db, complete } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} }])
+    await expect(new SupabaseConnector(() => client).uploadData(db)).rejects.toThrow()
+    expect(complete).not.toHaveBeenCalled()
+    expect(appels).toEqual([])
   })
 
   it('relance toute autre erreur sans compléter (nouvel essai)', async () => {
@@ -94,5 +109,33 @@ describe('SupabaseConnector.uploadData', () => {
     const { db, complete } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} }])
     await expect(new SupabaseConnector(() => client).uploadData(db)).rejects.toThrow('connexion perdue')
     expect(complete).not.toHaveBeenCalled()
+  })
+})
+
+describe('SupabaseConnector.fetchCredentials', () => {
+  beforeEach(() => vi.stubEnv('VITE_POWERSYNC_URL', 'https://ps.example.com'))
+  afterEach(() => vi.unstubAllEnvs())
+
+  const clientAvec = (resultat: object) =>
+    ({ auth: { getSession: () => Promise.resolve(resultat) } }) as unknown as SupabaseClient
+
+  it('renvoie null sans session', async () => {
+    const c = new SupabaseConnector(() => clientAvec({ data: { session: null }, error: null }))
+    expect(await c.fetchCredentials()).toBeNull()
+  })
+
+  it('renvoie endpoint, token et expiresAt converti en Date', async () => {
+    const session = { access_token: 'jwt', expires_at: 1_800_000_000 }
+    const c = new SupabaseConnector(() => clientAvec({ data: { session }, error: null }))
+    expect(await c.fetchCredentials()).toEqual({
+      endpoint: 'https://ps.example.com',
+      token: 'jwt',
+      expiresAt: new Date(1_800_000_000 * 1000),
+    })
+  })
+
+  it('lève l’erreur Supabase', async () => {
+    const c = new SupabaseConnector(() => clientAvec({ data: { session: null }, error: new Error('panne') }))
+    await expect(c.fetchCredentials()).rejects.toThrow('panne')
   })
 })
