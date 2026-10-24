@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "exportDate": "2026-02-15T10:00:00.111111",
+  "config": {
+    "selectedCategories": ["HALTERES", "KETTLEBELL"],
+    "pasParCategorie": {},
+    "halteres": { "poidsFixes": [5.0, 7.5] },
+    "kettlebell": { "minKg": 8.0, "maxKg": 24.0, "pasKg": 4.0 }
+  }
+}
