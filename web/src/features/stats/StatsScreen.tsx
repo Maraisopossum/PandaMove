@@ -41,7 +41,7 @@ export default function StatsScreen() {
 
       {!s.pret ? (
         <p>Chargement…</p>
-      ) : s.vide ? (
+      ) : s.erreur ? null : s.vide ? (
         <p className="stats__vide">Aucune séance terminée sur cette période.</p>
       ) : (
         <div aria-busy={s.chargement}>
@@ -105,8 +105,13 @@ export default function StatsScreen() {
       {s.pret && (
         <section aria-labelledby="stats-historique" className="stats__section">
           <h2 id="stats-historique">Historique d'un exercice</h2>
+          {s.erreurHistorique && (
+            <p role="alert" className="import__erreur">
+              {s.erreurHistorique}
+            </p>
+          )}
           {s.exercices.length === 0 ? (
-            <p>Aucun exercice dans une séance terminée pour l'instant.</p>
+            !s.erreurHistorique && <p>Aucun exercice dans une séance terminée pour l'instant.</p>
           ) : (
             <>
               <label className="formulaire__champ">

@@ -95,6 +95,16 @@ describe('StatsScreen', () => {
     expect(screen.getByRole('region', { name: "Historique d'un exercice" })).toBeTruthy()
   })
 
+  it("erreur de lecture : alertes visibles, jamais l'état vide", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const reelle = base
+    base = { ...reelle, getAll: () => Promise.reject(new Error('base indisponible')) }
+    render(<StatsScreen />)
+    expect(await screen.findByText('Le chargement des statistiques a échoué.')).toBeTruthy()
+    expect(await screen.findByText("Le chargement de l'historique a échoué.")).toBeTruthy()
+    expect(screen.queryByText('Aucune séance terminée sur cette période.')).toBeNull()
+  })
+
   it("affiche l'historique de l'exercice en graphique et en tableau", async () => {
     render(<StatsScreen />)
     const section = await screen.findByRole('region', { name: "Historique d'un exercice" })

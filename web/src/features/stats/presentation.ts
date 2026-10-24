@@ -1,5 +1,5 @@
 import { MUSCLE_GROUPS, type MuscleGroup, type PandaVariant } from '../../core/db/types'
-import { libelleMuscle } from '../strength/catalog/libelles'
+import { LIBELLES_GROUPE } from '../../core/catalogue/muscleToGroup'
 import { COULEURS_NIVEAU, HEATMAP_ZONES, LIBELLES_NIVEAU, niveauVolume, type VueHeatmap } from './heatmapZones'
 import type { PointHistorique } from './statsQueries'
 
@@ -44,7 +44,7 @@ export function groupesVue(volume: Record<MuscleGroup, number>, variante: PandaV
     const niveau = niveauVolume(ratio)
     const zone = HEATMAP_ZONES[variante][groupe]
     return {
-      groupe, libelle: libelleMuscle(groupe), series, ratio, niveau, libelleNiveau: LIBELLES_NIVEAU[niveau],
+      groupe, libelle: LIBELLES_GROUPE[groupe], series, ratio, niveau, libelleNiveau: LIBELLES_NIVEAU[niveau],
       couleur: COULEURS_NIVEAU[niveau], vue: zone.vue, svgPath: zone.svgPath,
     }
   }).sort((a, b) => b.series - a.series || rang(a.groupe) - rang(b.groupe))

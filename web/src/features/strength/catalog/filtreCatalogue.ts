@@ -1,3 +1,4 @@
+import { muscleToGroup } from '../../../core/catalogue/muscleToGroup'
 import { normalizeSearch } from '../../../core/common/normalizeSearch'
 import type { Exercise, MuscleGroup } from '../../../core/db/types'
 
@@ -19,13 +20,21 @@ export function lireGroupes(texte: string): string[] {
   }
 }
 
+// Muscle principal ou secondaire rangé dans le groupe : codes, libellés et noms anatomiques du catalogue
+// Android (« Grand dorsal ») passent par muscleToGroup. Un texte vide n'est jamais rangé dans « Autre ».
+function correspondAuMuscle(e: Exercise, groupe: MuscleGroup): boolean {
+  return [e.musclePrimary, ...lireGroupes(e.muscleGroups)]
+    .filter((m) => m.trim() !== '')
+    .some((m) => muscleToGroup(m) === groupe)
+}
+
 // Filtre puis trie par nom normalisé (accents et casse ignorés), comme la recherche Android.
 export function filtrerExercices(liste: Exercise[], filtre: FiltreCatalogue): Exercise[] {
   const requete = normalizeSearch(filtre.query)
   return liste
     .filter((e) => !filtre.favorisSeulement || e.isFavorite)
     .filter((e) => !requete || normalizeSearch(e.name).includes(requete))
-    .filter((e) => !filtre.muscle || e.musclePrimary === filtre.muscle || lireGroupes(e.muscleGroups).includes(filtre.muscle))
+    .filter((e) => !filtre.muscle || correspondAuMuscle(e, filtre.muscle))
     .map((e) => ({ e, cle: normalizeSearch(e.name) }))
     .sort((a, b) => (a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0))
     .map(({ e }) => e)

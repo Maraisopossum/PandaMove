@@ -1,4 +1,5 @@
 import { normalizeSearch } from '../../core/common/normalizeSearch'
+import { muscleToGroup } from '../../core/catalogue/muscleToGroup'
 import type { DbLecture } from '../../core/db/Db'
 import { MUSCLE_GROUPS, type MuscleGroup } from '../../core/db/types'
 
@@ -107,12 +108,6 @@ export async function resumePeriode(db: DbLecture, from: string, to: string): Pr
   }
 }
 
-// Code de groupe depuis le texte stocké (« PECTORAUX », « mollets », « Avant-bras ») ; inconnu -> null.
-function versGroupe(texte: string): MuscleGroup | null {
-  const code = normalizeSearch(texte).toUpperCase().replace(/[\s-]+/g, '_')
-  return (MUSCLE_GROUPS as readonly string[]).includes(code) ? (code as MuscleGroup) : null
-}
-
 function premierGroupe(json: string | null): string {
   try {
     const v: unknown = JSON.parse(json ?? '[]')
@@ -123,10 +118,10 @@ function premierGroupe(json: string | null): string {
 }
 
 // effectivePrimary Android : muscle_groups[0] s'il est renseigné, sinon muscle_primary, sinon « Autre ».
+// Le texte (code, libellé ou nom anatomique du catalogue) est rangé dans un groupe par muscleToGroup.
 export function musclePrincipal(muscleGroupsJson: string | null, musclePrimary: string | null): MuscleGroup {
   const premier = premierGroupe(muscleGroupsJson).trim()
-  const texte = premier !== '' ? premier : (musclePrimary ?? '').trim()
-  return versGroupe(texte) ?? 'AUTRE'
+  return muscleToGroup(premier !== '' ? premier : (musclePrimary ?? ''))
 }
 
 export const volumeVide = (): Record<MuscleGroup, number> =>

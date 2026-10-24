@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Db } from '../../core/db/Db'
 import { saveSettings } from '../../core/db/repos/settings'
 import { inserer } from '../../test/fixtures'
@@ -35,7 +35,10 @@ beforeEach(async () => {
   await seanceTerminee('i2', '2026-09-01', 10, 40) // dans les 3 derniers mois seulement : 400
 })
 
-afterEach(() => localStorage.clear())
+afterEach(() => {
+  localStorage.clear()
+  vi.restoreAllMocks()
+})
 
 describe('useStats', () => {
   it('charge la période par défaut (30 jours) puis recharge quand la période change, et la retient', async () => {
@@ -75,6 +78,28 @@ describe('useStats', () => {
     expect(result.current.vue).toBe('face')
     act(() => result.current.setVue('dos'))
     expect(result.current.vue).toBe('dos')
+  })
+
+  it("erreur de lecture : alerte sans état vide, puis alerte effacée après un rechargement réussi", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    let panne = true
+    const reelle = db
+    const fragile: Db = {
+      ...reelle,
+      getAll: <T,>(sql: string, params?: unknown[]) =>
+        panne ? Promise.reject(new Error('base indisponible')) : reelle.getAll<T>(sql, params),
+    }
+    const { result } = renderHook(() => useStats({ db: fragile, nowFn }))
+    await waitFor(() => expect(result.current.chargement).toBe(false))
+    expect(result.current.erreur).toBe('Le chargement des statistiques a échoué.')
+    expect(result.current.vide).toBe(false)
+    await waitFor(() => expect(result.current.erreurHistorique).toBe("Le chargement de l'historique a échoué."))
+
+    panne = false
+    act(() => result.current.choisirPeriode('3m'))
+    await waitFor(() => expect(result.current.resume.tonnageKg).toBe(900))
+    expect(result.current.erreur).toBeNull()
+    expect(result.current.vide).toBe(false)
   })
 
   it('base vide : état vide, aucun exercice, sans erreur', async () => {

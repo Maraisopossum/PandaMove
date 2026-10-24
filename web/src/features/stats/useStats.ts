@@ -25,6 +25,7 @@ interface DonneesPeriode {
   volume: Record<MuscleGroup, number>
 }
 
+const ECHEC_HISTORIQUE = "Le chargement de l'historique a échoué."
 const AUCUN_POINT: PointHistorique[] = []
 const RESUME_VIDE: ResumePeriode = { tonnageKg: 0, seancesTerminees: 0, seriesTotal: 0, repsTotal: 0 }
 
@@ -36,7 +37,10 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
   const [variante, setVariante] = useState<PandaVariant>('male')
   const [donnees, setDonnees] = useState<DonneesPeriode>({ resume: RESUME_VIDE, volume: volumeVide() })
   const [cleChargee, setCleChargee] = useState<string | null>(null)
-  const [erreur, setErreur] = useState<string | null>(null)
+  // Erreur rattachée à la plage qui l'a produite : un nouveau chargement (autre plage) la masque d'office,
+  // et un chargement réussi l'efface
+  const [erreurPeriode, setErreurPeriode] = useState<{ cle: string; message: string } | null>(null)
+  const [erreurHistorique, setErreurHistorique] = useState<string | null>(null)
   const [exercices, setExercices] = useState<ExerciceHistorique[]>([])
   const [exerciceChoisi, setExerciceChoisi] = useState<string | null>(null)
   // Historique avec l'exercice auquel il appartient : jamais celui d'un exercice précédent
@@ -54,11 +58,15 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     const base = db ?? getDb()
     Promise.all([resumePeriode(base, from, to), volumeParMuscle(base, from, to)])
       .then(([resume, volume]) => {
-        if (!annule && numero === sequence.current) setDonnees({ resume, volume })
+        if (annule || numero !== sequence.current) return
+        setDonnees({ resume, volume })
+        setErreurPeriode(null)
       })
       .catch((e: unknown) => {
         console.error('Chargement des statistiques impossible', e)
-        if (!annule) setErreur('Le chargement des statistiques a échoué.')
+        if (!annule && numero === sequence.current) {
+          setErreurPeriode({ cle: `${from}|${to}`, message: 'Le chargement des statistiques a échoué.' })
+        }
       })
       .finally(() => {
         if (!annule) setCleChargee(`${from}|${to}`)
@@ -76,7 +84,10 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
       .then((liste) => {
         if (!annule) setExercices(liste)
       })
-      .catch((e: unknown) => console.error('Chargement des exercices impossible', e))
+      .catch((e: unknown) => {
+        console.error('Chargement des exercices impossible', e)
+        if (!annule) setErreurHistorique(ECHEC_HISTORIQUE)
+      })
     if (userId) {
       getSettings(base, userId)
         .then((s) => {
@@ -98,9 +109,14 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     let annule = false
     historiqueExercice(db ?? getDb(), exerciceId)
       .then((h) => {
-        if (!annule) setHistorique({ id: exerciceId, points: h })
+        if (annule) return
+        setHistorique({ id: exerciceId, points: h })
+        setErreurHistorique(null)
       })
-      .catch((e: unknown) => console.error("Chargement de l'historique impossible", e))
+      .catch((e: unknown) => {
+        console.error("Chargement de l'historique impossible", e)
+        if (!annule) setErreurHistorique(ECHEC_HISTORIQUE)
+      })
     return () => {
       annule = true
     }
@@ -115,12 +131,15 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
   const historiqueAffiche = historique && historique.id === exerciceId ? historique.points : AUCUN_POINT
   const graphique = useMemo(() => construireGraphique(historiqueAffiche), [historiqueAffiche])
 
+  const erreur = erreurPeriode && erreurPeriode.cle === cle ? erreurPeriode.message : null
+
   return {
-    periode, choisirPeriode, chargement, erreur,
+    periode, choisirPeriode, chargement, erreur, erreurHistorique,
     // Vrai dès la première lecture terminée : ensuite les chiffres restent affichés pendant un rechargement
     pret: cleChargee !== null,
     resume: donnees.resume,
-    vide: !chargement && donnees.resume.seancesTerminees === 0,
+    // Jamais « vide » sur une erreur : le résumé à 0 n'est alors pas une donnée lue
+    vide: !chargement && erreur === null && donnees.resume.seancesTerminees === 0,
     groupes,
     zonesVue: groupes.filter((g) => g.vue === vue),
     vue, setVue, variante, image: imageHeatmap(variante, vue),

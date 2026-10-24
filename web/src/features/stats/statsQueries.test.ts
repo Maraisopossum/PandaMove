@@ -153,6 +153,28 @@ describe('statsQueries', () => {
     expect(await volumeParMuscle(db, '2026-08-01', '2026-08-31')).toEqual({ ...zeros(), AUTRE: 1, MOLLETS: 1 })
   })
 
+  it('volume par muscle : textes anatomiques du catalogue Android et libellés -> groupes de muscleToGroup', async () => {
+    const d = createTestDb()
+    await exercice(d, 'ex-1', 'Tractions', ['Grand dorsal', 'Biceps brachial'], 'Grand dorsal')
+    await exercice(d, 'ex-2', 'Crunch', ['Droit abdominal'])
+    await exercice(d, 'ex-3', 'Soulevé de terre roumain', ['Ischio-jambiers', 'Fessiers'])
+    await exercice(d, 'ex-4', 'Élévations frontales', [], 'Deltoïde antérieur')
+    await exercice(d, 'ex-5', 'Shrug', ['Trapèze supérieur'])
+    await exercice(d, 'ex-6', 'Mollets debout', ['Gastrocnémien', 'Soléaire'])
+    await exercice(d, 'ex-7', 'Extension lombaire', ['Érecteurs du rachis'])
+    await exercice(d, 'ex-8', 'Développé incliné', ['Pectoraux (chef claviculaire)'])
+    await exercice(d, 'ex-9', 'Curl poignet', ['Avant-bras (grip)'])
+    await instance(d, 'i', '2026-10-01', true)
+    for (let k = 1; k <= 9; k++) {
+      await exSeance(d, `es-${k}`, 'i', `ex-${k}`)
+      await serie(d, 'i', `es-${k}`, 1, 10, 20)
+    }
+    await serie(d, 'i', 'es-1', 2, 8, 0)
+    expect(await volumeParMuscle(d, '2026-10-01', '2026-10-01')).toEqual({
+      ...zeros(), DOS: 2, ABDOMINAUX: 1, ISCHIO: 1, EPAULES: 1, TRAPEZES: 1, MOLLETS: 1, LOMBAIRES: 1, PECTORAUX: 1, AVANT_BRAS: 1,
+    })
+  })
+
   it('historique : max de charge et reps associées par date de séance, de la plus ancienne à la plus récente', async () => {
     expect(await historiqueExercice(db, 'ex-dc')).toEqual([
       { dateIso: '2026-09-28', maxChargeKg: 65, reps: 8, enSecondes: false },
