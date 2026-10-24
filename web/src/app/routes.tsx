@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { RouteObject } from 'react-router'
+import { ImportScreen } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
 import { PagePlaceholder } from './PagePlaceholder'
@@ -24,7 +25,14 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
     { path: 'calendar', element: placeholder('Calendrier') },
     { path: 'stats', element: placeholder('Statistiques') },
     { path: 'profile', element: placeholder('Profil') },
-    { path: 'import', element: placeholder('Import') },
+    {
+      path: 'import',
+      element: (
+        <Suspense fallback={<p>Chargement…</p>}>
+          <ImportScreen />
+        </Suspense>
+      ),
+    },
   ]
   if (dev && DebugWriteScreen) {
     enfants.push({

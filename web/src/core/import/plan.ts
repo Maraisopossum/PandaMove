@@ -55,6 +55,8 @@ export interface ImportReport {
 }
 
 export interface ImportPlan {
+  /** Utilisateur pour lequel le plan a été construit (nécessaire pour écrire ses réglages). */
+  userId: string
   rows: Record<TableName, Row[]>
   report: ImportReport
   /** Ids des lignes `exercises` minimales : à insérer seulement si absentes (ne jamais écraser
@@ -367,6 +369,7 @@ class Constructeur {
 
     const rows = Object.fromEntries(TABLES.map((t) => [t, [...table(t).values()]])) as Record<TableName, Row[]>
     return {
+      userId: this.userId,
       rows,
       report: {
         seances: rows.seances.length,

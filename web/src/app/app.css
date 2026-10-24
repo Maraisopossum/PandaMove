@@ -241,3 +241,35 @@ h1 {
     transition: none;
   }
 }
+
+/* Écran d'import */
+.import__champ {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.import__champ input[type='file'] {
+  min-height: 44px;
+  font: inherit;
+}
+
+.import__resultat:focus {
+  outline: none;
+}
+
+.import__erreur {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #b71c1c;
+  border-radius: 8px;
+  background: color-mix(in srgb, #b71c1c 12%, var(--surface));
+  font-weight: 600;
+}
+
+.import__avertissement {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #e65100;
+  border-radius: 8px;
+  background: color-mix(in srgb, #e65100 12%, var(--surface));
+}
