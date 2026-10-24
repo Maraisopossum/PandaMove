@@ -3,11 +3,15 @@ import { UpdateType } from '@powersync/web'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SupabaseConnector } from './connector'
+import { rejetsEnvoi } from './rejetsEnvoi'
 
 type Erreur = { code?: string; message: string } | null
 
-// Faux client Supabase : enregistre les appels et renvoie l'erreur configurée.
-function fauxSupabase(erreur: Erreur = null, session: object | null = { access_token: 'jwt' }) {
+// Faux client Supabase : enregistre les appels et renvoie l'erreur configurée ; une liste d'erreurs
+// est consommée appel après appel (la dernière se répète).
+function fauxSupabase(erreurs: Erreur | Erreur[] = null, session: object | null = { access_token: 'jwt' }) {
+  const file = Array.isArray(erreurs) ? [...erreurs] : [erreurs]
+  const suivante = () => (file.length > 1 ? file.shift()! : file[0])
   const appels: { table: string; op: string; args: unknown[] }[] = []
   const client = {
     auth: { getSession: () => Promise.resolve({ data: { session }, error: null }) },
@@ -15,12 +19,12 @@ function fauxSupabase(erreur: Erreur = null, session: object | null = { access_t
       return {
         upsert: (...args: unknown[]) => {
           appels.push({ table, op: 'upsert', args })
-          return Promise.resolve({ error: erreur })
+          return Promise.resolve({ error: suivante() })
         },
         update: (...args: unknown[]) => ({
           eq: (...eqArgs: unknown[]) => {
             appels.push({ table, op: 'update', args: [...args, ...eqArgs] })
-            return Promise.resolve({ error: erreur })
+            return Promise.resolve({ error: suivante() })
           },
         }),
       }
@@ -50,7 +54,10 @@ describe('SupabaseConnector.uploadData', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-10-24T10:00:00.000Z'))
   })
-  afterEach(() => vi.useRealTimers())
+  afterEach(() => {
+    vi.useRealTimers()
+    rejetsEnvoi.effacer()
+  })
 
   it('convertit un DELETE en update deleted_at = maintenant (suppression logique)', async () => {
     const { client, appels } = fauxSupabase()
@@ -94,6 +101,26 @@ describe('SupabaseConnector.uploadData', () => {
     const trace = JSON.stringify(spy.mock.calls[0])
     for (const v of ['seances', 'PUT', 's1', '23505']) expect(trace).toContain(v)
     spy.mockRestore()
+  })
+
+  it('un rejet définitif est exposé (table, opération, code) pour être affiché', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client } = fauxSupabase([null, { code: '23505', message: 'duplicate key' }])
+    const { db } = fausseBase([
+      { op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} },
+      { op: UpdateType.PATCH, table: 'user_settings', id: 'u1', opData: { dark_mode: 1 } },
+    ])
+    await new SupabaseConnector(() => client).uploadData(db)
+    expect(rejetsEnvoi.dernier()).toEqual({
+      table: 'user_settings', operation: 'PATCH', code: '23505', dateMs: Date.parse('2026-10-24T10:00:00.000Z'),
+    })
+  })
+
+  it("une erreur retryable n'est pas exposée comme rejet", async () => {
+    const { client } = fauxSupabase({ code: '08006', message: 'connexion perdue' })
+    const { db } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} }])
+    await expect(new SupabaseConnector(() => client).uploadData(db)).rejects.toThrow()
+    expect(rejetsEnvoi.dernier()).toBeNull()
   })
 
   it('sans session, lève une erreur (nouvel essai) et ne complète pas la transaction', async () => {

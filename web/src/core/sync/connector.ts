@@ -2,6 +2,7 @@ import type { PowerSyncBackendConnector, PowerSyncCredentials, PowerSyncDatabase
 import { UpdateType } from '@powersync/web'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getPowerSyncUrl, getSupabase } from '../db/client'
+import { rejetsEnvoi } from './rejetsEnvoi'
 
 // Erreurs Postgres qui ne se résoudront jamais en réessayant (données invalides, contrainte,
 // droits RLS) : classes 22xxx, 23xxx et 42501. On les écarte pour ne pas bloquer la file d'envoi.
@@ -35,8 +36,10 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     if (erreurSession) throw erreurSession
     if (!data.session) throw new Error('Envoi impossible : aucune session Supabase active (nouvel essai).')
     for (let tx = await database.getNextCrudTransaction(); tx; tx = await database.getNextCrudTransaction()) {
+      let enCours: (typeof tx.crud)[number] | undefined
       try {
         for (const entry of tx.crud) {
+          enCours = entry
           const table = supabase.from(entry.table)
           let resultat
           if (entry.op === UpdateType.PUT) {
@@ -59,6 +62,13 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
             code,
             message: (e as { message?: string }).message,
             operations: tx.crud.map((c) => ({ table: c.table, op: c.op, id: c.id })),
+          })
+          // Surfacé à l'utilisateur (alerte non bloquante dans la coque) : la modification est perdue
+          rejetsEnvoi.signaler({
+            table: enCours?.table ?? tx.crud[0]?.table ?? '?',
+            operation: String(enCours?.op ?? tx.crud[0]?.op ?? '?'),
+            code,
+            dateMs: Date.now(),
           })
           await tx.complete()
           continue
