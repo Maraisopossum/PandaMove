@@ -122,13 +122,16 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   }, [db, instanceId, rafraichir])
 
   // Met une écriture en file, puis relit la base. Ne rejette jamais : l'échec est affiché dans `erreur`.
+  // Résout à true si l'écriture a réussi (l'écran s'en sert pour enchaîner, ex. ouvrir le bilan).
   const ecrire = useCallback(
-    (action: (base: Db, maintenantMs: number) => Promise<void>, messageEchec: string): Promise<void> => {
+    (action: (base: Db, maintenantMs: number) => Promise<void>, messageEchec: string): Promise<boolean> => {
       const base = db ?? getDb()
       const tache = async () => {
+        let ok = false
         try {
           await action(base, nowFn())
           setErreur(null)
+          ok = true
         } catch (e) {
           if (e instanceof ErreurExecution) setErreur(e.message)
           else {
@@ -142,6 +145,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
         } catch (e) {
           console.error('Relecture de la séance impossible', e)
         }
+        return ok
       }
       const suite = file.current.then(tache, tache)
       file.current = suite
@@ -258,6 +262,8 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   return {
     chargement,
     erreur,
+    // false tant que l'instance n'est pas chargée, ou si elle est introuvable
+    trouvee: instance !== null,
     nomSeance: donnees.nomSeance,
     date: instance?.date ?? '',
     blocs: donnees.blocs,

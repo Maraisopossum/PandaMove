@@ -135,3 +135,20 @@ export function libelleDureeAccessible(ms: number): string {
   const m = minutes % 60
   return h > 0 ? `Temps écoulé : ${h} h ${m} min` : `Temps écoulé : ${m} min`
 }
+
+// Cibles d'un exercice : « 3 séries × 8-10 · 60 kg · repos 90 s ».
+export function texteCibles(e: Pick<ExerciceVue, 'nombreSeriesPrevues' | 'repsCibles' | 'chargeCible' | 'tempsReposSec'>): string {
+  const n = e.nombreSeriesPrevues
+  const parties = [`${n} série${n > 1 ? 's' : ''}${e.repsCibles ? ` × ${e.repsCibles}` : ''}`]
+  if (e.chargeCible) parties.push(e.chargeCible)
+  parties.push(`repos ${e.tempsReposSec} s`)
+  return parties.join(' · ')
+}
+
+// Résumé lisible d'une série (lecture seule) ; DURATION => secondes.
+export function texteSerie(s: Pick<SerieVue, 'reps' | 'chargeKg' | 'rpe'>, repsType: RepsType): string {
+  const parties = [s.reps === null ? '—' : repsType === 'DURATION' ? `${s.reps} s` : `${s.reps} reps`]
+  if (s.chargeKg !== null) parties.push(`${String(s.chargeKg).replace('.', ',')} kg`)
+  if (s.rpe !== null) parties.push(`RPE ${String(s.rpe).replace('.', ',')}`)
+  return parties.join(' · ')
+}

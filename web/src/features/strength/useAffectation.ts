@@ -10,12 +10,15 @@ export function useAffectation(assigner: (seanceId: string, dateIso: string) => 
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
   const [confirmation, setConfirmation] = useState<string | null>(null)
+  // Instance créée par la dernière affectation : lien « Ouvrir la séance » (avant le calendrier)
+  const [instanceCreee, setInstanceCreee] = useState<string | null>(null)
 
   const ouvrir = useCallback((seance: Seance) => {
     setCible(seance)
     setDate(aujourdhuiIso())
     setErreur(null)
     setConfirmation(null)
+    setInstanceCreee(null)
   }, [])
 
   const fermer = useCallback(() => setCible(null), [])
@@ -25,7 +28,8 @@ export function useAffectation(assigner: (seanceId: string, dateIso: string) => 
     setErreur(null)
     setEnCours(true)
     try {
-      await assigner(cible.id, date)
+      const instanceId = await assigner(cible.id, date)
+      setInstanceCreee(instanceId)
       const [a, m, j] = date.split('-')
       setConfirmation(`« ${cible.nom} » est affectée au ${j}/${m}/${a}.`)
       setCible(null)
@@ -40,5 +44,5 @@ export function useAffectation(assigner: (seanceId: string, dateIso: string) => 
     }
   }, [assigner, cible, date, enCours])
 
-  return { cible, date, setDate, erreur, enCours, confirmation, ouvrir, fermer, confirmer }
+  return { cible, date, setDate, erreur, enCours, confirmation, instanceCreee, ouvrir, fermer, confirmer }
 }

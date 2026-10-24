@@ -519,3 +519,129 @@ h1 {
   margin: 0.75rem 0;
   padding-left: 1.5rem;
 }
+
+/* Exécution d'une séance (renforcement, violet) */
+.execution {
+  /* Réserve la place de la barre d'actions fixée en bas (et de la barre système du téléphone) */
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+
+.execution__entete {
+  margin-bottom: 1rem;
+}
+
+.execution__chrono {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.execution__etat,
+.execution__repos {
+  margin: 0.25rem 0 0;
+  font-weight: 700;
+}
+
+.execution__repos {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: #5b3d9e;
+}
+
+:root[data-theme='dark'] .execution__repos {
+  color: #c9b6f2;
+}
+
+.execution__bloc h2 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.execution__exercice {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bord);
+  border-left: 4px solid #7c5cbf;
+  border-radius: 12px;
+  background: color-mix(in srgb, #7c5cbf 8%, var(--surface));
+}
+
+.execution__nom {
+  display: inline;
+  margin: 0 0.5rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.execution__superset {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--texte-secondaire);
+}
+
+.execution__cibles {
+  margin: 0.25rem 0 0.5rem;
+  color: var(--texte-secondaire);
+}
+
+.execution__series {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.execution__ligne {
+  margin: 0.5rem 0;
+  padding: 0.25rem 0.75rem 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+}
+
+.execution__ligne legend {
+  font-weight: 700;
+}
+
+.execution__champs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0 0.75rem;
+}
+
+.execution__champs .formulaire__champ input {
+  width: 100%;
+}
+
+.bouton--principal {
+  border-color: #5b3d9e;
+  background: #5b3d9e;
+  color: #ffffff;
+}
+
+.execution__actions {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--bord);
+  background: var(--surface);
+}
+
+.execution__actions .bouton {
+  flex: 1 1 10rem;
+  max-width: 20rem;
+  min-height: 52px;
+}
+
+@media (min-width: 1025px) {
+  .execution__actions {
+    left: var(--drawer-largeur);
+  }
+}

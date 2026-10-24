@@ -1,6 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { RouteObject } from 'react-router'
-import { CatalogScreen, EquipmentScreen, ImportScreen, ProfileScreen, SeanceEditScreen, SeanceListScreen } from './EcransChargesALaDemande'
+import {
+  CatalogScreen, EquipmentScreen, ExecuteScreen, ImportScreen, ProfileScreen, SeanceEditScreen, SeanceListScreen,
+} from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
 import { PagePlaceholder } from './PagePlaceholder'
@@ -23,7 +25,7 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
     { path: 'strength', element: chargement(<SeanceListScreen />) },
     { path: 'strength/new', element: chargement(<SeanceEditScreen />) },
     { path: 'strength/:id/edit', element: chargement(<SeanceEditScreen />) },
-    { path: 'strength/instance/:id', element: placeholder('Séance') },
+    { path: 'strength/instance/:id', element: chargement(<ExecuteScreen />) },
     { path: 'strength/instance/:id/report', element: placeholder('Bilan de séance') },
     { path: 'calendar', element: placeholder('Calendrier') },
     { path: 'stats', element: placeholder('Statistiques') },

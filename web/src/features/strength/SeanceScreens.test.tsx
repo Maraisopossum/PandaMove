@@ -103,8 +103,10 @@ describe('SeanceListScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }))
     expect((await screen.findByRole('status')).textContent).toBe('« Push » est affectée au 03/11/2026.')
     expect(screen.queryByRole('dialog')).toBeNull()
-    const lignes = await base.getAll<{ seance_id: string; date: string }>('SELECT seance_id, date FROM instances_seance')
-    expect(lignes).toEqual([{ seance_id: 's2', date: '2026-11-03' }])
+    const lignes = await base.getAll<{ id: string; seance_id: string; date: string }>('SELECT id, seance_id, date FROM instances_seance')
+    expect(lignes).toEqual([{ id: expect.any(String), seance_id: 's2', date: '2026-11-03' }])
+    // Point d'entrée provisoire (avant le calendrier) : lien vers l'exécution de l'instance créée
+    expect(screen.getByRole('link', { name: 'Ouvrir la séance' }).getAttribute('href')).toBe(`/strength/instance/${lignes[0].id}`)
   })
 
   it("archive après confirmation, et pas sans", async () => {

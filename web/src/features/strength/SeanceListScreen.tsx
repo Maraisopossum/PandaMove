@@ -27,7 +27,16 @@ export default function SeanceListScreen() {
           {l.erreur}
         </p>
       )}
-      {a.confirmation && <p role="status">{a.confirmation}</p>}
+      {a.confirmation && (
+        <div className="formulaire__ligne">
+          <p role="status">{a.confirmation}</p>
+          {a.instanceCreee && (
+            <Link to={`/strength/instance/${a.instanceCreee}`} className="bouton lien-bouton">
+              Ouvrir la séance
+            </Link>
+          )}
+        </div>
+      )}
 
       {!l.charge ? (
         <p>Chargement…</p>
