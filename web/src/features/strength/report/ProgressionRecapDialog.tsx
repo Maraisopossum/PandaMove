@@ -37,7 +37,9 @@ export function ProgressionRecapDialog({ lignes, erreur, onAccepter, onRefuser, 
             <li key={l.exerciceId} className="recap__ligne">
               <p className="recap__nom">{l.nom}</p>
               {l.texte && <p className="recap__texte">{l.texte}</p>}
-              <p className={l.deload ? 'recap__explication recap__explication--deload' : 'recap__explication'}>{l.explication}</p>
+              {l.explication && (
+                <p className={l.deload ? 'recap__explication recap__explication--deload' : 'recap__explication'}>{l.explication}</p>
+              )}
               {l.actionnable && l.etat === 'en_attente' ? (
                 <>
                   <div className="recap__choix" role="group" aria-label={`Choix pour ${l.nom}`}>

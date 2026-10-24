@@ -30,6 +30,7 @@ async function seanceTerminee(id: string, { objectif = true, terminee = true } =
   await inserer(base, 'instances_seance', {
     ...commun, id, seance_id: seanceId, date: '2026-10-24', notes: '', is_completed: terminee ? 1 : 0,
     completed_at: terminee ? '2026-10-24T11:00:00.000Z' : null, duration_seconds: terminee ? 2730 : 0, created_at: 'c',
+    started_at: '2026-10-24T10:14:30.000Z', progression_json: terminee ? '{"evaluee":true,"decisions":{}}' : null,
   })
   const ex = (exId: string, champs: Record<string, unknown>) =>
     inserer(base, 'exercices_seance', {
@@ -103,7 +104,7 @@ describe('ReportScreen', () => {
     expect(await objectif(seanceId)).toEqual({ charge_cible: 50, reps_cible: 8, compteur_echec: 2 })
 
     fireEvent.click(within(dialogue).getByRole('button', { name: 'Oui' }))
-    expect(await within(dialogue).findByText('Proposition acceptée')).toBeTruthy()
+    expect(await within(dialogue).findByText('Acceptée')).toBeTruthy()
     expect(await objectif(seanceId)).toEqual({ charge_cible: 45, reps_cible: 8, compteur_echec: 0 })
     expect(within(dialogue).queryByRole('button', { name: 'Oui' })).toBeNull()
   })
@@ -113,7 +114,7 @@ describe('ReportScreen', () => {
     monter('r-non')
     const dialogue = await screen.findByRole('dialog', { name: 'Progression' })
     fireEvent.click(within(dialogue).getByRole('button', { name: 'Non, garder' }))
-    expect(await within(dialogue).findByText('Proposition refusée : cible conservée')).toBeTruthy()
+    expect(await within(dialogue).findByText('Refusée')).toBeTruthy()
     expect(await objectif(seanceId)).toEqual({ charge_cible: 50, reps_cible: 8, compteur_echec: 0 })
   })
 
@@ -126,8 +127,37 @@ describe('ReportScreen', () => {
     expect((champ as HTMLInputElement).value).toBe('45')
     fireEvent.change(champ, { target: { value: '47,5' } })
     fireEvent.click(within(dialogue).getByRole('button', { name: 'Valider la charge' }))
-    expect(await within(dialogue).findByText('Charge ajustée')).toBeTruthy()
+    expect(await within(dialogue).findByText('Ajustée')).toBeTruthy()
     expect(await objectif(seanceId)).toEqual({ charge_cible: 47.5, reps_cible: 8, compteur_echec: 0 })
+  })
+
+  it('à la réouverture, la décision enregistrée est affichée (ni en attente, ni disparue)', async () => {
+    await seanceTerminee('r-reouverture')
+    const premier = monter('r-reouverture')
+    const dialogue = await screen.findByRole('dialog', { name: 'Progression' })
+    fireEvent.click(within(dialogue).getByRole('button', { name: 'Oui' }))
+    await within(dialogue).findByText('Acceptée')
+    premier.unmount()
+
+    monter('r-reouverture')
+    const progression = await screen.findByRole('region', { name: 'Progression' })
+    expect(within(progression).getByText('Développé couché')).toBeTruthy()
+    expect(within(progression).getByText('Acceptée')).toBeTruthy()
+    // Rien en attente : le récap ne s'ouvre pas de lui-même
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('« Déjà décidé » quand une décision a été enregistrée ailleurs entre-temps', async () => {
+    const seanceId = await seanceTerminee('r-deja')
+    monter('r-deja')
+    const dialogue = await screen.findByRole('dialog', { name: 'Progression' })
+    await base.execute('UPDATE instances_seance SET progression_json = ? WHERE id = ?', [
+      '{"evaluee":true,"decisions":{"r-deja-e1":"refusee"}}',
+      'r-deja',
+    ])
+    fireEvent.click(within(dialogue).getByRole('button', { name: 'Oui' }))
+    expect(await within(dialogue).findByText('Déjà décidé : Refusée')).toBeTruthy()
+    expect(await objectif(seanceId)).toEqual({ charge_cible: 50, reps_cible: 8, compteur_echec: 2 })
   })
 
   it('Échap ferme le récap ; rouvert depuis le bouton, le focus y revient à la fermeture', async () => {

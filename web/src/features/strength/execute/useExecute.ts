@@ -7,6 +7,7 @@ import {
 import { getSeanceTree } from '../../../core/db/repos/seances'
 import { addSerie, listSeries, updateSerie } from '../../../core/db/repos/series'
 import type { InstanceSeance, RepsType } from '../../../core/db/types'
+import { evaluerEtAppliquerSilencieux } from '../progression/evaluation'
 import { clockFromRow, clockToRow, elapsedMs, estEnPause, type SessionClock } from './sessionClock'
 import { useTicker } from './useTicker'
 import { construireVue, reposRestant, verifierMesures, type BlocVue, type ExerciceVue, type Mesures } from './vue'
@@ -18,6 +19,8 @@ export interface DepsExecute {
   nowFn?: () => number
   /** Période du rafraîchissement de l'affichage (ms). */
   tickMs?: number
+  /** Utilisateur connecté : « Mon matériel » pour l'évaluation de progression à la fin. */
+  userId?: string
 }
 
 // Erreur destinée à l'utilisateur (message français affiché tel quel).
@@ -79,7 +82,7 @@ async function repsTypeExercice(db: Db, instanceId: string, exerciceId: string):
 // AVANT toute mise à jour de l'affichage, qui est ensuite relu depuis la base. Les écritures passent
 // par une file sérialisée (deux appuis rapides ne réutilisent jamais un numéro de série).
 // Le chrono et le repos sont dérivés d'horodatages stockés : un rechargement restitue tout.
-export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 1000 }: DepsExecute = {}) {
+export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 1000, userId }: DepsExecute = {}) {
   const [donnees, setDonnees] = useState<Donnees>(VIDE)
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -190,21 +193,26 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   const terminer = useCallback(
     () =>
       ecrire(async (base, maintenant) => {
-        const inst = await getInstance(base, instanceId)
-        if (!inst) throw new ErreurExecution('Séance introuvable.')
-        if (inst.isCompleted) return
-        const h = horlogeDe(inst)
-        const fermee: SessionClock = {
-          ...h,
-          pauses: h.pauses.map((p) => (p.toMs === null ? { ...p, toMs: Math.max(p.fromMs, maintenant) } : p)),
-        }
-        await terminerInstance(base, instanceId, {
-          completedAt: new Date(maintenant).toISOString(),
-          durationSeconds: Math.round(elapsedMs(fermee, maintenant) / 1000),
-          pausedJson: clockToRow(fermee).paused_json,
+        // Clôture ET évaluation de progression dans UNE transaction (ordre Android : prepareFinish
+        // avant finishInstance) : si l'évaluation échoue, l'instance reste non terminée.
+        await base.writeTransaction(async (tx) => {
+          const inst = await getInstance(tx, instanceId)
+          if (!inst) throw new ErreurExecution('Séance introuvable.')
+          if (inst.isCompleted) return
+          const h = horlogeDe(inst)
+          const fermee: SessionClock = {
+            ...h,
+            pauses: h.pauses.map((p) => (p.toMs === null ? { ...p, toMs: Math.max(p.fromMs, maintenant) } : p)),
+          }
+          await terminerInstance(tx, instanceId, {
+            completedAt: new Date(maintenant).toISOString(),
+            durationSeconds: Math.round(elapsedMs(fermee, maintenant) / 1000),
+            pausedJson: clockToRow(fermee).paused_json,
+          })
+          await evaluerEtAppliquerSilencieux(tx, instanceId, { userId, maintenantMs: maintenant })
         })
       }, "L'enregistrement de la fin de séance a échoué."),
-    [ecrire, instanceId],
+    [ecrire, instanceId, userId],
   )
 
   const validerSerie = useCallback(

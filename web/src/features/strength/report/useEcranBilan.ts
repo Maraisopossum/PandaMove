@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { useAuth } from '../../../core/auth/AuthProvider'
 import { chargeLisible } from '../../../core/progression/chargeLisible'
 import { formaterDureeBilan, formaterTonnage, texteProposition, texteStatut } from './bilan'
+import type { DecisionEnregistree } from '../../../core/progression/marqueur'
 import { useReport, type EtatProposition, type LigneBilan, type PropositionBilan } from './useReport'
 
 /** Ligne du récap, prête à afficher (aucun calcul dans les composants). */
@@ -24,31 +25,27 @@ const LIBELLES_LIGNE: Record<LigneBilan['statut'], string> = {
   aucune: 'Aucune série réalisée',
 }
 
+const LIBELLES_DECISION: Record<DecisionEnregistree, string> = {
+  acceptee: 'Acceptée',
+  refusee: 'Refusée',
+  ajustee: 'Ajustée',
+}
+
 function libelleEtat(p: PropositionBilan): string {
-  if (!p.actionnable && !p.aValider) return 'Appliqué automatiquement'
-  if (!p.actionnable) return 'Aucune décision à prendre'
-  switch (p.etat) {
-    case 'en_attente':
-      return 'En attente de votre choix'
-    case 'acceptee':
-      return 'Proposition acceptée'
-    case 'refusee':
-      return 'Proposition refusée : cible conservée'
-    case 'ajustee':
-      return 'Charge ajustée'
-  }
+  if (p.etat !== 'en_attente') return p.dejaDecide ? `Déjà décidé : ${LIBELLES_DECISION[p.etat]}` : LIBELLES_DECISION[p.etat]
+  return p.actionnable ? 'En attente de votre choix' : 'Aucune décision à prendre'
 }
 
 const versLigneRecap = (p: PropositionBilan): LigneRecap => ({
   exerciceId: p.exerciceId,
   nom: p.nom,
-  texte: texteProposition(p.proposition),
-  explication: texteStatut(p.proposition),
-  deload: p.proposition.deload,
+  texte: p.proposition ? texteProposition(p.proposition) : '',
+  explication: p.proposition ? texteStatut(p.proposition) : '',
+  deload: p.proposition?.deload ?? false,
   actionnable: p.actionnable,
   etat: p.etat,
   libelleEtat: libelleEtat(p),
-  chargeProposee: p.proposition.nouvelleChargeCible === null ? null : chargeLisible(p.proposition.nouvelleChargeCible),
+  chargeProposee: p.proposition?.nouvelleChargeCible == null ? null : chargeLisible(p.proposition.nouvelleChargeCible),
 })
 
 // Orchestration de l'écran de bilan : données (useReport), textes formatés, ouverture du récap.
@@ -80,7 +77,7 @@ export function useEcranBilan(instanceId: string) {
     })),
     recap,
     recapOuvert: !r.chargement && (ouvert ?? enAttente) && recap.length > 0,
-    aDesDecisions: r.propositions.some((p) => p.actionnable),
+    aDesDecisions: r.propositions.length > 0,
     ouvrirRecap: useCallback(() => setOuvert(true), []),
     fermerRecap: useCallback(() => setOuvert(false), []),
     accepter: useCallback(

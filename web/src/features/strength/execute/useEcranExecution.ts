@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
+import { useAuth } from '../../../core/auth/AuthProvider'
 import { useExecute } from './useExecute'
 import { useWakeLock } from './useWakeLock'
 import { formaterDuree, libelleDureeAccessible } from './vue'
@@ -7,7 +8,8 @@ import { formaterDuree, libelleDureeAccessible } from './vue'
 // Orchestration de l'écran d'exécution : données et actions (useExecute), écran gardé allumé pendant
 // la séance, confirmation de fin puis ouverture du bilan, textes du chrono et du repos.
 export function useEcranExecution(instanceId: string) {
-  const ex = useExecute(instanceId)
+  const { session } = useAuth()
+  const ex = useExecute(instanceId, { userId: session?.user.id })
   const navigate = useNavigate()
   const { terminer } = ex
   useWakeLock(ex.demarre && !ex.terminee)

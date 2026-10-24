@@ -288,3 +288,110 @@ describe('useExecute : reprise après rechargement', () => {
     expect(r.result.current.reposRestantMs).toBeNull()
   })
 })
+
+describe('useExecute : progression appliquée à « Terminer » (ordre Android)', () => {
+  // Séance dédiée : un exercice en progression (cible 8 reps à 50 kg, deload au 3e échec)
+  async function semerProgression(d: Db, instances: string[]) {
+    await inserer(d, 'seances', { ...base, id: 'sp', nom: 'Progression', is_archived: 0, seance_category: 'STRENGTH', created_at: 'c' })
+    await inserer(d, 'exercices_seance', {
+      ...base, id: 'ep1', seance_id: 'sp', exercise_id: 'x1', bloc_id: null, position: 0, nombre_series_prevues: 3,
+      reps_cibles: '8', charge_cible: '50 kg', reps_type: 'REPS', temps_repos_sec: 90, instance_seance_id: null,
+      progression_activee: 1, systeme_progression: 'LINEAIRE', increment_kg: 2.5, increment_duree_sec: 5, seuil_deload: 3,
+    })
+    for (const id of instances) {
+      await inserer(d, 'instances_seance', {
+        ...base, id, seance_id: 'sp', date: '2026-10-24', notes: '', is_completed: 0, completed_at: null, duration_seconds: 0, created_at: 'c',
+      })
+    }
+  }
+
+  // Ouvre l'instance (copie du modèle), saisit trois séries puis termine
+  async function seanceJouee(instanceId: string, reps: number, d: Db = db) {
+    const r = await monter(instanceId, d)
+    const ex = deterministicId(instanceId, 'ep1')
+    for (let i = 0; i < 3; i++) await act(() => r.result.current.validerSerie(ex, { reps, chargeKg: 50, rpe: null }))
+    await act(() => r.result.current.terminer())
+    return { r, ex }
+  }
+
+  const objectifsSp = () =>
+    db.getAll<{ id: string; charge_cible: number; reps_cible: number; compteur_echec: number; derniere_maj: string }>(
+      "SELECT id, charge_cible, reps_cible, compteur_echec, derniere_maj FROM objectifs_progression WHERE seance_id = 'sp' AND deleted_at IS NULL",
+    )
+  const instanceSp = (id: string) =>
+    db.get<{ is_completed: number; progression_json: string | null }>(
+      'SELECT is_completed, progression_json FROM instances_seance WHERE id = ?',
+      [id],
+    )
+  const jourLocal = () => {
+    const d = new Date(T0)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  it("un échec simple incrémente le compteur dans la transaction de fin et marque l'instance évaluée ; un second terminer ne refait rien", async () => {
+    await semerProgression(db, ['ia'])
+    const { r, ex } = await seanceJouee('ia', 7)
+    expect(r.result.current.erreur).toBeNull()
+    expect(await objectifsSp()).toEqual([
+      { id: deterministicId('sp', 'x1'), charge_cible: 50, reps_cible: 8, compteur_echec: 1, derniere_maj: jourLocal() },
+    ])
+    const inst = await instanceSp('ia')
+    expect(inst.is_completed).toBe(1)
+    expect(JSON.parse(inst.progression_json ?? 'null')).toEqual({ evaluee: true, decisions: { [ex]: 'acceptee' } })
+
+    t = T0 + min(10)
+    await act(() => r.result.current.terminer())
+    expect((await objectifsSp()).map((o) => o.compteur_echec)).toEqual([1])
+  })
+
+  it("un succès (à valider) n'écrit rien à la fin : l'instance est seulement marquée évaluée", async () => {
+    await semerProgression(db, ['ia'])
+    await seanceJouee('ia', 8)
+    expect(await objectifsSp()).toEqual([])
+    expect(JSON.parse((await instanceSp('ia')).progression_json ?? 'null')).toEqual({ evaluee: true, decisions: {} })
+  })
+
+  it("une évaluation qui échoue annule la clôture (instance non terminée, compteur inchangé) avec un message français", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await semerProgression(db, ['ia'])
+    const panne: Db = {
+      ...db,
+      writeTransaction: (fn) =>
+        db.writeTransaction((tx) =>
+          fn({
+            ...tx,
+            execute: async (sql, params) => {
+              if (/objectifs_progression/.test(sql)) throw new Error('disque plein')
+              return tx.execute(sql, params)
+            },
+          }),
+        ),
+    }
+    const { r } = await seanceJouee('ia', 7, panne)
+    expect(r.result.current.erreur).toBe("L'enregistrement de la fin de séance a échoué.")
+    expect(r.result.current.terminee).toBe(false)
+    expect(await instanceSp('ia')).toEqual({ is_completed: 0, progression_json: null })
+    expect(await objectifsSp()).toEqual([])
+  })
+
+  it('deux séances terminées dans le désordre sont chacune évaluées à leur propre fin (aucune masquée)', async () => {
+    await semerProgression(db, ['ia', 'ib'])
+    const b = await seanceJouee('ib', 7)
+    b.r.unmount()
+    t = T0 + min(60)
+    await seanceJouee('ia', 7)
+    expect((await objectifsSp()).map((o) => o.compteur_echec)).toEqual([2])
+    expect(JSON.parse((await instanceSp('ia')).progression_json ?? 'null').evaluee).toBe(true)
+    expect(JSON.parse((await instanceSp('ib')).progression_json ?? 'null').evaluee).toBe(true)
+  })
+
+  it("un objectif importé daté du même jour n'empêche pas l'évaluation de la séance web", async () => {
+    await semerProgression(db, ['ia'])
+    await inserer(db, 'objectifs_progression', {
+      ...base, id: 'obj-import', seance_id: 'sp', exercise_id: 'x1', charge_cible: 50, reps_cible: 8, duree_cible_sec: null,
+      compteur_echec: 0, derniere_maj: jourLocal(), nombre_series_cible: null,
+    })
+    await seanceJouee('ia', 7)
+    expect(await objectifsSp()).toEqual([expect.objectContaining({ id: 'obj-import', compteur_echec: 1 })])
+  })
+})

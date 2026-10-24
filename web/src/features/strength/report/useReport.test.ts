@@ -12,6 +12,12 @@ const MAINTENANT = Date.parse('2026-10-24T12:00:00.000Z')
 const horloge = () => MAINTENANT
 const commun = { user_id: 'u1', updated_at: '2026-01-01T00:00:00.000Z', deleted_at: null }
 const FIN = '2026-10-24T11:00:00.000Z'
+// Instance terminée sur le web : l'évaluation de fin (« Terminer ») a déjà eu lieu
+const EVALUEE = '{"evaluee":true,"decisions":{}}'
+const JOUR = (() => {
+  const d = new Date(MAINTENANT)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})()
 
 let db: Db
 let numeroSerie = 0
@@ -51,6 +57,11 @@ async function materiel(equipement: unknown) {
   })
 }
 
+const marqueur = async () => {
+  const l = await db.get<{ progression_json: string | null }>("SELECT progression_json FROM instances_seance WHERE id = 'i1'")
+  return l.progression_json === null ? null : (JSON.parse(l.progression_json) as unknown)
+}
+
 const objectifs = () =>
   db.getAll<Record<string, unknown>>('SELECT * FROM objectifs_progression WHERE deleted_at IS NULL ORDER BY exercise_id, id')
 
@@ -68,7 +79,7 @@ beforeEach(async () => {
   }
   await inserer(db, 'instances_seance', {
     ...commun, id: 'i1', seance_id: 's1', date: '2026-10-24', notes: '', is_completed: 1, completed_at: FIN,
-    duration_seconds: 2730, created_at: 'c',
+    duration_seconds: 2730, created_at: 'c', started_at: '2026-10-24T10:14:30.000Z', progression_json: EVALUEE,
   })
 })
 
@@ -140,27 +151,27 @@ describe('useReport : propositions', () => {
     await series('e1', [[8, 60], [8, 60], [8, 60]])
     const r = await monter()
     // LINEAIRE, sans inventaire : 60 + pas manuel 2,5
-    expect(propositionDe(r, 'e1')?.proposition).toMatchObject({ statut: 'SUCCES', nouvelleChargeCible: 62.5, nouveauRepsCible: 8 })
+    expect(propositionDe(r, 'e1')?.proposition ?? null).toMatchObject({ statut: 'SUCCES', nouvelleChargeCible: 62.5, nouveauRepsCible: 8 })
   })
 
   it("sans inventaire, l'incrément retombe sur le pas simple ; avec inventaire il suit les charges composables", async () => {
     await exercice('e1', { exercise_id: 'x1', progression_activee: 1, type_exercice: 'COMPOSE_HAUT' })
     await series('e1', [[8, 60], [8, 60], [8, 60]])
     const sans = await monter()
-    expect(propositionDe(sans, 'e1')?.proposition.nouvelleChargeCible).toBe(62.5)
+    expect(propositionDe(sans, 'e1')?.proposition?.nouvelleChargeCible).toBe(62.5)
     sans.unmount()
 
     // Barre 20 kg + une paire de 1,25 kg : rien de composable au-dessus de 60 kg -> charge maintenue
     await materiel({ barre: { barreKg: 20, disques: { '1.25': 2 } }, selectedCategories: ['BARRE'], pasParCategorie: {} })
     const avec = await monter()
-    expect(propositionDe(avec, 'e1')?.proposition.nouvelleChargeCible).toBe(60)
+    expect(propositionDe(avec, 'e1')?.proposition?.nouvelleChargeCible).toBe(60)
   })
 
   it('MACHINE sans pas déclaré : pas par défaut 5 kg (PAS_DEFAUT Android)', async () => {
     await exercice('e4', { exercise_id: 'x4', progression_activee: 1, type_exercice: 'MACHINE', increment_kg: null, charge_cible: '40 kg' })
     await series('e4', [[8, 40], [8, 40], [8, 40]])
     const r = await monter()
-    expect(propositionDe(r, 'e4')?.proposition.nouvelleChargeCible).toBe(45)
+    expect(propositionDe(r, 'e4')?.proposition?.nouvelleChargeCible).toBe(45)
   })
 
   it("un deload (statut d'échec) est à valider et n'écrit RIEN avant accepter", async () => {
@@ -171,8 +182,8 @@ describe('useReport : propositions', () => {
     const avant = await objectifs()
     const r = await monter()
     const p = propositionDe(r, 'e1')
-    expect(p?.proposition.deload).toBe(true)
-    expect(['ECHEC', 'ECHEC_MARQUE']).toContain(p?.proposition.statut)
+    expect(p?.proposition?.deload).toBe(true)
+    expect(['ECHEC', 'ECHEC_MARQUE']).toContain(p?.proposition?.statut)
     expect(p).toMatchObject({ aValider: true, actionnable: true, etat: 'en_attente' })
     expect(await objectifs()).toEqual(avant)
 
@@ -180,7 +191,7 @@ describe('useReport : propositions', () => {
     expect(propositionDe(r, 'e1')?.etat).toBe('acceptee')
     expect(await objectifs()).toEqual([
       expect.objectContaining({
-        id: 'obj-x1', charge_cible: 45, reps_cible: 8, compteur_echec: 0, derniere_maj: '2026-10-24T12:00:00.000Z',
+        id: 'obj-x1', charge_cible: 45, reps_cible: 8, compteur_echec: 0, derniere_maj: JOUR,
       }),
     ])
   })
@@ -221,7 +232,7 @@ describe('useReport : propositions', () => {
     await exercice('e1', { exercise_id: 'x1', progression_activee: 1, increment_kg: 0.7, charge_cible: '17 kg' })
     await series('e1', [[8, 17], [8, 17], [8, 17]])
     const r = await monter()
-    const brute = propositionDe(r, 'e1')?.proposition.nouvelleChargeCible
+    const brute = propositionDe(r, 'e1')?.proposition?.nouvelleChargeCible
     expect(brute).not.toBe(17.7)
     expect(brute).toBeCloseTo(17.7, 5)
     await act(() => r.result.current.accepter('e1'))
@@ -241,38 +252,99 @@ describe('useReport : propositions', () => {
     expect((await objectifs()).map((o) => o.charge_cible)).toEqual([99])
   })
 
-  it("un échec simple (sans deload) est appliqué silencieusement, une seule fois, sans re-proposition", async () => {
+  it('instance déjà évaluée : un échec simple est affiché sans AUCUNE écriture silencieuse', async () => {
+    await exercice('e1', { exercise_id: 'x1', progression_activee: 1, seuil_deload: 3 })
+    await objectifStocke('x1', { charge_cible: 50, reps_cible: 8, compteur_echec: 0 })
+    await series('e1', [[7, 50], [7, 50], [7, 50]])
+    const avant = await objectifs()
+    const r = await monter()
+    expect(propositionDe(r, 'e1')).toMatchObject({ aValider: false, actionnable: false, etat: 'en_attente' })
+    expect(await objectifs()).toEqual(avant)
+    expect(await marqueur()).toEqual({ evaluee: true, decisions: {} })
+  })
+
+  it('instance web héritée (marqueur NULL) : évaluée une seule fois, même si le bilan est ouvert deux fois', async () => {
+    await db.execute("UPDATE instances_seance SET progression_json = NULL WHERE id = 'i1'")
     await exercice('e1', { exercise_id: 'x1', progression_activee: 1, seuil_deload: 3 })
     await objectifStocke('x1', { charge_cible: 50, reps_cible: 8, compteur_echec: 0 })
     await series('e1', [[7, 50], [7, 50], [7, 50]])
     const r = await monter()
-    expect(propositionDe(r, 'e1')).toMatchObject({ aValider: false, actionnable: false, etat: 'acceptee' })
-    expect(propositionDe(r, 'e1')?.proposition).toMatchObject({ statut: 'ECHEC', deload: false })
-    expect(await objectifs()).toEqual([expect.objectContaining({ charge_cible: 50, reps_cible: 8, compteur_echec: 1 })])
+    expect(propositionDe(r, 'e1')).toMatchObject({ etat: 'acceptee', actionnable: false, proposition: null })
+    expect(await objectifs()).toEqual([expect.objectContaining({ charge_cible: 50, compteur_echec: 1, derniere_maj: JOUR })])
+    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'acceptee' } })
     r.unmount()
-
-    // Réouverture : déjà appliqué (derniere_maj >= fin de séance) -> rien de re-proposé ni réécrit
     const bis = await monter()
-    expect(bis.result.current.propositions).toEqual([])
+    expect(propositionDe(bis, 'e1')?.etat).toBe('acceptee')
     expect(await objectifs()).toEqual([expect.objectContaining({ compteur_echec: 1 })])
   })
 
-  it('une proposition déjà décidée n’est pas re-proposée à la réouverture', async () => {
+  it('instance terminée importée d’Android : aucune ré-évaluation ni proposition, même sans marqueur', async () => {
+    await db.execute("UPDATE instances_seance SET started_at = NULL WHERE id = 'i1'")
+    await exercice('e1', { exercise_id: 'x1', progression_activee: 1, seuil_deload: 3 })
+    await objectifStocke('x1', { charge_cible: 50, reps_cible: 8, compteur_echec: 2 })
+    await series('e1', [[8, 50], [8, 50], [8, 50]])
+    const avant = await objectifs()
+    const r = await monter()
+    expect(r.result.current.propositions).toEqual([])
+    r.unmount()
+    // Importée avant la migration 0005 (marqueur absent) : toujours rien
+    await db.execute("UPDATE instances_seance SET progression_json = NULL WHERE id = 'i1'")
+    const bis = await monter()
+    expect(bis.result.current.propositions).toEqual([])
+    expect(await objectifs()).toEqual(avant)
+    expect(await marqueur()).toBeNull()
+  })
+
+  it('un objectif importé daté du même jour ne masque pas la proposition de la séance web', async () => {
+    await exercice('e1', { exercise_id: 'x1', progression_activee: 1 })
+    await objectifStocke('x1', { charge_cible: 50, reps_cible: 8, compteur_echec: 0, derniere_maj: '2026-10-24' })
+    await series('e1', [[8, 50], [8, 50], [8, 50]])
+    const r = await monter()
+    expect(propositionDe(r, 'e1')).toMatchObject({ actionnable: true, etat: 'en_attente' })
+    expect(propositionDe(r, 'e1')?.proposition?.nouvelleChargeCible).toBe(52.5)
+  })
+
+  it('les décisions sont enregistrées dans le marqueur et réaffichées à la réouverture', async () => {
+    await exercice('e1', { exercise_id: 'x1', progression_activee: 1 })
+    await exercice('e3', { exercise_id: 'x3', progression_activee: 1, position: 1 })
+    await series('e1', [[8, 60], [8, 60], [8, 60]])
+    await series('e3', [[8, 60], [8, 60], [8, 60]])
+    const r = await monter()
+    await act(() => r.result.current.accepter('e1'))
+    await act(() => r.result.current.refuser('e3'))
+    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'acceptee', e3: 'refusee' } })
+    r.unmount()
+    const bis = await monter()
+    expect(bis.result.current.propositions.map((p) => [p.exerciceId, p.etat, p.actionnable])).toEqual([
+      ['e1', 'acceptee', false],
+      ['e3', 'refusee', false],
+    ])
+    expect((await objectifs()).map((o) => [o.exercise_id, o.charge_cible])).toEqual([
+      ['x1', 62.5],
+      ['x3', 60],
+    ])
+  })
+
+  it('« Déjà décidé » : une décision enregistrée ailleurs entre-temps n’est pas écrasée', async () => {
     await exercice('e1', { exercise_id: 'x1', progression_activee: 1 })
     await series('e1', [[8, 60], [8, 60], [8, 60]])
     const r = await monter()
+    // Un autre onglet a refusé pendant que ce bilan était ouvert
+    await db.execute('UPDATE instances_seance SET progression_json = ? WHERE id = ?', [
+      '{"evaluee":true,"decisions":{"e1":"refusee"}}',
+      'i1',
+    ])
     await act(() => r.result.current.accepter('e1'))
-    r.unmount()
-    const bis = await monter()
-    expect(bis.result.current.propositions).toEqual([])
-    expect((await objectifs()).map((o) => o.charge_cible)).toEqual([62.5])
+    expect(propositionDe(r, 'e1')).toMatchObject({ etat: 'refusee', dejaDecide: true, actionnable: false })
+    expect(await objectifs()).toEqual([])
+    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'refusee' } })
   })
 
   it('NON_LOGGE : affiché, non actionnable, rien écrit (comme le récap Android)', async () => {
     await exercice('e1', { exercise_id: 'x1', progression_activee: 1 })
     const r = await monter()
     const p = propositionDe(r, 'e1')
-    expect(p?.proposition.statut).toBe('NON_LOGGE')
+    expect(p?.proposition?.statut).toBe('NON_LOGGE')
     expect(p).toMatchObject({ aValider: true, actionnable: false, etat: 'en_attente' })
     await act(() => r.result.current.accepter('e1'))
     expect(await objectifs()).toEqual([])

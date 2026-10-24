@@ -7,6 +7,7 @@ import { createTestDb } from '../../../test/sqliteDb'
 
 const base = createTestDb()
 vi.mock('../../../core/db/client', () => ({ getDb: () => base }))
+vi.mock('../../../core/auth/AuthProvider', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }))
 
 import ExecuteScreen from './ExecuteScreen'
 

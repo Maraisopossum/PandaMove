@@ -2,18 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDb } from '../../../core/db/client'
 import type { Db } from '../../../core/db/Db'
 import { getInstance } from '../../../core/db/repos/instances'
-import { getObjectif, saveObjectif } from '../../../core/db/repos/objectifs'
 import { getSeanceTree } from '../../../core/db/repos/seances'
 import { listSeries } from '../../../core/db/repos/series'
-import { getSettings } from '../../../core/db/repos/settings'
-import type { ExerciceSeance, SerieRealisee } from '../../../core/db/types'
-import { lireEquipementStocke } from '../../../core/import/equipment'
-import { evaluerExercice, requiresValidation, type PropositionProgression } from '../../../core/progression/engine'
+import type { InstanceSeance } from '../../../core/db/types'
+import type { PropositionProgression } from '../../../core/progression/engine'
+import type { DecisionEnregistree } from '../../../core/progression/marqueur'
 import { construireVue } from '../execute/vue'
+import type { Decision } from '../progression/cible'
 import {
-  chargesAtteignablesExercice, cibleDepuis, lireListeEquipement, objectifApresDecision, objectifDejaApplique,
-  pasMaterielExercice, resumerSeance, type ContexteDecision, type Decision, type ResumeSeance,
-} from './bilan'
+  appliquerDecision, evaluerEtAppliquerSilencieux, evaluerInstance, type EvaluationExercice,
+} from '../progression/evaluation'
+import { resumerSeance, type ResumeSeance } from './bilan'
 
 export interface DepsReport {
   /** Base à utiliser (défaut : base de l'application). Référence stable. */
@@ -24,7 +23,7 @@ export interface DepsReport {
   nowFn?: () => number
 }
 
-export type EtatProposition = 'en_attente' | 'acceptee' | 'refusee' | 'ajustee'
+export type EtatProposition = 'en_attente' | DecisionEnregistree
 
 export interface LigneBilan {
   exerciceId: string
@@ -38,12 +37,15 @@ export interface PropositionBilan {
   /** Id de la ligne exercices_seance de l'instance */
   exerciceId: string
   nom: string
-  proposition: PropositionProgression
+  /** null pour un exercice déjà décidé (la cible a changé depuis : pas de ré-évaluation) */
+  proposition: PropositionProgression | null
   /** requiresValidation(proposition) — jamais déduit du statut seul */
   aValider: boolean
-  /** Oui / Non / Ajuster proposés : à valider et pas NON_LOGGE (lecture seule, comme Android) */
+  /** Oui / Non / Ajuster proposés : à valider, pas NON_LOGGE (lecture seule, comme Android), non décidé */
   actionnable: boolean
   etat: EtatProposition
+  /** La décision avait déjà été enregistrée ailleurs quand l'utilisateur a choisi (« Déjà décidé ») */
+  dejaDecide: boolean
 }
 
 interface Donnees {
@@ -53,8 +55,8 @@ interface Donnees {
   resume: ResumeSeance
   exercices: LigneBilan[]
   propositions: PropositionBilan[]
-  // Contexte d'écriture de chaque proposition actionnable (par exerciceId)
-  contextes: Map<string, ContexteDecision>
+  // Évaluation des propositions actionnables (par exerciceId), pour écrire une décision
+  evaluations: Map<string, EvaluationExercice>
 }
 
 const VIDE: Donnees = {
@@ -64,7 +66,7 @@ const VIDE: Donnees = {
   resume: { tonnageKg: 0, seriesTotal: 0, dureeSec: 0 },
   exercices: [],
   propositions: [],
-  contextes: new Map(),
+  evaluations: new Map(),
 }
 
 // Erreur destinée à l'utilisateur (message français affiché tel quel).
@@ -77,77 +79,52 @@ function statutLigne(prevues: number, realisees: number): LigneBilan['statut'] {
   return realisees >= prevues ? 'complet' : 'partiel'
 }
 
-// Évalue chaque exercice en progression_activee (miroir de prepareFinish Android) : les propositions à
-// valider sont présentées SANS rien écrire ; les autres (échec simple, cible maintenue) sont appliquées
-// silencieusement, une seule fois (garde derniere_maj >= fin de séance, revérifiée dans la transaction).
-async function evaluer(
+// Une instance est évaluable sur le web si elle y a été exécutée (horloge started_at, jamais écrite
+// par l'import) : une instance terminée importée d'Android a déjà reçu sa progression avant
+// finishInstance, elle n'est jamais ré-évaluée (même sans marqueur, si importée avant la migration 0005).
+const evaluable = (i: InstanceSeance) => i.startedAt !== null
+
+// Propositions du récap : décisions enregistrées affichées telles quelles ; les autres exercices sont
+// évalués en LECTURE SEULE (aucune écriture silencieuse ici : elles ont lieu à « Terminer »).
+async function propositionsDe(
   db: Db,
-  ex: ExerciceSeance[],
-  noms: Map<string, string>,
-  series: SerieRealisee[],
-  seanceId: string,
-  completedAt: string,
+  instance: InstanceSeance,
+  ordre: string[],
   userId: string | undefined,
-  maintenant: string,
-): Promise<{ propositions: PropositionBilan[]; contextes: Map<string, ContexteDecision> }> {
-  const candidats = ex.filter((e) => e.progressionActivee)
-  const propositions: PropositionBilan[] = []
-  const contextes = new Map<string, ContexteDecision>()
-  if (candidats.length === 0) return { propositions, contextes }
-
-  const stocke = lireEquipementStocke(userId ? (await getSettings(db, userId)).equipmentJson : null)
-  const inventaire = { halteres: stocke.halteres, barre: stocke.barre, kettlebell: stocke.kettlebell, cable: stocke.cable }
-  const ids = [...new Set(candidats.map((e) => e.exerciseId))]
-  const equipements = new Map(
-    (
-      await db.getAll<{ id: string; equipment: string | null }>(
-        `SELECT id, equipment FROM exercises WHERE deleted_at IS NULL AND id IN (${ids.map(() => '?').join(', ')})`,
-        ids,
-      )
-    ).map((l) => [l.id, lireListeEquipement(l.equipment ?? '[]')]),
-  )
-
-  for (const es of candidats) {
-    const objectif = await getObjectif(db, seanceId, es.exerciseId)
-    if (objectif && objectifDejaApplique(objectif.derniereMaj, completedAt)) continue
-    const cible = cibleDepuis(objectif, es)
-    const equipement = equipements.get(es.exerciseId) ?? []
-    const proposition = evaluerExercice(
-      es,
-      cible,
-      objectif?.compteurEchec ?? 0,
-      series.filter((s) => s.exerciceSeanceId === es.id && s.isCompleted),
-      es.isBilateral,
-      pasMaterielExercice(equipement, stocke.pasParCategorie),
-      chargesAtteignablesExercice(equipement, inventaire),
-    )
-    const ctx: ContexteDecision = { seanceId, exerciseId: es.exerciseId, completedAt, cible }
-    const aValider = requiresValidation(proposition)
-    const nom = noms.get(es.exerciseId) ?? 'Exercice inconnu'
-    if (!aValider) {
-      await db.writeTransaction(async (tx) => {
-        const existant = await getObjectif(tx, seanceId, es.exerciseId)
-        if (existant && objectifDejaApplique(existant.derniereMaj, completedAt)) return
-        await saveObjectif(tx, objectifApresDecision({ type: 'accepter' }, proposition, existant, ctx, maintenant), maintenant)
-      })
-      propositions.push({ exerciceId: es.id, nom, proposition, aValider, actionnable: false, etat: 'acceptee' })
-      continue
-    }
-    const actionnable = proposition.statut !== 'NON_LOGGE'
-    if (actionnable) contextes.set(es.id, ctx)
-    propositions.push({ exerciceId: es.id, nom, proposition, aValider, actionnable, etat: 'en_attente' })
-  }
-  return { propositions, contextes }
+): Promise<{ propositions: PropositionBilan[]; evaluations: Map<string, EvaluationExercice> }> {
+  const evaluations = new Map<string, EvaluationExercice>()
+  if (!evaluable(instance)) return { propositions: [], evaluations }
+  const decisions = instance.progression?.decisions ?? {}
+  const rang = (id: string) => ordre.indexOf(id)
+  const propositions = (await evaluerInstance(db, instance.id, userId))
+    .sort((a, b) => rang(a.exerciceId) - rang(b.exerciceId))
+    .map((e): PropositionBilan => {
+      const decidee = decisions[e.exerciceId]
+      if (decidee) {
+        return { exerciceId: e.exerciceId, nom: e.nom, proposition: null, aValider: false, actionnable: false, etat: decidee, dejaDecide: false }
+      }
+      const actionnable = e.aValider && e.proposition.statut !== 'NON_LOGGE'
+      if (actionnable) evaluations.set(e.exerciceId, e)
+      return { exerciceId: e.exerciceId, nom: e.nom, proposition: e.proposition, aValider: e.aValider, actionnable, etat: 'en_attente', dejaDecide: false }
+    })
+  return { propositions, evaluations }
 }
 
-async function lire(db: Db, instanceId: string, userId: string | undefined, maintenant: string): Promise<Donnees> {
-  const instance = await getInstance(db, instanceId)
+async function lire(db: Db, instanceId: string, userId: string | undefined, maintenantMs: number): Promise<Donnees> {
+  let instance = await getInstance(db, instanceId)
   if (!instance) throw new ErreurBilan('Séance introuvable.')
   const seance = await db.getOptional<{ nom: string }>('SELECT nom FROM seances WHERE id = ? AND deleted_at IS NULL', [
     instance.seanceId,
   ])
   const base = { ...VIDE, trouvee: true, nomSeance: seance?.nom ?? 'Séance' }
   if (!instance.isCompleted) return base
+
+  // Cas hérité : instance web terminée AVANT la migration 0005 (marqueur absent). Elle est évaluée une
+  // seule fois ici, avec la même transaction + marqueur qu'à « Terminer » (revérifié dans la transaction).
+  if (evaluable(instance) && !instance.progression?.evaluee) {
+    await db.writeTransaction((tx) => evaluerEtAppliquerSilencieux(tx, instanceId, { userId, maintenantMs }))
+    instance = (await getInstance(db, instanceId)) ?? instance
+  }
 
   // Lignes D'INSTANCE uniquement (jamais le modèle), séries dédoublonnées à la lecture
   const arbre = await getSeanceTree(db, instance.seanceId, instanceId)
@@ -178,28 +155,25 @@ async function lire(db: Db, instanceId: string, userId: string | undefined, main
     seriesRealisees: terminees(e.id),
     statut: statutLigne(e.nombreSeriesPrevues, terminees(e.id)),
   }))
-  // Sans date de fin, la garde « déjà appliqué » est impossible : aucune évaluation (rien d'écrit).
-  const { propositions, contextes } = instance.completedAt
-    ? await evaluer(db, ordonnes, noms, series, instance.seanceId, instance.completedAt, userId, maintenant)
-    : { propositions: [], contextes: new Map<string, ContexteDecision>() }
+  const { propositions, evaluations } = await propositionsDe(db, instance, ordonnes.map((e) => e.id), userId)
   return {
     ...base,
     terminee: true,
     resume: resumerSeance(arbre.exercices, series, instance.durationSeconds),
     exercices,
     propositions,
-    contextes,
+    evaluations,
   }
 }
 
-// Bilan d'une séance terminée et récap de progression (spec §5). La progression est PROPOSÉE :
-// chaque décision (Oui / Non / Ajuster) est écrite dans sa propre transaction, une seule fois.
+// Bilan d'une séance terminée et récap de progression (spec §5). Le bilan PRÉSENTE et fait DÉCIDER :
+// chaque décision (Oui / Non / Ajuster) écrit l'objectif et l'enregistre dans le marqueur de
+// l'instance, dans une seule transaction, une seule fois.
 export function useReport(instanceId: string, { db, userId, nowFn = Date.now }: DepsReport = {}) {
   const [donnees, setDonnees] = useState<Donnees>(VIDE)
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
-  // Lecture en cours partagée : le double montage du mode strict ne relance pas l'évaluation
-  // (qui peut écrire les échecs simples) et ne perd pas son résultat.
+  // Lecture en cours partagée : le double montage du mode strict ne relance pas la lecture.
   const enCours = useRef<{ cle: string; promesse: Promise<Donnees> } | null>(null)
   // Décisions prises ou en cours (synchrone : deux appuis rapides n'écrivent qu'une fois)
   const decidees = useRef(new Set<string>())
@@ -211,7 +185,7 @@ export function useReport(instanceId: string, { db, userId, nowFn = Date.now }: 
     const cle = `${instanceId}#${userId ?? ''}`
     if (enCours.current?.cle !== cle) {
       decidees.current = new Set()
-      enCours.current = { cle, promesse: lire(base, instanceId, userId, new Date(nowFn()).toISOString()) }
+      enCours.current = { cle, promesse: lire(base, instanceId, userId, nowFn()) }
     }
     enCours.current.promesse
       .then((d) => {
@@ -233,28 +207,24 @@ export function useReport(instanceId: string, { db, userId, nowFn = Date.now }: 
     }
   }, [db, instanceId, userId, nowFn])
 
-  const contextes = donnees.contextes
+  const evaluations = donnees.evaluations
 
   const decider = useCallback(
     (exerciceId: string, decision: Decision): Promise<void> => {
       const tache = async () => {
-        const ctx = contextes.get(exerciceId)
-        const p = donnees.propositions.find((x) => x.exerciceId === exerciceId)
+        const evaluation = evaluations.get(exerciceId)
         // Décision déjà prise, proposition non actionnable ou inconnue : sans effet
-        if (!ctx || !p || decidees.current.has(exerciceId)) return
+        if (!evaluation || decidees.current.has(exerciceId)) return
         if (decision.type === 'ajuster' && !(Number.isFinite(decision.chargeKg) && decision.chargeKg > 0)) {
           setErreur(CHARGE_INVALIDE)
           return
         }
         decidees.current.add(exerciceId)
+        let dejaDecidee: DecisionEnregistree | null
         try {
-          const maintenant = new Date(nowFn()).toISOString()
-          await (db ?? getDb()).writeTransaction(async (tx) => {
-            const existant = await getObjectif(tx, ctx.seanceId, ctx.exerciseId)
-            // Décision déjà appliquée ailleurs (autre onglet / appareil) : on ne l'écrase pas
-            if (existant && objectifDejaApplique(existant.derniereMaj, ctx.completedAt)) return
-            await saveObjectif(tx, objectifApresDecision(decision, p.proposition, existant, ctx, maintenant), maintenant)
-          })
+          ;({ dejaDecidee } = await (db ?? getDb()).writeTransaction((tx) =>
+            appliquerDecision(tx, instanceId, evaluation, decision, nowFn()),
+          ))
         } catch (e) {
           decidees.current.delete(exerciceId)
           console.error('Enregistrement de la décision impossible', e)
@@ -262,18 +232,20 @@ export function useReport(instanceId: string, { db, userId, nowFn = Date.now }: 
           return
         }
         const etat: EtatProposition =
-          decision.type === 'accepter' ? 'acceptee' : decision.type === 'refuser' ? 'refusee' : 'ajustee'
+          dejaDecidee ?? (decision.type === 'accepter' ? 'acceptee' : decision.type === 'refuser' ? 'refusee' : 'ajustee')
         setErreur(null)
         setDonnees((d) => ({
           ...d,
-          propositions: d.propositions.map((x) => (x.exerciceId === exerciceId ? { ...x, etat } : x)),
+          propositions: d.propositions.map((x) =>
+            x.exerciceId === exerciceId ? { ...x, etat, actionnable: false, dejaDecide: dejaDecidee !== null } : x,
+          ),
         }))
       }
       const suite = file.current.then(tache, tache)
       file.current = suite
       return suite
     },
-    [contextes, db, donnees.propositions, nowFn],
+    [db, evaluations, instanceId, nowFn],
   )
 
   const accepter = useCallback((exerciceId: string) => decider(exerciceId, { type: 'accepter' }), [decider])
