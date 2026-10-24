@@ -9,7 +9,10 @@
 ./gradlew :core:database:test --tests "*ProgressionEngineTest"   # Une classe de test seule
 ./gradlew installDebug                         # Déploiement device
 ./gradlew :feature:strength:assembleDebug      # Build d'un module seul
+./gradlew lintDebug                            # Lint Android (exécuté par la CI)
 ```
+CI (`.github/workflows/ci.yml`, JDK 17) : `assembleDebug` → `test` → `lintDebug` sur chaque PR et push `main` / `sauvegarde-panda-stable`.
+Les tests unitaires existent surtout dans `core/database` (ProgressionEngine, EquipmentInventory, migrations, parsers FIT/GPX), plus `feature/calendar` et `feature/running`.
 
 ## Stack
 Kotlin 2.0 • Compose + Material3 • Hilt • Room (schema v27) • Navigation Compose • DataStore  
@@ -32,6 +35,8 @@ feature/
   home | running | cycling | strength | warmup | calendar | stats | profile | timer | breathing | hiking
 ```
 `build-logic/convention` : plugins Gradle partagés (convention plugins appliqués par chaque module).
+Les modules sont déclarés dans `settings.gradle.kts` : tout nouveau module `feature:*` doit y être ajouté. Les dossiers racine `breathing/`, `Pandamove Studio/`, `support/`, `node_modules/` et les dumps (`*.hprof`, `dump*.xml`) ne sont pas des modules Gradle.
+`AGENTS.md` est une copie ancienne de ce fichier (schéma v20) : ne pas s'y fier.
 
 ## Pattern
 MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room  
@@ -53,7 +58,7 @@ Une séance `strength` existe en deux formes dans les mêmes tables (`blocs_sean
 - Dialogs custom : `Dialog(usePlatformDefaultWidth=false)` + `Surface(RoundedCornerShape(28.dp))`
 - GPS : `RunningTrackingService` dans `app/service/` — inject `GpsTrackingRepository` via Hilt
 - Permis GPS : `ACCESS_FINE_LOCATION` + `FOREGROUND_SERVICE_LOCATION` (Android 14)
-- Migration Room : toujours `addMigrations(...)` dans `DatabaseModule` + incrémenter `version =`
+- Migration Room : toujours `addMigrations(...)` dans `DatabaseModule` + incrémenter `version =` (dans `PandaFitDatabase.kt`) ; les schémas JSON exportés sont versionnés dans `core/database/schemas/` (à committer) et `PandaFitDatabaseMigrationTest` les utilise
 - MuscleGroup : 16 groupes (PECTORAUX, DOS, EPAULES, BICEPS, TRICEPS, QUADRICEPS, ISCHIO, FESSIERS, MOLLETS, ABDOMINAUX, TRAPEZES, LOMBAIRES, ADDUCTEURS, OBLIQUES + autres)
 - Dark mode : persisté via `ProfileViewModel.isDarkMode` → DataStore → `MainActivity`
 - Room `@Relation` ne garantit **pas** l'ordre des enfants → toujours `.sortedBy { position }` après récupération
@@ -77,7 +82,7 @@ Lire `DESIGN.md` avant tout travail visuel. Direction : **Clean & Bold** (fond n
 - `docs/ai/PROMPT_TEMPLATES.md` — templates de prompts par tâche (économise ~30% tokens)
 - `docs/ai/ARCHITECTURE.md` — patterns MVVM, Hilt, Room, Navigation (détail)
 - `docs/ai/AI_INDEX.md` — index fichiers par feature
-- `docs/ai/ROOM_SCHEMA_MIN.md` — schéma Room complet (v26)
+- `docs/ai/ROOM_SCHEMA_MIN.md` — schéma Room condensé (en retard : indique v26, la base est en v27 — se fier à `PandaFitDatabase.kt` et `core/database/schemas/`)
 - `docs/ai/RUNNING_FLOW.md` — flux running + GPS tracking
 - `docs/ai/STRENGTH_FLOW.md` — flux renforcement + isolation template/instance
 - `docs/ai/UI_CONVENTIONS.md` — conventions Compose
