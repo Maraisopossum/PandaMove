@@ -14,9 +14,13 @@ const LIBELLES: Record<SyncState, string> = {
 export default function DebugWriteScreen({
   userId,
   signOutSafely,
+  abandonnerDonneesLocales,
+  messageAutreCompte,
 }: {
   userId: string
   signOutSafely: () => Promise<ResultatDeconnexion>
+  abandonnerDonneesLocales: () => Promise<void>
+  messageAutreCompte: string | null
 }) {
   const { state } = useSyncStatus()
   const { seances, ajouter } = useDebugSeances(userId)
@@ -32,6 +36,21 @@ export default function DebugWriteScreen({
       <form action={deconnecter}>
         <button type="submit">Se déconnecter</button>
       </form>
+      {messageAutreCompte && (
+        <section role="alert">
+          <p>{messageAutreCompte}</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Les modifications non synchronisées de l’autre compte seront définitivement perdues. Continuer ?')) {
+                void abandonnerDonneesLocales()
+              }
+            }}
+          >
+            Abandonner les données locales
+          </button>
+        </section>
+      )}
       {avertissement && <p role="alert">{avertissement}</p>}
       <ul>
         {seances.map((s) => (

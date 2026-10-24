@@ -124,4 +124,45 @@ describe('useSyncConnection', () => {
     expect(erreur).toHaveBeenCalledTimes(1)
     expect(String(erreur.mock.calls[0][0])).toMatch(/connexion/i)
   })
+  it('autre utilisateur avec 2 modifications en attente : ni effacement ni connexion, message exposé', async () => {
+    const base = fausseBase(2)
+    const { result } = monter(base, faussStockage('autre'))
+    await vider()
+    expect(base.disconnectAndClear).not.toHaveBeenCalled()
+    expect(base.connect).not.toHaveBeenCalled()
+    expect(result.current.messageAutreCompte).toBe(
+      "Des modifications non synchronisées d'un autre compte sont présentes sur cet appareil. Reconnectez-vous avec ce compte pour les envoyer.",
+    )
+  })
+
+  it('abandonnerDonneesLocales : efface puis connecte, et le message disparaît', async () => {
+    const base = fausseBase(2)
+    const stockage = faussStockage('autre')
+    const { result } = monter(base, stockage)
+    await vider()
+    expect(result.current.messageAutreCompte).not.toBeNull()
+    await act(async () => { await result.current.abandonnerDonneesLocales() })
+    expect(base.journal).toEqual(['clear', 'connect'])
+    expect(result.current.messageAutreCompte).toBeNull()
+    expect(stockage.valeur).toBe('u1')
+  })
+
+  it('même utilisateur : aucun message ni contrôle de file', async () => {
+    const base = fausseBase(5)
+    const { result } = monter(base, faussStockage('u1'))
+    await vider()
+    expect(base.journal).toEqual(['connect'])
+    expect(result.current.messageAutreCompte).toBeNull()
+  })
+
+  it("une opération en échec n'empêche pas la suivante de s'exécuter", async () => {
+    const erreur = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const base = fausseBase()
+    base.connect.mockRejectedValueOnce(new Error('réseau'))
+    const { rerender } = monter(base)
+    rerender({ userId: null })
+    await vider()
+    expect(base.journal).toEqual(['disconnect'])
+    expect(erreur).toHaveBeenCalledTimes(1)
+  })
 })

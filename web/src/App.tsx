@@ -8,11 +8,19 @@ const DEBUG_ACTIF = import.meta.env.DEV && window.location.pathname === '/debug/
 
 function Contenu() {
   const { session, signOut } = useAuth()
-  const { signOutSafely } = useSyncConnection({ userId: session?.user.id ?? null, signOut })
+  const { signOutSafely, abandonnerDonneesLocales, messageAutreCompte } = useSyncConnection({
+    userId: session?.user.id ?? null,
+    signOut,
+  })
 
   if (DEBUG_ACTIF) {
     return session ? (
-      <DebugWriteScreen userId={session.user.id} signOutSafely={signOutSafely} />
+      <DebugWriteScreen
+        userId={session.user.id}
+        signOutSafely={signOutSafely}
+        abandonnerDonneesLocales={abandonnerDonneesLocales}
+        messageAutreCompte={messageAutreCompte}
+      />
     ) : (
       <LoginScreen />
     )

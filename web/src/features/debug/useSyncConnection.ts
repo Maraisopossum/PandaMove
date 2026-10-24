@@ -1,5 +1,5 @@
 import type { PowerSyncBackendConnector, PowerSyncDatabase } from '@powersync/web'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import { SupabaseConnector } from '../../core/sync/connector'
 
@@ -36,6 +36,9 @@ const stockageNavigateur: StockageUtilisateur = {
   },
 }
 
+export const MESSAGE_AUTRE_COMPTE =
+  "Des modifications non synchronisées d'un autre compte sont présentes sur cet appareil. Reconnectez-vous avec ce compte pour les envoyer."
+
 export interface ResultatDeconnexion {
   ok: boolean
   message?: string
@@ -59,13 +62,32 @@ export function creerOperationsSynchro(
   }
 
   return {
+    // Renvoie true si la connexion est bloquée par des modifications non envoyées d'un autre compte
     connecter(userId: string) {
       return enfiler(
         'connexion',
         async () => {
-          // Autre compte sur ce navigateur : on vide la base locale avant de connecter
           const dernier = stockage.lire()
-          if (dernier && dernier !== userId) await db.disconnectAndClear()
+          if (dernier && dernier !== userId) {
+            // Autre compte sur ce navigateur : ses écritures non envoyées ne doivent être ni perdues
+            // ni envoyées sous le jeton du nouveau compte, donc on ne vide que si la file est vide.
+            const { count } = await db.getUploadQueueStats()
+            if (count > 0) return true
+            await db.disconnectAndClear()
+          }
+          stockage.ecrire(userId)
+          await db.connect(creerConnecteur())
+          return false
+        },
+        false,
+      )
+    },
+    // Choix explicite de l'utilisateur : abandonne les données locales de l'autre compte puis connecte
+    abandonnerEtConnecter(userId: string) {
+      return enfiler(
+        'abandon des données locales',
+        async () => {
+          await db.disconnectAndClear()
           stockage.ecrire(userId)
           await db.connect(creerConnecteur())
         },
@@ -123,14 +145,26 @@ export function useSyncConnection({
     [db, stockage],
   )
 
+  const [bloque, setBloque] = useState(false)
+
   useEffect(() => {
     if (!userId) return
-    void operations.connecter(userId)
+    void operations.connecter(userId).then(setBloque)
     return () => {
       void operations.deconnecter()
     }
   }, [userId, operations])
 
   const signOutSafely = useCallback(() => operations.deconnexionSure(signOut), [operations, signOut])
-  return { signOutSafely }
+  const abandonnerDonneesLocales = useCallback(async () => {
+    if (!userId) return
+    await operations.abandonnerEtConnecter(userId)
+    setBloque(false)
+  }, [operations, userId])
+
+  return {
+    signOutSafely,
+    abandonnerDonneesLocales,
+    messageAutreCompte: userId && bloque ? MESSAGE_AUTRE_COMPTE : null,
+  }
 }
