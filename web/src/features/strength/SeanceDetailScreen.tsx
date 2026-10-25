@@ -2,7 +2,6 @@ import { useId, type CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { SupprimerInstanceDialog } from '../calendar/SupprimerInstanceDialog'
 import type { BlocDetail, ExerciceDetail, InstanceDetail } from './detailSeance'
-import { LancerDialog } from './LancerDialog'
 import { useDetailSeance } from './useDetailSeance'
 
 const ETATS: Record<InstanceDetail['etat'], { libelle: string; icone: string }> = {
@@ -134,7 +133,7 @@ export default function SeanceDetailScreen() {
       </header>
 
       <div className="formulaire__ligne">
-        <button type="button" className="bouton bouton--principal" onClick={e.lancer}>
+        <button type="button" className="bouton bouton--principal" disabled={m.enCours} onClick={e.lancer}>
           Lancer la séance
         </button>
         <Link to={`/strength/${d.id}/edit`} className="bouton lien-bouton">
@@ -142,6 +141,11 @@ export default function SeanceDetailScreen() {
         </Link>
       </div>
 
+      {m.erreur && (
+        <p role="alert" className="import__erreur">
+          {m.erreur}
+        </p>
+      )}
       {e.erreurAction && (
         <p role="alert" className="import__erreur">
           {e.erreurAction}
@@ -189,9 +193,6 @@ export default function SeanceDetailScreen() {
         )}
       </section>
 
-      {m.cible && (
-        <LancerDialog nomSeance={m.cible.nom} erreur={m.erreur} enCours={m.enCours} onConfirmer={() => void m.confirmer()} onFermer={m.fermer} />
-      )}
       {e.aSupprimer && (
         <SupprimerInstanceDialog
           nomSeance={`${d.nom} — ${e.aSupprimer.dateLibelle}`}

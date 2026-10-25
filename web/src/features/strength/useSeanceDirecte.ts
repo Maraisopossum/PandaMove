@@ -4,11 +4,11 @@ import { nomParDefautSeanceDirecte } from './seanceDirecte'
 import { aujourdhuiIso } from './saisie'
 
 // Dialogue « Séance directe » : une séance planifiée aujourd'hui, sans modèle réutilisable. `creer` vient de
-// useSeanceList ; `composer` ouvre l'édition de la séance créée (le web ne permet pas d'ajouter des exercices en cours
-// d'exécution : on les choisit avant de jouer). En cas d'échec le dialogue reste ouvert avec un message français.
+// useSeanceList ; `ouvrir` ouvre l'EXÉCUTION de l'instance créée (comme Android : les exercices s'ajoutent en séance,
+// par « Modifier les exercices »). En cas d'échec le dialogue reste ouvert avec un message français.
 export function useSeanceDirecte(
-  creer: (nom: string, dateIso: string) => Promise<{ seanceId: string }>,
-  composer: (seanceId: string) => void,
+  creer: (nom: string, dateIso: string) => Promise<{ instanceId: string }>,
+  ouvrir: (instanceId: string) => void,
 ) {
   const [ouvert, setOuvert] = useState(false)
   const [nom, setNom] = useState('')
@@ -18,7 +18,7 @@ export function useSeanceDirecte(
   // Date du jour fixée à l'ouverture (la même pour le nom proposé et la création)
   const [date, setDate] = useState(aujourdhuiIso)
 
-  const ouvrir = useCallback(() => {
+  const ouvrirDialogue = useCallback(() => {
     setNom('')
     setErreur(null)
     setDate(aujourdhuiIso())
@@ -35,9 +35,9 @@ export function useSeanceDirecte(
     setErreur(null)
     setEnCours(true)
     try {
-      const { seanceId } = await creer(nom, date)
+      const { instanceId } = await creer(nom, date)
       setOuvert(false)
-      composer(seanceId)
+      ouvrir(instanceId)
     } catch (e) {
       if (e instanceof ErreurSeance) setErreur(e.message)
       else {
@@ -48,7 +48,7 @@ export function useSeanceDirecte(
       verrou.current = false
       setEnCours(false)
     }
-  }, [composer, creer, date, nom])
+  }, [ouvrir, creer, date, nom])
 
-  return { ouvert, nom, setNom, proposition: nomParDefautSeanceDirecte(date), erreur, enCours, ouvrir, fermer, confirmer }
+  return { ouvert, nom, setNom, proposition: nomParDefautSeanceDirecte(date), erreur, enCours, ouvrir: ouvrirDialogue, fermer, confirmer }
 }

@@ -9,17 +9,23 @@ import { MenuAjoutBloc } from './edition/MenuAjoutBloc'
 import { SelecteurDialog } from './edition/SelecteurDialog'
 import { useEcranEdition } from './useEcranEdition'
 
-// Création / modification d'un modèle de séance (parité Android SeanceCreateScreen). Écran d'ÉDITION : aucun
-// bouton d'affectation au calendrier ici (réservé à l'écran liste). Toute la logique est dans useEcranEdition.
-export default function SeanceEditScreen() {
-  const s = useEcranEdition()
+// Création / modification d'un modèle de séance (parité Android SeanceCreateScreen), ou — avec `instance` — modification
+// des exercices d'une séance en cours (SEANCE_INSTANCE_EDIT Android : seule l'instance change, jamais le modèle).
+// Écran d'ÉDITION : aucun bouton d'affectation au calendrier ici (réservé à l'écran liste). Toute la logique est dans useEcranEdition.
+export default function SeanceEditScreen({ instance = false }: { instance?: boolean }) {
+  const s = useEcranEdition(instance)
   const d = s.draft
 
   if (!s.charge) return <p>Chargement…</p>
 
   return (
     <div className="edition">
-      <h1>{s.enCreation ? 'Nouvelle séance' : 'Modifier la séance'}</h1>
+      <h1>{instance ? 'Modifier les exercices' : s.enCreation ? 'Nouvelle séance' : 'Modifier la séance'}</h1>
+      {instance && (
+        <p className="aide">
+          Séance « {d.nom} » : seule cette séance est modifiée, la séance type reste inchangée.
+        </p>
+      )}
       <form
         className="edition__formulaire"
         aria-label="Séance"
@@ -28,16 +34,18 @@ export default function SeanceEditScreen() {
           void s.soumettre()
         }}
       >
-        <section className="edition__infos" aria-label="Informations de la séance">
-          <ChampTexte libelle="Nom de la séance" valeur={d.nom} onChange={s.setNom} />
-          <ChampZoneTexte libelle="Notes" valeur={d.notes} onChange={s.setNotes} />
-          <ChampNombre libelle="Durée estimée (min)" valeur={d.dureeEstimeeMin} onChange={s.setDuree} />
-          <p className="aide">
-            {s.groupesAffiches.length > 0
-              ? `Muscles travaillés : ${s.groupesAffiches.join(', ')}.`
-              : 'Les muscles travaillés se déduisent des exercices ajoutés.'}
-          </p>
-        </section>
+        {!instance && (
+          <section className="edition__infos" aria-label="Informations de la séance">
+            <ChampTexte libelle="Nom de la séance" valeur={d.nom} onChange={s.setNom} />
+            <ChampZoneTexte libelle="Notes" valeur={d.notes} onChange={s.setNotes} />
+            <ChampNombre libelle="Durée estimée (min)" valeur={d.dureeEstimeeMin} onChange={s.setDuree} />
+            <p className="aide">
+              {s.groupesAffiches.length > 0
+                ? `Muscles travaillés : ${s.groupesAffiches.join(', ')}.`
+                : 'Les muscles travaillés se déduisent des exercices ajoutés.'}
+            </p>
+          </section>
+        )}
 
         <button type="button" className="edition__ajout-rapide" onClick={() => s.selecteur.ouvrir(null)}>
           <span aria-hidden="true">🔍</span>
@@ -118,6 +126,20 @@ export default function SeanceEditScreen() {
           <p>
             « {s.suppressionBloc.enAttente.nom || LIBELLES_BLOC[s.suppressionBloc.enAttente.type]} » et ses {s.suppressionBloc.enAttente.exercices.length}{' '}
             exercice{s.suppressionBloc.enAttente.exercices.length > 1 ? 's' : ''} seront retirés de la séance (au prochain enregistrement).
+          </p>
+        </DialogueConfirmation>
+      )}
+      {s.pertes && (
+        <DialogueConfirmation
+          titre="Retirer ces exercices ?"
+          libelleConfirmer="Retirer et supprimer les séries"
+          libelleAnnuler="Garder les exercices"
+          onConfirmer={() => void s.confirmerPertes()}
+          onAnnuler={s.annulerPertes}
+        >
+          <p>
+            {s.pertes.exercices} exercice{s.pertes.exercices > 1 ? 's' : ''} retiré{s.pertes.exercices > 1 ? 's' : ''} contien{s.pertes.exercices > 1 ? 'nent' : 't'}{' '}
+            {s.pertes.series} série{s.pertes.series > 1 ? 's' : ''} déjà validée{s.pertes.series > 1 ? 's' : ''} : elles seront supprimées de cette séance.
           </p>
         </DialogueConfirmation>
       )}

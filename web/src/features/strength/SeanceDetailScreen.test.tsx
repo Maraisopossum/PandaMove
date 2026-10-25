@@ -92,12 +92,10 @@ describe('SeanceDetailScreen', () => {
     expect(screen.getByRole('link', { name: 'Modifier' }).getAttribute('href')).toBe('/strength/s1/edit')
   })
 
-  it('Lancer : dialogue de confirmation, puis instance du jour démarrée et ouverture de l\'exécution', async () => {
+  it("Lancer : instance du jour démarrée tout de suite (sans confirmation) et ouverture de l'exécution", async () => {
     monter()
     fireEvent.click(await screen.findByRole('button', { name: 'Lancer la séance' }))
-    const dialogue = await screen.findByRole('dialog', { name: 'Lancer « Pull » maintenant ?' })
-    expect(dialogue).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Lancer' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(await screen.findByText('Écran exécution')).toBeTruthy()
     const n = await base.get<{ n: number }>("SELECT COUNT(*) AS n FROM instances_seance WHERE seance_id = 's1' AND started_at IS NOT NULL")
     expect(n.n).toBe(1)

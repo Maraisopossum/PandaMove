@@ -54,8 +54,7 @@ export function useListeSeancesEcran() {
   const ouvrirInstance = useCallback((id: string) => navigate(`/strength/instance/${id}`), [navigate])
   const lancement = useLancement(liste.lancer, ouvrirInstance)
   const suppression = useSuppression(liste.compterHistorique, liste.supprimer)
-  const composer = useCallback((id: string) => navigate(`/strength/${id}/edit`), [navigate])
-  const directe = useSeanceDirecte(liste.creerDirecte, composer)
+  const directe = useSeanceDirecte(liste.creerDirecte, ouvrirInstance)
 
   const demanderDuplication = useCallback(
     async (s: Seance) => {

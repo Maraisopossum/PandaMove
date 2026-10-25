@@ -381,28 +381,26 @@ describe('Lancer une séance type maintenant', () => {
     expect(carte.querySelector('a[href="/strength/l1"]')).not.toBeNull()
   })
 
-  it("confirmation (focus sur « Lancer »), Annuler ne crée rien ; Lancer crée l'instance du jour, la démarre et ouvre l'exécution", async () => {
+  it("« Lancer » démarre tout de suite, sans dialogue : crée l'instance du jour, la démarre et ouvre l'exécution", async () => {
     await seance('l2', 'Bras')
     monter('/strength')
-    const declencheur = await screen.findByRole('button', { name: 'Lancer Bras maintenant' })
-    declencheur.focus()
-    fireEvent.click(declencheur)
-    const dialogue = await screen.findByRole('dialog', { name: 'Lancer « Bras » maintenant ?' })
-    expect(dialogue.getAttribute('aria-modal')).toBe('true')
-    expect(dialogue.className).toBe('dialogue')
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Lancer' })))
-    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }))
-    expect(screen.queryByRole('dialog')).toBeNull()
-    expect(document.activeElement).toBe(declencheur)
-    expect(await instancesDe('l2')).toEqual([])
-
-    fireEvent.click(declencheur)
-    fireEvent.click(await screen.findByRole('button', { name: 'Lancer' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Lancer Bras maintenant' }))
     expect(await screen.findByText('Écran exécution')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
     const lignes = await instancesDe('l2')
     expect(lignes).toHaveLength(1)
     expect(lignes[0]).toMatchObject({ date: aujourdhuiIso(), is_completed: 0 })
     expect(lignes[0].started_at).not.toBeNull()
+  })
+
+  it('un double clic sur « Lancer » ne crée qu’une seule instance', async () => {
+    await seance('l2b', 'Épaules')
+    monter('/strength')
+    const bouton = await screen.findByRole('button', { name: 'Lancer Épaules maintenant' })
+    fireEvent.click(bouton)
+    fireEvent.click(bouton)
+    expect(await screen.findByText('Écran exécution')).toBeTruthy()
+    expect(await instancesDe('l2b')).toHaveLength(1)
   })
 
   it("une instance non terminée du même modèle prévue aujourd'hui est reprise (pas de seconde instance)", async () => {
@@ -412,21 +410,19 @@ describe('Lancer une séance type maintenant', () => {
     })
     monter('/strength')
     fireEvent.click(await screen.findByRole('button', { name: 'Lancer Jambes maintenant' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Lancer' }))
     expect(await screen.findByText('Écran exécution')).toBeTruthy()
     const lignes = await instancesDe('l3')
     expect(lignes.map((l) => l.id)).toEqual(['l3-prevue'])
     expect(lignes[0].started_at).not.toBeNull()
   })
 
-  it('erreur (séance disparue) : message français dans le dialogue, qui reste ouvert', async () => {
+  it('erreur (séance disparue) : message français sur la page, rien n’est créé', async () => {
     await seance('l4', 'Disparue')
     monter('/strength')
-    fireEvent.click(await screen.findByRole('button', { name: 'Lancer Disparue maintenant' }))
-    await screen.findByRole('dialog')
+    const bouton = await screen.findByRole('button', { name: 'Lancer Disparue maintenant' })
     await base.execute("UPDATE seances SET deleted_at = 'x' WHERE id = 'l4'")
-    fireEvent.click(screen.getByRole('button', { name: 'Lancer' }))
-    expect((await within(screen.getByRole('dialog')).findByRole('alert')).textContent).toBe('Séance introuvable.')
+    fireEvent.click(bouton)
+    expect((await screen.findByRole('alert')).textContent).toBe('Séance introuvable.')
     expect(await instancesDe('l4')).toEqual([])
   })
 })

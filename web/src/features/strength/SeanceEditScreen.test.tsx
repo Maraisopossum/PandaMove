@@ -482,3 +482,84 @@ describe('SeanceEditScreen : sortie avec modifications non enregistrées', () =>
     expect(await base.get<{ n: number }>("SELECT COUNT(*) AS n FROM seances WHERE nom = 'Enregistrée'")).toEqual({ n: 1 })
   })
 })
+
+describe('SeanceEditScreen : modifier les exercices d’une séance en cours', () => {
+  function monterInstance() {
+    return render(
+      <MemoryRouter initialEntries={['/strength/instance/i1/edit']}>
+        <Routes>
+          <Route path="/strength/instance/:id" element={<p>Séance en cours</p>} />
+          <Route path="/strength/instance/:id/edit" element={<SeanceEditScreen instance />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  beforeEach(async () => {
+    await inserer(base, 'instances_seance', {
+      id: 'i1', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 's1', date: '2026-10-24', notes: '', is_completed: 0,
+      completed_at: null, duration_seconds: 0, created_at: 'c',
+    })
+    await ajouterExoSeed('modele-1', 'tr', null, 0)
+    await ajouterExoSeed('inst-1', 'tr', null, 0, { instance_seance_id: 'i1' })
+  })
+
+  it('ne propose ni nom, ni notes, ni durée ; ajoute un exercice à la séance en cours puis revient à son exécution', async () => {
+    monterInstance()
+    await pret()
+    expect(screen.getByRole('heading', { level: 1, name: 'Modifier les exercices' })).toBeTruthy()
+    expect(screen.getByText(/seule cette séance est modifiée, la séance type reste inchangée/)).toBeTruthy()
+    expect(screen.queryByLabelText('Nom de la séance')).toBeNull()
+    expect(screen.queryByLabelText('Durée estimée (min)')).toBeNull()
+    cliquer(/Rechercher ou ajouter un exercice/)
+    await choisirExercices('Curl haltères')
+    cliquer('Enregistrer')
+    expect(await screen.findByText('Séance en cours')).toBeTruthy()
+    const lignes = await base.getAll<{ exercise_id: string; instance_seance_id: string | null }>(
+      'SELECT exercise_id, instance_seance_id FROM exercices_seance WHERE deleted_at IS NULL ORDER BY exercise_id, instance_seance_id',
+    )
+    expect(lignes).toEqual([
+      { exercise_id: 'curl', instance_seance_id: 'i1' },
+      { exercise_id: 'tr', instance_seance_id: null },
+      { exercise_id: 'tr', instance_seance_id: 'i1' },
+    ])
+    expect((await base.get<{ nom: string; notes: string }>("SELECT nom, notes FROM seances WHERE id = 's1'"))).toEqual({ nom: 'Pull', notes: 'n' })
+  })
+
+  it('« Annuler » revient à la séance en cours sans rien écrire', async () => {
+    monterInstance()
+    await pret()
+    cliquer('Annuler')
+    expect(await screen.findByText('Séance en cours')).toBeTruthy()
+  })
+
+  it('retirer un exercice déjà travaillé demande confirmation avant de supprimer ses séries', async () => {
+    await inserer(base, 'series_realisees', {
+      id: 'sr1', user_id: 'u1', updated_at: 'u', deleted_at: null, instance_seance_id: 'i1', exercice_seance_id: 'inst-1', numero_serie: 1,
+      reps_realisees: 8, charge_kg: 20, charge_label: null, rpe: null, notes: '', is_completed: 1, validated_at: '2026-10-24T10:00:00.000Z',
+    })
+    monterInstance()
+    await pret()
+    cliquer(/Rechercher ou ajouter un exercice/)
+    await choisirExercices('Curl haltères')
+    // Dépliée, la carte de Tractions propose « Supprimer »
+    fireEvent.click(screen.getAllByRole('button', { name: /^Tractions/ })[0])
+    cliquer('Supprimer Tractions')
+    cliquer('Enregistrer')
+    const dialogue = await screen.findByRole('dialog', { name: 'Retirer ces exercices ?' })
+    expect(dialogue.textContent).toContain('1 série déjà validée')
+    expect((await base.get<{ deleted_at: string | null }>("SELECT deleted_at FROM series_realisees WHERE id = 'sr1'")).deleted_at).toBeNull()
+    fireEvent.click(within(dialogue).getByRole('button', { name: 'Retirer et supprimer les séries' }))
+    expect(await screen.findByText('Séance en cours')).toBeTruthy()
+    expect((await base.get<{ deleted_at: string | null }>("SELECT deleted_at FROM series_realisees WHERE id = 'sr1'")).deleted_at).not.toBeNull()
+  })
+
+  it('séance terminée : message, pas de formulaire utile', async () => {
+    await base.execute("UPDATE instances_seance SET is_completed = 1 WHERE id = 'i1'")
+    monterInstance()
+    await pret()
+    expect((await screen.findByRole('alert')).textContent).toBe("Cette séance est terminée : elle n'est plus modifiable.")
+    cliquer('Enregistrer')
+    expect(screen.queryByText('Séance en cours')).toBeNull()
+  })
+})

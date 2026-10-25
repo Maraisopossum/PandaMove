@@ -29,6 +29,7 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
     { path: 'strength/:id', element: chargement(<SeanceDetailScreen />) },
     { path: 'strength/:id/edit', element: chargement(<SeanceEditScreen />) },
     { path: 'strength/instance/:id', element: chargement(<ExecuteScreen />) },
+    { path: 'strength/instance/:id/edit', element: chargement(<SeanceEditScreen instance />) },
     { path: 'strength/instance/:id/report', element: chargement(<ReportScreen />) },
     { path: 'calendar', element: chargement(<CalendarScreen />) },
     { path: 'stats', element: chargement(<StatsScreen />) },

@@ -1,7 +1,6 @@
 import { Link } from 'react-router'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { AssignDialog } from './AssignDialog'
-import { LancerDialog } from './LancerDialog'
 import { MenuActions } from './MenuActions'
 import { SeanceDirecteDialog } from './SeanceDirecteDialog'
 import { SupprimerDialog } from './SupprimerDialog'
@@ -35,9 +34,9 @@ export default function SeanceListScreen() {
         </Link>
       </div>
 
-      {l.erreur && (
+      {(l.erreur ?? m.erreur) && (
         <p role="alert" className="import__erreur">
-          {l.erreur}
+          {l.erreur ?? m.erreur}
         </p>
       )}
       {l.notice && (
@@ -96,7 +95,7 @@ export default function SeanceListScreen() {
                   {notes && <span className="seance__notes">{notes}</span>}
                 </Link>
                 <div className="seance__actions">
-                  <button type="button" className="bouton bouton--principal" aria-label={`Lancer ${s.nom} maintenant`} onClick={() => m.ouvrir(s)}>
+                  <button type="button" className="bouton bouton--principal" aria-label={`Lancer ${s.nom} maintenant`} disabled={m.enCours} onClick={() => void m.lancer(s)}>
                     Lancer
                   </button>
                   <button type="button" className="bouton" aria-label={`Affecter ${s.nom} au calendrier`} onClick={() => a.ouvrir(s)}>
@@ -145,16 +144,6 @@ export default function SeanceListScreen() {
           onRetirerDate={a.retirerDate}
           onConfirmer={() => void a.confirmer()}
           onFermer={a.fermer}
-        />
-      )}
-
-      {m.cible && (
-        <LancerDialog
-          nomSeance={m.cible.nom}
-          erreur={m.erreur}
-          enCours={m.enCours}
-          onConfirmer={() => void m.confirmer()}
-          onFermer={m.fermer}
         />
       )}
 

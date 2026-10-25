@@ -32,7 +32,7 @@ export function SeanceDirecteDialog({ nom, proposition, erreur, enCours, onNom, 
         >
           <h2 id={idTitre}>Séance directe</h2>
           <p id={idAide} className="dialogue__aide">
-            Séance planifiée aujourd'hui, sans séance type associée. Vous choisissez ensuite ses exercices ; elle apparaît dans « Séances programmées ».
+            Séance planifiée aujourd'hui, sans séance type associée. Vous ajoutez ses exercices pendant la séance ; elle apparaît dans « Séances programmées ».
           </p>
           <div className="formulaire__champ">
             <label htmlFor={idNom}>Nom de la séance</label>
@@ -53,7 +53,7 @@ export function SeanceDirecteDialog({ nom, proposition, erreur, enCours, onNom, 
           )}
           <div className="formulaire__ligne">
             <button type="submit" className="bouton" disabled={enCours}>
-              Créer et choisir les exercices
+              Créer et commencer
             </button>
             <button type="button" className="bouton" disabled={enCours} onClick={onFermer}>
               Annuler

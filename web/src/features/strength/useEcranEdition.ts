@@ -13,11 +13,14 @@ import { useSeanceEdit } from './useSeanceEdit'
 
 // Orchestration de l'écran d'édition : séance (id de la route, absent = création), sélecteur d'exercices,
 // échauffements, suppression de bloc confirmée, garde de sortie et retour à la liste après enregistrement.
-export function useEcranEdition() {
+// `enInstance` : la route porte l'id d'une séance EN COURS (modifier ses exercices) et non celui d'un modèle.
+export function useEcranEdition(enInstance = false) {
   const { id } = useParams()
   const navigate = useNavigate()
   const { session } = useAuth()
-  const edition = useSeanceEdit(id ?? null, { userId: session?.user.id })
+  const edition = useSeanceEdit(enInstance ? null : (id ?? null), { userId: session?.user.id, instanceId: enInstance ? (id ?? '') : undefined })
+  // Retour : à la séance en cours pour une modification d'instance, à la liste sinon
+  const retour = enInstance ? `/strength/instance/${id ?? ''}` : '/strength'
   const { draft, catalogueComplet, materiel, ajouterExercices, supprimerBloc, insererEchauffement, enregistrer } = edition
 
   const selecteur = useSelecteurExercices({
@@ -37,9 +40,14 @@ export function useEcranEdition() {
 
   const soumettre = useCallback(async () => {
     const idEnregistre = await enregistrer()
-    if (idEnregistre !== null) await navigate('/strength')
-  }, [enregistrer, navigate])
-  const annuler = useCallback(() => navigate('/strength'), [navigate])
+    if (idEnregistre !== null) await navigate(retour)
+  }, [enregistrer, navigate, retour])
+  // Confirmation de la perte des séries d'exercices retirés d'une séance en cours
+  const confirmerPertes = useCallback(async () => {
+    const idEnregistre = await enregistrer(true)
+    if (idEnregistre !== null) await navigate(retour)
+  }, [enregistrer, navigate, retour])
+  const annuler = useCallback(() => navigate(retour), [navigate, retour])
 
   const { modifierBloc, changerTypeBloc, deplacer, modifierExercice, transformerExercice, dupliquer, supprimerExercice } = edition
   const ouvrirSelecteur = selecteur.ouvrir
@@ -72,7 +80,7 @@ export function useEcranEdition() {
   )
 
   return {
-    ...edition, enCreation: id === undefined, groupesAffiches, selecteur, titreSelecteur, echauffement, suppressionBloc,
+    ...edition, enCreation: !enInstance && id === undefined, confirmerPertes, groupesAffiches, selecteur, titreSelecteur, echauffement, suppressionBloc,
     peutDeplacer: peutDeplacerId, actionsBloc, actionsExercice, soumettre, annuler,
   }
 }

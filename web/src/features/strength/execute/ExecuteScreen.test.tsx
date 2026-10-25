@@ -43,6 +43,8 @@ function monter(id: string) {
       <Routes>
         <Route path="/strength/instance/:id" element={<ExecuteScreen />} />
         <Route path="/strength/instance/:id/report" element={<p>Écran bilan</p>} />
+        <Route path="/strength/instance/:id/edit" element={<p>Écran édition des exercices</p>} />
+        <Route path="/strength/planned" element={<p>Séances programmées</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -324,6 +326,62 @@ describe('ExecuteScreen : outils de l’exercice', () => {
     monter('i-sans-bandeau')
     const dc = await screen.findByRole('article', { name: 'Développé couché' })
     expect(within(dc).queryByRole('region', { name: /Progression de/ })).toBeNull()
+  })
+})
+
+describe('ExecuteScreen : menu de la séance', () => {
+  const ouvrirMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Actions de la séance' }))
+
+  it('« Modifier les exercices » ouvre l’édition de CETTE séance', async () => {
+    await instance('i-menu-edit')
+    monter('i-menu-edit')
+    await ouvrirMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Modifier les exercices' }))
+    expect(await screen.findByText('Écran édition des exercices')).toBeTruthy()
+  })
+
+  it('« Supprimer la séance » demande confirmation, supprime logiquement la séance jouée (pas le modèle) puis revient aux programmées', async () => {
+    await instance('i-menu-suppr')
+    monter('i-menu-suppr')
+    fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
+    fireEvent.click(within(carte('Développé couché')).getByRole('button', { name: 'Valider la série 1' }))
+    await waitFor(async () => expect(await series('i-menu-suppr')).toHaveLength(1))
+    await ouvrirMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Supprimer la séance' }))
+    const dialogue = screen.getByRole('dialog', { name: 'Supprimer la séance ?' })
+    // « Annuler » ne supprime rien
+    fireEvent.click(within(dialogue).getByRole('button', { name: 'Annuler' }))
+    expect(screen.queryByRole('dialog', { name: 'Supprimer la séance ?' })).toBeNull()
+    expect((await base.get<{ deleted_at: string | null }>("SELECT deleted_at FROM instances_seance WHERE id = 'i-menu-suppr'")).deleted_at).toBeNull()
+
+    await ouvrirMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Supprimer la séance' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Supprimer la séance ?' })).getByRole('button', { name: 'Supprimer' }))
+    expect(await screen.findByText('Séances programmées')).toBeTruthy()
+    expect((await base.get<{ deleted_at: string | null }>("SELECT deleted_at FROM instances_seance WHERE id = 'i-menu-suppr'")).deleted_at).not.toBeNull()
+    expect(await series('i-menu-suppr')).toEqual([])
+    // Le modèle et ses lignes restent intacts
+    expect((await base.get<{ deleted_at: string | null }>("SELECT deleted_at FROM seances WHERE id = 's1'")).deleted_at).toBeNull()
+    expect((await base.get<{ n: number }>("SELECT COUNT(*) AS n FROM exercices_seance WHERE seance_id = 's1' AND instance_seance_id IS NULL AND deleted_at IS NULL")).n).toBe(2)
+  })
+
+  it('séance sans exercice (séance directe) : invitation à en ajouter, qui ouvre l’édition', async () => {
+    await inserer(base, 'seances', { ...commun, id: 's-vide', nom: 'Séance du 24/10', is_archived: 0, seance_category: 'STRENGTH_ONESHOT', created_at: 'c' })
+    await inserer(base, 'instances_seance', {
+      ...commun, id: 'i-vide', seance_id: 's-vide', date: '2026-10-24', notes: '', is_completed: 0, completed_at: null, duration_seconds: 0, created_at: 'c',
+    })
+    monter('i-vide')
+    expect(await screen.findByText('Aucun exercice enregistré pour cette séance.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter des exercices' }))
+    expect(await screen.findByText('Écran édition des exercices')).toBeTruthy()
+  })
+
+  it('séance terminée : ni menu ni outils', async () => {
+    await instance('i-menu-terminee', true)
+    monter('i-menu-terminee')
+    await screen.findByText('Séance terminée')
+    expect(screen.queryByRole('button', { name: 'Actions de la séance' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Minuteur/ })).toBeNull()
   })
 })
 

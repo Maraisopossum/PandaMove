@@ -50,10 +50,11 @@ export function useDetailSeance({ db }: DepsDetailSeance = {}) {
   const lancement = useLancement((seanceId) => lancerSeanceMaintenant(db ?? getDb(), seanceId, new Date()), ouvrirInstance)
 
   const detailCourant = etat !== null && etat.id === id ? etat.detail : null
-  const { ouvrir: ouvrirLancement } = lancement
+  const { lancer: lancerSeance } = lancement
+  // Démarre tout de suite (sans confirmation), comme Android
   const lancer = useCallback(() => {
-    if (detailCourant) ouvrirLancement({ id: detailCourant.id, nom: detailCourant.nom })
-  }, [detailCourant, ouvrirLancement])
+    if (detailCourant) void lancerSeance({ id: detailCourant.id, nom: detailCourant.nom })
+  }, [detailCourant, lancerSeance])
 
   // Suppression d'une séance jouée / planifiée de cet historique, après confirmation
   const [aSupprimer, setASupprimer] = useState<InstanceDetail | null>(null)

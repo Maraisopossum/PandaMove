@@ -1,5 +1,7 @@
 import { useId } from 'react'
 import { Link, useParams } from 'react-router'
+import { MenuActions } from '../MenuActions'
+import { DialogueConfirmation } from '../edition/DialogueConfirmation'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
 import { BarreExercices } from './BarreExercices'
 import { BandeauLive } from './BandeauLive'
@@ -45,6 +47,7 @@ export default function ExecuteScreen() {
             <button type="button" className="bouton" onClick={() => e.ouvrirFeuille('minuteur')}>
               <span aria-hidden="true">⏱ </span>Minuteur
             </button>
+            {e.trouvee && <MenuActions libelle="Actions de la séance" actions={e.menuSeance} />}
           </div>
         )}
       </header>
@@ -63,7 +66,14 @@ export default function ExecuteScreen() {
       {e.chargement ? (
         <p>Chargement…</p>
       ) : e.exercices.length === 0 ? (
-        <p>Aucun exercice enregistré pour cette séance.</p>
+        <div className="execution__vide">
+          <p>Aucun exercice enregistré pour cette séance.</p>
+          {!e.terminee && e.trouvee && (
+            <button type="button" className="bouton bouton--principal" onClick={e.modifierExercices}>
+              Ajouter des exercices
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <BarreExercices groupes={e.nav.groupes} piste={e.nav.piste} onChoisir={e.nav.choisir} />
@@ -128,6 +138,22 @@ export default function ExecuteScreen() {
             </>
           )}
         </div>
+      )}
+      {e.suppression.ouverte && (
+        <DialogueConfirmation
+          titre="Supprimer la séance ?"
+          libelleConfirmer="Supprimer"
+          libelleAnnuler="Annuler"
+          onConfirmer={() => void e.suppression.confirmer()}
+          onAnnuler={e.suppression.annuler}
+        >
+          <p>Cette séance planifiée sera supprimée, avec ses séries déjà saisies. La séance type n’est pas touchée.</p>
+          {e.suppression.erreur && (
+            <p role="alert" className="import__erreur">
+              {e.suppression.erreur}
+            </p>
+          )}
+        </DialogueConfirmation>
       )}
       {e.feuille === 'minuteur' && (
         <FeuilleMinuteur

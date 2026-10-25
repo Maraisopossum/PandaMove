@@ -33,6 +33,7 @@ function monter() {
       <Routes>
         <Route path="/strength" element={<SeanceListScreen />} />
         <Route path="/strength/:id/edit" element={<p>Écran édition</p>} />
+        <Route path="/strength/instance/:id" element={<p>Écran exécution</p>} />
         <Route path="/strength/planned" element={<p>Écran programmées</p>} />
       </Routes>
     </MemoryRouter>,
@@ -111,7 +112,7 @@ describe('Affectation : plusieurs dates et répétition', () => {
 })
 
 describe('Séance directe', () => {
-  it("crée une séance STRENGTH_ONESHOT planifiée aujourd'hui puis ouvre son édition ; absente de la liste des modèles", async () => {
+  it("crée une séance STRENGTH_ONESHOT planifiée aujourd'hui puis ouvre son EXÉCUTION (les exercices s'y ajoutent) ; absente de la liste des modèles", async () => {
     monter()
     const declencheur = await screen.findByRole('button', { name: 'Séance directe' })
     declencheur.focus()
@@ -131,8 +132,8 @@ describe('Séance directe', () => {
 
     fireEvent.click(declencheur)
     fireEvent.change(await screen.findByLabelText('Nom de la séance'), { target: { value: 'Express du soir' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Créer et choisir les exercices' }))
-    expect(await screen.findByText('Écran édition')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Créer et commencer' }))
+    expect(await screen.findByText('Écran exécution')).toBeTruthy()
     const s = await base.get<{ id: string; nom: string }>("SELECT id, nom FROM seances WHERE seance_category = 'STRENGTH_ONESHOT'")
     expect(s.nom).toBe('Express du soir')
     const i = await base.get<{ date: string; is_completed: number }>('SELECT date, is_completed FROM instances_seance WHERE seance_id = ?', [s.id])

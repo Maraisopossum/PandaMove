@@ -12,6 +12,7 @@ import { useMateriel } from './useMateriel'
 import { useMinuteurRepos } from './useMinuteurRepos'
 import { useMontee } from './useMontee'
 import { useNotesExercices } from './useNotesExercices'
+import { useSuppressionSeanceEnCours } from './useSuppressionSeanceEnCours'
 import { useNavExercices } from './useNavExercices'
 import { useNotesSeance } from './useNotesSeance'
 import { useTableauSeries } from './useTableauSeries'
@@ -67,6 +68,8 @@ export function useEcranExecution(instanceId: string) {
   const historique = useHistoriqueExercice(actif?.exerciseId ?? null)
   const notes = useNotesSeance(ex.notes, ex.enregistrerNotes)
   const navigate = useNavigate()
+  const suppression = useSuppressionSeanceEnCours(instanceId)
+  const modifierExercices = useCallback(() => navigate(`/strength/instance/${instanceId}/edit`), [instanceId, navigate])
   const { terminer } = ex
   useWakeLock(ex.demarre && !ex.terminee)
   const pandaMotivation = useImagePanda('motivation', { userId: session?.user.id, taille: 'sm' })
@@ -105,6 +108,13 @@ export function useEcranExecution(instanceId: string) {
       arreter: minuteur.arreter,
     },
     minuteurManuel: { derniereSec: minuteur.derniereManuelleSec, demarrer: minuteur.demarrerManuel },
+    // Menu « Séance » (crayon Android) : modifier les exercices, supprimer la séance (renommer : voir README)
+    menuSeance: [
+      { id: 'modifier', libelle: 'Modifier les exercices', onChoisir: modifierExercices },
+      { id: 'supprimer', libelle: 'Supprimer la séance', destructive: true, onChoisir: suppression.demander },
+    ],
+    suppression,
+    modifierExercices,
     feuille,
     ouvrirFeuille: setFeuille,
     fermerFeuille,
