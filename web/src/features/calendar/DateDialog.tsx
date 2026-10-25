@@ -23,6 +23,7 @@ export function DateDialog({ nomSeance, date, enCours, onDate, onConfirmer, onFe
     <div className="dialogue__voile">
       <div ref={racine} className="dialogue" role="dialog" aria-modal="true" aria-labelledby={idTitre} tabIndex={-1}>
         <form
+          noValidate
           onSubmit={(e) => {
             e.preventDefault()
             onConfirmer()
