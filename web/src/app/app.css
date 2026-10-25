@@ -142,6 +142,23 @@ h1 {
   font-weight: 800;
 }
 
+/* Module à sous-menus : section courante signalée par la bande de couleur seule */
+.drawer__lien[aria-current='true'] {
+  border-left-color: var(--couleur-module);
+  font-weight: 800;
+}
+
+.drawer__sousliens {
+  margin: 0;
+  padding: 0 0 0 1rem;
+  list-style: none;
+}
+
+.drawer__souslien {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
 .drawer__pied {
   display: flex;
   flex-direction: column;
@@ -466,6 +483,27 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+/* Ligne cliquable d'une séance programmée / terminée : la carte entière est un lien */
+.instances__lien {
+  min-height: 44px;
+  color: var(--texte);
+  text-decoration: none;
+}
+
+.instances__lien .seance__nom,
+.instances__lien .seance__details {
+  display: block;
+}
+
+.instances__badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: #5b3d9e;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .dialogue__voile {

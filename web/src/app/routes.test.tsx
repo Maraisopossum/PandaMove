@@ -19,6 +19,8 @@ const routes = (dev: boolean) => construireRoutes(coque, dev)
 const CHEMINS_ATTENDUS = [
   '/',
   '/strength',
+  '/strength/planned',
+  '/strength/done',
   '/strength/new',
   '/strength/abc/edit',
   '/strength/instance/abc',
@@ -64,6 +66,11 @@ describe('table de routes', () => {
     expect(await screen.findByRole('heading', { name: 'Accueil' })).toBeDefined()
   })
 
+  it('les sous-menus du renforcement ne tombent pas sur un paramètre (/strength/:id/…)', () => {
+    expect(routeFeuille('/strength/planned')?.path).toBe('strength/planned')
+    expect(routeFeuille('/strength/done')?.path).toBe('strength/done')
+  })
+
   it("/debug/write n'est pas enregistrée hors développement", () => {
     expect(routeFeuille('/debug/write', false)?.path).toBe('*')
   })
@@ -78,6 +85,8 @@ describe('moduleActif', () => {
     expect(moduleActif('/')).toBe('home')
     expect(moduleActif('/strength')).toBe('strength')
     expect(moduleActif('/strength/instance/abc/report')).toBe('strength')
+    expect(moduleActif('/strength/planned')).toBe('strength')
+    expect(moduleActif('/strength/done')).toBe('strength')
     expect(moduleActif('/stats')).toBe('stats')
   })
 

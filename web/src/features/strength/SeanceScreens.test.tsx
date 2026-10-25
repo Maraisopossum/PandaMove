@@ -151,7 +151,7 @@ describe('SeanceEditScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
 
     // Retour à la liste, où la séance apparaît avec ses muscles et son exercice
-    expect(await screen.findByRole('heading', { name: 'Renforcement' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Séances types' })).toBeTruthy()
     expect(await screen.findByText('Pectoraux du jeudi')).toBeTruthy()
     expect(screen.getByText('Pectoraux · 60 min · 1 exercice')).toBeTruthy()
   })

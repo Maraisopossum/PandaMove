@@ -12,7 +12,7 @@ export const NOM_SEANCE_INCONNUE = 'Séance (supprimée)'
 
 // Transforme une ligne d'instance en vue : nom (même si la séance est supprimée, pour l'historique
 // conservé), état et, pour les séances démarrées ou terminées, durée et nombre de séries terminées.
-async function versVue(db: DbLecture, l: Ligne): Promise<InstanceVue> {
+export async function instanceEnVue(db: DbLecture, l: Ligne): Promise<InstanceVue> {
   const id = String(l.id)
   const seanceId = String(l.seance_id)
   const terminee = l.is_completed === 1
@@ -35,7 +35,7 @@ export async function lireInstancesPlage(db: DbLecture, debutIso: string, finIso
     'SELECT * FROM instances_seance WHERE deleted_at IS NULL AND date >= ? AND date <= ? ORDER BY date, id',
     [debutIso, finIso],
   )
-  return Promise.all(lignes.map((l) => versVue(db, l)))
+  return Promise.all(lignes.map((l) => instanceEnVue(db, l)))
 }
 
 // Prochaines séances : à partir d'aujourd'hui, non terminées (planifiées ou en cours), indépendamment du mois affiché.
@@ -45,7 +45,7 @@ export async function lireProchaines(db: DbLecture, aujourdhuiIso: string, limit
      WHERE deleted_at IS NULL AND is_completed = 0 AND date >= ? ORDER BY date, id LIMIT ?`,
     [aujourdhuiIso, limite],
   )
-  return Promise.all(lignes.map((l) => versVue(db, l)))
+  return Promise.all(lignes.map((l) => instanceEnVue(db, l)))
 }
 
 // Déplace UNE instance. Une instance terminée ne se déplace pas : sa date ancre les statistiques.

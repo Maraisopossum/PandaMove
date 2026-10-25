@@ -9,6 +9,7 @@ export const ProfileScreen = lazy(() => import('../features/profile/ProfileScree
 export const EquipmentScreen = lazy(() => import('../features/profile/EquipmentScreen'))
 export const CatalogScreen = lazy(() => import('../features/strength/catalog/CatalogScreen'))
 export const SeanceListScreen = lazy(() => import('../features/strength/SeanceListScreen'))
+export const ListeInstancesScreen = lazy(() => import('../features/strength/ListeInstancesScreen'))
 export const SeanceEditScreen = lazy(() => import('../features/strength/SeanceEditScreen'))
 export const ExecuteScreen = lazy(() => import('../features/strength/execute/ExecuteScreen'))
 export const ReportScreen = lazy(() => import('../features/strength/report/ReportScreen'))

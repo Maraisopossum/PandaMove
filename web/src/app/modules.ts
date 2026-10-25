@@ -1,16 +1,32 @@
 export type ModuleId = 'home' | 'strength' | 'calendar' | 'stats' | 'profile' | 'import'
 
+export interface SousLien {
+  path: string
+  label: string
+}
+
 export interface ModuleInfo {
   path: string
   label: string
   color: string
+  /** Sous-menus affichés en permanence sous le module dans le drawer */
+  sousLiens?: SousLien[]
 }
 
 // Couleurs de DESIGN.md (PandaPurple, PandaOrange, PandaOrangeDark...). Les modules « génériques »
 // (accueil, profil) prennent un gris sombre neutre. Texte blanc sur toutes ces couleurs.
 export const MODULES: Record<ModuleId, ModuleInfo> = {
   home: { path: '/', label: 'Accueil', color: '#1E1E22' },
-  strength: { path: '/strength', label: 'Renforcement', color: '#7C5CBF' },
+  strength: {
+    path: '/strength',
+    label: 'Renforcement',
+    color: '#7C5CBF',
+    sousLiens: [
+      { path: '/strength', label: 'Séances types' },
+      { path: '/strength/planned', label: 'Séances programmées' },
+      { path: '/strength/done', label: 'Séances terminées' },
+    ],
+  },
   calendar: { path: '/calendar', label: 'Calendrier', color: '#E65100' },
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C' },
   profile: { path: '/profile', label: 'Profil', color: '#5A5E4C' },

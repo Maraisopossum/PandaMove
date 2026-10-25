@@ -1,7 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { RouteObject } from 'react-router'
 import {
-  CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ProfileScreen, ReportScreen, SeanceEditScreen, SeanceListScreen, StatsScreen,
+  CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, ProfileScreen, ReportScreen,
+  SeanceEditScreen, SeanceListScreen, StatsScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
@@ -20,6 +21,9 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
   const enfants: RouteObject[] = [
     { index: true, element: chargement(<HomeScreen />) },
     { path: 'strength', element: chargement(<SeanceListScreen />) },
+    // `key` distincte : passer d'un sous-menu à l'autre remonte l'écran (aucun état d'une liste dans l'autre)
+    { path: 'strength/planned', element: chargement(<ListeInstancesScreen key="programmees" type="programmees" />) },
+    { path: 'strength/done', element: chargement(<ListeInstancesScreen key="terminees" type="terminees" />) },
     { path: 'strength/new', element: chargement(<SeanceEditScreen />) },
     { path: 'strength/:id/edit', element: chargement(<SeanceEditScreen />) },
     { path: 'strength/instance/:id', element: chargement(<ExecuteScreen />) },

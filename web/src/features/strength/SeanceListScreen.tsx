@@ -14,7 +14,7 @@ export default function SeanceListScreen() {
 
   return (
     <>
-      <h1>Renforcement</h1>
+      <h1>Séances types</h1>
       <div className="formulaire__ligne">
         <Link to="/strength/new" className="bouton lien-bouton">
           <span aria-hidden="true">＋ </span>Nouvelle séance

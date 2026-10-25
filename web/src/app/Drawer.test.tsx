@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Drawer } from './Drawer'
@@ -25,19 +25,45 @@ function monter(chemin = '/stats', surcharge: Partial<Parameters<typeof Drawer>[
 }
 
 describe('Drawer', () => {
-  it('est un repère de navigation avec un lien par module', () => {
+  it('est un repère de navigation avec un lien par module et les sous-menus du renforcement', () => {
     monter()
     const nav = screen.getByRole('navigation', { name: 'Navigation principale' })
     for (const { label } of Object.values(MODULES)) {
       expect(nav.textContent).toContain(label)
     }
-    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length)
+    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length + 3)
+    // Sous-menus toujours visibles, en liste sémantique, même hors du module
+    const sousMenus = screen.getByRole('list', { name: 'Renforcement' })
+    expect(within(sousMenus).getAllByRole('link').map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
+      ['Séances types', '/strength'],
+      ['Séances programmées', '/strength/planned'],
+      ['Séances terminées', '/strength/done'],
+    ])
+    expect(screen.getByRole('link', { name: MODULES.strength.label }).getAttribute('href')).toBe('/strength')
   })
 
   it('marque uniquement le lien actif avec aria-current', () => {
+    monter('/stats')
+    const actifs = screen.getAllByRole('link').filter((l) => l.hasAttribute('aria-current'))
+    expect(actifs.map((l) => l.textContent)).toEqual([MODULES.stats.label])
+  })
+
+  it.each([
+    ['/strength', 'Séances types'],
+    ['/strength/planned', 'Séances programmées'],
+    ['/strength/done', 'Séances terminées'],
+  ])('%s : seul le sous-lien %s est la page courante ; le module est marqué comme section courante', (chemin, sousLien) => {
+    monter(chemin)
+    const pages = screen.getAllByRole('link').filter((l) => l.getAttribute('aria-current') === 'page')
+    expect(pages.map((l) => l.textContent)).toEqual([sousLien])
+    expect(screen.getByRole('link', { name: MODULES.strength.label }).getAttribute('aria-current')).toBe('true')
+  })
+
+  it('sous-route sans sous-menu (édition) : le module reste marqué, aucun sous-lien courant', () => {
     monter('/strength/new')
-    const actifs = screen.getAllByRole('link').filter((l) => l.getAttribute('aria-current') === 'page')
-    expect(actifs.map((l) => l.textContent)).toEqual([MODULES.strength.label])
+    const pages = screen.getAllByRole('link').filter((l) => l.getAttribute('aria-current') === 'page')
+    expect(pages).toEqual([])
+    expect(screen.getByRole('link', { name: MODULES.strength.label }).getAttribute('aria-current')).toBe('true')
   })
 
   it("affiche l'avertissement de déconnexion renvoyé par la synchro", () => {
