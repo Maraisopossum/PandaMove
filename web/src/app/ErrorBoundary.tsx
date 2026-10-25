@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { messageErreur } from './erreurs'
+import { EcranErreur } from './EcranErreur'
 
 // Frontière d'erreur racine : remplace la page blanche par un message en français.
 export class ErrorBoundary extends Component<{ children: ReactNode }, { erreur: unknown; aErreur: boolean }> {
@@ -15,11 +15,6 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { erreur: 
 
   render() {
     if (!this.state.aErreur) return this.props.children
-    return (
-      <main className="erreur-racine">
-        <h1>Oups</h1>
-        <p role="alert">{messageErreur(this.state.erreur)}</p>
-      </main>
-    )
+    return <EcranErreur erreur={this.state.erreur} />
   }
 }

@@ -73,3 +73,14 @@ describe('messageErreur', () => {
     expect(messageErreur('texte')).toContain('Une erreur est survenue')
   })
 })
+
+describe('ErrorBoundary — détails', () => {
+  it("propose de copier les détails de l'erreur", () => {
+    render(
+      <ErrorBoundary>
+        <Bombe erreur={new Error('boum')} />
+      </ErrorBoundary>,
+    )
+    expect(screen.getByRole('button', { name: "Copier les détails de l'erreur" })).toBeTruthy()
+  })
+})
