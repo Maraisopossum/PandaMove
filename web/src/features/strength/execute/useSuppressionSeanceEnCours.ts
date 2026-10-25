@@ -9,15 +9,21 @@ import { supprimerInstanceRenforcement } from '../suppression'
 // « Supprimer la séance » du menu de l'exécution (deleteInstance Android) : suppression LOGIQUE de la séance jouée,
 // de ses lignes copiées et de ses séries, après confirmation. Le modèle n'est jamais touché ; on retourne ensuite
 // aux séances programmées. En cas d'échec le dialogue reste ouvert avec un message français.
-export function useSuppressionSeanceEnCours(instanceId: string, db?: Db) {
+// `motif` : « menu » (Supprimer la séance du menu crayon) ou « sortie » (Annuler la séance du dialogue de sortie) ; il ne
+// change que les textes. `avantQuitter` est appelé juste avant de quitter l'écran (désarme la garde de sortie).
+export type MotifSuppression = 'menu' | 'sortie'
+
+export function useSuppressionSeanceEnCours(instanceId: string, db?: Db, avantQuitter?: () => void) {
   const navigate = useNavigate()
   const [ouverte, setOuverte] = useState(false)
+  const [motif, setMotif] = useState<MotifSuppression>('menu')
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
   const verrou = useRef(false)
 
-  const demander = useCallback(() => {
+  const demander = useCallback((pour: MotifSuppression = 'menu') => {
     setErreur(null)
+    setMotif(pour)
     setOuverte(true)
   }, [])
   const annuler = useCallback(() => {
@@ -32,6 +38,7 @@ export function useSuppressionSeanceEnCours(instanceId: string, db?: Db) {
     try {
       await supprimerInstanceRenforcement(db ?? getDb(), instanceId)
       setOuverte(false)
+      avantQuitter?.()
       await navigate('/strength/planned')
     } catch (e) {
       if (e instanceof ErreurSeance || e instanceof ErreurCalendrier) setErreur(e.message)
@@ -43,7 +50,7 @@ export function useSuppressionSeanceEnCours(instanceId: string, db?: Db) {
       verrou.current = false
       setEnCours(false)
     }
-  }, [db, instanceId, navigate])
+  }, [avantQuitter, db, instanceId, navigate])
 
-  return { ouverte, erreur, enCours, demander, annuler, confirmer }
+  return { ouverte, motif, erreur, enCours, demander, annuler, confirmer }
 }

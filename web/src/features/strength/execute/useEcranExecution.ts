@@ -16,11 +16,14 @@ import { useTitreOnglet } from './useTitreOnglet'
 import { useSuppressionSeanceEnCours } from './useSuppressionSeanceEnCours'
 import { useNavExercices } from './useNavExercices'
 import { useNotesSeance } from './useNotesSeance'
+import { useGardeSortie } from './useGardeSortie'
+import { useRenommageSeance } from './useRenommageSeance'
 import { useTableauSeries } from './useTableauSeries'
 import { useWakeLock } from './useWakeLock'
 import { bandeauProgression } from './bandeauProgression'
 import { messageFin } from './confirmationFin'
 import { titreOnglet } from './seanceActive'
+import { aProgression, gardeSortieActive } from './sortie'
 import { chargeInitialeCalculateur } from './disques'
 import { monteeDisponible } from './montee'
 import { formaterDuree, libelleDureeAccessible } from './vue'
@@ -71,8 +74,15 @@ export function useEcranExecution(instanceId: string) {
   const historique = useHistoriqueExercice(actif?.exerciseId ?? null)
   const notes = useNotesSeance(ex.notes, ex.enregistrerNotes)
   const navigate = useNavigate()
-  const suppression = useSuppressionSeanceEnCours(instanceId)
-  const modifierExercices = useCallback(() => navigate(`/strength/instance/${instanceId}/edit`), [instanceId, navigate])
+  // Garde de sortie (dialogue de l'Android) : désarmée avant toute navigation voulue par l'écran lui-même
+  const garde = useGardeSortie(gardeSortieActive({ trouvee: ex.trouvee, terminee: ex.terminee, exercices: ex.exercices }))
+  const { contourner } = garde
+  const suppression = useSuppressionSeanceEnCours(instanceId, undefined, contourner)
+  const renommage = useRenommageSeance(ex.nomSeance, ex.renommer)
+  const modifierExercices = useCallback(() => {
+    contourner()
+    void navigate(`/strength/instance/${instanceId}/edit`)
+  }, [contourner, instanceId, navigate])
   const { terminer } = ex
   useWakeLock(ex.demarre && !ex.terminee)
   useTitreOnglet(
@@ -93,8 +103,11 @@ export function useEcranExecution(instanceId: string) {
   const annulerFin = useCallback(() => setFinOuverte(false), [])
   const confirmerFin = useCallback(async () => {
     setFinOuverte(false)
-    if (await terminer()) navigate(`/strength/instance/${instanceId}/report`)
-  }, [instanceId, navigate, terminer])
+    if (await terminer()) {
+      contourner()
+      void navigate(`/strength/instance/${instanceId}/report`)
+    }
+  }, [contourner, instanceId, navigate, terminer])
 
   return {
     ...ex,
@@ -125,12 +138,21 @@ export function useEcranExecution(instanceId: string) {
       arreter: minuteur.arreter,
     },
     minuteurManuel: { derniereSec: minuteur.derniereManuelleSec, demarrer: minuteur.demarrerManuel },
-    // Menu « Séance » (crayon Android) : modifier les exercices, supprimer la séance (renommer : voir README)
+    // Menu « Séance » (crayon Android) : modifier le nom (de la séance jouée), les exercices, supprimer la séance
     menuSeance: [
+      { id: 'renommer', libelle: 'Modifier le nom', onChoisir: renommage.ouvrir },
       { id: 'modifier', libelle: 'Modifier les exercices', onChoisir: modifierExercices },
-      { id: 'supprimer', libelle: 'Supprimer la séance', destructive: true, onChoisir: suppression.demander },
+      { id: 'supprimer', libelle: 'Supprimer la séance', destructive: true, onChoisir: () => suppression.demander('menu') },
     ],
+    renommage,
     suppression,
+    // Dialogue de sortie : « Annuler la séance » ouvre la confirmation de suppression
+    sortie: {
+      bloquerRef: garde.bloquerRef,
+      progression: aProgression(ex.exercices),
+      quitter: ex.abandonnerDemarrage,
+      annuler: () => suppression.demander('sortie'),
+    },
     modifierExercices,
     feuille,
     ouvrirFeuille: setFeuille,

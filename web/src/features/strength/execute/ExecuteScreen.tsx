@@ -8,7 +8,9 @@ import { BandeauLive } from './BandeauLive'
 import { FeuilleDisques } from './FeuilleDisques'
 import { FeuilleMinuteur } from './FeuilleMinuteur'
 import { FeuilleMontee } from './FeuilleMontee'
+import { GardeSortieExecution } from './GardeSortieExecution'
 import { MenuRepos } from './MenuRepos'
+import { RenommerSeanceDialog } from './RenommerSeanceDialog'
 import { LancementCircuit } from './circuit/LancementCircuit'
 import { OverlayCircuit } from './circuit/OverlayCircuit'
 import { useEcranExecution } from './useEcranExecution'
@@ -155,13 +157,17 @@ export default function ExecuteScreen() {
       )}
       {e.suppression.ouverte && (
         <DialogueConfirmation
-          titre="Supprimer la séance ?"
-          libelleConfirmer="Supprimer"
-          libelleAnnuler="Annuler"
+          titre={e.suppression.motif === 'sortie' ? 'Annuler la séance ?' : 'Supprimer la séance ?'}
+          libelleConfirmer={e.suppression.motif === 'sortie' ? 'Annuler la séance' : 'Supprimer'}
+          libelleAnnuler={e.suppression.motif === 'sortie' ? 'Revenir à la séance' : 'Annuler'}
           onConfirmer={() => void e.suppression.confirmer()}
           onAnnuler={e.suppression.annuler}
         >
-          <p>Cette séance planifiée sera supprimée, avec ses séries déjà saisies. La séance type n’est pas touchée.</p>
+          <p>
+            {e.suppression.motif === 'sortie'
+              ? 'Cette séance sera supprimée, avec ses séries déjà saisies. La séance type n’est pas touchée.'
+              : 'Cette séance planifiée sera supprimée, avec ses séries déjà saisies. La séance type n’est pas touchée.'}
+          </p>
           {e.suppression.erreur && (
             <p role="alert" className="import__erreur">
               {e.suppression.erreur}
@@ -169,6 +175,22 @@ export default function ExecuteScreen() {
           )}
         </DialogueConfirmation>
       )}
+      {e.renommage.ouvert && (
+        <RenommerSeanceDialog
+          texte={e.renommage.texte}
+          erreur={e.renommage.erreur}
+          enCours={e.renommage.enCours}
+          onTexte={e.renommage.setTexte}
+          onValider={() => void e.renommage.valider()}
+          onFermer={e.renommage.fermer}
+        />
+      )}
+      <GardeSortieExecution
+        bloquerRef={e.sortie.bloquerRef}
+        progression={e.sortie.progression}
+        onQuitter={e.sortie.quitter}
+        onAnnuler={e.sortie.annuler}
+      />
       {e.feuille === 'minuteur' && (
         <FeuilleMinuteur
           restantMs={e.repos.restantMs}
