@@ -1202,6 +1202,177 @@ h1 {
   margin-top: 0.5rem;
 }
 
+/* Rapport de séance : en-tête, détail repliable par exercice, tableau des séries, choix du récap */
+.bilan__entete h2 {
+  margin: 0;
+}
+
+.bilan__date {
+  margin: 0.25rem 0 0;
+  font-weight: 700;
+  color: #5b3d9e;
+}
+
+:root[data-theme='dark'] .bilan__date {
+  color: #d0bcff;
+}
+
+.bilan__notes {
+  margin: 0.25rem 0 0;
+  color: var(--texte-secondaire);
+}
+
+.bilan__bloc {
+  margin: 1rem 0 0.25rem;
+  font-weight: 800;
+  color: #8a3b00;
+}
+
+:root[data-theme='dark'] .bilan__bloc {
+  color: #ffb784;
+}
+
+.bilan__exercice--plat {
+  padding: 0.75rem 1rem;
+}
+
+.bilan__exercice:has(details) {
+  padding: 0;
+}
+
+.bilan__resume {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.bilan__resume .bilan__series,
+.bilan__resume .bilan__statut {
+  margin: 0;
+}
+
+.bilan__cible {
+  margin: 0;
+  padding: 0 1rem 0.5rem;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.bilan__tableau {
+  width: calc(100% - 2rem);
+  margin: 0 1rem 1rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.bilan__tableau th,
+.bilan__tableau td {
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--bord);
+  text-align: left;
+  font-weight: 400;
+}
+
+.bilan__tableau thead th {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--texte-secondaire);
+}
+
+.bilan__tableau tbody th {
+  font-weight: 700;
+}
+
+/* Série non validée : barrée ET signalée par le texte « non validée » (jamais la forme seule) */
+.bilan__ligne--barree td,
+.bilan__ligne--barree th {
+  text-decoration: line-through;
+  color: var(--texte-secondaire);
+}
+
+.bilan__non-validee {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.bilan__note {
+  margin: 0.25rem 0 1rem;
+  white-space: pre-wrap;
+}
+
+.bilan__annonce {
+  min-height: 1.5rem;
+  margin: 0.5rem 0;
+  font-weight: 700;
+}
+
+.recap__sous-titre {
+  margin: 0 0 0.75rem;
+  color: var(--texte-secondaire);
+}
+
+.recap__groupe {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.recap__groupe legend {
+  padding: 0;
+}
+
+.recap__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--bord);
+  border-radius: 22px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.recap__option input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #5b3d9e;
+}
+
+.recap__option:has(input:checked) {
+  border-color: #5b3d9e;
+  background: color-mix(in srgb, #5b3d9e 14%, var(--surface));
+  font-weight: 700;
+}
+
+.recap__option:has(input:focus-visible) {
+  outline: 3px solid #5b3d9e;
+  outline-offset: 2px;
+}
+
+.recap__ajustement {
+  display: block;
+}
+
+.recap__aide,
+.recap__conseil {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: var(--texte-secondaire);
+}
+
+.recap__conseil {
+  color: #b3261e;
+}
+
+:root[data-theme='dark'] .recap__conseil {
+  color: #f2b8b5;
+}
+
 /* Calendrier : en-tête du mois, grille des jours (lundi en premier), séances */
 .calendrier__entete {
   display: flex;

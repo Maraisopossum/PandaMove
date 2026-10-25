@@ -1,10 +1,14 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useAuth } from '../../../core/auth/AuthProvider'
 import { useImagePanda } from '../../../core/images/usePandaVariante'
 import { chargeLisible } from '../../../core/progression/chargeLisible'
-import { formaterDureeBilan, formaterTonnage, texteProposition, texteStatut } from './bilan'
 import type { DecisionEnregistree } from '../../../core/progression/marqueur'
-import { useReport, type EtatProposition, type LigneBilan, type PropositionBilan } from './useReport'
+import {
+  compterSeries, formaterDateLongue, formaterDureeBilan, formaterTonnage, messageEnregistrement, sousTitreRecap, texteProposition, texteStatut,
+} from './bilan'
+import type { RapportExport } from './exportRapport'
+import { useExportRapport } from './useExportRapport'
+import { useReport, type ChoixRecap, type EtatProposition, type LigneBilan, type PropositionBilan } from './useReport'
 
 /** Ligne du récap, prête à afficher (aucun calcul dans les composants). */
 export interface LigneRecap {
@@ -18,6 +22,8 @@ export interface LigneRecap {
   libelleEtat: string
   /** Charge proposée, valeur de départ du champ « Ajuster » */
   chargeProposee: number | null
+  /** Charges composables avec « Mon matériel » (indice « Arrondir ») */
+  chargesAtteignables: number[]
 }
 
 const LIBELLES_LIGNE: Record<LigneBilan['statut'], string> = {
@@ -48,21 +54,61 @@ const versLigneRecap = (p: PropositionBilan): LigneRecap => ({
   etat: p.etat,
   libelleEtat: libelleEtat(p),
   chargeProposee: p.proposition?.nouvelleChargeCible == null ? null : chargeLisible(p.proposition.nouvelleChargeCible),
+  chargesAtteignables: p.chargesAtteignables,
 })
 
-// Orchestration de l'écran de bilan : données (useReport), textes formatés, ouverture du récap.
-// Le récap s'ouvre de lui-même tant qu'une proposition attend une décision ; une fois une décision
-// prise, il reste ouvert jusqu'à « Fermer » (l'utilisateur voit le résultat de son choix).
+// Orchestration de l'écran de rapport : données (useReport), textes formatés, ouverture du récap, export.
+// Le récap s'ouvre de lui-même tant qu'une proposition attend une décision ; « Plus tard » le ferme sans
+// rien écrire (il se rouvre depuis le rapport). « Valider » applique tous les choix d'un coup, comme l'Android.
 export function useEcranBilan(instanceId: string) {
   const { session } = useAuth()
   const r = useReport(instanceId, { userId: session?.user.id })
   const pandaVictoire = useImagePanda('victory', { userId: session?.user.id, taille: 'sm' })
   const [ouvert, setOuvert] = useState<boolean | null>(null)
-  const { accepter, refuser, ajuster } = r
+  const [enCours, setEnCours] = useState(false)
+  const [annonce, setAnnonce] = useState('')
+  const { valider: validerLot } = r
 
   const recap = r.propositions.map(versLigneRecap)
-  const enAttente = r.propositions.some((p) => p.actionnable && p.etat === 'en_attente')
-  const garderOuvert = useCallback(() => setOuvert((o) => o ?? true), [])
+  const nbAValider = recap.filter((l) => l.actionnable && l.etat === 'en_attente').length
+  const etatParExercice = new Map(recap.map((l) => [l.exerciceId, l.libelleEtat]))
+
+  const series = compterSeries(r.exercices)
+  const dateLongue = formaterDateLongue(r.date)
+  const duree = formaterDureeBilan(r.resume.dureeSec)
+  const tonnage = formaterTonnage(r.resume.tonnageKg)
+  const seriesLibelle = `${series.realisees} / ${series.prevues}`
+
+  const groupes = r.groupes.map((g) => ({
+    ...g,
+    exercices: g.exercices.map((e) => ({
+      ...e,
+      libelleSeries: `${e.seriesRealisees} / ${e.seriesPrevues} séries`,
+      libelleStatut: LIBELLES_LIGNE[e.statut],
+      libelleProgression: etatParExercice.get(e.exerciceId) ?? null,
+    })),
+  }))
+
+  const rapportExport = useMemo<RapportExport | null>(
+    () =>
+      r.terminee
+        ? {
+            nom: r.nomSeance,
+            dateLongue,
+            notesSeance: r.notesSeance,
+            notesInstance: r.notesInstance,
+            duree,
+            tonnage,
+            series: seriesLibelle,
+            groupes: r.groupes.map((g) => ({
+              titre: g.titre,
+              exercices: g.exercices.map((e) => ({ nom: e.nom, cible: e.cible, lignes: e.lignes })),
+            })),
+          }
+        : null,
+    [r.terminee, r.nomSeance, dateLongue, r.notesSeance, r.notesInstance, duree, tonnage, seriesLibelle, r.groupes],
+  )
+  const exportation = useExportRapport(rapportExport, r.date, setAnnonce)
 
   return {
     chargement: r.chargement,
@@ -70,40 +116,40 @@ export function useEcranBilan(instanceId: string) {
     trouvee: r.trouvee,
     terminee: r.terminee,
     nomSeance: r.nomSeance,
-    tonnage: formaterTonnage(r.resume.tonnageKg),
-    series: String(r.resume.seriesTotal),
-    duree: formaterDureeBilan(r.resume.dureeSec),
-    exercices: r.exercices.map((e) => ({
-      ...e,
-      libelleSeries: `${e.seriesRealisees} / ${e.seriesPrevues} séries`,
-      libelleStatut: LIBELLES_LIGNE[e.statut],
-    })),
+    dateLongue,
+    notesSeance: r.notesSeance,
+    notesInstance: r.notesInstance,
+    tonnage,
+    series: seriesLibelle,
+    duree,
+    exercices: r.exercices,
+    groupes,
     recap,
-    recapOuvert: !r.chargement && (ouvert ?? enAttente) && recap.length > 0,
+    nbAValider,
+    sousTitreRecap: sousTitreRecap(nbAValider),
+    recapOuvert: !r.chargement && (ouvert ?? nbAValider > 0) && recap.length > 0,
     aDesDecisions: r.propositions.length > 0,
+    annonce,
+    enCours,
     ouvrirRecap: useCallback(() => setOuvert(true), []),
     fermerRecap: useCallback(() => setOuvert(false), []),
-    accepter: useCallback(
-      (id: string) => {
-        garderOuvert()
-        return accepter(id)
+    valider: useCallback(
+      async (lot: ChoixRecap[]) => {
+        setOuvert((o) => o ?? true)
+        setEnCours(true)
+        const ok = await validerLot(lot)
+        setEnCours(false)
+        if (ok) {
+          setOuvert(false)
+          setAnnonce(messageEnregistrement(lot.length))
+        }
       },
-      [accepter, garderOuvert],
+      [validerLot],
     ),
-    refuser: useCallback(
-      (id: string) => {
-        garderOuvert()
-        return refuser(id)
-      },
-      [refuser, garderOuvert],
-    ),
-    ajuster: useCallback(
-      (id: string, kg: number) => {
-        garderOuvert()
-        return ajuster(id, kg)
-      },
-      [ajuster, garderOuvert],
-    ),
+    copier: exportation.copier,
+    telecharger: exportation.telecharger,
+    partager: exportation.partager,
+    peutPartager: exportation.peutPartager,
     lienSeance: `/strength/instance/${instanceId}`,
     pandaVictoire,
   }
