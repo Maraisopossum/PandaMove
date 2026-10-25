@@ -15,6 +15,7 @@ import { useTitreOnglet } from './useTitreOnglet'
 import { useSuppressionSeanceEnCours } from './useSuppressionSeanceEnCours'
 import { useNavExercices } from './useNavExercices'
 import { useNotesSeance } from './useNotesSeance'
+import { useBipsRepos } from './useBipsRepos'
 import { useGardeSortie } from './useGardeSortie'
 import { useRenommageSeance } from './useRenommageSeance'
 import { useTableauSeries } from './useTableauSeries'
@@ -67,6 +68,8 @@ export function useEcranExecution(instanceId: string) {
     surExercice: nav.choisir,
     reglages,
   })
+  // Bips des 5 dernières secondes du repos (Android) ; pendant un circuit, c'est le circuit qui sonne
+  useBipsRepos(minuteur.restantMs, reglages.son && circuit.affichage === null)
   // Le bouton reste affiché sous l'écran du circuit (le focus y revient à l'arrêt) ; `lancer` ignore un second lancement
   const lancement = ex.terminee ? null : lancementPour(nav.blocActif, actif)
   const historique = useHistoriqueExercice(actif?.exerciseId ?? null)
