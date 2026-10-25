@@ -1,0 +1,2629 @@
+[
+ {
+  "name": "Développé couché barre",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc plat",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé couché haltères",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc plat"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé couché incliné barre",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc incliné",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé couché incliné haltères",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc incliné"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé couché décliné barre",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc décliné",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé couché décliné haltères",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc décliné"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Écarté couché haltères",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc plat"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Écarté incliné haltères",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc incliné"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Écarté décliné haltères",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc décliné"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Crossover câbles (poulie haute)",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Crossover câbles (poulie basse)",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Pec deck / Butterfly machine",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine pec deck"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Dips (poitrine)",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barres parallèles"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Pompes",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Pompes larges",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Pompes diamant",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS",
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé couché Smith machine",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "TRICEPS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc plat",
+   "Rack",
+   "Smith machine"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Pull-over haltère",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "DOS",
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère",
+   "Banc plat"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Pull-over à la poulie",
+  "category": "CHEST",
+  "musclePrimary": "PECTORAUX",
+  "muscleGroups": [
+   "PECTORAUX",
+   "DOS",
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Traction pronation (pull-up)",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "BICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre de traction"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Traction supination (chin-up)",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "BICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre de traction"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Traction neutre",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "BICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre de traction"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Lat pulldown pronation",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "BICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie haute",
+   "Barre de tirage"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Lat pulldown supination",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "BICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie haute",
+   "Barre de tirage"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Lat pulldown neutre",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "BICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie haute"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing barre (Bent-over row)",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing haltère unilatéral",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère",
+   "Banc / appui"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing câble assis (prise serrée)",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie basse"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing câble assis (prise large)",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie basse"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing T-bar",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre T-bar",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing Pendlay",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing Yates (barre EZ)",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre EZ",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rowing machine (Hammer Strength)",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine Hammer Strength"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Face pull câble",
+  "category": "BACK",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "DOS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Tirage nuque câble",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "BICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie haute",
+   "Barre de tirage"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Good morning",
+  "category": "BACK",
+  "musclePrimary": "LOMBAIRES",
+  "muscleGroups": [
+   "LOMBAIRES",
+   "ISCHIO",
+   "FESSIERS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Hyperextension (GHD)",
+  "category": "BACK",
+  "musclePrimary": "LOMBAIRES",
+  "muscleGroups": [
+   "LOMBAIRES",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "GHD / Banc à lombaires"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Deadlift roumain câble",
+  "category": "BACK",
+  "musclePrimary": "ISCHIO",
+  "muscleGroups": [
+   "ISCHIO",
+   "FESSIERS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie basse"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Shrug barre",
+  "category": "BACK",
+  "musclePrimary": "TRAPEZES",
+  "muscleGroups": [
+   "TRAPEZES",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Shrug haltères",
+  "category": "BACK",
+  "musclePrimary": "TRAPEZES",
+  "muscleGroups": [
+   "TRAPEZES",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Shrug machine",
+  "category": "BACK",
+  "musclePrimary": "TRAPEZES",
+  "muscleGroups": [
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Shrug câble",
+  "category": "BACK",
+  "musclePrimary": "TRAPEZES",
+  "muscleGroups": [
+   "TRAPEZES",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé militaire barre",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé militaire haltères",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRICEPS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé Arnold",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé épaules machine",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRICEPS",
+   "PECTORAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine épaules"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé épaules Smith machine",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRICEPS",
+   "PECTORAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Smith machine"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Élévation latérale haltères",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Élévation latérale câble",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Élévation latérale machine",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine élévations latérales"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Élévation frontale barre",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Élévation frontale haltères",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Élévation frontale câble",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Oiseau haltères (rear delt fly)",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "DOS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc incliné"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Oiseau câble (rear delt fly)",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "DOS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Reverse pec deck",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "DOS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine pec deck (inversée)"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Upright row barre",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Upright row haltères",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Upright row câble",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Cuban press",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "TRAPEZES",
+   "DOS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl barre droite",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre droite"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl barre EZ",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre EZ"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl haltères debout",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl haltères alterné",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl haltères concentré",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère",
+   "Banc"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl marteau haltères",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl marteau câble",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl incliné haltères",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc incliné"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl pupitre (Scott curl)",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc Scott / Pupitre"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl câble poulie basse",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie basse"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl câble poulie haute",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie haute"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl Zottman",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl spider",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc incliné"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl machine",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine curl"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl à 21",
+  "category": "BICEPS",
+  "musclePrimary": "BICEPS",
+  "muscleGroups": [
+   "BICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères / Barre"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Développé couché prise serrée",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS",
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc plat"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Barre au front (Skull crusher)",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc plat"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Barre au front EZ",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre EZ",
+   "Banc plat"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Extension triceps câble (corde)",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie",
+   "Corde"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Extension triceps câble (barre droite)",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie",
+   "Barre droite"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Extension triceps câble (prise inversée)",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Kick-back haltère",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Kick-back câble",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Extension triceps overhead haltère",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Extension triceps overhead câble",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Extension triceps overhead barre EZ",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre EZ"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Dips banc (triceps)",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS",
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Banc"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Triceps machine",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine triceps"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "JM press",
+  "category": "TRICEPS",
+  "musclePrimary": "TRICEPS",
+  "muscleGroups": [
+   "TRICEPS",
+   "PECTORAUX",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc plat"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat barre haute",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ADDUCTEURS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat barre basse",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat avant (Front squat)",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "LOMBAIRES",
+   "ABDOMINAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat gobelet",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Kettlebell"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat Smith machine",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Smith machine"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat hack machine",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine hack squat"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Hack squat barre",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Leg press",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine leg press"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Fente barre",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ADDUCTEURS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Fente haltères",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ADDUCTEURS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Fente marchée",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ADDUCTEURS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Fente bulgare (split squat)",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc / appui"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Step-up haltères",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères",
+   "Banc / step"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Leg extension machine",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine leg extension"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Sissy squat",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Barre"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Zercher squat",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "LOMBAIRES",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat sur une jambe (pistol squat)",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Soulevé de terre conventionnel",
+  "category": "LEGS",
+  "musclePrimary": "LOMBAIRES",
+  "muscleGroups": [
+   "LOMBAIRES",
+   "FESSIERS",
+   "ISCHIO",
+   "QUADRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Soulevé de terre sumo",
+  "category": "LEGS",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "ISCHIO",
+   "ADDUCTEURS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Soulevé de terre roumain",
+  "category": "LEGS",
+  "musclePrimary": "ISCHIO",
+  "muscleGroups": [
+   "ISCHIO",
+   "FESSIERS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Soulevé de terre jambes tendues",
+  "category": "LEGS",
+  "musclePrimary": "ISCHIO",
+  "muscleGroups": [
+   "ISCHIO",
+   "FESSIERS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Soulevé de terre pieds-mains (Trap bar)",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Trap bar / Hex bar"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Leg curl couché machine",
+  "category": "LEGS",
+  "musclePrimary": "ISCHIO",
+  "muscleGroups": [
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine leg curl"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Leg curl assis machine",
+  "category": "LEGS",
+  "musclePrimary": "ISCHIO",
+  "muscleGroups": [
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine leg curl"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Leg curl câble debout",
+  "category": "LEGS",
+  "musclePrimary": "ISCHIO",
+  "muscleGroups": [
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Nordic curl",
+  "category": "LEGS",
+  "musclePrimary": "ISCHIO",
+  "muscleGroups": [
+   "ISCHIO",
+   "FESSIERS",
+   "QUADRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Partenaire"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Hip thrust barre",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Banc / appui"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Hip thrust machine",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine hip thrust"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Glute bridge",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Haltère"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Donkey kick câble",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Hip abduction machine",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine abduction"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Hip adduction machine",
+  "category": "LEGS",
+  "musclePrimary": "ADDUCTEURS",
+  "muscleGroups": [
+   "ADDUCTEURS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine adduction"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Cable pull-through",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "ISCHIO",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie basse"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Squat sumo haltère",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "ADDUCTEURS",
+   "QUADRICEPS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curtsy lunge",
+  "category": "GLUTES",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "QUADRICEPS",
+   "ADDUCTEURS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères / Barre"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Mollets debout machine",
+  "category": "LEGS",
+  "musclePrimary": "MOLLETS",
+  "muscleGroups": [
+   "MOLLETS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine mollets debout"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Mollets assis machine",
+  "category": "LEGS",
+  "musclePrimary": "MOLLETS",
+  "muscleGroups": [
+   "MOLLETS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine mollets assis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Mollets debout barre",
+  "category": "LEGS",
+  "musclePrimary": "MOLLETS",
+  "muscleGroups": [
+   "MOLLETS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Rack"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Mollets debout haltère unilatéral",
+  "category": "LEGS",
+  "musclePrimary": "MOLLETS",
+  "muscleGroups": [
+   "MOLLETS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Mollets au leg press",
+  "category": "LEGS",
+  "musclePrimary": "MOLLETS",
+  "muscleGroups": [
+   "MOLLETS"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine leg press"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Dorsiflexion poids de corps",
+  "category": "LEGS",
+  "musclePrimary": "MOLLETS",
+  "muscleGroups": [
+   "MOLLETS"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Crunch",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Crunch machine",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine crunch"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Crunch câble",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Relevé de jambes suspendu",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre de traction"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Relevé de jambes sol",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Ab wheel (roue abdominale)",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "DOS",
+   "TRICEPS",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Ab wheel"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Dragon flag",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "DOS",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Banc décliné"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Planche (gainage)",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "LOMBAIRES",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Planche latérale",
+  "category": "CORE",
+  "musclePrimary": "OBLIQUES",
+  "muscleGroups": [
+   "OBLIQUES",
+   "ABDOMINAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Russian twist",
+  "category": "CORE",
+  "musclePrimary": "OBLIQUES",
+  "muscleGroups": [
+   "OBLIQUES",
+   "ABDOMINAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Mountain climber",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "QUADRICEPS",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Wood chop câble",
+  "category": "CORE",
+  "musclePrimary": "OBLIQUES",
+  "muscleGroups": [
+   "OBLIQUES",
+   "ABDOMINAUX",
+   "DOS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Pallof press câble",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Câble / Poulie"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Rollout sur genoux",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "DOS",
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Ab wheel"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Windshield wiper",
+  "category": "CORE",
+  "musclePrimary": "OBLIQUES",
+  "muscleGroups": [
+   "OBLIQUES",
+   "ABDOMINAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Hollow hold",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "V-up",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX"
+  ],
+  "description": "",
+  "equipment": [
+   "Poids de corps / Tapis"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Toes to bar",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "DOS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre de traction"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Ab slide machine",
+  "category": "CORE",
+  "musclePrimary": "ABDOMINAUX",
+  "muscleGroups": [
+   "ABDOMINAUX",
+   "OBLIQUES"
+  ],
+  "description": "",
+  "equipment": [
+   "Machine abdominaux"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl avant-bras barre (prise pronation)",
+  "category": "OTHER",
+  "musclePrimary": "AVANT_BRAS",
+  "muscleGroups": [
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre droite"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl avant-bras barre (prise supination)",
+  "category": "OTHER",
+  "musclePrimary": "AVANT_BRAS",
+  "muscleGroups": [
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre droite"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Curl avant-bras haltère",
+  "category": "OTHER",
+  "musclePrimary": "AVANT_BRAS",
+  "muscleGroups": [
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltère"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Farmer's walk",
+  "category": "FULL_BODY",
+  "musclePrimary": "AVANT_BRAS",
+  "muscleGroups": [
+   "AVANT_BRAS",
+   "TRAPEZES",
+   "FESSIERS",
+   "LOMBAIRES"
+  ],
+  "description": "",
+  "equipment": [
+   "Haltères lourds"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Plate pinch",
+  "category": "OTHER",
+  "musclePrimary": "AVANT_BRAS",
+  "muscleGroups": [
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Disques de fonte"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Wrist roller",
+  "category": "OTHER",
+  "musclePrimary": "AVANT_BRAS",
+  "muscleGroups": [
+   "AVANT_BRAS"
+  ],
+  "description": "",
+  "equipment": [
+   "Wrist roller"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Reverse curl barre",
+  "category": "OTHER",
+  "musclePrimary": "AVANT_BRAS",
+  "muscleGroups": [
+   "AVANT_BRAS",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre droite"
+  ],
+  "exerciseType": "Mono",
+  "isBodyweight": false
+ },
+ {
+  "name": "Arraché (Snatch)",
+  "category": "FULL_BODY",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "ISCHIO",
+   "FESSIERS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre olympique",
+   "Rack",
+   "Plateforme"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Épaulé-jeté (Clean & Jerk)",
+  "category": "FULL_BODY",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "ISCHIO",
+   "FESSIERS",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre olympique",
+   "Rack",
+   "Plateforme"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Power clean",
+  "category": "FULL_BODY",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "ISCHIO",
+   "FESSIERS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre olympique",
+   "Plateforme"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Power snatch",
+  "category": "FULL_BODY",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "ISCHIO",
+   "FESSIERS",
+   "TRAPEZES"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre olympique",
+   "Plateforme"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Kettlebell swing",
+  "category": "FULL_BODY",
+  "musclePrimary": "FESSIERS",
+  "muscleGroups": [
+   "FESSIERS",
+   "ISCHIO",
+   "LOMBAIRES",
+   "EPAULES"
+  ],
+  "description": "",
+  "equipment": [
+   "Kettlebell"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Turkish get-up",
+  "category": "FULL_BODY",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "ABDOMINAUX",
+   "FESSIERS",
+   "QUADRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Kettlebell / Haltère"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Clean tiré (High pull)",
+  "category": "FULL_BODY",
+  "musclePrimary": "TRAPEZES",
+  "muscleGroups": [
+   "TRAPEZES",
+   "FESSIERS",
+   "QUADRICEPS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre olympique",
+   "Plateforme"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Landmine press",
+  "category": "SHOULDERS",
+  "musclePrimary": "EPAULES",
+  "muscleGroups": [
+   "EPAULES",
+   "PECTORAUX",
+   "TRICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Landmine"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Landmine row",
+  "category": "BACK",
+  "musclePrimary": "DOS",
+  "muscleGroups": [
+   "DOS",
+   "TRAPEZES",
+   "BICEPS"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Landmine"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ },
+ {
+  "name": "Landmine squat",
+  "category": "LEGS",
+  "musclePrimary": "QUADRICEPS",
+  "muscleGroups": [
+   "QUADRICEPS",
+   "FESSIERS",
+   "ISCHIO"
+  ],
+  "description": "",
+  "equipment": [
+   "Barre",
+   "Landmine"
+  ],
+  "exerciseType": "Pluri",
+  "isBodyweight": false
+ }
+]
