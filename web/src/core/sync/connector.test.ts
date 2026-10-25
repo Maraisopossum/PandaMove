@@ -116,6 +116,37 @@ describe('SupabaseConnector.uploadData', () => {
     })
   })
 
+  it("un rejet définitif n'abandonne que l'opération fautive : les suivantes sont envoyées", async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client, appels } = fauxSupabase([null, { code: '23505', message: 'duplicate key' }, null])
+    const { db, complete } = fausseBase([
+      { op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} },
+      { op: UpdateType.PUT, table: 'exercices_seance', id: 'x2', opData: {} },
+      { op: UpdateType.PUT, table: 'series_realisees', id: 'r3', opData: {} },
+    ])
+    await new SupabaseConnector(() => client).uploadData(db)
+    expect(appels.map((a) => (a.args[0] as { id: string }).id)).toEqual(['s1', 'x2', 'r3'])
+    expect(complete).toHaveBeenCalledTimes(1)
+    expect(rejetsEnvoi.dernier()).toMatchObject({ table: 'exercices_seance', operation: 'PUT', code: '23505' })
+    // Seule l'opération fautive est journalisée comme abandonnée
+    const trace = JSON.stringify(spy.mock.calls)
+    expect(trace).toContain('x2')
+    expect(trace).not.toContain('r3')
+    spy.mockRestore()
+  })
+
+  it('une erreur retryable après un rejet définitif relance sans compléter (rien de perdu)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client } = fauxSupabase([{ code: '23505', message: 'duplicate key' }, { code: '08006', message: 'coupure' }])
+    const { db, complete } = fausseBase([
+      { op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} },
+      { op: UpdateType.PUT, table: 'seances', id: 's2', opData: {} },
+    ])
+    await expect(new SupabaseConnector(() => client).uploadData(db)).rejects.toThrow()
+    expect(complete).not.toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+
   it("une erreur retryable n'est pas exposée comme rejet", async () => {
     const { client } = fauxSupabase({ code: '08006', message: 'connexion perdue' })
     const { db } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} }])

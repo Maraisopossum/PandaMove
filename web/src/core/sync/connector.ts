@@ -53,10 +53,8 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     if (erreurSession) throw erreurSession
     if (!data.session) throw new Error('Envoi impossible : aucune session Supabase active (nouvel essai).')
     for (let tx = await database.getNextCrudTransaction(); tx; tx = await database.getNextCrudTransaction()) {
-      let enCours: (typeof tx.crud)[number] | undefined
-      try {
-        for (const entry of tx.crud) {
-          enCours = entry
+      for (const entry of tx.crud) {
+        try {
           let resultat = await envoyer(supabase, entry, entry.opData)
           // Migration 0006 pas encore passée sur le serveur : la colonne validated_at (ancre du repos)
           // n'existe pas (PGRST204). Sans ce repli, TOUTE la file d'envoi resterait bloquée. On renvoie
@@ -71,29 +69,24 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
             resultat = await envoyer(supabase, entry, sansAncre)
           }
           if (resultat.error) throw resultat.error
-        }
-        await tx.complete()
-      } catch (e) {
-        const code = (e as { code?: string }).code
-        if (code && ERREUR_DEFINITIVE.test(code)) {
-          // Erreur non récupérable : on abandonne cette transaction pour débloquer la file
-          console.error('Envoi PowerSync abandonné (erreur Postgres définitive)', {
+        } catch (e) {
+          const code = (e as { code?: string }).code
+          // Erreur réessayable : on relance sans compléter, toute la transaction sera renvoyée
+          // (les opérations déjà passées sont des upserts/updates idempotents)
+          if (!code || !ERREUR_DEFINITIVE.test(code)) throw e
+          // Erreur définitive : on abandonne CETTE opération seulement et on continue. PostgREST n'est
+          // pas atomique entre requêtes : les opérations précédentes sont déjà appliquées côté serveur,
+          // abandonner les suivantes les ferait disparaître de l'appareil au prochain point de synchro.
+          console.error('Envoi PowerSync abandonné pour une opération (erreur Postgres définitive)', {
             code,
             message: (e as { message?: string }).message,
-            operations: tx.crud.map((c) => ({ table: c.table, op: c.op, id: c.id })),
+            operation: { table: entry.table, op: entry.op, id: entry.id },
           })
-          // Surfacé à l'utilisateur (alerte non bloquante dans la coque) : la modification est perdue
-          rejetsEnvoi.signaler({
-            table: enCours?.table ?? tx.crud[0]?.table ?? '?',
-            operation: String(enCours?.op ?? tx.crud[0]?.op ?? '?'),
-            code,
-            dateMs: Date.now(),
-          })
-          await tx.complete()
-          continue
+          // Surfacé à l'utilisateur (alerte non bloquante dans la coque) : cette modification est perdue
+          rejetsEnvoi.signaler({ table: entry.table, operation: String(entry.op), code, dateMs: Date.now() })
         }
-        throw e
       }
+      await tx.complete()
     }
   }
 }
