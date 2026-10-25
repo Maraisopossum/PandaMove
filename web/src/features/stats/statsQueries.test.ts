@@ -207,6 +207,24 @@ describe('statsQueries', () => {
   })
 })
 
+describe("statsQueries : ligne d'exercice supprimée", () => {
+  it('une série dont la ligne exercices_seance est supprimée est ignorée (sinon DURATION comptée en reps)', async () => {
+    const db = createTestDb()
+    await inserer(db, 'seances', { ...b, id: 's1', nom: 'Haut', is_archived: 0, created_at: 'c' })
+    await exercice(db, 'ex-gain', 'Gainage', ['ABDOMINAUX'])
+    await exercice(db, 'ex-sq', 'Squat', ['QUADRICEPS'])
+    await instance(db, 'i1', '2026-10-10', true)
+    await exSeance(db, 'es-gain', 'i1', 'ex-gain', 'DURATION')
+    await exSeance(db, 'es-sq', 'i1', 'ex-sq')
+    await db.execute("UPDATE exercices_seance SET deleted_at = '2026-10-11T00:00:00Z' WHERE id = 'es-gain'")
+    await serie(db, 'i1', 'es-gain', 1, 60, null) // 60 s : ne doit pas devenir 60 reps
+    await serie(db, 'i1', 'es-sq', 1, 5, 100)
+    expect(await resumePeriode(db, '2026-10-01', '2026-10-31')).toEqual({
+      tonnageKg: 500, seancesTerminees: 1, seriesTotal: 1, repsTotal: 5,
+    })
+  })
+})
+
 describe('statsQueries sur base vide', () => {
   it('renvoie 0, des zéros et un historique vide sans exception', async () => {
     const db = createTestDb()

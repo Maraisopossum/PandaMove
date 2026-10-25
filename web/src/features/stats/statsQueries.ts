@@ -52,15 +52,18 @@ interface LigneSerie {
 
 // Une seule lecture : toutes les séries vivantes des instances terminées de la plage, avec le type de
 // reps de l'exercice d'instance et les muscles de l'exercice catalogue (jointures facultatives).
+// Une série dont la ligne d'exercice d'instance est SUPPRIMÉE est ignorée : son reps_type serait
+// perdu (une série DURATION compterait ses secondes comme des reps). Une ligne simplement absente
+// (pas encore synchronisée) garde la série.
 const SQL_SERIES = `
   SELECT sr.id, sr.instance_seance_id, sr.exercice_seance_id, sr.numero_serie, sr.reps_realisees,
          sr.charge_kg, sr.is_completed, sr.updated_at, i.date AS date, es.reps_type AS reps_type,
          e.id AS exercise_id, e.muscle_groups AS muscle_groups, e.muscle_primary AS muscle_primary
   FROM series_realisees sr
   JOIN instances_seance i ON i.id = sr.instance_seance_id
-  LEFT JOIN exercices_seance es ON es.id = sr.exercice_seance_id AND es.deleted_at IS NULL
+  LEFT JOIN exercices_seance es ON es.id = sr.exercice_seance_id
   LEFT JOIN exercises e ON e.id = es.exercise_id AND e.deleted_at IS NULL
-  WHERE i.is_completed = 1 AND i.deleted_at IS NULL AND sr.deleted_at IS NULL`
+  WHERE i.is_completed = 1 AND i.deleted_at IS NULL AND sr.deleted_at IS NULL AND es.deleted_at IS NULL`
 
 // Dédoublonne puis ne garde que les séries terminées.
 function seriesRetenues(lignes: LigneSerie[]): LigneSerie[] {
