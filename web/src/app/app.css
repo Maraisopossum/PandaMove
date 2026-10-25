@@ -2206,3 +2206,128 @@ h1 {
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+
+/* Circuit automatique et minuteur d'exercice (renforcement) */
+.circuit-lancement {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bord);
+  border-left: 4px solid #007580;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+:root[data-theme='dark'] .circuit-lancement {
+  border-left-color: #4dd0e1;
+}
+
+.circuit-lancement__recap {
+  margin: 0 0 0.25rem;
+  font-weight: 800;
+}
+
+.circuit-lancement__bouton {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 0.5rem;
+}
+
+.circuit-message {
+  margin: 0.5rem 0;
+  font-weight: 700;
+}
+
+.circuit-message:empty {
+  display: none;
+}
+
+/* Écran du circuit : toujours sombre (comme l'overlay noir d'Android), couleurs vérifiées AA */
+.circuit-voile {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+  background: #14121c;
+}
+
+.circuit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 40rem;
+  padding: 1.5rem 0;
+  color: #ffffff;
+  text-align: center;
+}
+
+.circuit:focus {
+  outline: none;
+}
+
+.circuit__etiquette {
+  margin: 0;
+  color: #d0cbe0;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.circuit__nom {
+  margin: 0;
+  font-size: clamp(1.5rem, 6vw, 2.25rem);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.circuit__temps {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(4.5rem, 24vw, 9rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.circuit__temps[data-phase='repos'] {
+  color: #90caf9;
+}
+
+.circuit__temps[data-niveau='attention'] {
+  color: #ffab91;
+}
+
+.circuit__temps[data-niveau='urgent'] {
+  color: #ff8a80;
+}
+
+.circuit__detail {
+  margin: 0;
+  color: #d0cbe0;
+  font-size: 1.25rem;
+}
+
+.circuit__arreter {
+  min-width: 12rem;
+  min-height: 52px;
+  margin-top: 0.5rem;
+  border-color: #d0cbe0;
+  background: #2d2a3a;
+  color: #ffffff;
+}
+
+.circuit__arreter:focus-visible {
+  outline: 3px solid #90caf9;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .circuit__temps {
+    transition: color 0.3s;
+  }
+}

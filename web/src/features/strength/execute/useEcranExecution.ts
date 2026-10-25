@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router'
 import { useAuth } from '../../../core/auth/AuthProvider'
 import { useImagePanda } from '../../../core/images/usePandaVariante'
 import type { SerieHisto } from './lignesSeries'
+import { recapCircuit, lancementPour } from './circuit/plan'
+import { useCircuit } from './circuit/useCircuit'
 import { useExecute } from './useExecute'
 import { useHistoriqueExercice } from './useHistoriqueExercice'
 import { useNavExercices } from './useNavExercices'
@@ -26,6 +28,19 @@ export function useEcranExecution(instanceId: string) {
     ajouter: ex.ajouterSerie,
     supprimer: ex.supprimerSerie,
   })
+  const { demarre, demarrer } = ex
+  // Circuit automatique et minuteur d'exercice : valide par le même chemin d'écriture que le tableau
+  const circuit = useCircuit({
+    exercices: ex.exercices,
+    precedentes: ex.precedentes,
+    brouillons: tableau.brouillons,
+    valider: ex.validerSerie,
+    oublierBrouillon: tableau.oublier,
+    demarrerSeance: () => (demarre ? Promise.resolve(true) : demarrer()),
+    surExercice: nav.choisir,
+  })
+  // Le bouton reste affiché sous l'écran du circuit (le focus y revient à l'arrêt) ; `lancer` ignore un second lancement
+  const lancement = ex.terminee ? null : lancementPour(nav.blocActif, actif)
   const historique = useHistoriqueExercice(actif?.exerciseId ?? null)
   const notes = useNotesSeance(ex.notes, ex.enregistrerNotes)
   const navigate = useNavigate()
@@ -43,6 +58,17 @@ export function useEcranExecution(instanceId: string) {
     nav,
     tableau,
     historique,
+    circuit: {
+      affichage: circuit.affichage,
+      message: circuit.message,
+      erreur: circuit.erreur,
+      lancement,
+      recap: lancement?.type === 'circuit' && nav.blocActif ? recapCircuit(nav.blocActif.exercices) : '',
+      lancer: () => {
+        if (lancement) circuit.lancer(lancement)
+      },
+      arreter: circuit.arreter,
+    },
     notes,
     chrono: formaterDuree(ex.elapsedMs),
     libelleChrono: libelleDureeAccessible(ex.elapsedMs),

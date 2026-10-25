@@ -28,6 +28,9 @@ export interface OptionsCircuit {
   sonneur?: Sonneur
 }
 
+// Lit Date.now à chaque appel (et non une référence figée à l'import) : horloges simulées des tests comprises
+const maintenantParDefaut = () => Date.now()
+
 // Au-delà de cet écart entre deux recalculs (onglet suspendu, écran verrouillé), on ne rejoue pas les bips.
 const ECART_BIPS_MS = 1500
 
@@ -48,9 +51,10 @@ const MESSAGES = {
 // écritures des séries validées par la même voie que la validation manuelle (file sérialisée), bips,
 // écran gardé allumé. L'état du circuit n'est pas persisté : un rechargement l'abandonne, les séries
 // déjà écrites restent et le circuit se relance (à la première série restante) sans doublon.
-export function useCircuit(entrees: EntreesCircuit, { nowFn = Date.now, tickMs = 250, sonneur }: OptionsCircuit = {}) {
+export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefaut, tickMs = 250, sonneur }: OptionsCircuit = {}) {
   const [aff, setAff] = useState<Affichage | null>(null)
-  const [erreur, setErreur] = useState<string | null>(null)
+  // Erreur de lancement, valable tant que les saisies n'ont pas changé (corriger la durée la fait disparaître)
+  const [erreurLue, setErreur] = useState<{ message: string; brouillons: EntreesCircuit['brouillons'] } | null>(null)
   const [message, setMessage] = useState('')
   const [son] = useState(() => sonneur ?? creerSonneur())
 
@@ -144,7 +148,7 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = Date.now, tickMs =
       const e = dernieres.current
       const r = construirePlan(cible, e.exercices, e.precedentes, e.brouillons)
       if ('erreur' in r) {
-        setErreur(r.erreur)
+        setErreur({ message: r.erreur, brouillons: e.brouillons })
         return
       }
       setErreur(null)
@@ -174,5 +178,6 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = Date.now, tickMs =
     setAff(null)
   }, [nowFn, ecrire])
 
-  return { affichage: aff, actif, erreur, message, lancer, arreter, effacerErreur: () => setErreur(null) }
+  const erreur = erreurLue && erreurLue.brouillons === entrees.brouillons ? erreurLue.message : null
+  return { affichage: aff, actif, erreur, message, lancer, arreter }
 }

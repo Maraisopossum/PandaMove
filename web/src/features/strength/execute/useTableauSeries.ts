@@ -62,6 +62,16 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
     [exercice?.id],
   )
 
+  // Efface la saisie en cours d'une ligne (ex. validée par le circuit automatique, hors de ce tableau)
+  const oublier = useCallback(
+    (exerciceId: string, numero: number) =>
+      setBrouillons((b) => {
+        const k = `${exerciceId}#${numero}`
+        return k in b ? Object.fromEntries(Object.entries(b).filter(([cle]) => cle !== k)) : b
+      }),
+    [],
+  )
+
   // Enchaîne une action unique à la fois (anti double appui), pour tout le tableau
   const exclusif = useCallback(async (action: () => Promise<boolean>) => {
     setEnCours(true)
@@ -98,6 +108,9 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
 
   return {
     lignes,
+    /** Saisies en cours, clé « exercice#rang » : le circuit s'en sert pour chronométrer la durée affichée. */
+    brouillons,
+    oublier,
     rpeVisible: exercice ? rpeApplicable(exercice.blocType, exercice.repsType) : false,
     enDuree: exercice?.repsType === 'DURATION',
     enCours,

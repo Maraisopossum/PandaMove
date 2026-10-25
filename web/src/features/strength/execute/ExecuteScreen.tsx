@@ -2,6 +2,8 @@ import { useId } from 'react'
 import { Link, useParams } from 'react-router'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
 import { BarreExercices } from './BarreExercices'
+import { LancementCircuit } from './circuit/LancementCircuit'
+import { OverlayCircuit } from './circuit/OverlayCircuit'
 import { useEcranExecution } from './useEcranExecution'
 import { TableauSeries } from './TableauSeries'
 import { texteCibles, type ExerciceVue } from './vue'
@@ -32,6 +34,11 @@ export default function ExecuteScreen() {
         )}
       </header>
 
+      {/* Résultat du circuit / du minuteur (terminé, arrêté, interrompu) : annoncé poliment, vide sinon */}
+      <p className="circuit-message" role="status">
+        {e.circuit.message}
+      </p>
+
       {e.erreur && (
         <p role="alert" className="import__erreur">
           {e.erreur}
@@ -49,6 +56,9 @@ export default function ExecuteScreen() {
             <section className="execution__bloc">
               <h2>{e.nav.blocActif.nom}</h2>
               {e.nav.libelleTypeBloc && <span className="execution__type-bloc">{e.nav.libelleTypeBloc}</span>}
+              {e.circuit.lancement && (
+                <LancementCircuit lancement={e.circuit.lancement} recap={e.circuit.recap} erreur={e.circuit.erreur} onLancer={e.circuit.lancer} />
+              )}
               <CarteExercice
                 key={actif.id}
                 exercice={actif}
@@ -101,6 +111,7 @@ export default function ExecuteScreen() {
           )}
         </div>
       )}
+      {e.circuit.affichage && <OverlayCircuit affichage={e.circuit.affichage} onArreter={e.circuit.arreter} />}
     </div>
   )
 }
