@@ -19,9 +19,10 @@ export function analyserSaisie(texte: string, facultatif: boolean): { accepte: b
   return { accepte: true, valeur: Number(texte.replace(',', '.')) }
 }
 
-// Valeur affichable d'un champ numérique (NaN et null -> champ vide).
+// Valeur affichable d'un champ numérique (NaN et null -> champ vide), avec la virgule décimale
+// française ; analyserSaisie relit indifféremment virgule et point.
 export function texteNombre(n: number | null): string {
-  return n === null || Number.isNaN(n) ? '' : String(n)
+  return n === null || Number.isNaN(n) ? '' : String(n).replace('.', ',')
 }
 
 // Date du jour au format yyyy-MM-dd, en heure LOCALE (toISOString donnerait la date UTC).

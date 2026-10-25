@@ -71,7 +71,7 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   for (const n of [1, 2, 3]) {
     await expect(apres.getByRole('group', { name: `Série ${n}` })).toBeVisible()
   }
-  await expect(apres.getByRole('group', { name: 'Série 3' }).getByLabel('Charge (kg)')).toHaveValue('17.5')
+  await expect(apres.getByRole('group', { name: 'Série 3' }).getByLabel('Charge (kg)')).toHaveValue('17,5')
   await expect(page.getByRole('timer')).not.toHaveText('00:00')
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
 

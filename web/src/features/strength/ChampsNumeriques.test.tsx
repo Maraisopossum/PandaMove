@@ -61,7 +61,7 @@ describe('ChampNombreFacultatif', () => {
   it('vider le champ valide null', () => {
     const { commits } = monter(2.5)
     const champ = screen.getByLabelText('Incrément (kg)') as HTMLInputElement
-    expect(champ.value).toBe('2.5')
+    expect(champ.value).toBe('2,5')
     fireEvent.change(champ, { target: { value: '' } })
     expect(champ.value).toBe('')
     expect(commits.at(-1)).toBeNull()
@@ -86,7 +86,7 @@ describe('ChampNombreFacultatif', () => {
     expect(champ.value).toBe('2.')
     // Valeur différente venue de l'extérieur (chargement, réinitialisation)
     rerender(<ChampNombreFacultatif libelle="Incrément (kg)" valeur={7.5} onChange={() => undefined} />)
-    expect(champ.value).toBe('7.5')
+    expect(champ.value).toBe('7,5')
     rerender(<ChampNombreFacultatif libelle="Incrément (kg)" valeur={null} onChange={() => undefined} />)
     expect(champ.value).toBe('')
   })

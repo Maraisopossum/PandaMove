@@ -20,6 +20,13 @@ describe('saisie', () => {
     expect(texteNombre(0)).toBe('0')
   })
 
+  it('texteNombre : virgule décimale (interface en français), relue par analyserSaisie', () => {
+    expect(texteNombre(17.5)).toBe('17,5')
+    expect(texteNombre(-1.25)).toBe('-1,25')
+    expect(texteNombre(20)).toBe('20')
+    expect(analyserSaisie(texteNombre(17.5), false).valeur).toBe(17.5)
+  })
+
   it("aujourdhuiIso utilise la date locale, zéros de tête compris", () => {
     expect(aujourdhuiIso(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05')
   })
