@@ -102,6 +102,21 @@ E2E_EMAIL=… E2E_PASSWORD=… E2E_EMAIL2=… E2E_PASSWORD2=… E2E_REQUIRED=1 n
 - Les comptes de test se créent dans Supabase (Authentication → Users). Ne jamais écrire leurs identifiants dans un fichier versionné.
 - Développement entièrement local (facultatif, non validé) : `supabase start` puis `dev/docker-compose.powersync.yml` (images épinglées).
 
+## Sauvegarde
+
+Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne pas dépendre seulement de ces services, faire régulièrement une sauvegarde locale.
+
+**Exporter** : Profil → Sauvegarde → « Exporter mes données ». Le navigateur télécharge `pandamove-export-AAAA-MM-JJ.json` (rien n'est envoyé ailleurs). Ranger ce fichier sur l'appareil ou un support personnel ; il contient tout l'historique d'entraînement, ne pas le déposer dans un dépôt ni un service partagé.
+
+Contenu : export « PandaMoveExport » v3.2, le format de l'application Android, limité au renforcement (séances, séances jouées avec blocs, exercices et séries, exercices du catalogue, objectifs de progression, « Mon matériel »). Seules les lignes non supprimées sont exportées. Les identifiants numériques du format sont dérivés des UUID de la base web (stables d'un export à l'autre) ; chaque élément garde aussi son UUID et les champs propres au web (`uuid`, `isArchived`, `progressionJson`, `startedAt`, `pausedJson`, `validatedAt`, `nombreSeriesCible`, `isFavorite`), ignorés par les imports actuels.
+
+**Réimporter** : Profil → « Importer des données », choisir le fichier, vérifier l'aperçu puis confirmer. Le même fichier réimporté deux fois ne crée pas de doublon. Points à connaître :
+
+- Réimporter **dans un compte qui contient encore les données d'origine** crée une **copie** des séances, séances jouées et séries (l'import calcule de nouveaux identifiants à partir des numéros du fichier) ; les exercices, rattachés par leur nom, ne sont pas dupliqués. Réserver la restauration à un compte vide ou à des données perdues.
+- Ne sont pas restaurés par l'import actuel (présents dans le fichier) : l'archivage d'une séance, l'horloge d'une séance en cours, l'heure de validation des séries et les décisions de progression (une séance jouée importée est marquée « déjà évaluée »).
+- Une séance jouée dont la séance d'origine a été supprimée reste dans le fichier, mais l'import l'écarte et le signale dans l'aperçu.
+- Horodatages : écrits en UTC sans fuseau ; l'application Android, qui les lit en heure locale, les décale du fuseau horaire.
+
 ## Limites connues de la version web
 
 - **Dernier écrit gagne entre appareils** : deux appareils qui modifient la même ligne hors ligne gardent la version envoyée en dernier ; l'autre modification est perdue pour cette ligne. Même règle pour le marqueur de progression d'une instance : deux appareils qui décident des exercices différents hors ligne peuvent perdre une des décisions (les objectifs, eux, sont bien écrits).
