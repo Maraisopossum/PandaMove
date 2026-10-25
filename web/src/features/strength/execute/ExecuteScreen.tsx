@@ -2,7 +2,10 @@ import { useId } from 'react'
 import { Link, useParams } from 'react-router'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
 import { BarreExercices } from './BarreExercices'
+import { BandeauLive } from './BandeauLive'
+import { FeuilleDisques } from './FeuilleDisques'
 import { FeuilleMinuteur } from './FeuilleMinuteur'
+import { FeuilleMontee } from './FeuilleMontee'
 import { MenuRepos } from './MenuRepos'
 import { LancementCircuit } from './circuit/LancementCircuit'
 import { OverlayCircuit } from './circuit/OverlayCircuit'
@@ -77,6 +80,9 @@ export default function ExecuteScreen() {
                 tableau={e.tableau}
                 historique={e.historique}
                 lectureSeule={e.terminee}
+                outils={e.outilsExercice}
+                bandeau={e.bandeau}
+                note={e.noteExercice}
               />
             </section>
           )}
@@ -134,20 +140,37 @@ export default function ExecuteScreen() {
           onFermer={e.fermerFeuille}
         />
       )}
+      {e.feuille === 'disques' && (
+        <FeuilleDisques inventaire={e.outilsExercice.inventaire} chargeInitiale={e.outilsExercice.chargeDisques} onFermer={e.fermerFeuille} />
+      )}
+      {e.feuille === 'echauffement' && actif && e.outilsExercice.montee.etat && (
+        <FeuilleMontee
+          nomExercice={actif.nom}
+          etat={e.outilsExercice.montee.etat}
+          maintenantMs={e.maintenantMs}
+          onProtocole={e.outilsExercice.montee.changerProtocole}
+          onFait={e.outilsExercice.montee.cocher}
+          onFermer={e.fermerFeuille}
+        />
+      )}
       {e.circuit.affichage && <OverlayCircuit affichage={e.circuit.affichage} onArreter={e.circuit.arreter} />}
     </div>
   )
 }
 
 function CarteExercice({
-  exercice: ex, tableau, historique, lectureSeule,
+  exercice: ex, tableau, historique, lectureSeule, outils, bandeau, note,
 }: {
   exercice: ExerciceVue
   tableau: ReturnType<typeof useEcranExecution>['tableau']
   historique: string[]
   lectureSeule: boolean
+  outils: ReturnType<typeof useEcranExecution>['outilsExercice']
+  bandeau: ReturnType<typeof useEcranExecution>['bandeau']
+  note: ReturnType<typeof useEcranExecution>['noteExercice']
 }) {
   const idTitre = useId()
+  const idNote = useId()
   return (
     <article className="execution__exercice" aria-labelledby={idTitre}>
       <h3 id={idTitre} className="execution__nom">
@@ -155,6 +178,7 @@ function CarteExercice({
       </h3>
       {ex.libelleSuperset && <span className="execution__superset">{ex.libelleSuperset}</span>}
       {ex.enchaineAvec && <p className="execution__enchainement">Enchaîne sans repos avec {ex.enchaineAvec}</p>}
+      {bandeau && !lectureSeule && <BandeauLive nomExercice={ex.nom} bandeau={bandeau} />}
       <p className="execution__cibles">{texteCibles(ex)}</p>
       {ex.consigne && (
         <p className="execution__consigne">
@@ -163,6 +187,29 @@ function CarteExercice({
         </p>
       )}
       {ex.isBilateral && <p className="execution__consigne">Exercice unilatéral : une ligne par côté (G puis D).</p>}
+      <div className="execution__note">
+        <label htmlFor={idNote}>Note sur {ex.nom}</label>
+        <textarea
+          id={idNote}
+          rows={1}
+          value={note.texte}
+          readOnly={lectureSeule}
+          placeholder="Note sur cet exercice…"
+          onChange={(ev) => note.changer(ev.target.value)}
+        />
+      </div>
+      {!lectureSeule && (
+        <div className="execution__outils-exercice">
+          {outils.monteeDisponible && (
+            <button type="button" className="bouton" onClick={outils.ouvrirMontee}>
+              <span aria-hidden="true">⚡ </span>Montée en charge
+            </button>
+          )}
+          <button type="button" className="bouton" onClick={outils.ouvrirDisques}>
+            <span aria-hidden="true">🏋 </span>Disques
+          </button>
+        </div>
+      )}
       <TableauSeries nomExercice={ex.nom} tableau={tableau} lectureSeule={lectureSeule} historique={historique} />
     </article>
   )

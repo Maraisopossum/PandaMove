@@ -8,6 +8,10 @@ import { getSeanceTree, lireNomSeance } from '../../../core/db/repos/seances'
 import { addSerie, changerSeriesPrevues, listSeries, supprimerSeriesNumeros, updateSerie } from '../../../core/db/repos/series'
 import type { InstanceSeance, RepsType } from '../../../core/db/types'
 import { lireGroupes } from '../catalog/filtreCatalogue'
+import { lireListeEquipement } from '../progression/cible'
+import type { PropositionProgression } from '../../../core/progression/engine'
+import { calculerApercus } from '../progression/apercu'
+import { rafraichirCiblesProgression } from '../progression/ciblesInstance'
 import { evaluerEtAppliquerSilencieux } from '../progression/evaluation'
 import { dernieresSeries } from './historiqueSeries'
 import type { SerieHisto } from './lignesSeries'
@@ -38,15 +42,17 @@ interface Donnees {
   exercices: ExerciceVue[]
   // Séries de la dernière séance terminée, par exercice du catalogue (pré-remplissage)
   precedentes: Map<string, SerieHisto[]>
+  // Aperçu de progression par ligne d'exercice en progression (bandeau live) ; vide pour une séance terminée
+  apercus: Map<string, PropositionProgression>
 }
 
-const VIDE: Donnees = { instance: null, nomSeance: '', blocs: [], exercices: [], precedentes: new Map() }
+const VIDE: Donnees = { instance: null, nomSeance: '', blocs: [], exercices: [], precedentes: new Map(), apercus: new Map() }
 const SANS_HORLOGE: SessionClock = { startedAtMs: null, pauses: [] }
 
 const horlogeDe = (i: InstanceSeance): SessionClock => clockFromRow({ started_at: i.startedAt, paused_json: i.pausedJson })
 
 // Relit tout depuis la base : instance, lignes D'INSTANCE (jamais le modèle), séries vivantes, noms.
-async function lire(db: Db, instanceId: string): Promise<Donnees> {
+async function lire(db: Db, instanceId: string, userId: string | undefined): Promise<Donnees> {
   const instance = await getInstance(db, instanceId)
   if (!instance) throw new ErreurExecution('Séance introuvable.')
   // Nom lisible même si la séance a été supprimée avec « Garder l'historique » (comme le calendrier)
@@ -57,15 +63,17 @@ async function lire(db: Db, instanceId: string): Promise<Donnees> {
   const noms =
     idsExercices.length === 0
       ? []
-      : await db.getAll<{ id: string; name: string; muscle_groups: string | null }>(
-          `SELECT id, name, muscle_groups FROM exercises WHERE deleted_at IS NULL AND id IN (${idsExercices.map(() => '?').join(', ')})`,
+      : await db.getAll<{ id: string; name: string; muscle_groups: string | null; equipment: string | null }>(
+          `SELECT id, name, muscle_groups, equipment FROM exercises WHERE deleted_at IS NULL AND id IN (${idsExercices.map(() => '?').join(', ')})`,
           idsExercices,
         )
   const vue = construireVue(arbre.blocs, arbre.exercices, series, new Map(noms.map((n) => [n.id, n.name])),
     new Map(noms.map((n) => [n.id, lireGroupes(n.muscle_groups ?? '')])),
+    new Map(noms.map((n) => [n.id, lireListeEquipement(n.equipment ?? '[]')])),
   )
   const precedentes = await dernieresSeries(db, instanceId, idsExercices)
-  return { instance, nomSeance: nomSeanceLu ?? 'Séance', ...vue, precedentes }
+  const apercus = instance.isCompleted ? new Map<string, PropositionProgression>() : await calculerApercus(db, instance.seanceId, arbre.exercices, userId)
+  return { instance, nomSeance: nomSeanceLu ?? 'Séance', ...vue, precedentes, apercus }
 }
 
 // Instance vivante et non terminée, relue en base (jamais depuis l'état React, qui peut être en retard).
@@ -120,8 +128,12 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     const base = db ?? getDb()
     ;(async () => {
       const existante = await getInstance(base, instanceId)
-      if (existante && !existante.isCompleted) await copyTemplateToInstance(base, instanceId)
-      const d = await lire(base, instanceId)
+      if (existante && !existante.isCompleted) {
+        await copyTemplateToInstance(base, instanceId)
+        // Cibles à jour : la progression validée à la séance précédente s'applique à celle-ci
+        await rafraichirCiblesProgression(base, instanceId)
+      }
+      const d = await lire(base, instanceId, userId)
       if (annule) return
       setDonnees(d)
       rafraichir()
@@ -140,7 +152,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     return () => {
       annule = true
     }
-  }, [db, instanceId, rafraichir])
+  }, [db, instanceId, rafraichir, userId])
 
   // Met une écriture en file, puis relit la base. Ne rejette jamais : l'échec est affiché dans `erreur`.
   // Résout à true si l'écriture a réussi (l'écran s'en sert pour enchaîner, ex. ouvrir le bilan).
@@ -161,7 +173,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
           }
         }
         try {
-          setDonnees(await lire(base, instanceId))
+          setDonnees(await lire(base, instanceId, userId))
           rafraichir()
         } catch (e) {
           console.error('Relecture de la séance impossible', e)
@@ -172,7 +184,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
       file.current = suite
       return suite
     },
-    [db, instanceId, nowFn, rafraichir],
+    [db, instanceId, nowFn, rafraichir, userId],
   )
 
   const demarrer = useCallback(
@@ -389,6 +401,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     ajouterSerie,
     supprimerSerie,
     precedentes: donnees.precedentes,
+    apercus: donnees.apercus,
     /** Vrai pendant l'enregistrement d'une série de cet exercice (bouton « Valider » désactivé). */
     validationEnCours: (exerciceId: string) => validations.has(exerciceId),
   }

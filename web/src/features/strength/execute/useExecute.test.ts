@@ -544,3 +544,32 @@ describe('useExecute : tableau de séries (lignes, dé-validation, ajout, suppre
     expect(await vivantes()).toEqual([])
   })
 })
+
+describe('useExecute : cibles de progression à l’ouverture', () => {
+  it('la charge et les reps de l’objectif remplacent la cible copiée du modèle (instance non terminée)', async () => {
+    await db.execute("UPDATE exercices_seance SET progression_activee = 1 WHERE id = 'e1'")
+    await inserer(db, 'objectifs_progression', {
+      ...base, id: 'o1', seance_id: 's1', exercise_id: 'x1', charge_cible: 62.5, reps_cible: 9, duree_cible_sec: null,
+      compteur_echec: 0, derniere_maj: '2026-10-20', nombre_series_cible: null,
+    })
+    const r = await monter()
+    const e = r.result.current.exercices.find((x) => x.id === E1)!
+    expect(e.chargeCible).toBe('62.5 kg')
+    expect(e.repsCibles).toBe('9')
+    // Le modèle n'est pas touché
+    const modele = await db.get<{ charge_cible: string }>("SELECT charge_cible FROM exercices_seance WHERE id = 'e1'")
+    expect(modele.charge_cible).toBe('60 kg')
+  })
+
+  it('une séance terminée garde sa cible figée', async () => {
+    await db.execute("UPDATE exercices_seance SET progression_activee = 1 WHERE id = 'e1'")
+    await inserer(db, 'objectifs_progression', {
+      ...base, id: 'o1', seance_id: 's1', exercise_id: 'x1', charge_cible: 62.5, reps_cible: 9, duree_cible_sec: null,
+      compteur_echec: 0, derniere_maj: '2026-10-20', nombre_series_cible: null,
+    })
+    await db.execute("UPDATE instances_seance SET is_completed = 1, completed_at = '2026-10-24T11:00:00.000Z' WHERE id = 'i1'")
+    await db.execute("UPDATE exercices_seance SET instance_seance_id = 'i1', id = ? WHERE id = 'e1'", ['fige'])
+    const r = await monter()
+    expect(r.result.current.exercices.find((x) => x.id === 'fige')?.chargeCible).toBe('60 kg')
+  })
+})

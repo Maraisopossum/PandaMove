@@ -45,6 +45,10 @@ export interface ExerciceVue {
   reposAfficheSec: number
   // Groupes musculaires de l'exercice du catalogue (codes), pour le libellé court de la barre
   muscles: string[]
+  // Ligne d'exercice de l'instance telle qu'en base (réglages de progression, type d'exercice)
+  ligne: ExerciceSeance
+  // Équipement de l'exercice du catalogue (libellés), pour le matériel et la montée en charge
+  equipement: string[]
   position: number
   supersetGroupe: string | null
   libelleSuperset: string | null
@@ -84,6 +88,7 @@ export function construireVue(
   series: SerieRealisee[],
   noms: Map<string, string>,
   muscles: Map<string, string[]> = new Map(),
+  equipements: Map<string, string[]> = new Map(),
 ): { blocs: BlocVue[]; exercices: ExerciceVue[] } {
   const parExercice = new Map<string, SerieVue[]>()
   for (const s of series) {
@@ -122,6 +127,8 @@ export function construireVue(
     blocReposFinRoundSec: (e.blocId ? blocParId.get(e.blocId)?.tempsReposFinRoundSec : undefined) ?? 0,
     reposAfficheSec: reposAffiche(e),
     muscles: muscles.get(e.exerciseId) ?? [],
+    ligne: e,
+    equipement: equipements.get(e.exerciseId) ?? [],
     position: e.position,
     supersetGroupe: e.supersetGroupe,
     libelleSuperset: e.supersetGroupe ? `Superset ${e.supersetGroupe}` : null,

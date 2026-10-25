@@ -8,11 +8,17 @@ import { useCircuit } from './circuit/useCircuit'
 import { useReglagesCircuit } from './circuit/useReglagesCircuit'
 import { useExecute } from './useExecute'
 import { useHistoriqueExercice } from './useHistoriqueExercice'
+import { useMateriel } from './useMateriel'
 import { useMinuteurRepos } from './useMinuteurRepos'
+import { useMontee } from './useMontee'
+import { useNotesExercices } from './useNotesExercices'
 import { useNavExercices } from './useNavExercices'
 import { useNotesSeance } from './useNotesSeance'
 import { useTableauSeries } from './useTableauSeries'
 import { useWakeLock } from './useWakeLock'
+import { bandeauProgression } from './bandeauProgression'
+import { chargeInitialeCalculateur } from './disques'
+import { monteeDisponible } from './montee'
 import { formaterDuree, libelleDureeAccessible } from './vue'
 
 const SANS_HISTORIQUE: SerieHisto[] = []
@@ -38,6 +44,11 @@ export function useEcranExecution(instanceId: string) {
   // Outil ouvert (feuille du bas) : minuteur manuel, calculateur de disques, montée en charge
   const [feuille, setFeuille] = useState<'minuteur' | 'disques' | 'echauffement' | null>(null)
   const fermerFeuille = useCallback(() => setFeuille(null), [])
+  // « Mon matériel » : disques du calculateur, charges composables de la montée en charge
+  const materiel = useMateriel(session?.user.id)
+  const montee = useMontee(materiel)
+  const notesExercices = useNotesExercices(instanceId)
+  const { ouvrir: ouvrirMontee } = montee
   const { demarre, demarrer } = ex
   // Circuit automatique et minuteur d'exercice : valide par le même chemin d'écriture que le tableau
   const { reglages } = useReglagesCircuit()
@@ -97,6 +108,24 @@ export function useEcranExecution(instanceId: string) {
     feuille,
     ouvrirFeuille: setFeuille,
     fermerFeuille,
+    // Outils de l'exercice actif : disques (charge de la prochaine série), montée en charge (si elle a un sens)
+    outilsExercice: {
+      inventaire: materiel,
+      chargeDisques: chargeInitialeCalculateur(tableau.lignes.find((l) => !l.terminee)?.chargeKg ?? null, actif?.chargeCible ?? ''),
+      monteeDisponible: actif ? monteeDisponible(actif.blocType, actif.chargeCible) : false,
+      ouvrirDisques: () => setFeuille('disques'),
+      ouvrirMontee: () => {
+        if (actif) ouvrirMontee(actif)
+        setFeuille('echauffement')
+      },
+      montee: {
+        etat: actif ? montee.etats[actif.id] : undefined,
+        changerProtocole: (p: Parameters<typeof montee.changerProtocole>[1]) => actif && montee.changerProtocole(actif, p),
+        cocher: (i: number) => actif && montee.cocher(actif, i),
+      },
+    },
+    bandeau: actif ? bandeauProgression(actif, ex.apercus.get(actif.id)) : null,
+    noteExercice: { texte: actif ? notesExercices.note(actif.id) : '', changer: (t: string) => actif && notesExercices.changer(actif.id, t) },
     lienBilan: `/strength/instance/${instanceId}/report`,
     // Panda de motivation, affiché avant le démarrage de la séance
     pandaMotivation: ex.trouvee && !ex.demarre && !ex.terminee ? pandaMotivation : undefined,

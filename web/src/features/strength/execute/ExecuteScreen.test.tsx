@@ -238,6 +238,95 @@ describe('ExecuteScreen : repos, minuteur et saisie', () => {
   })
 })
 
+describe('ExecuteScreen : outils de l’exercice', () => {
+  it('le calculateur de disques part de la charge de la prochaine série et donne les disques de chaque côté', async () => {
+    await instance('i-disques')
+    monter('i-disques')
+    const dc = await screen.findByRole('article', { name: 'Développé couché' })
+    fireEvent.click(within(dc).getByRole('button', { name: /Disques/ }))
+    const feuille = screen.getByRole('dialog', { name: 'Calculateur de disques' })
+    expect((within(feuille).getByLabelText('Poids total (kg)') as HTMLInputElement).value).toBe('60')
+    expect((within(feuille).getByLabelText('Barre (kg)') as HTMLInputElement).value).toBe('20')
+    // 60 kg, barre 20 kg : 20 kg par côté
+    expect(within(feuille).getByText('20 kg', { selector: '.disques__disques' })).toBeTruthy()
+    fireEvent.change(within(feuille).getByLabelText('Poids total (kg)'), { target: { value: '62,5' } })
+    expect(within(feuille).getByText('20 kg + 1,25 kg')).toBeTruthy()
+    fireEvent.click(within(feuille).getByRole('button', { name: 'Haltère' }))
+    expect((within(feuille).getByLabelText('Haltère vide (kg)') as HTMLInputElement).value).toBe('2')
+    fireEvent.click(within(feuille).getByRole('button', { name: 'Fermer' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('la montée en charge propose des paliers à cocher dans l’ordre, avec un chrono de repos', async () => {
+    await instance('i-montee')
+    monter('i-montee')
+    const dc = await screen.findByRole('article', { name: 'Développé couché' })
+    fireEvent.click(within(dc).getByRole('button', { name: /Montée en charge/ }))
+    const feuille = screen.getByRole('dialog', { name: /Montée en charge/ })
+    // 60 kg, protocole standard (type d'exercice inconnu) : 40 % = 24, 60 % = 36, 80 % = 48
+    expect(within(feuille).getByText('24 kg × 10 reps')).toBeTruthy()
+    expect(within(feuille).getByText('48 kg × 3 reps')).toBeTruthy()
+    expect((within(feuille).getByRole('button', { name: 'Palier 2 fait' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(within(feuille).getByRole('button', { name: 'Palier 1 fait' }))
+    expect(within(feuille).getByRole('timer').textContent).toMatch(/^Repos : 01:0\d$|^Repos : 01:00$/)
+    expect((within(feuille).getByRole('button', { name: 'Palier 2 fait' }) as HTMLButtonElement).disabled).toBe(false)
+    // Changer de protocole recalcule
+    fireEvent.click(within(feuille).getByRole('button', { name: 'Débutant' }))
+    expect(within(feuille).getByText('30 kg × 8 reps')).toBeTruthy()
+    // Aucune série réalisée n'est créée
+    expect(await series('i-montee')).toEqual([])
+    fireEvent.click(within(feuille).getByRole('button', { name: 'Je suis déjà chaud' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('pas de montée en charge pour un exercice sans charge cible (poids de corps)', async () => {
+    await instance('i-sans-montee')
+    monter('i-sans-montee')
+    await screen.findByRole('article', { name: 'Développé couché' })
+    choisir('Gainage planche')
+    expect(within(carte('Gainage planche')).queryByRole('button', { name: /Montée en charge/ })).toBeNull()
+  })
+
+  it('une note par exercice, gardée au rechargement', async () => {
+    await instance('i-note')
+    const rendu = monter('i-note')
+    const champ = async () => (await within(await screen.findByRole('article', { name: 'Développé couché' })).findByLabelText('Note sur Développé couché')) as HTMLTextAreaElement
+    fireEvent.change(await champ(), { target: { value: 'Épaule gauche sensible' } })
+    expect((await champ()).value).toBe('Épaule gauche sensible')
+    choisir('Gainage planche')
+    expect((within(carte('Gainage planche')).getByLabelText('Note sur Gainage planche') as HTMLTextAreaElement).value).toBe('')
+    rendu.unmount()
+    monter('i-note')
+    expect((await champ()).value).toBe('Épaule gauche sensible')
+  })
+
+  it('bandeau de progression live pour un exercice en progression, mis à jour à chaque série validée', async () => {
+    await inserer(base, 'seances', { ...commun, id: 's-prog', nom: 'Progression', is_archived: 0, seance_category: 'STRENGTH', created_at: 'c' })
+    await inserer(base, 'exercices_seance', {
+      ...commun, id: 'e-prog', seance_id: 's-prog', exercise_id: 'x1', bloc_id: null, position: 0, nombre_series_prevues: 3,
+      reps_cibles: '8', charge_cible: '60 kg', reps_type: 'REPS', temps_repos_sec: 90, instance_seance_id: null,
+      progression_activee: 1, systeme_progression: 'DOUBLE', reps_min: 8, reps_max: 12, type_exercice: 'COMPOSE_HAUT',
+    })
+    await inserer(base, 'instances_seance', {
+      ...commun, id: 'i-bandeau', seance_id: 's-prog', date: '2026-10-24', notes: '', is_completed: 0, completed_at: null, duration_seconds: 0, created_at: 'c',
+    })
+    monter('i-bandeau')
+    const carteProg = await screen.findByRole('article', { name: 'Développé couché' })
+    const bandeau = within(carteProg).getByRole('region', { name: 'Progression de Développé couché' })
+    expect(within(bandeau).getByText('Fais 8 reps sur les 3 séries → 9 reps la prochaine fois')).toBeTruthy()
+    expect(bandeau.textContent).toContain('0/3')
+    fireEvent.click(within(carteProg).getByRole('button', { name: 'Valider la série 1' }))
+    await waitFor(() => expect(within(carteProg).getByRole('region', { name: 'Progression de Développé couché' }).textContent).toContain('1/3'))
+  })
+
+  it('pas de bandeau pour un exercice sans progression', async () => {
+    await instance('i-sans-bandeau')
+    monter('i-sans-bandeau')
+    const dc = await screen.findByRole('article', { name: 'Développé couché' })
+    expect(within(dc).queryByRole('region', { name: /Progression de/ })).toBeNull()
+  })
+})
+
 describe('ExecuteScreen : superset', () => {
   it("libellé « Superset A » sur chaque exercice, consigne d'enchaînement sur le non final uniquement", async () => {
     await inserer(base, 'seances', { ...commun, id: 's-ss', nom: 'Superset', is_archived: 0, seance_category: 'STRENGTH', created_at: 'c' })
