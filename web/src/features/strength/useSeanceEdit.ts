@@ -1,48 +1,67 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
 import { newId } from '../../core/db/ids'
 import { listExercises } from '../../core/db/repos/exercises'
+import { getSettings } from '../../core/db/repos/settings'
 import type { Exercise } from '../../core/db/types'
-import { FILTRE_INITIAL, filtrerExercices } from './catalog/filtreCatalogue'
+import { lireEquipementStocke, type EquipmentStocke } from '../../core/import/equipment'
+import { lireListeEquipement } from './progression/cible'
 import {
-  ajouterBloc as ajouterBlocDraft, ajouterExercice as ajouterExerciceDraft, brouillonVide,
-  deplacerBloc as deplacerBlocDraft, deplacerExercice, deplacerExerciceRelatif, modifierBloc as modifierBlocDraft,
-  modifierExercice as modifierExerciceDraft, nouveauBloc, nouvelExercice, supprimerBloc as supprimerBlocDraft,
-  supprimerExercice as supprimerExerciceDraft, validerBrouillon, type BlocDraft, type ExerciceDraft, type SeanceDraft,
-  type TypeBloc,
+  ajouterBloc as ajouterBlocDraft, ajouterExercice as ajouterExerciceDraft, appliquerSeriesCircuit,
+  blocsDe, brouillonVide, changerTypeBloc as changerTypeBlocDraft, deplacerRelatif, dupliquerExercice,
+  modifierBloc as modifierBlocDraft, modifierExercice as modifierExerciceDraft, nouveauBloc, nouvelExercice,
+  insererBlocAuDebut, renumeroter, supprimerBloc as supprimerBlocDraft, supprimerExercice as supprimerExerciceDraft,
+  transformerExercice as transformerExerciceDraft, validerBrouillon,
+  type BlocDraft, type ExerciceDraft, type SeanceDraft, type TypeBloc,
 } from './draft'
 import { chargerBrouillon, enregistrerBrouillon, musclesExercice } from './seanceStore'
 
 export interface DepsEditionSeance {
   /** Base à utiliser (défaut : base de l'application, résolue à l'usage). */
   db?: Db
+  /** Utilisateur dont on lit « Mon matériel » (indice de charge, aperçu de montée, filtre du sélecteur). */
+  userId?: string
 }
 
 type PatchBloc = Partial<Omit<BlocDraft, 'id' | 'exercices'>>
 type PatchExercice = Partial<Omit<ExerciceDraft, 'id'>>
 
+// Forme comparable d'un brouillon : positions renumérotées, séries de circuit appliquées (ce qui sera écrit).
+const empreinte = (d: SeanceDraft) => JSON.stringify(renumeroter(appliquerSeriesCircuit(d)))
+
 // Édition d'un modèle de séance (création si `seanceId` est null). Toute la logique d'ordre,
 // de validation et d'écriture vit dans draft.ts et seanceStore.ts ; ce hook ne fait que l'orchestrer.
-export function useSeanceEdit(seanceId: string | null, { db }: DepsEditionSeance = {}) {
+export function useSeanceEdit(seanceId: string | null, { db, userId }: DepsEditionSeance = {}) {
   const [draft, setDraft] = useState<SeanceDraft>(() => brouillonVide(newId()))
   const [catalogueComplet, setCatalogueComplet] = useState<Exercise[]>([])
-  const [recherche, setRecherche] = useState('')
+  const [materiel, setMateriel] = useState<EquipmentStocke>(() => lireEquipementStocke(null))
   const [charge, setCharge] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [enregistrement, setEnregistrement] = useState(false)
+  // Empreinte de la version chargée / enregistrée : sert à savoir s'il reste des modifications
+  const [reference, setReference] = useState<string | null>(null)
+  // Lisible depuis un garde de navigation, sans attendre le rendu suivant
+  const modifieRef = useRef(false)
 
   useEffect(() => {
     let annule = false
     const base = db ?? getDb()
-    listExercises(base)
-      .then(async (liste) => {
+    Promise.all([
+      listExercises(base),
+      userId ? getSettings(base, userId).then((s) => lireEquipementStocke(s.equipmentJson)) : Promise.resolve(lireEquipementStocke(null)),
+    ])
+      .then(async ([liste, stocke]) => {
         const existant = seanceId === null ? null : await chargerBrouillon(base, seanceId, liste)
         if (annule) return
         setCatalogueComplet(liste)
-        if (seanceId !== null) {
-          if (existant) setDraft(existant)
-          else setErreur('Séance introuvable.')
+        setMateriel(stocke)
+        if (seanceId !== null && existant) {
+          setDraft(existant)
+          setReference(empreinte(existant))
+        } else {
+          if (seanceId !== null) setErreur('Séance introuvable.')
+          setReference(null)
         }
         setCharge(true)
       })
@@ -56,48 +75,57 @@ export function useSeanceEdit(seanceId: string | null, { db }: DepsEditionSeance
     return () => {
       annule = true
     }
-  }, [db, seanceId])
+  }, [db, seanceId, userId])
 
-  const catalogue = useMemo(() => filtrerExercices(catalogueComplet, { ...FILTRE_INITIAL, query: recherche }), [catalogueComplet, recherche])
+  // Séance neuve : référence = brouillon vide d'origine, posée au premier rendu chargé
+  const [origineNeuve] = useState(() => empreinte(draft))
+  const modifie = charge && empreinte(draft) !== (reference ?? origineNeuve)
+  useEffect(() => {
+    modifieRef.current = modifie
+  }, [modifie])
 
   const setNom = useCallback((nom: string) => setDraft((d) => ({ ...d, nom })), [])
   const setNotes = useCallback((notes: string) => setDraft((d) => ({ ...d, notes })), [])
   const setDuree = useCallback((dureeEstimeeMin: number) => setDraft((d) => ({ ...d, dureeEstimeeMin })), [])
 
-  const ajouterBloc = useCallback(
-    (type: TypeBloc = 'ECHAUFFEMENT') => setDraft((d) => ajouterBlocDraft(d, nouveauBloc(newId(), type))),
-    [],
-  )
+  const ajouterBloc = useCallback((type: TypeBloc) => setDraft((d) => ajouterBlocDraft(d, nouveauBloc(newId(), type))), [])
   const supprimerBloc = useCallback((blocId: string) => setDraft((d) => supprimerBlocDraft(d, blocId)), [])
   const modifierBloc = useCallback((blocId: string, patch: PatchBloc) => setDraft((d) => modifierBlocDraft(d, blocId, patch)), [])
-  const deplacerBloc = useCallback((blocId: string, versPosition: number) => setDraft((d) => deplacerBlocDraft(d, blocId, versPosition)), [])
+  const changerTypeBloc = useCallback((blocId: string, type: TypeBloc) => setDraft((d) => changerTypeBlocDraft(d, blocId, type)), [])
 
-  // Un exercice absent du catalogue chargé est ignoré (ne peut pas être choisi dans le sélecteur).
-  const ajouterExercice = useCallback(
-    (blocId: string, exerciseId: string) => {
-      const exo = catalogueComplet.find((e) => e.id === exerciseId)
-      if (!exo) return
+  // Ajoute les exercices choisis DANS L'ORDRE DE LA SÉLECTION (jamais trié) ; `blocId` null : exercices libres.
+  // Un exercice absent du catalogue chargé est ignoré.
+  const ajouterExercices = useCallback(
+    (blocId: string | null, exerciseIds: string[]) => {
+      const parId = new Map(catalogueComplet.map((e) => [e.id, e]))
       setDraft((d) => {
-        const bloc = d.blocs.find((b) => b.id === blocId)
-        if (!bloc) return d
-        const ligne = nouvelExercice(
-          newId(),
-          { id: exo.id, name: exo.name, muscles: musclesExercice(exo), isBodyweight: exo.isBodyweight },
-          bloc.type,
-        )
-        return ajouterExerciceDraft(d, blocId, ligne)
+        const bloc = blocId === null ? null : blocsDe(d).find((b) => b.id === blocId)
+        if (blocId !== null && !bloc) return d
+        const typeBloc = bloc?.type ?? null
+        return exerciseIds.reduce((acc, exerciseId) => {
+          const exo = parId.get(exerciseId)
+          if (!exo) return acc
+          const ligne = nouvelExercice(
+            newId(),
+            { id: exo.id, name: exo.name, muscles: musclesExercice(exo), equipment: lireListeEquipement(exo.equipment), isBodyweight: exo.isBodyweight },
+            typeBloc,
+          )
+          return ajouterExerciceDraft(acc, blocId, ligne)
+        }, d)
       })
     },
     [catalogueComplet],
   )
   const supprimerExercice = useCallback((id: string) => setDraft((d) => supprimerExerciceDraft(d, id)), [])
   const modifierExercice = useCallback((id: string, patch: PatchExercice) => setDraft((d) => modifierExerciceDraft(d, id, patch)), [])
-  const deplacer = useCallback(
-    (exerciceId: string, versPosition: number, versBlocId?: string) => setDraft((d) => deplacerExercice(d, exerciceId, versPosition, versBlocId)),
+  const transformerExercice = useCallback(
+    (id: string, transformer: (e: ExerciceDraft) => ExerciceDraft) => setDraft((d) => transformerExerciceDraft(d, id, transformer)),
     [],
   )
-  const monter = useCallback((id: string) => setDraft((d) => deplacerExerciceRelatif(d, id, -1)), [])
-  const descendre = useCallback((id: string) => setDraft((d) => deplacerExerciceRelatif(d, id, 1)), [])
+  const insererEchauffement = useCallback((bloc: BlocDraft) => setDraft((d) => insererBlocAuDebut(d, bloc)), [])
+  const dupliquer = useCallback((id: string) => setDraft((d) => dupliquerExercice(d, id, newId())), [])
+  // Monte (-1) ou descend (+1) un bloc, un exercice libre ou un exercice dans son bloc
+  const deplacer = useCallback((id: string, sens: -1 | 1) => setDraft((d) => deplacerRelatif(d, id, sens)), [])
 
   // Valide puis écrit. Renvoie l'id de la séance, ou null (message dans `erreur`) : rien n'est jamais lancé.
   const enregistrer = useCallback(async (): Promise<string | null> => {
@@ -115,7 +143,11 @@ export function useSeanceEdit(seanceId: string | null, { db }: DepsEditionSeance
     setEnregistrement(true)
     try {
       const id = await enregistrerBrouillon(db ?? getDb(), draft)
-      setDraft((d) => ({ ...d, existante: true }))
+      const enregistre = { ...renumeroter(appliquerSeriesCircuit(draft)), existante: true }
+      // Plus rien à perdre : le garde de sortie doit laisser partir tout de suite
+      modifieRef.current = false
+      setDraft(enregistre)
+      setReference(empreinte(enregistre))
       return id
     } catch (e) {
       console.error("Enregistrement de la séance impossible", e)
@@ -127,10 +159,10 @@ export function useSeanceEdit(seanceId: string | null, { db }: DepsEditionSeance
   }, [db, draft, enregistrement, seanceId])
 
   return {
-    draft, charge, erreur, enregistrement, catalogue, recherche, setRecherche,
+    draft, charge, erreur, enregistrement, modifie, modifieRef, catalogueComplet, materiel,
     setNom, setNotes, setDuree,
-    ajouterBloc, supprimerBloc, modifierBloc, deplacerBloc,
-    ajouterExercice, supprimerExercice, modifierExercice, deplacer, monter, descendre,
+    ajouterBloc, supprimerBloc, modifierBloc, changerTypeBloc,
+    ajouterExercices, supprimerExercice, modifierExercice, transformerExercice, insererEchauffement, dupliquer, deplacer,
     enregistrer,
   }
 }

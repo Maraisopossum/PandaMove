@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Db } from '../../core/db/Db'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
+import { blocsDe, exercicesDe } from './draft'
 import { useSeanceEdit } from './useSeanceEdit'
 
 async function exercice(db: Db, id: string, name: string, muscles: string[], primary = '') {
@@ -70,29 +71,34 @@ const instanceRows = async (db: Db) => ({
   instances: await db.getAll('SELECT * FROM instances_seance ORDER BY id'),
 })
 
+const ordreItems = (d: ReturnType<typeof useSeanceEdit>['draft']) =>
+  d.items.map((i) => (i.kind === 'libre' ? i.exercice.id : i.bloc.id))
+
 describe('useSeanceEdit : création', () => {
   it('démarre avec les défauts (STRENGTH, 60 min) et un brouillon vide', async () => {
     const { result } = await monter(await catalogue(), null)
-    expect(result.current.draft).toMatchObject({ nom: '', dureeEstimeeMin: 60, seanceCategory: 'STRENGTH', existante: false, blocs: [] })
+    expect(result.current.draft).toMatchObject({ nom: '', dureeEstimeeMin: 60, seanceCategory: 'STRENGTH', existante: false, items: [] })
   })
 
-  it("enregistrer renumérote 0..n-1 d'après l'ordre du brouillon malgré des positions périmées", async () => {
+  it("enregistrer renumérote 0..n-1 d'après l'ordre unifié (libres et blocs entrelacés) malgré des positions périmées", async () => {
     const db = await catalogue()
     const { result } = await monter(db, null)
     act(() => result.current.setNom('  Full body  '))
-    act(() => result.current.ajouterBloc())
+    act(() => result.current.ajouterBloc('ECHAUFFEMENT'))
     act(() => result.current.ajouterBloc('SUPERSET'))
-    const [a, b] = result.current.draft.blocs.map((x) => x.id)
-    act(() => result.current.ajouterExercice(a, 'dc'))
-    act(() => result.current.ajouterExercice(a, 'tr'))
-    act(() => result.current.ajouterExercice(b, 'pdc'))
-    // Positions périmées volontairement incohérentes, puis déplacement : l'ordre du brouillon fait foi
+    const [a, b] = blocsDe(result.current.draft).map((x) => x.id)
+    act(() => result.current.ajouterExercices(a, ['dc', 'tr']))
+    act(() => result.current.ajouterExercices(b, ['pdc']))
+    act(() => result.current.ajouterExercices(null, ['tr']))
+    // Positions périmées volontairement incohérentes, puis déplacements : l'ordre du brouillon fait foi
     act(() => result.current.modifierBloc(a, { position: 40 }))
-    act(() => result.current.modifierBloc(b, { position: 3 }))
-    for (const e of result.current.draft.blocs.flatMap((x) => x.exercices)) act(() => result.current.modifierExercice(e.id, { position: 99 }))
-    const [dc, tr] = result.current.draft.blocs[0].exercices.map((e) => e.id)
-    act(() => result.current.deplacer(tr, 0))
-    act(() => result.current.deplacerBloc(b, 0))
+    for (const e of exercicesDe(result.current.draft)) act(() => result.current.modifierExercice(e.id, { position: 99 }))
+    const [dc, tr] = blocsDe(result.current.draft)[0].exercices.map((e) => e.id)
+    const libre = result.current.draft.items.find((i) => i.kind === 'libre')!.exercice.id
+    act(() => result.current.deplacer(tr, -1))
+    act(() => result.current.deplacer(libre, -1))
+    act(() => result.current.deplacer(libre, -1))
+    // Ordre attendu : libre, A[tr, dc], B[pdc]
 
     let id: string | null = null
     await act(async () => {
@@ -104,26 +110,58 @@ describe('useSeanceEdit : création', () => {
     const blocs = await db.getAll<{ id: string; position: number; seance_id: string; instance_seance_id: string | null }>(
       'SELECT id, position, seance_id, instance_seance_id FROM blocs_seance ORDER BY position',
     )
-    expect(blocs.map((x) => [x.id, x.position])).toEqual([[b, 0], [a, 1]])
+    expect(blocs.map((x) => [x.id, x.position])).toEqual([[a, 1], [b, 2]])
     expect(blocs.every((x) => x.seance_id === id && x.instance_seance_id === null)).toBe(true)
-    const exos = await db.getAll<{ id: string; bloc_id: string; position: number }>(
-      'SELECT id, bloc_id, position FROM exercices_seance WHERE bloc_id = ? ORDER BY position', [a],
+    const exos = await db.getAll<{ id: string; bloc_id: string | null; position: number }>(
+      'SELECT id, bloc_id, position FROM exercices_seance e ORDER BY bloc_id IS NOT NULL, (SELECT position FROM blocs_seance b WHERE b.id = e.bloc_id), position',
     )
-    expect(exos.map((x) => [x.id, x.position])).toEqual([[tr, 0], [dc, 1]])
+    // L'exercice libre : bloc_id NULL, position 0 sur l'échelle commune ; aucun bloc fantôme n'est créé
+    expect(exos.map((x) => [x.id, x.bloc_id, x.position])).toEqual([
+      [libre, null, 0], [tr, a, 0], [dc, a, 1], [expect.any(String), b, 0],
+    ])
+    expect((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM blocs_seance')).n).toBe(2)
     const s = await db.get<Record<string, unknown>>('SELECT * FROM seances WHERE id = ?', [id])
     expect(s).toMatchObject({
       nom: 'Full body', seance_category: 'STRENGTH', duree_estimee_min: 60, is_archived: 0, deleted_at: null,
-      groupes_musculaires: '["PECTORAUX","DOS","BICEPS","TRICEPS"]',
+      groupes_musculaires: '["DOS","BICEPS","PECTORAUX","TRICEPS"]',
     })
     expect(typeof s.created_at).toBe('string')
+  })
+
+  it("ajoute plusieurs exercices dans l'ordre de sélection, pas dans l'ordre alphabétique", async () => {
+    const { result } = await monter(await catalogue(), null)
+    act(() => result.current.ajouterBloc('ECHAUFFEMENT'))
+    act(() => result.current.ajouterExercices(blocsDe(result.current.draft)[0].id, ['tr', 'pdc', 'dc']))
+    expect(exercicesDe(result.current.draft).map((e) => e.exerciseId)).toEqual(['tr', 'pdc', 'dc'])
+  })
+
+  it("circuit : le nombre de séries du bloc est propagé aux exercices (durée forcée) à l'enregistrement", async () => {
+    const db = await catalogue()
+    const { result } = await monter(db, null)
+    act(() => result.current.setNom('Circuit'))
+    act(() => result.current.ajouterBloc('CIRCUIT'))
+    const blocId = blocsDe(result.current.draft)[0].id
+    act(() => result.current.ajouterExercices(blocId, ['tr', 'dc']))
+    for (const e of exercicesDe(result.current.draft)) act(() => result.current.modifierExercice(e.id, { repsCibles: '40' }))
+    act(() => result.current.modifierBloc(blocId, { nombreSeriesPrevues: 5, tempsReposInterSec: 15, tempsReposFinRoundSec: 90 }))
+    await act(async () => {
+      await result.current.enregistrer()
+    })
+    const lignes = await db.getAll<Record<string, unknown>>('SELECT nombre_series_prevues, reps_type FROM exercices_seance')
+    expect(lignes).toEqual([
+      { nombre_series_prevues: 5, reps_type: 'DURATION' },
+      { nombre_series_prevues: 5, reps_type: 'DURATION' },
+    ])
+    expect(await db.get('SELECT temps_repos_inter_sec, temps_repos_fin_round_sec FROM blocs_seance')).toEqual({
+      temps_repos_inter_sec: 15, temps_repos_fin_round_sec: 90,
+    })
   })
 
   it("applique les défauts d'exercice (séries 3, repos 90, REPS, poids de corps hérité)", async () => {
     const db = await catalogue()
     const { result } = await monter(db, null)
     act(() => result.current.setNom('S'))
-    act(() => result.current.ajouterBloc())
-    act(() => result.current.ajouterExercice(result.current.draft.blocs[0].id, 'pdc'))
+    act(() => result.current.ajouterExercices(null, ['pdc']))
     await act(async () => {
       await result.current.enregistrer()
     })
@@ -131,6 +169,7 @@ describe('useSeanceEdit : création', () => {
     expect(e).toMatchObject({
       exercise_id: 'pdc', nombre_series_prevues: 3, temps_repos_sec: 90, reps_type: 'REPS', increment_duree_sec: 5,
       seuil_deload: 3, type_exercice: null, is_bodyweight: 1, progression_activee: 0, instance_seance_id: null,
+      bloc_id: null, position: 0,
     })
   })
 
@@ -165,26 +204,64 @@ describe('useSeanceEdit : création', () => {
 
   it('ignore un exercice du catalogue inconnu', async () => {
     const { result } = await monter(await catalogue(), null)
-    act(() => result.current.ajouterBloc())
-    act(() => result.current.ajouterExercice(result.current.draft.blocs[0].id, 'inconnu'))
-    expect(result.current.draft.blocs[0].exercices).toEqual([])
-  })
-
-  it('la recherche du sélecteur ignore accents et casse', async () => {
-    const { result } = await monter(await catalogue(), null)
-    expect(result.current.catalogue.map((e) => e.name)).toEqual(['Développé couché', 'Pompes', 'Tractions'])
-    act(() => result.current.setRecherche('DEVELOPPE'))
-    expect(result.current.catalogue.map((e) => e.id)).toEqual(['dc'])
+    act(() => result.current.ajouterBloc('ECHAUFFEMENT'))
+    act(() => result.current.ajouterExercices(blocsDe(result.current.draft)[0].id, ['inconnu']))
+    expect(blocsDe(result.current.draft)[0].exercices).toEqual([])
   })
 })
 
-describe('useSeanceEdit : modification d\'un modèle', () => {
-  it('charge le modèle (sans les lignes d\'instance) dans le brouillon', async () => {
+describe('useSeanceEdit : édition', () => {
+  it("changer le type d'un bloc existant est enregistré", async () => {
+    const db = await avecSeance()
+    const { result } = await monter(db, 's1')
+    act(() => result.current.changerTypeBloc('b1', 'SUPERSET'))
+    await act(async () => {
+      await result.current.enregistrer()
+    })
+    expect(await db.get('SELECT type, nom FROM blocs_seance WHERE id = ?', ['b1'])).toEqual({ type: 'SUPERSET', nom: 'Bloc 1' })
+  })
+
+  it('dupliquer un exercice : copie juste après, nouvelle ligne enregistrée', async () => {
+    const db = await avecSeance()
+    const { result } = await monter(db, 's1')
+    act(() => result.current.dupliquer('x1'))
+    expect(blocsDe(result.current.draft)[0].exercices.map((e) => e.exerciseId)).toEqual(['tr', 'tr', 'dc'])
+    await act(async () => {
+      await result.current.enregistrer()
+    })
+    expect((await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM exercices_seance WHERE bloc_id = 'b1' AND deleted_at IS NULL")).n).toBe(3)
+  })
+
+  it('`modifie` : faux au chargement, vrai après une modification, de nouveau faux après un enregistrement réussi', async () => {
+    const { result } = await monter(await avecSeance(), 's1')
+    expect(result.current.modifie).toBe(false)
+    act(() => result.current.setNom('Autre'))
+    expect(result.current.modifie).toBe(true)
+    act(() => result.current.setNom('Pull'))
+    expect(result.current.modifie).toBe(false)
+    act(() => result.current.setNotes('x'))
+    expect(result.current.modifie).toBe(true)
+    await act(async () => {
+      await result.current.enregistrer()
+    })
+    expect(result.current.modifie).toBe(false)
+  })
+
+  it('une séance neuve vierge n’est pas « modifiée », une saisie la rend modifiée', async () => {
+    const { result } = await monter(await catalogue(), null)
+    expect(result.current.modifie).toBe(false)
+    act(() => result.current.setNom('A'))
+    expect(result.current.modifie).toBe(true)
+  })
+})
+
+describe("useSeanceEdit : modification d'un modèle", () => {
+  it("charge le modèle (sans les lignes d'instance) dans le brouillon", async () => {
     const { result } = await monter(await avecSeance(), 's1')
     const d = result.current.draft
     expect(d).toMatchObject({ id: 's1', nom: 'Pull', existante: true, dureeEstimeeMin: 50 })
-    expect(d.blocs.map((b) => [b.id, b.exercices.map((e) => e.id)])).toEqual([['b1', ['x1', 'x2']], ['b2', ['x3']]])
-    expect(d.blocs[0].exercices[0].exerciseNom).toBe('Tractions')
+    expect(blocsDe(d).map((b) => [b.id, b.exercices.map((e) => e.id)])).toEqual([['b1', ['x1', 'x2']], ['b2', ['x3']]])
+    expect(blocsDe(d)[0].exercices[0].exerciseNom).toBe('Tractions')
   })
 
   it('séance inconnue : erreur française, rien à enregistrer', async () => {
@@ -241,24 +318,70 @@ describe('useSeanceEdit : modification d\'un modèle', () => {
     expect((await db.get<{ nom: string }>('SELECT nom FROM seances WHERE id = ?', ['s1'])).nom).toBe('Pull renommé')
   })
 
-  it('déplacer un exercice vers un autre bloc met à jour son bloc_id et renumérote', async () => {
+  it('monter / descendre un exercice dans son bloc met à jour les positions', async () => {
     const db = await avecSeance()
     const { result } = await monter(db, 's1')
-    act(() => result.current.deplacer('x1', 0, 'b2'))
+    act(() => result.current.deplacer('x1', 1))
     await act(async () => {
       await result.current.enregistrer()
     })
     const l = await db.getAll<{ id: string; bloc_id: string; position: number }>(
       'SELECT id, bloc_id, position FROM exercices_seance WHERE instance_seance_id IS NULL AND deleted_at IS NULL ORDER BY bloc_id, position',
     )
-    expect(l.map((x) => [x.id, x.bloc_id, x.position])).toEqual([['x2', 'b1', 0], ['x1', 'b2', 0], ['x3', 'b2', 1]])
+    expect(l.map((x) => [x.id, x.bloc_id, x.position])).toEqual([['x2', 'b1', 0], ['x1', 'b1', 1], ['x3', 'b2', 0]])
   })
 
-  it('un exercice sans bloc est regroupé dans un bloc sans perte', async () => {
+  it('un modèle mêlant exercices libres et blocs est relu dans l’ordre des positions', async () => {
+    const db = await avecSeance()
+    // Échelle commune : libre L (0), b1 (1), b2 (2), libre M (3)
+    await db.execute("UPDATE blocs_seance SET position = 1 WHERE id = 'b1'")
+    await db.execute("UPDATE blocs_seance SET position = 2 WHERE id = 'b2'")
+    await inserer(db, 'exercices_seance', {
+      id: 'L', user_id: 'u1', updated_at: 'old', deleted_at: null, seance_id: 's1', exercise_id: 'pdc', bloc_id: null, position: 0,
+      nombre_series_prevues: 3, reps_cibles: '8', instance_seance_id: null,
+    })
+    await inserer(db, 'exercices_seance', {
+      id: 'M', user_id: 'u1', updated_at: 'old', deleted_at: null, seance_id: 's1', exercise_id: 'dc', bloc_id: null, position: 3,
+      nombre_series_prevues: 3, reps_cibles: '8', instance_seance_id: null,
+    })
+    const { result } = await monter(db, 's1')
+    expect(ordreItems(result.current.draft)).toEqual(['L', 'b1', 'b2', 'M'])
+    // Aucun bloc fantôme « Exercices » n'est inventé
+    expect(blocsDe(result.current.draft).map((b) => b.id)).toEqual(['b1', 'b2'])
+  })
+
+  it('en cas d’égalité de position, l’exercice libre précède le bloc (règle Android)', async () => {
+    const db = await avecSeance()
+    await inserer(db, 'exercices_seance', {
+      id: 'L', user_id: 'u1', updated_at: 'old', deleted_at: null, seance_id: 's1', exercise_id: 'pdc', bloc_id: null, position: 1,
+      nombre_series_prevues: 3, reps_cibles: '8', instance_seance_id: null,
+    })
+    const { result } = await monter(db, 's1')
+    expect(ordreItems(result.current.draft)).toEqual(['b1', 'L', 'b2'])
+  })
+
+  it('un exercice sans bloc est conservé comme exercice libre, sans perte', async () => {
     const db = await avecSeance()
     await db.execute("UPDATE exercices_seance SET bloc_id = NULL WHERE id = 'x3'")
     const { result } = await monter(db, 's1')
-    expect(result.current.draft.blocs.flatMap((b) => b.exercices.map((e) => e.id)).sort()).toEqual(['x1', 'x2', 'x3'])
+    expect(exercicesDe(result.current.draft).map((e) => e.id).sort()).toEqual(['x1', 'x2', 'x3'])
+    expect(result.current.draft.items.some((i) => i.kind === 'libre' && i.exercice.id === 'x3')).toBe(true)
+  })
+
+  it('un exercice rattaché à un bloc disparu devient libre au lieu d’être perdu', async () => {
+    const db = await avecSeance()
+    await db.execute("UPDATE blocs_seance SET deleted_at = 'd' WHERE id = 'b2'")
+    const { result } = await monter(db, 's1')
+    expect(exercicesDe(result.current.draft).map((e) => e.id).sort()).toEqual(['x1', 'x2', 'x3'])
+    expect(result.current.draft.items.some((i) => i.kind === 'libre' && i.exercice.id === 'x3')).toBe(true)
+  })
+
+  it('circuit relu : le nombre de séries du bloc vient du premier exercice', async () => {
+    const db = await avecSeance()
+    await db.execute("UPDATE blocs_seance SET type = 'CIRCUIT' WHERE id = 'b1'")
+    await db.execute("UPDATE exercices_seance SET nombre_series_prevues = 4 WHERE bloc_id = 'b1'")
+    const { result } = await monter(db, 's1')
+    expect(blocsDe(result.current.draft)[0].nombreSeriesPrevues).toBe(4)
   })
 
   it("l'échec d'écriture est signalé sans lancer", async () => {
