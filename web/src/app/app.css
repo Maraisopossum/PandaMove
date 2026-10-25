@@ -566,41 +566,12 @@ h1 {
   gap: 0 1rem;
 }
 
-.bloc__exercices {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0.75rem 0;
-  padding: 0;
-  list-style: none;
-}
-
-.exercice__carte {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--bord);
-  border-left: 4px solid #7c5cbf;
-  border-radius: 8px;
-  background: color-mix(in srgb, #7c5cbf 6%, var(--surface));
-}
-
-.exercice__carte summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.selecteur {
-  margin: 0.75rem 0;
-  padding: 0.75rem;
-  border: 1px dashed var(--bord);
-  border-radius: 12px;
-}
-
 .selecteur__liste {
   max-height: 16rem;
   margin: 0.5rem 0;
+  padding: 0;
   overflow-y: auto;
+  list-style: none;
 }
 
 .selecteur__choix {
@@ -1659,4 +1630,559 @@ h1 {
 .onboarding__actions .bouton:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Édition d'une séance de renforcement (parité Android SeanceCreateScreen) : cartes de bloc et d'exercice,
+   compteurs, surcharge progressive, sélecteur. Teintes de bloc via --bloc-clair / --bloc-sombre. */
+:root {
+  --puce-fond: #ede7f6;
+  --puce-texte: #4b2e8c;
+  --puce-active-fond: #5b3d9e;
+  --puce-active-texte: #ffffff;
+  --badge-orange-fond: #fff1dc;
+  --badge-orange-texte: #8a4b00;
+  --avertissement: #8a4b00;
+  --progression-fond: #f3eefb;
+}
+
+:root[data-theme='dark'] {
+  --puce-fond: #3a2f57;
+  --puce-texte: #d1c4e9;
+  --puce-active-fond: #b8a1f0;
+  --puce-active-texte: #1e1e22;
+  --badge-orange-fond: #4a3418;
+  --badge-orange-texte: #ffcc80;
+  --avertissement: #ffcc80;
+  --progression-fond: #2a2540;
+}
+
+.edition {
+  /* Réserve la place de la barre d'actions collée en bas */
+  padding-bottom: 1rem;
+}
+
+.edition__formulaire {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.edition__infos {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.edition__ajout-rapide {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 0.75rem;
+  border: 1.5px solid #7c5cbf;
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--texte-secondaire);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.edition__ajout-texte {
+  flex: 1;
+}
+
+.edition__outils {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.edition__vide {
+  margin: 0;
+}
+
+.edition__items {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.edition__barre {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--bord);
+  background: var(--fond);
+}
+
+.edition__barre .bouton {
+  flex: 1 1 10rem;
+}
+
+.aide {
+  margin: 0.25rem 0;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badge--progression {
+  background: var(--puce-fond);
+  color: var(--puce-texte);
+}
+
+.badge--bilateral {
+  background: var(--badge-orange-fond);
+  color: var(--badge-orange-texte);
+}
+
+/* Carte de bloc */
+.bloc-edition {
+  --bloc-texte: var(--bloc-clair, #5b3d9e);
+}
+
+:root[data-theme='dark'] .bloc-edition {
+  --bloc-texte: var(--bloc-sombre, #b8a1f0);
+}
+
+.bloc-edition > section {
+  padding: 0.75rem;
+  border: 1px solid var(--bord);
+  border-left: 4px solid var(--bloc-texte);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bloc-texte) 8%, var(--surface));
+}
+
+.bloc-edition__entete {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.bloc-edition__entete .formulaire__champ {
+  flex: 1;
+  margin: 0;
+}
+
+.bloc-edition__icone {
+  align-self: center;
+  font-size: 1.25rem;
+}
+
+.bloc-edition__outils {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 0.75rem;
+}
+
+.bloc-edition__outils .formulaire__champ {
+  flex: 1 1 10rem;
+  margin: 0.5rem 0 0;
+}
+
+.bloc-edition__boutons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bloc-edition__exercices {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bloc-edition__ajout {
+  width: 100%;
+  border-color: var(--bloc-texte);
+  color: var(--bloc-texte);
+}
+
+.menu-bloc__liste {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-bloc__choix {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding-block: 0.5rem;
+  border-left: 4px solid var(--bloc-clair);
+  text-align: left;
+}
+
+:root[data-theme='dark'] .menu-bloc__choix {
+  border-left-color: var(--bloc-sombre);
+}
+
+.menu-bloc__texte {
+  display: grid;
+}
+
+.menu-bloc__nom {
+  font-weight: 700;
+}
+
+/* Carte d'exercice */
+.exo {
+  border: 1px solid var(--bord);
+  border-left: 4px solid #7c5cbf;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.exo__entete {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exo__corps {
+  display: grid;
+  flex: 1;
+  gap: 0.125rem;
+}
+
+.exo__nom {
+  font-weight: 800;
+}
+
+.exo__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.exo__resume {
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.exo__panneau {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.exo__grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0 1rem;
+}
+
+.exo__indice {
+  margin: 0;
+  color: var(--avertissement);
+  font-size: 0.875rem;
+}
+
+.exo__pied {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.exo__pied .bouton {
+  flex: 1 1 6rem;
+}
+
+.exo__non-applicable {
+  padding: 0.5rem 0.75rem;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--texte-secondaire) 10%, var(--surface));
+}
+
+.plus-options {
+  margin: 0.5rem 0;
+}
+
+.plus-options > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Compteurs (steppers) et choix segmentés */
+.compteur {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+
+.compteur__libelle {
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.compteur__boite {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.compteur__bouton {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--puce-texte);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.compteur__bouton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.compteur__valeur {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+
+.compteur__unite {
+  color: var(--texte-secondaire);
+}
+
+.duree {
+  margin: 0.5rem 0;
+  padding: 0;
+  border: 0;
+}
+
+.duree > legend {
+  padding: 0;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.duree__champs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 0.75rem;
+}
+
+.segment {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+
+.segment__libelle {
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.segment__options,
+.puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.segment__option,
+.puce {
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segment__option[aria-checked='true'],
+.puce[aria-pressed='true'] {
+  border-color: var(--puce-active-fond);
+  background: var(--puce-active-fond);
+  color: var(--puce-active-texte);
+  font-weight: 700;
+}
+
+.segment__option:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Surcharge progressive */
+.progression {
+  margin: 0.5rem 0;
+}
+
+.progression__entete {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--texte-secondaire) 10%, var(--surface));
+}
+
+.progression__entete--actif {
+  background: var(--progression-fond);
+}
+
+.progression__texte {
+  flex: 1;
+}
+
+.progression__titre {
+  font-weight: 700;
+}
+
+.progression__interrupteur {
+  flex: none;
+  width: 3rem;
+  height: 1.75rem;
+  accent-color: #5b3d9e;
+}
+
+.progression__panneau {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--progression-fond);
+}
+
+.progression__plage {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.progression__fleche {
+  padding-bottom: 0.75rem;
+  color: var(--texte-secondaire);
+}
+
+.progression__apercu {
+  margin: 0.5rem 0 0;
+}
+
+.progression__avertissement {
+  margin: 0;
+  color: var(--avertissement);
+  font-size: 0.875rem;
+}
+
+/* Sélecteur d'exercices (feuille du bas sur mobile) */
+.dialogue__voile--bas {
+  align-items: flex-end;
+}
+
+@media (min-width: 40rem) {
+  .dialogue__voile--bas {
+    align-items: center;
+  }
+}
+
+.dialogue--selecteur {
+  display: flex;
+  flex-direction: column;
+  width: min(40rem, 100%);
+  max-height: 92dvh;
+  overflow: hidden;
+}
+
+.dialogue--selecteur .selecteur__liste {
+  flex: 1;
+  max-height: none;
+  min-height: 8rem;
+}
+
+.selecteur__liste--cases {
+  margin: 0.5rem 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.selecteur__ligne {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--bord);
+  cursor: pointer;
+}
+
+.selecteur__ligne input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.selecteur__ligne--choisi {
+  background: var(--progression-fond);
+}
+
+.selecteur__nom {
+  flex: 1;
+}
+
+.selecteur__rang {
+  flex: none;
+  min-width: 1.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--puce-active-fond);
+  color: var(--puce-active-texte);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.dialogue__pied {
+  justify-content: flex-end;
+  padding-top: 0.5rem;
 }

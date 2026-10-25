@@ -8,7 +8,6 @@ import { createTestDb } from '../../test/sqliteDb'
 const base = createTestDb()
 vi.mock('../../core/db/client', () => ({ getDb: () => base }))
 
-import SeanceEditScreen from './SeanceEditScreen'
 import SeanceListScreen from './SeanceListScreen'
 import { aujourdhuiIso } from './saisie'
 
@@ -42,8 +41,6 @@ function monter(chemin: string) {
     <MemoryRouter initialEntries={[chemin]}>
       <Routes>
         <Route path="/strength" element={<SeanceListScreen />} />
-        <Route path="/strength/new" element={<SeanceEditScreen />} />
-        <Route path="/strength/:id/edit" element={<SeanceEditScreen />} />
         <Route path="/strength/instance/:id" element={<p>Écran exécution</p>} />
       </Routes>
     </MemoryRouter>,
@@ -123,47 +120,6 @@ describe('SeanceListScreen', () => {
     await waitFor(() => expect(screen.queryByText('Push')).toBeNull())
     const l = await base.get<{ is_archived: number }>('SELECT is_archived FROM seances WHERE id = ?', ['s2'])
     expect(l.is_archived).toBe(1)
-  })
-})
-
-describe('SeanceEditScreen', () => {
-  it("ne contient aucun bouton d'affectation (création comme modification)", async () => {
-    const creation = monter('/strength/new')
-    expect(await screen.findByRole('heading', { name: 'Nouvelle séance' })).toBeTruthy()
-    expect(screen.queryAllByLabelText(LIBELLE_ASSIGNER)).toHaveLength(0)
-    expect(creation.container.querySelector('[aria-label="Affecter à une date"]')).toBeNull()
-    expect(creation.container.textContent).not.toContain('📅')
-    creation.unmount()
-
-    const edition = monter('/strength/s1/edit')
-    expect(await screen.findByRole('heading', { name: 'Modifier la séance' })).toBeTruthy()
-    expect(await screen.findByDisplayValue('Pull')).toBeTruthy()
-    expect(screen.queryAllByLabelText(LIBELLE_ASSIGNER)).toHaveLength(0)
-    expect(edition.container.textContent).not.toContain('📅')
-  })
-
-  it("crée une séance : nom, bloc, exercice choisi dans le catalogue, enregistrement puis retour à la liste", async () => {
-    monter('/strength/new')
-    fireEvent.change(await screen.findByLabelText('Nom de la séance'), { target: { value: 'Pectoraux du jeudi' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un bloc' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un exercice' }))
-    fireEvent.change(screen.getByLabelText('Rechercher un exercice'), { target: { value: 'DEVELOPPE' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Développé couché' }))
-    expect(screen.getByText('Développé couché')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
-
-    // Retour à la liste, où la séance apparaît avec ses muscles et son exercice
-    expect(await screen.findByRole('heading', { name: 'Séances types' })).toBeTruthy()
-    expect(await screen.findByText('Pectoraux du jeudi')).toBeTruthy()
-    expect(screen.getByText('Pectoraux · 60 min · 1 exercice')).toBeTruthy()
-  })
-
-  it('affiche les erreurs de validation en français sans quitter la page', async () => {
-    monter('/strength/new')
-    fireEvent.click(await screen.findByRole('button', { name: 'Enregistrer' }))
-    const alerte = await screen.findByRole('alert')
-    expect(alerte.textContent).toBe('Le nom de la séance est obligatoire.')
-    expect(screen.getByRole('heading', { name: 'Nouvelle séance' })).toBeTruthy()
   })
 })
 

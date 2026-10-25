@@ -8,6 +8,7 @@ import { ChampNombre, ChampNombreFacultatif } from './champs'
 
 const base = createTestDb()
 vi.mock('../../core/db/client', () => ({ getDb: () => base }))
+vi.mock('../../core/auth/AuthProvider', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }))
 
 import SeanceEditScreen from './SeanceEditScreen'
 
@@ -111,7 +112,7 @@ describe('édition de séance : champs décimaux', () => {
       duree_estimee_min: 45, notes: '', seance_category: 'STRENGTH', created_at: 'c', is_archived: 0,
     })
     await inserer(base, 'blocs_seance', {
-      id: 'b1', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 's1', nom: 'B', type: 'ECHAUFFEMENT',
+      id: 'b1', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 's1', nom: 'B', type: 'RECUPERATION',
       position: 0, duree_min: null, description: '', temps_repos_inter_sec: 20, temps_repos_fin_round_sec: 120,
       instance_seance_id: null, bloc_source_id: null,
     })
@@ -133,6 +134,9 @@ describe('édition de séance : champs décimaux', () => {
         </Routes>
       </MemoryRouter>,
     )
+    // Carte repliée au départ : on la déplie puis on active la surcharge progressive
+    fireEvent.click(await screen.findByRole('button', { name: /Exercice introuvable/ }))
+    fireEvent.click(screen.getByRole('switch', { name: 'Surcharge progressive' }))
     const kg = await screen.findByLabelText('Incrément (kg)')
     const pct = screen.getByLabelText('Incrément (%)')
     expect(taper(kg, '2,5')).toEqual(['2', '2,', '2,5'])

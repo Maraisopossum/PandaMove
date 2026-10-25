@@ -13,6 +13,16 @@ export function ChampTexte({ libelle, valeur, onChange }: { libelle: string; val
   )
 }
 
+export function ChampZoneTexte({ libelle, valeur, lignes = 3, onChange }: { libelle: string; valeur: string; lignes?: number; onChange: (v: string) => void }) {
+  const id = useId()
+  return (
+    <div className="formulaire__champ">
+      <label htmlFor={id}>{libelle}</label>
+      <textarea id={id} rows={lignes} value={valeur} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  )
+}
+
 export function ChampNombre({ libelle, valeur, onChange }: { libelle: string; valeur: number; onChange: (v: number) => void }) {
   const id = useId()
   // Champ obligatoire : la saisie vide donne NaN, que la validation refuse.
