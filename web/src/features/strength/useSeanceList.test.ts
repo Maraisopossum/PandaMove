@@ -188,4 +188,63 @@ describe('useSeanceList', () => {
     expect(c).toBeNull()
     expect(rendu.result.current.erreur).toBe("Le décompte de l'historique a échoué.")
   })
+
+  it('expose les modèles archivés à part, et desarchiver les remet dans la liste', async () => {
+    const db = await base()
+    const { result } = await monter(db)
+    expect(result.current.archivees.map((a) => a.nom)).toEqual(['Archivée'])
+    let ok = false
+    await act(async () => {
+      ok = await result.current.desarchiver('s3')
+    })
+    expect(ok).toBe(true)
+    expect(result.current.archivees).toEqual([])
+    expect(result.current.seances.map((x) => x.id)).toEqual(['s3', 's1', 's2'])
+    await act(async () => {
+      ok = await result.current.desarchiver('nope')
+    })
+    expect(ok).toBe(false)
+    expect(result.current.erreur).toMatch(/introuvable/i)
+  })
+
+  it("dupliquer ajoute la copie « (copie) » à la liste et renvoie son id ; échec : null et message", async () => {
+    const db = await base()
+    const { result } = await monter(db)
+    let id: string | null = null
+    await act(async () => {
+      id = await result.current.dupliquer('s1')
+    })
+    expect(id).not.toBeNull()
+    expect(result.current.seances.map((x) => x.nom)).toEqual(['Pull', 'Pull (copie)', 'Push'])
+    expect(result.current.nbExercices[id as unknown as string]).toBe(2)
+    await act(async () => {
+      id = await result.current.dupliquer('nope')
+    })
+    expect(id).toBeNull()
+    expect(result.current.erreur).toMatch(/introuvable/i)
+  })
+
+  it('affecter crée une instance par date ; une date invalide rejette sans rien écrire', async () => {
+    const db = await base()
+    const { result } = await monter(db)
+    let ids: string[] = []
+    await act(async () => {
+      ids = await result.current.affecter('s1', ['2026-11-03', '2026-11-10'])
+    })
+    expect(ids).toHaveLength(2)
+    await expect(result.current.affecter('s1', ['2026-02-30'])).rejects.toThrow(/date/i)
+    expect((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM instances_seance')).n).toBe(2)
+  })
+
+  it("creerDirecte crée la séance directe sans qu'elle apparaisse dans les modèles", async () => {
+    const db = await base()
+    const { result } = await monter(db)
+    let r = { seanceId: '', instanceId: '' }
+    await act(async () => {
+      r = await result.current.creerDirecte('Express', '2026-11-03')
+    })
+    expect(r.instanceId).not.toBe('')
+    expect(result.current.seances.map((x) => x.id)).toEqual(['s1', 's2'])
+    expect(result.current.archivees.map((x) => x.id)).toEqual(['s3'])
+  })
 })

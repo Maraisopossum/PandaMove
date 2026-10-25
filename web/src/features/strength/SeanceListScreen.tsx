@@ -1,26 +1,35 @@
 import { Link } from 'react-router'
-import { lireGroupes } from './catalog/filtreCatalogue'
-import { libelleMuscle } from './catalog/libelles'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { AssignDialog } from './AssignDialog'
 import { LancerDialog } from './LancerDialog'
+import { MenuActions } from './MenuActions'
+import { SeanceDirecteDialog } from './SeanceDirecteDialog'
 import { SupprimerDialog } from './SupprimerDialog'
 import { useListeSeancesEcran } from './useListeSeancesEcran'
 
-// Liste des séances modèles. Seul écran de renforcement à porter le bouton d'affectation au
-// calendrier : jamais sur l'édition, le détail ni le bilan (règle CLAUDE.md).
+// Liste des séances types (modèles). Seul écran de renforcement à porter le bouton d'affectation au calendrier :
+// jamais sur l'édition, le détail ni le bilan (règle CLAUDE.md). Aucune logique ici : cartes, textes et états
+// viennent de useListeSeancesEcran.
 export default function SeanceListScreen() {
   const l = useListeSeancesEcran()
   const a = l.affectation
   const d = l.suppression
   const m = l.lancement
+  const sd = l.directe
 
   return (
     <>
       <h1>Séances types</h1>
+      <p className="ecran__aide">
+        Vos modèles de séance : lancez-en un maintenant, planifiez-le au calendrier avec 📅, ou ouvrez-le pour voir son détail.
+      </p>
       <div className="formulaire__ligne">
-        <Link to="/strength/new" className="bouton lien-bouton">
+        <Link to="/strength/new" className="bouton bouton--principal lien-bouton">
           <span aria-hidden="true">＋ </span>Nouvelle séance
         </Link>
+        <button type="button" className="bouton" onClick={sd.ouvrir}>
+          Séance directe
+        </button>
         <Link to="/strength/catalog" className="bouton lien-bouton">
           Catalogue d'exercices
         </Link>
@@ -31,61 +40,109 @@ export default function SeanceListScreen() {
           {l.erreur}
         </p>
       )}
-      {a.confirmation && (
+      {l.notice && (
         <div className="formulaire__ligne">
-          <p role="status">{a.confirmation}</p>
-          {a.instanceCreee && (
-            <Link to={`/strength/instance/${a.instanceCreee}`} className="bouton lien-bouton">
-              Ouvrir la séance
+          <p role="status">{l.notice.texte}</p>
+          {l.notice.lien && (
+            <Link to={l.notice.lien.vers} className="bouton lien-bouton">
+              {l.notice.lien.libelle}
             </Link>
           )}
         </div>
       )}
 
+      {l.rechercheVisible && (
+        <div className="formulaire__champ">
+          <label htmlFor="recherche-seances">Rechercher une séance</label>
+          <input
+            id="recherche-seances"
+            type="search"
+            value={l.requete}
+            placeholder="Nom, muscle, note…"
+            onChange={(e) => l.setRequete(e.target.value)}
+          />
+        </div>
+      )}
+
       {!l.charge ? (
         <p>Chargement…</p>
-      ) : l.seances.length === 0 ? (
-        <p>Aucune séance. Créez votre première séance avec « Nouvelle séance ».</p>
+      ) : l.vide ? (
+        <div className="calendrier__vide">
+          <PandaIllustration image={l.pandaVide} sizes="96px" decoratif className="calendrier__panda" />
+          <div>
+            <p>
+              <strong>Aucune séance type pour l'instant.</strong>
+            </p>
+            <p>
+              Une séance type est un modèle réutilisable (exercices, séries, charges). Créez-la une fois, puis lancez-la ou
+              planifiez-la quand vous voulez.
+            </p>
+            <Link to="/strength/new" className="bouton bouton--principal lien-bouton">
+              Créer ma première séance
+            </Link>
+          </div>
+        </div>
+      ) : l.aucunResultat ? (
+        <p>Aucune séance ne correspond à « {l.requete.trim()} ».</p>
       ) : (
-        <ul className="seances__liste">
-          {l.seances.map((s) => {
-            const muscles = lireGroupes(s.groupesMusculaires).map(libelleMuscle).join(', ')
-            const nb = l.nbExercices[s.id] ?? 0
-            return (
+        <>
+          {l.aucuneActive && <p>Aucune séance type active : créez-en une, ou restaurez une séance archivée ci-dessous.</p>}
+          <ul className="seances__liste">
+            {l.cartes.map(({ seance: s, details, notes, actions }) => (
               <li key={s.id} className="seance__carte">
-                <button type="button" className="seance__texte seance__lancer" aria-label={`Lancer ${s.nom} maintenant`} onClick={() => m.ouvrir(s)}>
+                <Link to={`/strength/${s.id}`} className="seance__texte seance__ouvrir">
                   <span className="seance__nom">{s.nom}</span>
-                  <span className="seance__details">
-                    {muscles || 'Aucun muscle'} · {s.dureeEstimeeMin} min · {nb} exercice{nb > 1 ? 's' : ''}
-                  </span>
-                </button>
+                  <span className="seance__details">{details}</span>
+                  {notes && <span className="seance__notes">{notes}</span>}
+                </Link>
                 <div className="seance__actions">
-                  <button type="button" className="bouton" aria-label="Affecter à une date" onClick={() => a.ouvrir(s)}>
+                  <button type="button" className="bouton bouton--principal" aria-label={`Lancer ${s.nom} maintenant`} onClick={() => m.ouvrir(s)}>
+                    Lancer
+                  </button>
+                  <button type="button" className="bouton" aria-label={`Affecter ${s.nom} au calendrier`} onClick={() => a.ouvrir(s)}>
                     <span aria-hidden="true">📅</span>
                   </button>
-                  <Link to={`/strength/${s.id}/edit`} className="bouton lien-bouton" aria-label={`Modifier ${s.nom}`}>
-                    Modifier
-                  </Link>
-                  <button type="button" className="bouton" aria-label={`Archiver ${s.nom}`} onClick={() => void l.demanderArchivage(s)}>
-                    Archiver
-                  </button>
-                  <button type="button" className="bouton" aria-label={`Supprimer ${s.nom}`} onClick={() => void d.ouvrir(s)}>
-                    Supprimer
-                  </button>
+                  <MenuActions libelle={`Plus d'actions pour ${s.nom}`} actions={actions} />
                 </div>
               </li>
-            )
-          })}
-        </ul>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {l.archivees.length > 0 && (
+        <section aria-labelledby="titre-archivees">
+          <h2 id="titre-archivees">Séances archivées</h2>
+          <p className="ecran__aide">Masquées de la liste, conservées pour l'historique. Désarchivez-les pour les retrouver.</p>
+          <ul className="seances__liste">
+            {l.archivees.map(({ seance: s, details, actions }) => (
+              <li key={s.id} className="seance__carte seance__carte--archivee">
+                <Link to={`/strength/${s.id}`} className="seance__texte seance__ouvrir">
+                  <span className="seance__nom">
+                    {s.nom} <span className="instances__badge instances__badge--neutre">Archivée</span>
+                  </span>
+                  <span className="seance__details">{details}</span>
+                </Link>
+                <div className="seance__actions">
+                  <MenuActions libelle={`Plus d'actions pour ${s.nom} (archivée)`} actions={actions} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {a.cible && (
         <AssignDialog
           nomSeance={a.cible.nom}
-          date={a.date}
+          form={a.form}
           erreur={a.erreur}
+          apercu={a.apercu}
           enCours={a.enCours}
-          onDate={a.setDate}
+          onMode={a.choisirMode}
+          onChamp={a.modifier}
+          onAjouterDate={a.ajouterDate}
+          onRetirerDate={a.retirerDate}
           onConfirmer={() => void a.confirmer()}
           onFermer={a.fermer}
         />
@@ -98,6 +155,18 @@ export default function SeanceListScreen() {
           enCours={m.enCours}
           onConfirmer={() => void m.confirmer()}
           onFermer={m.fermer}
+        />
+      )}
+
+      {sd.ouvert && (
+        <SeanceDirecteDialog
+          nom={sd.nom}
+          proposition={sd.proposition}
+          erreur={sd.erreur}
+          enCours={sd.enCours}
+          onNom={sd.setNom}
+          onConfirmer={() => void sd.confirmer()}
+          onFermer={sd.fermer}
         />
       )}
 

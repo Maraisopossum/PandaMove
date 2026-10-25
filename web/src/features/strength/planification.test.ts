@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
 import { ErreurSeance } from './affectation'
-import { assignerDates, datesRecurrence, MAX_OCCURRENCES } from './planification'
+import { assignerDates, datesDuFormulaire, datesRecurrence, formulaireInitial, MAX_OCCURRENCES } from './planification'
 
 const base = { user_id: 'u1', updated_at: 'u0', deleted_at: null }
 async function monde() {
@@ -70,5 +70,31 @@ describe('assignerDates', () => {
     await expect(assignerDates(db, 'nope', ['2026-11-03'])).rejects.toThrow('Séance introuvable.')
     await expect(assignerDates(db, 's1', [])).rejects.toThrow('Choisissez au moins une date.')
     expect((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM instances_seance')).n).toBe(0)
+  })
+})
+
+describe('datesDuFormulaire', () => {
+  const f = formulaireInitial('2026-10-26')
+
+  it('une date : la date saisie ; date invalide refusée', () => {
+    expect(datesDuFormulaire({ ...f, mode: 'une', date: '2026-11-03' })).toEqual(['2026-11-03'])
+    expect(() => datesDuFormulaire({ ...f, mode: 'une', date: '' })).toThrow('Date invalide')
+    expect(() => datesDuFormulaire({ ...f, mode: 'une', date: '2026-02-30' })).toThrow(ErreurSeance)
+  })
+
+  it("plusieurs dates : la liste choisie (la date en cours de saisie n'en fait pas partie)", () => {
+    expect(datesDuFormulaire({ ...f, mode: 'plusieurs', date: '2026-12-01', dates: ['2026-11-03', '2026-11-10'] })).toEqual([
+      '2026-11-03', '2026-11-10',
+    ])
+    expect(() => datesDuFormulaire({ ...f, mode: 'plusieurs', dates: [] })).toThrow('Ajoutez au moins une date.')
+  })
+
+  it('répétition : valeurs par défaut = toutes les semaines, 8 séances (Android afterNCount = 8)', () => {
+    expect(f).toMatchObject({ mode: 'une', date: '2026-10-26', pas: '1', unite: 'semaine', fin: 'occurrences', occurrences: '8' })
+    expect(datesDuFormulaire({ ...f, mode: 'repeter' })).toHaveLength(8)
+    const d = datesDuFormulaire({ ...f, mode: 'repeter', pas: '2', unite: 'jour', fin: 'date', dateFin: '2026-10-30' })
+    expect(d).toEqual(['2026-10-26', '2026-10-28', '2026-10-30'])
+    expect(() => datesDuFormulaire({ ...f, mode: 'repeter', pas: '' })).toThrow('Répétition invalide')
+    expect(() => datesDuFormulaire({ ...f, mode: 'repeter', occurrences: 'abc' })).toThrow('Nombre de séances invalide')
   })
 })

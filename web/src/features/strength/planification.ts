@@ -65,3 +65,41 @@ export async function assignerDates(db: Db, seanceId: string, dates: string[]): 
     return ids
   })
 }
+
+export type ModeAffectation = 'une' | 'plusieurs' | 'repeter'
+
+/** État du dialogue d'affectation (champs de saisie en texte : un champ vide est une erreur, jamais 0). */
+export interface FormulaireAffectation {
+  mode: ModeAffectation
+  /** « Une date » ; début de la répétition ; date en cours de saisie en mode « plusieurs » */
+  date: string
+  /** Mode « plusieurs » : dates déjà ajoutées */
+  dates: string[]
+  pas: string
+  unite: UniteRecurrence
+  fin: 'jamais' | 'date' | 'occurrences'
+  dateFin: string
+  occurrences: string
+}
+
+// Valeurs par défaut d'Android : toutes les semaines, 8 séances.
+export function formulaireInitial(aujourdhui: string): FormulaireAffectation {
+  return { mode: 'une', date: aujourdhui, dates: [], pas: '1', unite: 'semaine', fin: 'occurrences', dateFin: aujourdhui, occurrences: '8' }
+}
+
+const entier = (texte: string) => (texte.trim() === '' ? Number.NaN : Number(texte))
+
+// Dates à créer selon le mode du formulaire (ErreurSeance en français si la saisie est invalide).
+export function datesDuFormulaire(f: FormulaireAffectation): string[] {
+  if (f.mode === 'une') {
+    if (!dateIsoValide(f.date)) throw new ErreurSeance('Date invalide : choisissez une date réelle au format jj/mm/aaaa.')
+    return [f.date]
+  }
+  if (f.mode === 'plusieurs') {
+    if (f.dates.length === 0) throw new ErreurSeance('Ajoutez au moins une date.')
+    return [...f.dates].sort()
+  }
+  const fin: FinRecurrence =
+    f.fin === 'jamais' ? { type: 'jamais' } : f.fin === 'date' ? { type: 'date', date: f.dateFin } : { type: 'occurrences', n: entier(f.occurrences) }
+  return datesRecurrence({ debut: f.date, pas: entier(f.pas), unite: f.unite, fin })
+}

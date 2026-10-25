@@ -7,6 +7,7 @@ import { createTestDb } from '../../test/sqliteDb'
 
 const base = createTestDb()
 vi.mock('../../core/db/client', () => ({ getDb: () => base }))
+vi.mock('../../core/auth/AuthProvider', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }))
 
 import SeanceListScreen from './SeanceListScreen'
 import { aujourdhuiIso } from './saisie'
@@ -16,7 +17,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const LIBELLE_ASSIGNER = 'Affecter à une date'
+const assigner = (nom: string) => `Affecter ${nom} au calendrier`
 
 async function seance(id: string, nom: string, extra: Record<string, unknown> = {}) {
   await inserer(base, 'seances', {
@@ -36,11 +37,23 @@ await inserer(base, 'exercises', {
   equipment: '[]', muscle_primary: 'PECTORAUX', is_bodyweight: 0,
 })
 
+const boutonMenu = (nom: string) => screen.getByRole('button', { name: `Plus d'actions pour ${nom}` })
+
+// Ouvre le menu « ⋮ » d'une carte et choisit une action
+async function action(nom: string, libelle: string) {
+  fireEvent.click(await screen.findByRole('button', { name: `Plus d'actions pour ${nom}` }))
+  fireEvent.click(await screen.findByRole('menuitem', { name: libelle }))
+}
+
 function monter(chemin: string) {
   return render(
     <MemoryRouter initialEntries={[chemin]}>
       <Routes>
         <Route path="/strength" element={<SeanceListScreen />} />
+        <Route path="/strength/new" element={<p>Écran création</p>} />
+        <Route path="/strength/:id" element={<p>Écran détail</p>} />
+        <Route path="/strength/:id/edit" element={<p>Écran édition</p>} />
+        <Route path="/strength/planned" element={<p>Écran programmées</p>} />
         <Route path="/strength/instance/:id" element={<p>Écran exécution</p>} />
       </Routes>
     </MemoryRouter>,
@@ -48,35 +61,39 @@ function monter(chemin: string) {
 }
 
 describe('SeanceListScreen', () => {
-  it('affiche les cartes (nom, muscles, durée, nb d\'exercices) et le bouton 📅 sur chacune', async () => {
+  it("affiche les cartes (nom, muscles, durée, nb d'exercices), un lien vers le détail, Lancer et 📅 sur chacune", async () => {
     monter('/strength')
     expect(await screen.findByText('Pull')).toBeTruthy()
     expect(screen.getByText('Dos, Biceps · 45 min · 1 exercice')).toBeTruthy()
     expect(screen.getByText('Pectoraux · 30 min · 0 exercice')).toBeTruthy()
-    expect(screen.getAllByLabelText(LIBELLE_ASSIGNER)).toHaveLength(2)
+    expect(screen.getByLabelText(assigner('Pull'))).toBeTruthy()
+    expect(screen.getByLabelText(assigner('Push'))).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: /^Lancer .* maintenant$/ })).toHaveLength(2)
+    expect(screen.getByRole('link', { name: /Pull/ }).getAttribute('href')).toBe('/strength/s1')
     expect(screen.getByRole('link', { name: /Nouvelle séance/ }).getAttribute('href')).toBe('/strength/new')
     expect(screen.getByRole('link', { name: /Catalogue/ }).getAttribute('href')).toBe('/strength/catalog')
-    expect(screen.getByRole('link', { name: 'Modifier Pull' }).getAttribute('href')).toBe('/strength/s1/edit')
+    expect(screen.getByRole('button', { name: 'Séance directe' })).toBeTruthy()
   })
 
   it("dialogue d'affectation : rôle dialog, focus piégé, Échap ferme et rend le focus", async () => {
     monter('/strength')
     await screen.findByText('Pull')
-    const declencheur = screen.getAllByLabelText(LIBELLE_ASSIGNER)[0]
+    const declencheur = screen.getByLabelText(assigner('Pull'))
     declencheur.focus()
     fireEvent.click(declencheur)
 
     const dialogue = await screen.findByRole('dialog')
     expect(dialogue.getAttribute('aria-modal')).toBe('true')
     expect(dialogue.className).toBe('dialogue')
-    const date = screen.getByLabelText('Date de la séance')
-    await waitFor(() => expect(document.activeElement).toBe(date))
+    // Focus initial sur le premier choix du dialogue (non destructif)
+    const premier = screen.getByRole('radio', { name: 'Une date' })
+    await waitFor(() => expect(document.activeElement).toBe(premier))
 
     // Tab depuis le dernier élément revient au premier ; Maj+Tab depuis le premier va au dernier
     const annuler = screen.getByRole('button', { name: 'Annuler' })
     annuler.focus()
     fireEvent.keyDown(document, { key: 'Tab' })
-    expect(document.activeElement).toBe(date)
+    expect(document.activeElement).toBe(premier)
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
     expect(document.activeElement).toBe(annuler)
 
@@ -88,7 +105,7 @@ describe('SeanceListScreen', () => {
   it("affecte à une date ; une erreur (séance disparue) s'affiche dans le dialogue", async () => {
     monter('/strength')
     await screen.findByText('Push')
-    fireEvent.click(screen.getAllByLabelText(LIBELLE_ASSIGNER)[1])
+    fireEvent.click(screen.getByLabelText(assigner('Push')))
     const date = await screen.findByLabelText('Date de la séance')
     fireEvent.change(date, { target: { value: '2026-11-03' } })
 
@@ -104,22 +121,114 @@ describe('SeanceListScreen', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     const lignes = await base.getAll<{ id: string; seance_id: string; date: string }>('SELECT id, seance_id, date FROM instances_seance')
     expect(lignes).toEqual([{ id: expect.any(String), seance_id: 's2', date: '2026-11-03' }])
-    // Point d'entrée provisoire (avant le calendrier) : lien vers l'exécution de l'instance créée
+    // Lien utile après l'affectation à une seule date : ouvrir l'instance créée
     expect(screen.getByRole('link', { name: 'Ouvrir la séance' }).getAttribute('href')).toBe(`/strength/instance/${lignes[0].id}`)
   })
 
-  it("archive après confirmation, et pas sans", async () => {
+  it("archive (réversible) : la carte passe dans « Séances archivées », le message l'annonce", async () => {
     monter('/strength')
     await screen.findByText('Push')
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
-    fireEvent.click(screen.getByRole('button', { name: 'Archiver Push' }))
-    expect(screen.getByText('Push')).toBeTruthy()
-
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Archiver Push' }))
-    await waitFor(() => expect(screen.queryByText('Push')).toBeNull())
+    await action('Push', 'Archiver')
+    expect((await screen.findByRole('status')).textContent).toContain('« Push » est archivée')
+    const archivees = await screen.findByRole('region', { name: 'Séances archivées' })
+    expect(within(archivees).getByText('Push')).toBeTruthy()
+    expect(within(archivees).getByText('Archivée')).toBeTruthy()
     const l = await base.get<{ is_archived: number }>('SELECT is_archived FROM seances WHERE id = ?', ['s2'])
     expect(l.is_archived).toBe(1)
+    // Pas de Lancer ni de 📅 sur une séance archivée
+    expect(screen.queryByLabelText(assigner('Push'))).toBeNull()
+
+    // Désarchiver la remet dans la liste
+    fireEvent.click(screen.getByRole('button', { name: "Plus d'actions pour Push (archivée)" }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Désarchiver' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Séances archivées' })).toBeNull())
+    expect(screen.getByLabelText(assigner('Push'))).toBeTruthy()
+    expect((await base.get<{ is_archived: number }>('SELECT is_archived FROM seances WHERE id = ?', ['s2'])).is_archived).toBe(0)
+  })
+
+  it('dupliquer crée « … (copie) » avec ses exercices, jamais ses instances, et propose de la modifier', async () => {
+    await inserer(base, 'instances_seance', { id: 'dup-i', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 's1', date: '2026-10-01', is_completed: 1 })
+    await inserer(base, 'exercices_seance', {
+      id: 'dup-ie', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 's1', exercise_id: 'x', position: 0, instance_seance_id: 'dup-i',
+    })
+    monter('/strength')
+    await screen.findByText('Pull')
+    await action('Pull', 'Dupliquer')
+    expect((await screen.findByRole('status')).textContent).toContain('« Pull (copie) » a été créée.')
+    expect(await screen.findByText('Pull (copie)')).toBeTruthy()
+    const copie = await base.get<{ id: string }>("SELECT id FROM seances WHERE nom = 'Pull (copie)'")
+    expect(screen.getByRole('link', { name: 'Modifier la copie' }).getAttribute('href')).toBe(`/strength/${copie.id}/edit`)
+    const exos = await base.getAll<{ instance_seance_id: string | null }>('SELECT instance_seance_id FROM exercices_seance WHERE seance_id = ?', [copie.id])
+    expect(exos).toEqual([{ instance_seance_id: null }])
+    const insts = await base.get<{ n: number }>('SELECT COUNT(*) AS n FROM instances_seance WHERE seance_id = ?', [copie.id])
+    expect(insts.n).toBe(0)
+  })
+
+  it("« Modifier » du menu ouvre l'édition", async () => {
+    monter('/strength')
+    await screen.findByText('Pull')
+    await action('Pull', 'Modifier')
+    expect(await screen.findByText('Écran édition')).toBeTruthy()
+  })
+})
+
+describe("Menu d'actions (clavier)", () => {
+  it('ouvre au clic avec focus sur la première entrée, flèches circulaires, Début / Fin, Échap rend le focus au bouton', async () => {
+    monter('/strength')
+    await screen.findByText('Pull')
+    const bouton = boutonMenu('Pull')
+    expect(bouton.getAttribute('aria-haspopup')).toBe('menu')
+    expect(bouton.getAttribute('aria-expanded')).toBe('false')
+    bouton.focus()
+    fireEvent.click(bouton)
+    const menu = await screen.findByRole('menu', { name: "Plus d'actions pour Pull" })
+    const entrees = within(menu).getAllByRole('menuitem')
+    expect(entrees.map((e) => e.textContent)).toEqual(['Modifier', 'Dupliquer', 'Archiver', 'Supprimer…'])
+    expect(bouton.getAttribute('aria-expanded')).toBe('true')
+    await waitFor(() => expect(document.activeElement).toBe(entrees[0]))
+    fireEvent.keyDown(menu, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(entrees[1])
+    fireEvent.keyDown(menu, { key: 'ArrowUp' })
+    fireEvent.keyDown(menu, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(entrees[3])
+    fireEvent.keyDown(menu, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(entrees[0])
+    fireEvent.keyDown(menu, { key: 'End' })
+    expect(document.activeElement).toBe(entrees[3])
+    fireEvent.keyDown(menu, { key: 'Home' })
+    expect(document.activeElement).toBe(entrees[0])
+    fireEvent.keyDown(menu, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(document.activeElement).toBe(bouton)
+    expect(bouton.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('flèche haut sur le bouton ouvre le menu sur la dernière entrée ; Tab et clic ailleurs le ferment', async () => {
+    monter('/strength')
+    await screen.findByText('Pull')
+    const bouton = boutonMenu('Pull')
+    bouton.focus()
+    fireEvent.keyDown(bouton, { key: 'ArrowUp' })
+    const menu = await screen.findByRole('menu')
+    await waitFor(() => expect(document.activeElement).toBe(within(menu).getByRole('menuitem', { name: 'Supprimer…' })))
+    fireEvent.keyDown(menu, { key: 'Tab' })
+    expect(screen.queryByRole('menu')).toBeNull()
+
+    fireEvent.keyDown(bouton, { key: 'ArrowDown' })
+    await screen.findByRole('menu')
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it("choisir une action rend le focus au bouton avant d'ouvrir le dialogue (le focus y revient à la fermeture)", async () => {
+    monter('/strength')
+    await screen.findByText('Pull')
+    const bouton = boutonMenu('Pull')
+    bouton.focus()
+    await action('Pull', 'Supprimer…')
+    await screen.findByRole('dialog')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(document.activeElement).toBe(bouton)
   })
 })
 
@@ -129,12 +238,12 @@ describe('Suppression depuis la liste', () => {
       id, user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: seanceId, date: '2026-10-01', is_completed: fait,
     })
 
-  it('chaque carte propose Supprimer, Archiver et 📅', async () => {
+  it('chaque carte propose Lancer, 📅 et un menu (Modifier, Dupliquer, Archiver, Supprimer)', async () => {
     monter('/strength')
     const carte = (await screen.findByText('Pull')).closest('li') as HTMLElement
-    expect(carte.querySelector('[aria-label="Supprimer Pull"]')).not.toBeNull()
-    expect(carte.querySelector('[aria-label="Archiver Pull"]')).not.toBeNull()
-    expect(carte.querySelector('[aria-label="Affecter à une date"]')).not.toBeNull()
+    expect(carte.querySelector('[aria-label="Lancer Pull maintenant"]')).not.toBeNull()
+    expect(carte.querySelector('[aria-label="Affecter Pull au calendrier"]')).not.toBeNull()
+    expect(carte.querySelector('[aria-label="Plus d\'actions pour Pull"]')).not.toBeNull()
     expect(carte.textContent).toContain('📅')
   })
 
@@ -145,9 +254,9 @@ describe('Suppression depuis la liste', () => {
     await instance('s3-ic2', 's3', 1)
     monter('/strength')
     await screen.findByText('Squat')
-    const declencheur = screen.getByRole('button', { name: 'Supprimer Squat' })
+    const declencheur = boutonMenu('Squat')
     declencheur.focus()
-    fireEvent.click(declencheur)
+    await action('Squat', 'Supprimer…')
 
     const dialogue = await screen.findByRole('dialog', { name: 'Supprimer cette séance ?' })
     expect(dialogue.getAttribute('aria-modal')).toBe('true')
@@ -179,7 +288,7 @@ describe('Suppression depuis la liste', () => {
     await seance('s7', 'Fente')
     await instance('s7-ic', 's7', 1)
     monter('/strength')
-    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Fente' }))
+    await action('Fente', 'Supprimer…')
     await screen.findByRole('dialog')
     const annuler = screen.getByRole('button', { name: 'Annuler' })
     await waitFor(() => expect(document.activeElement).toBe(annuler))
@@ -193,7 +302,7 @@ describe('Suppression depuis la liste', () => {
   it("focus initial sur « Annuler » (variante sans historique) : activer le bouton focalisé ne supprime rien", async () => {
     await seance('s8', 'Gainage')
     monter('/strength')
-    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Gainage' }))
+    await action('Gainage', 'Supprimer…')
     await screen.findByRole('dialog')
     const annuler = screen.getByRole('button', { name: 'Annuler' })
     await waitFor(() => expect(document.activeElement).toBe(annuler))
@@ -205,7 +314,7 @@ describe('Suppression depuis la liste', () => {
 
   it("« Garder l'historique » supprime le modèle et conserve les séances réalisées", async () => {
     monter('/strength')
-    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Squat' }))
+    await action('Squat', 'Supprimer…')
     await screen.findByRole('dialog')
     fireEvent.click(screen.getByRole('button', { name: "Garder l'historique" }))
     await waitFor(() => expect(screen.queryByText('Squat')).toBeNull())
@@ -220,7 +329,7 @@ describe('Suppression depuis la liste', () => {
     await seance('s5', 'Tractions')
     await instance('s5-ic', 's5', 1)
     monter('/strength')
-    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Tractions' }))
+    await action('Tractions', 'Supprimer…')
     await screen.findByRole('dialog')
     fireEvent.click(screen.getByRole('button', { name: 'Tout supprimer' }))
     await waitFor(() => expect(screen.queryByText('Tractions')).toBeNull())
@@ -231,7 +340,7 @@ describe('Suppression depuis la liste', () => {
   it("sans historique : une seule confirmation « Supprimer », pas de choix", async () => {
     await seance('s4', 'Vierge')
     monter('/strength')
-    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Vierge' }))
+    await action('Vierge', 'Supprimer…')
     const dialogue = await screen.findByRole('dialog', { name: 'Supprimer cette séance ?' })
     expect(dialogue.textContent).toContain('Cette action est définitive')
     expect(screen.queryByRole('button', { name: "Garder l'historique" })).toBeNull()
@@ -246,7 +355,7 @@ describe('Suppression depuis la liste', () => {
   it("erreur (séance disparue entre-temps) : message français dans la liste, dialogue fermé", async () => {
     await seance('s6', 'Fantôme')
     monter('/strength')
-    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Fantôme' }))
+    await action('Fantôme', 'Supprimer…')
     await screen.findByRole('dialog')
     await base.execute("UPDATE seances SET deleted_at = 'x' WHERE id = 's6'")
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
@@ -262,13 +371,14 @@ describe('Lancer une séance type maintenant', () => {
       [seanceId],
     )
 
-  it('la zone principale est un vrai bouton ; « Modifier » reste un lien distinct', async () => {
+  it('« Lancer » est un vrai bouton visible ; le nom de la séance est un lien distinct vers son détail', async () => {
     await seance('l1', 'Dos express')
     monter('/strength')
     const lancer = await screen.findByRole('button', { name: 'Lancer Dos express maintenant' })
     expect(lancer.tagName).toBe('BUTTON')
+    expect(lancer.textContent).toBe('Lancer')
     const carte = lancer.closest('li') as HTMLElement
-    expect(carte.querySelector('a[href="/strength/l1/edit"]')).not.toBeNull()
+    expect(carte.querySelector('a[href="/strength/l1"]')).not.toBeNull()
   })
 
   it("confirmation (focus sur « Lancer »), Annuler ne crée rien ; Lancer crée l'instance du jour, la démarre et ouvre l'exécution", async () => {
