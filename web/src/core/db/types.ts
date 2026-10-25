@@ -69,6 +69,8 @@ export interface ExerciceSeance {
   typeExercice: TypeExercice | null
   incrementPct: number | null
   isBodyweight: boolean
+  // Note de l'utilisateur sur l'exercice (ligne d'instance, migration 0007) ; chaîne vide = aucune
+  notes: string
   updatedAt: string
 }
 
@@ -88,6 +90,8 @@ export interface InstanceSeance {
   pausedJson: string | null
   // Marqueur de progression (progression_json) ; null = absent ou illisible (voir core/progression/marqueur.ts)
   progression: EtatProgression | null
+  // Nom propre à cette séance jouée (renommage depuis l'exécution) ; null = nom du modèle
+  nom: string | null
 }
 
 export interface SerieRealisee {

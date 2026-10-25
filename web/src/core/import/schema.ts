@@ -87,6 +87,8 @@ export const ExerciceDtoSchema = z.object({
   // Poids de corps (ajouté v3.3)
   isBodyweight: z.boolean().default(false),
   uuid,
+  // Sauvegarde web seulement (migration 0007) : note de l'utilisateur sur la ligne d'instance
+  notes: texteWeb,
 })
 
 export const InstanceDtoSchema = z.object({
@@ -102,6 +104,8 @@ export const InstanceDtoSchema = z.object({
   startedAt: texteWeb,
   pausedJson: texteWeb,
   progressionJson: texteWeb,
+  // Nom propre de la séance jouée (migration 0007), sauvegarde web seulement
+  nom: texteWeb,
 })
 
 export const SerieDtoSchema = z.object({

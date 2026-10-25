@@ -533,3 +533,29 @@ describe('buildImportPlan — groupes musculaires corrigés', () => {
     expect(b.muscle_primary).toBe('Biceps brachial')
   })
 })
+
+describe('buildImportPlan — nom de séance jouée et note d’exercice (migration 0007)', () => {
+  const avec = (modifier: (d: typeof exportV32) => void) => {
+    const copie = structuredClone(exportV32)
+    modifier(copie)
+    return copie
+  }
+
+  it('une sauvegarde web reporte le nom propre de l’instance et la note de l’exercice', () => {
+    const p = plan(
+      avec((d) => {
+        const s = d.strengthSessions.completed[0] as unknown as { instance: Record<string, unknown>; exercices: Record<string, unknown>[] }
+        s.instance.nom = 'Pull du matin'
+        s.exercices[0].notes = 'Épaule gênante'
+      }),
+    )
+    expect(parId(p.rows.instances_seance, idDe('instances_seance', 401)).nom).toBe('Pull du matin')
+    expect(parId(p.rows.exercices_seance, idDe('exercices_seance', 311)).notes).toBe('Épaule gênante')
+  })
+
+  it('un export Android (sans ces champs) n’écrit ni nom ni note : les valeurs locales sont gardées', () => {
+    const p = plan(exportV32)
+    expect('nom' in parId(p.rows.instances_seance, idDe('instances_seance', 401))).toBe(false)
+    expect('notes' in parId(p.rows.exercices_seance, idDe('exercices_seance', 311))).toBe(false)
+  })
+})

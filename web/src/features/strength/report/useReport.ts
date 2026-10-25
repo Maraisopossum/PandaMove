@@ -154,7 +154,7 @@ async function lire(db: Db, instanceId: string, userId: string | undefined, main
   const base = {
     ...VIDE,
     trouvee: true,
-    nomSeance: resumeSeance?.nom ?? 'Séance',
+    nomSeance: instance.nom?.trim() || resumeSeance?.nom || 'Séance',
     date: instance.date,
     notesSeance: resumeSeance?.notes ?? '',
     notesInstance: instance.notes,

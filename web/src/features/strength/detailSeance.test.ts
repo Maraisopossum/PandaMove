@@ -11,7 +11,7 @@ const exo = (extra: Partial<ExerciceSeance> = {}): ExerciceSeance => ({
   chargeCible: '', tempo: '', repsType: 'REPS', tempsReposSec: 90, consigneCle: '', equipement: '', avertissement: '',
   instanceSeanceId: null, exerciceSourceId: null, isBilateral: false, progressionActivee: false, systemeProgression: null,
   repsMin: null, repsMax: null, incrementKg: null, incrementDureeSec: 5, seuilDeload: 3, typeExercice: null, incrementPct: null,
-  isBodyweight: false, updatedAt: 'u', ...extra,
+  isBodyweight: false, notes: '', updatedAt: 'u', ...extra,
 })
 const objectif = (extra: Partial<ObjectifProgression> = {}): ObjectifProgression => ({
   id: 'o', seanceId: 's', exerciseId: 'x', chargeCible: null, repsCible: null, dureeCibleSec: null, compteurEchec: 0, derniereMaj: null,

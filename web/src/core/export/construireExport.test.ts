@@ -158,10 +158,12 @@ async function ajouterDonneesWeb(db: Db) {
     id: instance, ...sync, seance_id: seance, date: '2026-10-21', notes: 'Bonnes sensations', is_completed: 1,
     completed_at: '2026-10-21T18:45:12.345Z', duration_seconds: 2710, created_at: '2026-10-19T09:00:00.000Z',
     started_at: '2026-10-21T18:00:00.000Z', paused_json: '[]', progression_json: '{"evaluee":true,"decisions":{"x":"refusee"}}',
+    nom: 'Pull du matin',
   })
   await inserer(db, 'blocs_seance', { id: blocCopie, ...blocCommun, instance_seance_id: instance, bloc_source_id: bloc })
   await inserer(db, 'exercices_seance', {
     id: ligneCopie, ...ligne, bloc_id: blocCopie, instance_seance_id: instance, exercice_source_id: ligneTemplate,
+    notes: 'Épaule gênante',
   })
   const serie = {
     ...sync, instance_seance_id: instance, exercice_seance_id: ligneCopie, notes: '', validated_at: '2026-10-21T18:10:00.000Z',
@@ -270,7 +272,9 @@ describe('construireExport', () => {
       isCompleted: true, completedAt: '2026-10-21T18:45:12.345', durationSeconds: 2710, createdAt: '2026-10-19T09:00:00.000',
       uuid: web.instance, startedAt: '2026-10-21T18:00:00.000Z', pausedJson: '[]',
       progressionJson: '{"evaluee":true,"decisions":{"x":"refusee"}}',
+      nom: 'Pull du matin',
     })
+    expect(s.exercices[0]).toMatchObject({ notes: 'Épaule gênante' })
     expect(s.blocs[0].instanceSeanceId).toBe(idLongDepuisUuid(web.instance))
     expect(s.exercices[0].id).toBe(idLongDepuisUuid(web.ligneCopie))
     expect(s.series).toEqual([

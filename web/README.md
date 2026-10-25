@@ -49,6 +49,7 @@ Exécuter les migrations **dans l'ordre**, une seule fois chacune, dans l'édite
 4. `supabase/migrations/0004_instance_clock.sql`
 5. `supabase/migrations/0005_instance_progression.sql`
 6. `supabase/migrations/0006_durcissement.sql` : droits, politiques RLS, index uniques, colonne `validated_at`
+7. `supabase/migrations/0007_nom_instance_note_exercice.sql` : colonnes `instances_seance.nom` (renommer une séance jouée sans toucher au modèle) et `exercices_seance.notes` (note par exercice). Idempotente, sans défaut ni réécriture de ligne.
 
 À propos de 0006 :
 
@@ -56,6 +57,8 @@ Exécuter les migrations **dans l'ordre**, une seule fois chacune, dans l'édite
 - Elle retire tout droit au rôle `anon` et le DELETE physique au rôle `authenticated` (la suppression est logique, par `deleted_at`). Le rôle de réplication de PowerSync (`powersync_role` ou `postgres`) n'est pas touché.
 - Elle s'interrompt sans rien modifier si des doublons empêchent la création des index uniques (`user_settings` vivantes en double pour un même utilisateur, ou blocs d'instance en double). Le message d'erreur donne la requête qui les repère.
 - Elle est rejouable sans erreur.
+
+À propos de 0007 : exécutez-la **avant de pousser** (comme 0006). Sans elle, Supabase répond PGRST204 sur `nom` / `notes` ; le client renvoie alors la ligne sans cette colonne (avertissement dans la console) pour ne pas bloquer la file d'envoi, mais le nom propre d'une séance jouée et les notes d'exercice ne sont pas synchronisés tant que la migration manque.
 
 Authentification : ajouter l'origine du site (locale et Cloudflare) dans **Authentication → URL Configuration** pour les liens magiques.
 
@@ -76,7 +79,7 @@ Authentification : ajouter l'origine du site (locale et Cloudflare) dans **Authe
 
 Étapes manuelles, dans le tableau de bord Cloudflare :
 
-0. **Avant le premier push qui déploie ce client** : migrations 0001 à 0006 exécutées dans Supabase (voir « Supabase » ; sinon la file d'envoi des appareils se bloque).
+0. **Avant le premier push qui déploie ce client** : migrations 0001 à 0007 exécutées dans Supabase (voir « Supabase » ; sinon la file d'envoi des appareils se bloque).
 1. **Workers & Pages → Create → Pages → Connect to Git**, choisir le dépôt.
 2. Réglages de build :
    - répertoire racine : `web`

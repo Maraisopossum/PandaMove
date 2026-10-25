@@ -20,7 +20,8 @@ export async function instanceEnVue(db: DbLecture, l: Ligne): Promise<InstanceVu
   const vue: InstanceVue = {
     id,
     seanceId,
-    nom: (await lireNomSeance(db, seanceId)) ?? NOM_SEANCE_INCONNUE,
+    // Nom propre de la séance jouée (renommée à l'exécution), sinon nom du modèle
+    nom: (await lireNomSeance(db, seanceId, l.nom == null ? null : String(l.nom))) ?? NOM_SEANCE_INCONNUE,
     dateIso: String(l.date),
     etat,
   }

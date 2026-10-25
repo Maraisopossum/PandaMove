@@ -16,7 +16,7 @@ export function useSeanceActive(): SeanceActive | null {
     const lire = async () => {
       try {
         const lignes = await getDb().getAll<LigneActive>(
-          `SELECT i.id AS id, COALESCE(s.nom, 'Séance') AS nom, i.started_at AS started_at, i.paused_json AS paused_json
+          `SELECT i.id AS id, COALESCE(NULLIF(TRIM(i.nom), ''), s.nom, 'Séance') AS nom, i.started_at AS started_at, i.paused_json AS paused_json
            FROM instances_seance i LEFT JOIN seances s ON s.id = i.seance_id
            WHERE i.started_at IS NOT NULL AND i.is_completed = 0 AND i.deleted_at IS NULL`,
         )

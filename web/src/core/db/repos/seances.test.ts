@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { inserer } from '../../../test/fixtures'
 import { createTestDb } from '../../../test/sqliteDb'
 import type { Db } from '../Db'
-import { getSeanceTree, listSeanceTemplates, softDelete } from './seances'
+import { getSeanceTree, lireNomSeance, listSeanceTemplates, softDelete } from './seances'
 
 let db: Db
 const base = { user_id: 'u', updated_at: '2026-01-01T00:00:00Z', deleted_at: null }
@@ -77,5 +77,19 @@ describe('getSeanceTree', () => {
     const arbre = await getSeanceTree(db, 's1', 'i1')
     expect(arbre.blocs.map((b) => b.id)).toEqual(['bi'])
     expect(arbre.exercices.map((e) => e.id)).toEqual(['xi'])
+  })
+})
+
+describe("lireNomSeance avec un nom d'instance", () => {
+  it("préfère le nom propre de l'instance, sinon celui du modèle", async () => {
+    expect(await lireNomSeance(db, 's2')).toBe('Pull')
+    expect(await lireNomSeance(db, 's2', null)).toBe('Pull')
+    expect(await lireNomSeance(db, 's2', '   ')).toBe('Pull')
+    expect(await lireNomSeance(db, 's2', 'Pull du matin')).toBe('Pull du matin')
+  })
+
+  it("garde le nom de l'instance même si le modèle n'existe plus", async () => {
+    expect(await lireNomSeance(db, 'absente', 'Pull du matin')).toBe('Pull du matin')
+    expect(await lireNomSeance(db, 'absente')).toBeNull()
   })
 })

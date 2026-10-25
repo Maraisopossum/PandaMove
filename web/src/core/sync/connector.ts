@@ -20,9 +20,19 @@ function envoyer(supabase: SupabaseClient, entry: Operation, opData: Record<stri
   return table.update({ deleted_at: new Date().toISOString() }).eq('id', entry.id)
 }
 
-// PGRST204 = colonne inconnue du cache de schéma PostgREST ; seule validated_at est tolérée.
-function estColonneValidatedAtAbsente(erreur: { code?: string; message?: string } | null): boolean {
-  return erreur?.code === 'PGRST204' && /validated_at/.test(erreur.message ?? '')
+// PGRST204 = colonne inconnue du cache de schéma PostgREST. Seules les colonnes ajoutées par une migration récente
+// sont tolérées (jamais une autre : une vraie erreur de schéma ne doit pas être masquée), table par table :
+// validated_at (migration 0006), instances_seance.nom et exercices_seance.notes (migration 0007).
+const COLONNES_TOLEREES: Record<string, { colonne: string; migration: string }> = {
+  series_realisees: { colonne: 'validated_at', migration: '0006' },
+  instances_seance: { colonne: 'nom', migration: '0007' },
+  exercices_seance: { colonne: 'notes', migration: '0007' },
+}
+
+function colonneAbsenteTolerable(table: string, erreur: { code?: string; message?: string } | null): { colonne: string; migration: string } | null {
+  const toleree = COLONNES_TOLEREES[table]
+  if (!toleree || erreur?.code !== 'PGRST204') return null
+  return new RegExp(`'${toleree.colonne}'`).test(erreur.message ?? '') ? toleree : null
 }
 
 export class SupabaseConnector implements PowerSyncBackendConnector {
@@ -56,17 +66,18 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
       for (const entry of tx.crud) {
         try {
           let resultat = await envoyer(supabase, entry, entry.opData)
-          // Migration 0006 pas encore passée sur le serveur : la colonne validated_at (ancre du repos)
-          // n'existe pas (PGRST204). Sans ce repli, TOUTE la file d'envoi resterait bloquée. On renvoie
-          // une fois sans cette colonne (le serveur n'aura pas l'ancre : repli sur updated_at).
-          if (estColonneValidatedAtAbsente(resultat.error) && entry.opData && 'validated_at' in entry.opData) {
+          // Migration (0006, 0007) pas encore passée sur le serveur : une colonne récente n'existe pas (PGRST204). Sans ce
+          // repli, TOUTE la file d'envoi resterait bloquée. On renvoie une fois sans cette colonne (le serveur ne l'aura
+          // pas : repli sur updated_at pour validated_at ; nom propre / note d'exercice non synchronisés jusqu'à la migration).
+          const absente = colonneAbsenteTolerable(entry.table, resultat.error)
+          if (absente && entry.opData && absente.colonne in entry.opData) {
             console.warn(
-              'Colonne validated_at absente côté serveur : exécuter la migration 0006. Envoi sans cette colonne.',
+              `Colonne ${absente.colonne} absente côté serveur : exécuter la migration ${absente.migration}. Envoi sans cette colonne.`,
               { table: entry.table, id: entry.id },
             )
-            const { validated_at: _retiree, ...sansAncre } = entry.opData
+            const { [absente.colonne]: _retiree, ...sansColonne } = entry.opData
             void _retiree
-            resultat = await envoyer(supabase, entry, sansAncre)
+            resultat = await envoyer(supabase, entry, sansColonne)
           }
           if (resultat.error) throw resultat.error
         } catch (e) {

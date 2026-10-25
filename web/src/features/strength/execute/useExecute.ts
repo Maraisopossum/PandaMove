@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDb } from '../../../core/db/client'
 import type { Db, DbLecture } from '../../../core/db/Db'
 import {
-  copyTemplateToInstance, demarrerInstance, enregistrerPauses, ErreurInstance, getInstance, majNotesInstance, terminerInstance,
+  abandonnerDemarrage, copyTemplateToInstance, demarrerInstance, enregistrerPauses, ErreurInstance, getInstance, majNoteExercice, majNotesInstance,
+  renommerInstance, terminerInstance,
 } from '../../../core/db/repos/instances'
 import { getSeanceTree, lireNomSeance } from '../../../core/db/repos/seances'
 import { addSerie, changerSeriesPrevues, listSeries, supprimerSeriesNumeros, updateSerie } from '../../../core/db/repos/series'
@@ -56,7 +57,7 @@ async function lire(db: Db, instanceId: string, userId: string | undefined): Pro
   const instance = await getInstance(db, instanceId)
   if (!instance) throw new ErreurExecution('Séance introuvable.')
   // Nom lisible même si la séance a été supprimée avec « Garder l'historique » (comme le calendrier)
-  const nomSeanceLu = await lireNomSeance(db, instance.seanceId)
+  const nomSeanceLu = await lireNomSeance(db, instance.seanceId, instance.nom)
   const arbre = await getSeanceTree(db, instance.seanceId, instanceId)
   const series = await listSeries(db, instanceId)
   const idsExercices = [...new Set(arbre.exercices.map((e) => e.exerciseId))]
@@ -166,7 +167,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
           setErreur(null)
           ok = true
         } catch (e) {
-          if (e instanceof ErreurExecution) setErreur(e.message)
+          if (e instanceof ErreurExecution || e instanceof ErreurInstance) setErreur(e.message)
           else {
             console.error(messageEchec, e)
             setErreur(messageEchec)
@@ -349,6 +350,36 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     [ecrire, instanceId],
   )
 
+  // Menu crayon « Modifier le nom » : renomme LA SÉANCE JOUÉE (jamais le modèle, contrairement à l'Android qui écrit le
+  // modèle et viole l'isolation). Nom vide = nom du modèle.
+  const renommer = useCallback(
+    (nom: string) =>
+      ecrire(async (base, maintenant) => {
+        await instanceModifiable(base, instanceId)
+        await renommerInstance(base, instanceId, nom, new Date(maintenant).toISOString())
+      }, 'Le renommage de la séance a échoué.'),
+    [ecrire, instanceId],
+  )
+
+  // Note libre sur un exercice (colonne exercices_seance.notes de la ligne d'instance).
+  const noterExercice = useCallback(
+    (exerciceId: string, texte: string) =>
+      ecrire(async (base, maintenant) => {
+        await instanceModifiable(base, instanceId)
+        await majNoteExercice(base, instanceId, exerciceId, texte, new Date(maintenant).toISOString())
+      }, "L'enregistrement de la note a échoué."),
+    [ecrire, instanceId],
+  )
+
+  // « Quitter sans enregistrer » (aucune série validée) : la séance redevient planifiée. Résout à true si remise à zéro.
+  const abandonnerDemarrageSeance = useCallback(async (): Promise<boolean> => {
+    let remise = false
+    await ecrire(async (base, maintenant) => {
+      remise = await abandonnerDemarrage(base, instanceId, new Date(maintenant).toISOString())
+    }, "L'abandon de la séance a échoué.")
+    return remise
+  }, [ecrire, instanceId])
+
   const corrigerSerie = useCallback(
     (serieId: string, s: Partial<Mesures>) =>
       ecrire(async (base, maintenant) => {
@@ -397,6 +428,9 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     corrigerSerie,
     devaliderSerie,
     enregistrerNotes,
+    renommer,
+    noterExercice,
+    abandonnerDemarrage: abandonnerDemarrageSeance,
     notes: instance?.notes ?? '',
     ajouterSerie,
     supprimerSerie,

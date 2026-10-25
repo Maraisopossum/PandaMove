@@ -56,6 +56,26 @@ export async function terminerInstance(
   )
 }
 
+// « Quitter sans enregistrer » (Android : cancelInstance + endSession sans série) : une séance démarrée dont AUCUNE série
+// n'est validée redevient planifiée (horloge effacée), pour ne plus apparaître comme séance en cours. Renvoie true si
+// elle a été remise à zéro ; false (rien d'écrit) si une série est validée, si elle est terminée ou introuvable.
+export async function abandonnerDemarrage(db: Db, id: string, maintenantIso: string): Promise<boolean> {
+  return db.writeTransaction(async (tx) => {
+    const serie = await tx.getOptional<{ one: number }>(
+      'SELECT 1 AS one FROM series_realisees WHERE instance_seance_id = ? AND is_completed = 1 AND deleted_at IS NULL',
+      [id],
+    )
+    if (serie) return false
+    const vivante = await tx.getOptional<{ id: string }>(
+      'SELECT id FROM instances_seance WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL AND started_at IS NOT NULL',
+      [id],
+    )
+    if (!vivante) return false
+    await tx.execute('UPDATE instances_seance SET started_at = NULL, paused_json = NULL, updated_at = ? WHERE id = ?', [maintenantIso, id])
+    return true
+  })
+}
+
 // Remplace le marqueur de progression (JSON sérialisé par core/progression/marqueur.ts).
 export async function enregistrerProgression(db: DbTx, id: string, progressionJson: string, maintenantIso: string): Promise<void> {
   await db.execute(
@@ -65,6 +85,33 @@ export async function enregistrerProgression(db: DbTx, id: string, progressionJs
 }
 
 export class ErreurInstance extends Error {}
+
+export const NOM_INSTANCE_MAX = 100
+
+// Renomme LA SÉANCE JOUÉE (instances_seance.nom), jamais le modèle (isolation template/instance). Nom vide = retour au
+// nom du modèle (colonne remise à NULL). Une instance inconnue ou supprimée est refusée, rien n'est écrit.
+export async function renommerInstance(db: Db | DbTx, id: string, nom: string, maintenantIso: string): Promise<void> {
+  const propre = nom.trim()
+  if (propre.length > NOM_INSTANCE_MAX) throw new ErreurInstance(`Le nom de la séance est limité à ${NOM_INSTANCE_MAX} caractères.`)
+  const existe = await db.getOptional<{ id: string }>('SELECT id FROM instances_seance WHERE id = ? AND deleted_at IS NULL', [id])
+  if (!existe) throw new ErreurInstance('Séance introuvable.')
+  await db.execute('UPDATE instances_seance SET nom = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL', [
+    propre === '' ? null : propre, maintenantIso, id,
+  ])
+}
+
+// Note libre sur un exercice DE L'INSTANCE (jamais une ligne du modèle). Vide = note effacée (NULL).
+export async function majNoteExercice(db: Db | DbTx, instanceId: string, exerciceId: string, note: string, maintenantIso: string): Promise<void> {
+  const ligne = await db.getOptional<{ id: string }>(
+    'SELECT id FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
+    [exerciceId, instanceId],
+  )
+  if (!ligne) throw new ErreurInstance('Exercice introuvable dans cette séance.')
+  const propre = note.trim()
+  await db.execute('UPDATE exercices_seance SET notes = ?, updated_at = ? WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL', [
+    propre === '' ? null : propre, maintenantIso, exerciceId, instanceId,
+  ])
+}
 
 // Copie les blocs et exercices du modèle de la séance vers l'instance (équivalent web de la
 // copie « lazy » d'InstanceExecuteViewModel). Une seule transaction ; idempotente :
@@ -122,6 +169,8 @@ export async function copyTemplateToInstance(db: Db, instanceId: string): Promis
         bloc_id: blocSource === null ? null : (idBlocCopie.get(blocSource) ?? null),
         instance_seance_id: instanceId,
         exercice_source_id: idSource,
+        // La note d'exercice appartient à la séance jouée : jamais héritée du modèle
+        notes: null,
         updated_at: maintenant,
       })
     }

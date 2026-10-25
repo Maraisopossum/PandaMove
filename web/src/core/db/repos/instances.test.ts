@@ -5,7 +5,8 @@ import type { Db } from '../Db'
 import { deterministicId } from '../ids'
 import { upsertRow } from '../upsert'
 import {
-  copyTemplateToInstance, createInstance, demarrerInstance, enregistrerPauses, getInstance, listInstances, terminerInstance,
+  abandonnerDemarrage, copyTemplateToInstance, createInstance, demarrerInstance, enregistrerPauses, getInstance, listInstances, majNoteExercice, renommerInstance,
+  terminerInstance,
 } from './instances'
 import { softDelete } from './seances'
 
@@ -102,6 +103,14 @@ const compte = async (d: Db, table: string) =>
   (await d.get<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table}`)).n
 
 describe('copyTemplateToInstance', () => {
+  it("ne recopie jamais une note d'exercice du modèle dans l'instance", async () => {
+    await semer(db)
+    await db.execute("UPDATE exercices_seance SET notes = 'note du modèle' WHERE id = 'x1'")
+    await copyTemplateToInstance(db, 'i1')
+    const copie = await lignes(db, 'exercices_seance', 'instance_seance_id = ? AND exercice_source_id = ?', ['i1', 'x1'])
+    expect(copie[0].notes).toBeNull()
+  })
+
   it('copie blocs et exercices vivants du template avec ids déterministes et sources', async () => {
     await semer(db)
     await copyTemplateToInstance(db, 'i1')
@@ -246,5 +255,82 @@ describe('copyTemplateToInstance', () => {
     expect(ecritures).toBe(4)
     expect(await lignes(db, 'blocs_seance', 'instance_seance_id IS NOT NULL')).toHaveLength(0)
     expect(await lignes(db, 'exercices_seance', 'instance_seance_id IS NOT NULL')).toHaveLength(0)
+  })
+})
+
+describe("nom propre à l'instance (migration 0007)", () => {
+  it("une instance créée n'a pas de nom propre", async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    expect(await getInstance(db, id)).toMatchObject({ nom: null })
+  })
+
+  it('renommerInstance écrit le nom nettoyé, sans toucher au modèle', async () => {
+    await inserer(db, 'seances', { id: 's1', nom: 'Pull', notes: '', seance_category: 'STRENGTH' })
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await renommerInstance(db, id, '  Pull du matin  ', '2026-06-01T10:00:00.000Z')
+    expect(await getInstance(db, id)).toMatchObject({ nom: 'Pull du matin', updatedAt: '2026-06-01T10:00:00.000Z' })
+    expect(await db.get<{ nom: string }>('SELECT nom FROM seances WHERE id = ?', ['s1'])).toEqual({ nom: 'Pull' })
+  })
+
+  it('un nom vide efface le nom propre (retour au nom du modèle)', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await renommerInstance(db, id, 'Pull du matin', '2026-06-01T10:00:00.000Z')
+    await renommerInstance(db, id, '   ', '2026-06-01T10:01:00.000Z')
+    expect(await getInstance(db, id)).toMatchObject({ nom: null })
+  })
+
+  it('refuse un nom de plus de 100 caractères et une instance inconnue', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await expect(renommerInstance(db, id, 'x'.repeat(101), '2026-06-01T10:00:00.000Z')).rejects.toThrow(/100 caractères/)
+    await expect(renommerInstance(db, 'inconnue', 'Nom', '2026-06-01T10:00:00.000Z')).rejects.toThrow(/introuvable/i)
+  })
+
+  it('refuse de renommer une instance supprimée', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await softDelete(db, 'instances_seance', id)
+    await expect(renommerInstance(db, id, 'Nom', '2026-06-01T10:00:00.000Z')).rejects.toThrow(/introuvable/i)
+  })
+})
+
+describe("note par exercice d'une instance (migration 0007)", () => {
+  it("écrit la note sur la ligne d'instance uniquement, vide = effacée", async () => {
+    await inserer(db, 'exercices_seance', { id: 'm1', seance_id: 's1', exercise_id: 'e1', instance_seance_id: null })
+    await inserer(db, 'exercices_seance', { id: 'i1', seance_id: 's1', exercise_id: 'e1', instance_seance_id: 'inst' })
+    await majNoteExercice(db, 'inst', 'i1', '  Épaule gênante  ', '2026-06-01T10:00:00.000Z')
+    expect(await db.get<{ notes: string | null }>('SELECT notes FROM exercices_seance WHERE id = ?', ['i1'])).toEqual({ notes: 'Épaule gênante' })
+    expect(await db.get<{ notes: string | null }>('SELECT notes FROM exercices_seance WHERE id = ?', ['m1'])).toEqual({ notes: null })
+    await majNoteExercice(db, 'inst', 'i1', '  ', '2026-06-01T10:01:00.000Z')
+    expect(await db.get<{ notes: string | null }>('SELECT notes FROM exercices_seance WHERE id = ?', ['i1'])).toEqual({ notes: null })
+  })
+
+  it("refuse une ligne qui n'appartient pas à l'instance (le modèle n'est jamais écrit)", async () => {
+    await inserer(db, 'exercices_seance', { id: 'm1', seance_id: 's1', exercise_id: 'e1', instance_seance_id: null })
+    await expect(majNoteExercice(db, 'inst', 'm1', 'Note', '2026-06-01T10:00:00.000Z')).rejects.toThrow(/introuvable/i)
+  })
+})
+
+describe('abandonnerDemarrage (« Quitter sans enregistrer »)', () => {
+  it('remet une séance démarrée sans série validée à l’état planifié', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await demarrerInstance(db, id, '2026-06-01T10:00:00.000Z')
+    await enregistrerPauses(db, id, '[{"fromMs":1,"toMs":null}]', '2026-06-01T10:05:00.000Z')
+    expect(await abandonnerDemarrage(db, id, '2026-06-01T10:06:00.000Z')).toBe(true)
+    expect(await getInstance(db, id)).toMatchObject({ startedAt: null, pausedJson: null, isCompleted: false })
+  })
+
+  it('ne touche à rien dès qu’une série est validée (la séance reste en cours)', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await demarrerInstance(db, id, '2026-06-01T10:00:00.000Z')
+    await inserer(db, 'series_realisees', { id: 'r1', instance_seance_id: id, exercice_seance_id: 'e', numero_serie: 1, is_completed: 1, notes: '' })
+    expect(await abandonnerDemarrage(db, id, '2026-06-01T10:06:00.000Z')).toBe(false)
+    expect(await getInstance(db, id)).toMatchObject({ startedAt: '2026-06-01T10:00:00.000Z' })
+  })
+
+  it('ne touche pas une séance terminée', async () => {
+    const id = await createInstance(db, 's1', '2026-06-01')
+    await demarrerInstance(db, id, '2026-06-01T10:00:00.000Z')
+    await terminerInstance(db, id, { completedAt: '2026-06-01T11:00:00.000Z', durationSeconds: 3600, pausedJson: '[]' })
+    expect(await abandonnerDemarrage(db, id, '2026-06-01T11:01:00.000Z')).toBe(false)
+    expect(await getInstance(db, id)).toMatchObject({ startedAt: '2026-06-01T10:00:00.000Z', isCompleted: true })
   })
 })

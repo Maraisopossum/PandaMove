@@ -74,6 +74,7 @@ export const mapExerciceSeance = (l: Ligne): ExerciceSeance => ({
   typeExercice: sn(l, 'type_exercice') as TypeExercice | null,
   incrementPct: nn(l, 'increment_pct'),
   isBodyweight: b(l, 'is_bodyweight'),
+  notes: s(l, 'notes'),
   updatedAt: s(l, 'updated_at'),
 })
 
@@ -90,6 +91,7 @@ export const mapInstance = (l: Ligne): InstanceSeance => ({
   startedAt: sn(l, 'started_at'),
   pausedJson: sn(l, 'paused_json'),
   progression: lireProgression(sn(l, 'progression_json')),
+  nom: sn(l, 'nom'),
 })
 
 export const mapSerie = (l: Ligne): SerieRealisee => ({

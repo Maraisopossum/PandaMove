@@ -226,6 +226,7 @@ export async function construireExport(db: DbLecture, maintenant: Date, userId?:
     incrementPct: nombreOuNull(e.increment_pct),
     isBodyweight: bool(e.is_bodyweight),
     uuid: String(e.id),
+    ...(texteOuNull(e.notes) !== null ? { notes: texteOuNull(e.notes) } : {}),
   })
 
   const seance = (s: Ligne): SeanceExport => ({
@@ -256,6 +257,8 @@ export async function construireExport(db: DbLecture, maintenant: Date, userId?:
     startedAt: texteOuNull(i.started_at),
     pausedJson: texteOuNull(i.paused_json),
     progressionJson: texteOuNull(i.progression_json),
+    // Seulement si renommée : un export sans nom propre reste identique à celui d'avant la migration 0007
+    ...(texteOuNull(i.nom) !== null ? { nom: texteOuNull(i.nom) } : {}),
   })
 
   const serie = (s: Ligne): SerieExport => ({

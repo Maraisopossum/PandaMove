@@ -26,6 +26,7 @@ export type SeanceExport = z.input<typeof SeanceDtoSchema> & AvecUuid & {
   deletedAt: string | null
 }
 export type BlocExport = z.input<typeof BlocDtoSchema> & AvecUuid
+/** `notes` (migration 0007) : note de l'utilisateur sur la ligne d'instance, absente si vide. */
 export type ExerciceExport = z.input<typeof ExerciceDtoSchema> & AvecUuid
 export type InstanceExport = z.input<typeof InstanceDtoSchema> & AvecUuid & {
   /** Horloge de séance (migration 0004), valeurs brutes de la base. */
@@ -33,6 +34,8 @@ export type InstanceExport = z.input<typeof InstanceDtoSchema> & AvecUuid & {
   pausedJson: string | null
   /** Marqueur de progression (migration 0005) : évaluation faite et décisions Oui / Non / Ajuster. */
   progressionJson: string | null
+  /** Nom propre de la séance jouée (migration 0007), absent si elle porte le nom de son modèle. */
+  nom?: string | null
 }
 export type SerieExport = z.input<typeof SerieDtoSchema> & AvecUuid & {
   /** Instant de validation (migration 0006), ancre du repos. */

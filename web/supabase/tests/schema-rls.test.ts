@@ -201,6 +201,22 @@ describe('0005 : marqueur de progression', () => {
   })
 })
 
+describe('0007 : nom de séance jouée et note d’exercice', () => {
+  it('instances_seance.nom et exercices_seance.notes existent (text, nullables, sans défaut), la migration est rejouable', async () => {
+    await db.exec(migration('0007_nom_instance_note_exercice.sql'))
+    await db.exec(migration('0007_nom_instance_note_exercice.sql'))
+    const r = await db.query<{ table_name: string; column_name: string; data_type: string; is_nullable: string; column_default: string | null }>(
+      `select table_name, column_name, data_type, is_nullable, column_default from information_schema.columns
+       where (table_name = 'instances_seance' and column_name = 'nom') or (table_name = 'exercices_seance' and column_name = 'notes')
+       order by table_name`,
+    )
+    expect(r.rows).toEqual([
+      { table_name: 'exercices_seance', column_name: 'notes', data_type: 'text', is_nullable: 'YES', column_default: null },
+      { table_name: 'instances_seance', column_name: 'nom', data_type: 'text', is_nullable: 'YES', column_default: null },
+    ])
+  })
+})
+
 describe('trigger set_updated_at', () => {
   it('met à jour updated_at à chaque update', async () => {
     // Le trigger écrase toute valeur : on fige d'abord une date ancienne via un update direct du trigger désactivé

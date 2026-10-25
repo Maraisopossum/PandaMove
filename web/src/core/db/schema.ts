@@ -77,6 +77,8 @@ export const AppSchema = new Schema({
     type_exercice: t,
     increment_pct: r,
     is_bodyweight: i,
+    // Note de l'utilisateur sur cet exercice, pendant la séance (migration 0007) ; ligne d'instance uniquement
+    notes: t,
   }),
   instances_seance: new Table({
     ...sync,
@@ -92,6 +94,8 @@ export const AppSchema = new Schema({
     paused_json: t,
     // Marqueur de progression (migration 0005) : JSON { evaluee, decisions }
     progression_json: t,
+    // Nom propre à cette séance jouée (migration 0007) ; NULL = nom du modèle
+    nom: t,
   }),
   series_realisees: new Table({
     ...sync,

@@ -43,7 +43,11 @@ export async function softDelete(db: Db, table: string, id: string): Promise<voi
 // Nom d'une séance, MÊME SI elle a été supprimée logiquement : le calendrier et les statistiques
 // en ont besoin pour libeller l'historique conservé après une suppression « garder l'historique ».
 // Renvoie null uniquement si la ligne n'a jamais existé.
-export async function lireNomSeance(db: DbLecture, seanceId: string): Promise<string | null> {
+// `nomInstance` : nom propre de la séance jouée (instances_seance.nom, migration 0007) ; s'il est renseigné il l'emporte
+// sur le nom du modèle, qui n'est jamais modifié par un renommage depuis l'exécution.
+export async function lireNomSeance(db: DbLecture, seanceId: string, nomInstance?: string | null): Promise<string | null> {
+  const propre = nomInstance?.trim()
+  if (propre) return propre
   const ligne = await db.getOptional<{ nom: string }>('SELECT nom FROM seances WHERE id = ?', [seanceId])
   return ligne ? ligne.nom : null
 }

@@ -283,6 +283,8 @@ class Constructeur {
       type_exercice: enumOuNull(dto.typeExercice, TYPES_EXERCICE),
       increment_pct: dto.incrementPct,
       is_bodyweight: bool(dto.isBodyweight),
+      // Sauvegarde web : note de l'utilisateur sur l'exercice (absente d'un export Android : valeur locale gardée)
+      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     })
   }
 
@@ -306,6 +308,8 @@ class Constructeur {
       // Horloge de séance : seulement si le fichier la porte (sinon la valeur locale est gardée)
       ...(inst.startedAt !== undefined ? { started_at: inst.startedAt } : {}),
       ...(inst.pausedJson !== undefined ? { paused_json: inst.pausedJson } : {}),
+      // Sauvegarde web : nom propre de la séance jouée (renommage depuis l'exécution)
+      ...(inst.nom !== undefined ? { nom: inst.nom } : {}),
     })
     // Copies d'instance : isolées par instance_seance_id (forcé sur l'instance de la session si
     // absent, pour ne jamais créer de faux template) et reliées au template d'origine.
