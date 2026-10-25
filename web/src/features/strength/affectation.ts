@@ -51,3 +51,10 @@ export async function archiverSeance(db: Db, seanceId: string): Promise<void> {
   if (!modele) throw new ErreurSeance('Séance introuvable.')
   await db.execute('UPDATE seances SET is_archived = 1, updated_at = ? WHERE id = ?', [new Date().toISOString(), seanceId])
 }
+
+// Désarchivage : la séance revient dans « Séances types » (inverse d'archiverSeance).
+export async function desarchiverSeance(db: Db, seanceId: string): Promise<void> {
+  const modele = await db.getOptional<{ id: string }>('SELECT id FROM seances WHERE id = ? AND deleted_at IS NULL', [seanceId])
+  if (!modele) throw new ErreurSeance('Séance introuvable.')
+  await db.execute('UPDATE seances SET is_archived = 0, updated_at = ? WHERE id = ?', [new Date().toISOString(), seanceId])
+}

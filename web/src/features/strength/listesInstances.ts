@@ -7,10 +7,10 @@ import type { InstanceVue } from '../calendar/types'
 // Même vue que le calendrier : nom conservé si le modèle est supprimé, état, durée et séries validées.
 
 // Instances vivantes du renforcement. Jointure externe : une instance dont le modèle n'existe plus
-// du tout reste visible (nom de repli), seules les autres catégories (course, vélo…) sont exclues.
+// du tout reste visible (nom de repli), seules les autres catégories (course, vélo…) sont exclues. Les séances directes (STRENGTH_ONESHOT) y figurent.
 const SELECT_RENFORCEMENT = `SELECT i.* FROM instances_seance i
   LEFT JOIN seances s ON s.id = i.seance_id
-  WHERE i.deleted_at IS NULL AND (s.id IS NULL OR UPPER(COALESCE(s.seance_category, 'STRENGTH')) = 'STRENGTH')`
+  WHERE i.deleted_at IS NULL AND (s.id IS NULL OR UPPER(COALESCE(s.seance_category, 'STRENGTH')) IN ('STRENGTH', 'STRENGTH_ONESHOT'))`
 
 // Non terminées (planifiées ou en cours), y compris en retard, par date planifiée croissante.
 export async function lireSeancesProgrammees(db: DbLecture): Promise<InstanceVue[]> {

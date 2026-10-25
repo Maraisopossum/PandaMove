@@ -5,7 +5,7 @@ import type { InstanceSeance } from '../types'
 import { mapInstance, type Ligne } from './mappers'
 
 // Planifie une séance à une date (date au format ISO yyyy-MM-dd). Renvoie l'id créé.
-export async function createInstance(db: Db, seanceId: string, date: string): Promise<string> {
+export async function createInstance(db: Db | DbTx, seanceId: string, date: string): Promise<string> {
   const id = newId()
   const maintenant = new Date().toISOString()
   await db.execute(

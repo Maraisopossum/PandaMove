@@ -88,3 +88,15 @@ describe('detailsTerminee', () => {
     expect(detailsTerminee({})).toBe('0 série validée')
   })
 })
+
+describe('séances directes (STRENGTH_ONESHOT)', () => {
+  it('figurent dans programmées et terminées, contrairement aux autres catégories', async () => {
+    await seance(db, 'd', 'Direct', { seance_category: 'STRENGTH_ONESHOT' })
+    await seance(db, 'c', 'Course', { seance_category: 'RUNNING' })
+    await instance(db, 'id', 'd', '2026-10-25')
+    await instance(db, 'idf', 'd', '2026-10-20', { is_completed: 1 })
+    await instance(db, 'ic', 'c', '2026-10-26')
+    expect((await lireSeancesProgrammees(db)).map((v) => v.id)).toEqual(['id'])
+    expect((await lireSeancesTerminees(db)).map((v) => v.id)).toEqual(['idf'])
+  })
+})

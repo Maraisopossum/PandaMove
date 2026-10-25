@@ -1,5 +1,7 @@
 import type { Db, DbTx } from '../../core/db/Db'
+import { supprimerInstance } from '../calendar/calendrier'
 import { ErreurSeance } from './affectation'
+import { CATEGORIE_SEANCE_DIRECTE } from './seanceDirecte'
 
 export type ModeSuppression = 'garder_historique' | 'tout'
 
@@ -63,4 +65,19 @@ export async function supprimerSeance(db: Db, seanceId: string, mode: ModeSuppre
     await tombstone(tx, 'objectifs_progression', 'seance_id = ?', [seanceId], maintenant)
     await tombstone(tx, 'seances', 'id = ?', [seanceId], maintenant)
   })
+}
+
+// Suppression logique d'une séance jouée (instance, ses copies et ses séries). Si elle appartient à une séance
+// « directe » (sans modèle réutilisable) devenue sans aucune instance vivante, la séance est supprimée aussi
+// (Android deleteInstances : elle n'a plus de raison d'exister). Un modèle de « Séances types » n'est jamais touché.
+export async function supprimerInstanceRenforcement(db: Db, instanceId: string): Promise<void> {
+  const l = await db.getOptional<{ seance_id: string }>('SELECT seance_id FROM instances_seance WHERE id = ? AND deleted_at IS NULL', [instanceId])
+  if (!l) throw new ErreurSeance('Séance introuvable.')
+  await supprimerInstance(db, instanceId)
+  const directe = await db.getOptional<{ id: string }>(
+    `SELECT s.id FROM seances s WHERE s.id = ? AND s.seance_category = ? AND s.deleted_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM instances_seance i WHERE i.seance_id = s.id AND i.deleted_at IS NULL)`,
+    [l.seance_id, CATEGORIE_SEANCE_DIRECTE],
+  )
+  if (directe) await tombstone(db, 'seances', 'id = ?', [directe.id], new Date().toISOString())
 }
