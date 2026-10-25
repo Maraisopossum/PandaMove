@@ -108,94 +108,87 @@ describe('reposRestant', () => {
   })
 })
 
-describe('reposRestant : superset (repos après le DERNIER exercice du groupe)', () => {
+describe('reposRestant : superset et circuit (règle de navigateToNext Android)', () => {
   const T = Date.parse('2026-10-24T10:00:00.000Z')
   const a = (sec: number) => new Date(T + sec * 1000).toISOString()
 
-  // Exercice du bloc b1 ; `groupe` null = hors superset
-  const exo = (id: string, position: number, groupe: string | null, extra: Record<string, unknown> = {}) =>
-    mapExerciceSeance({
-      id, exercise_id: id, bloc_id: 'b1', position, superset_groupe: groupe, temps_repos_sec: 60, nombre_series_prevues: 3, ...extra,
-    })
+  const exo = (id: string, position: number, extra: Record<string, unknown> = {}) =>
+    mapExerciceSeance({ id, exercise_id: id, bloc_id: 'b1', position, temps_repos_sec: 60, nombre_series_prevues: 3, ...extra })
   const serie = (id: string, exercice: string, numero: number, valideeSec: number) =>
     mapSerie({ is_completed: 1, id, exercice_seance_id: exercice, numero_serie: numero, validated_at: a(valideeSec), updated_at: a(valideeSec) })
-  const vueDe = (exercices: ReturnType<typeof exo>[], series: ReturnType<typeof serie>[]) =>
-    construireVue([mapBloc({ id: 'b1', nom: 'Bloc', position: 0 })], exercices, series, new Map()).exercices
-
-  it('A1 validée : pas de repos (on enchaîne avec B)', () => {
-    const v = vueDe([exo('A', 0, 'X'), exo('B', 1, 'X', { temps_repos_sec: 120 })], [serie('1', 'A', 1, 0)])
-    expect(reposRestant(v, T + 10_000)).toBeNull()
-  })
-
-  it('A1 puis B1 validées : repos depuis B1 avec le temps de repos de B (dernier exercice)', () => {
-    const v = vueDe([exo('A', 0, 'X'), exo('B', 1, 'X', { temps_repos_sec: 120 })], [serie('1', 'A', 1, 0), serie('2', 'B', 1, 30)])
-    expect(reposRestant(v, T + 40_000)).toBe(110_000)
-  })
-
-  it('tour suivant : A2 validée après le repos → pas de repos ; B2 → repos', () => {
-    const exos = [exo('A', 0, 'X'), exo('B', 1, 'X', { temps_repos_sec: 120 })]
-    const v1 = vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 30), serie('3', 'A', 2, 200)])
-    expect(reposRestant(v1, T + 210_000)).toBeNull()
-    const v2 = vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 30), serie('3', 'A', 2, 200), serie('4', 'B', 2, 230)])
-    expect(reposRestant(v2, T + 240_000)).toBe(110_000)
-  })
-
-  it('trois exercices : repos seulement après C (ordre position, pas ordre des lignes)', () => {
-    const exos = [exo('C', 2, 'X', { temps_repos_sec: 90 }), exo('A', 0, 'X'), exo('B', 1, 'X')]
-    expect(reposRestant(vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 20)]), T + 25_000)).toBeNull()
-    expect(reposRestant(vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 20), serie('3', 'C', 1, 40)]), T + 50_000)).toBe(80_000)
-  })
-
-  it('séries inégales : B (2 séries) est fini, A3 validée → plus rien à enchaîner, repos depuis A3', () => {
-    const exos = [exo('A', 0, 'X', { nombre_series_prevues: 3 }), exo('B', 1, 'X', { nombre_series_prevues: 2, temps_repos_sec: 120 })]
-    const series = [
-      serie('1', 'A', 1, 0), serie('2', 'B', 1, 30), serie('3', 'A', 2, 200), serie('4', 'B', 2, 230), serie('5', 'A', 3, 400),
-    ]
-    expect(reposRestant(vueDe(exos, series), T + 410_000)).toBe(50_000)
-  })
-
-  it('B déjà saisie pour ce tour (ordre inversé) : A1 validée ensuite déclenche le repos', () => {
-    const v = vueDe([exo('A', 0, 'X'), exo('B', 1, 'X')], [serie('1', 'B', 1, 0), serie('2', 'A', 1, 30)])
-    expect(reposRestant(v, T + 40_000)).toBe(50_000)
-  })
-
-  it('groupe à un seul exercice : comportement normal (repos après chaque série)', () => {
-    const v = vueDe([exo('A', 0, 'X'), exo('B', 1, null)], [serie('1', 'A', 1, 0)])
-    expect(reposRestant(v, T + 10_000)).toBe(50_000)
-  })
-
-  it('groupes différents dans le même bloc : chacun son enchaînement', () => {
-    const exos = [exo('A', 0, 'X'), exo('B', 1, 'X'), exo('C', 2, 'Y'), exo('D', 3, 'Y', { temps_repos_sec: 30 })]
-    // C1 (groupe Y, non final) : pas de repos même si le groupe X est complet pour ce tour
-    expect(reposRestant(vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 10), serie('3', 'C', 1, 100)]), T + 110_000)).toBeNull()
-    const complet = [serie('1', 'A', 1, 0), serie('2', 'B', 1, 10), serie('3', 'C', 1, 100), serie('4', 'D', 1, 120)]
-    expect(reposRestant(vueDe(exos, complet), T + 130_000)).toBe(20_000)
-  })
-
-  it('même lettre de superset dans deux blocs différents : groupes distincts', () => {
-    const exercices = [
-      mapExerciceSeance({ id: 'A', bloc_id: 'b1', position: 0, superset_groupe: 'X', temps_repos_sec: 60 }),
-      mapExerciceSeance({ id: 'B', bloc_id: 'b2', position: 0, superset_groupe: 'X', temps_repos_sec: 60 }),
-    ]
-    const v = construireVue(
-      [mapBloc({ id: 'b1', nom: 'Un', position: 0 }), mapBloc({ id: 'b2', nom: 'Deux', position: 1 })],
+  const vueDe = (exercices: ReturnType<typeof exo>[], series: ReturnType<typeof serie>[], type = 'SUPERSET') =>
+    construireVue(
+      [mapBloc({ id: 'b1', nom: 'Bloc', position: 0, type, temps_repos_inter_sec: 15, temps_repos_fin_round_sec: 100 })],
       exercices,
+      series,
+      new Map(),
+    ).exercices
+
+  it('A1 validée : repos inter-exercices du bloc (15 s), pas le repos de l’exercice', () => {
+    const v = vueDe([exo('A', 0), exo('B', 1, { temps_repos_sec: 120 })], [serie('1', 'A', 1, 0)])
+    expect(reposRestant(v, T + 10_000)).toBe(5_000)
+  })
+
+  it('A1 puis B1 validées : repos de fin de tour du bloc (100 s) depuis B1', () => {
+    const v = vueDe([exo('A', 0), exo('B', 1, { temps_repos_sec: 120 })], [serie('1', 'A', 1, 0), serie('2', 'B', 1, 30)])
+    expect(reposRestant(v, T + 40_000)).toBe(90_000)
+  })
+
+  it('tour suivant : A2 → repos inter, B2 → repos de fin de tour', () => {
+    const exos = [exo('A', 0), exo('B', 1)]
+    const v1 = vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 30), serie('3', 'A', 2, 200)])
+    expect(reposRestant(v1, T + 205_000)).toBe(10_000)
+    const v2 = vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 30), serie('3', 'A', 2, 200), serie('4', 'B', 2, 230)])
+    expect(reposRestant(v2, T + 240_000)).toBe(90_000)
+  })
+
+  it('circuit : même règle que le superset', () => {
+    const v = vueDe([exo('A', 0), exo('B', 1), exo('C', 2)], [serie('1', 'A', 1, 0), serie('2', 'B', 1, 5)], 'CIRCUIT')
+    expect(reposRestant(v, T + 10_000)).toBe(10_000)
+  })
+
+  it('séries inégales : B terminé, A3 validée → repos de fin de tour (retour sur A, bloc non complet… ici complet)', () => {
+    const exos = [exo('A', 0, { nombre_series_prevues: 3 }), exo('B', 1, { nombre_series_prevues: 2 })]
+    const series = [serie('1', 'A', 1, 0), serie('2', 'B', 1, 30), serie('3', 'A', 2, 200), serie('4', 'B', 2, 230), serie('5', 'A', 3, 400)]
+    // Dernier bloc de la séance, tout complet : aucun repos ni navigation
+    expect(reposRestant(vueDe(exos, series), T + 410_000)).toBeNull()
+  })
+
+  it('bloc suivi d’un autre exercice : repos de fin de tour avant de passer à la suite', () => {
+    const exos = [exo('A', 0, { nombre_series_prevues: 1 }), exo('B', 1, { nombre_series_prevues: 1 }), exo('L', 2, { bloc_id: null })]
+    expect(reposRestant(vueDe(exos, [serie('1', 'A', 1, 0), serie('2', 'B', 1, 10)]), T + 20_000)).toBe(90_000)
+  })
+
+  it('repos de 0 s : aucun repos', () => {
+    const v = construireVue(
+      [mapBloc({ id: 'b1', nom: 'Bloc', position: 0, type: 'SUPERSET', temps_repos_inter_sec: 0, temps_repos_fin_round_sec: 0 })],
+      [exo('A', 0), exo('B', 1)],
       [serie('1', 'A', 1, 0)],
       new Map(),
     ).exercices
+    expect(reposRestant(v, T + 10_000)).toBeNull()
+  })
+
+  it('bloc non alternant (échauffement) : repos de l’exercice', () => {
+    const v = vueDe([exo('A', 0), exo('B', 1, { temps_repos_sec: 120 })], [serie('1', 'A', 1, 0)], 'ECHAUFFEMENT')
     expect(reposRestant(v, T + 10_000)).toBe(50_000)
   })
 
-  it("hors superset : inchangé (repos de l'exercice de la dernière série)", () => {
-    const v = vueDe([exo('A', 0, null), exo('B', 1, null, { temps_repos_sec: 120 })], [serie('1', 'A', 1, 0)])
+  it('bilatéral : pas de repos après le côté G', () => {
+    const v = vueDe([exo('A', 0, { is_bilateral: 1 }), exo('B', 1)], [mapSerie({ is_completed: 1, id: 'g', exercice_seance_id: 'A', numero_serie: 1, notes: 'G', validated_at: a(0), updated_at: a(0) })])
+    expect(reposRestant(v, T + 10_000)).toBeNull()
+  })
+
+  it("hors bloc : repos de l'exercice de la dernière série", () => {
+    const v = vueDe([exo('A', 0, { bloc_id: null }), exo('B', 1, { bloc_id: null, temps_repos_sec: 120 })], [serie('1', 'A', 1, 0)])
     expect(reposRestant(v, T + 10_000)).toBe(50_000)
   })
 
   it("série corrigée après coup : l'ancre reste validated_at (corriger A1 ne relance rien)", () => {
-    const exos = [exo('A', 0, 'X'), exo('B', 1, 'X', { temps_repos_sec: 120 })]
+    const exos = [exo('A', 0), exo('B', 1)]
     const corrigee = mapSerie({ is_completed: 1, id: '1', exercice_seance_id: 'A', numero_serie: 1, validated_at: a(0), updated_at: a(100) })
     const v = vueDe(exos, [corrigee, serie('2', 'B', 1, 30)])
-    expect(reposRestant(v, T + 110_000)).toBe(40_000)
+    expect(reposRestant(v, T + 110_000)).toBe(20_000)
   })
 })
 

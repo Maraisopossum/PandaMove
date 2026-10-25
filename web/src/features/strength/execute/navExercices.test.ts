@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { composer, ratioContraste } from '../../../app/contraste'
 import { mapBloc, mapExerciceSeance, mapSerie } from '../../../core/db/repos/mappers'
 import {
-  COULEURS_BLOC, construireNav, couleursBloc, exerciceApresFin, exerciceTermine, indexParDefaut, libelleCourt,
+  COULEURS_BLOC, construireNav, couleursBloc, exerciceTermine, indexParDefaut, libelleCourt,
   positionDefilement,
 } from './navExercices'
 import { construireVue, type ExerciceVue } from './vue'
@@ -69,35 +69,6 @@ describe('exercice terminé et actif par défaut', () => {
     const tous = [serie('a', 1), serie('a', 2), serie('b', 1), serie('b', 2), serie('c', 1), serie('c', 2)]
     expect(indexParDefaut(vue(blocs, exos, tous).exercices)).toBe(0)
     expect(indexParDefaut([])).toBe(0)
-  })
-})
-
-describe('exerciceApresFin', () => {
-  const blocs = [bloc('b', 0, 'ECHAUFFEMENT')]
-  const exos = [ex('a', 'b', 0), ex('b', 'b', 1), ex('c', 'b', 2)]
-  const avant = vue(blocs, exos, [serie('a', 1)]).exercices
-
-  it("l'exercice actif qui vient d'être terminé fait passer au suivant non terminé", () => {
-    const apres = vue(blocs, exos, [serie('a', 1), serie('a', 2)]).exercices
-    expect(exerciceApresFin(avant, apres, 'a')).toBe('b')
-    // b est déjà terminé : on saute à c
-    const apres2 = vue(blocs, exos, [serie('a', 1), serie('a', 2), serie('b', 1), serie('b', 2)]).exercices
-    expect(exerciceApresFin(avant, apres2, 'a')).toBe('c')
-  })
-  it("rien si ce n'est pas l'actif qui finit, si une série seulement est ajoutée, ou s'il n'y a plus de suivant", () => {
-    const apres = vue(blocs, exos, [serie('a', 1), serie('a', 2)]).exercices
-    expect(exerciceApresFin(avant, apres, 'c')).toBeNull()
-    expect(exerciceApresFin(avant, vue(blocs, exos, [serie('a', 1)]).exercices, 'a')).toBeNull()
-    const avantC = vue(blocs, exos, [serie('a', 1), serie('a', 2), serie('b', 1), serie('b', 2), serie('c', 1)]).exercices
-    const apresC = vue(blocs, exos, [serie('a', 1), serie('a', 2), serie('b', 1), serie('b', 2), serie('c', 1), serie('c', 2)]).exercices
-    expect(exerciceApresFin(avantC, apresC, 'c')).toBeNull()
-  })
-  it('ne force rien dans un superset', () => {
-    const bs = [bloc('s', 0, 'SUPERSET')]
-    const eS = [ex('a', 's', 0, { superset_groupe: 'A' }), ex('b', 's', 1, { superset_groupe: 'A' })]
-    const av = vue(bs, eS, [serie('a', 1)]).exercices
-    const ap = vue(bs, eS, [serie('a', 1), serie('a', 2)]).exercices
-    expect(exerciceApresFin(av, ap, 'a')).toBeNull()
   })
 })
 

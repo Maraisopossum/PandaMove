@@ -267,14 +267,14 @@ describe('useExecute : séries', () => {
   it('corriger une série ne relance pas le décompte du repos (ancre = instant de validation)', async () => {
     const r = await monter()
     await act(() => r.result.current.demarrer())
-    // Superset A : E1 puis E2 (dernier du groupe, repos 60 s) avant que le repos ne parte
+    // Superset A : E1 puis E2 (dernier du groupe : repos de fin de tour du bloc, 120 s)
     await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null }))
     t = T0 + 5_000
     await act(() => r.result.current.validerSerie(E2, { reps: 45, chargeKg: null, rpe: null }))
     t = T0 + 30_000
     const serie = (await lignesSeries()).find((l) => l.exercice_seance_id === E2)!
     await act(() => r.result.current.corrigerSerie(serie.id, { reps: 40 }))
-    expect(r.result.current.reposRestantMs).toBe(35_000)
+    expect(r.result.current.reposRestantMs).toBe(95_000)
   })
 
   it('DURATION : la valeur saisie est en secondes et le libellé le dit', async () => {
@@ -343,15 +343,16 @@ describe('useExecute : reprise après rechargement', () => {
     await act(() => r.result.current.demarrer())
     t = T0 + min(1)
     await act(() => r.result.current.validerSerie(E1, { reps: 10, chargeKg: 60, rpe: 7 }))
-    // Superset A : E1 n'est pas le dernier du groupe, on enchaîne avec E2 sans repos
-    expect(r.result.current.reposRestantMs).toBeNull()
+    // Superset A : après E1, repos inter-exercices du bloc (20 s) avant d'enchaîner avec E2
+    expect(r.result.current.reposRestantMs).toBe(20_000)
     t = T0 + min(1) + 10_000
     await act(() => r.result.current.validerSerie(E2, { reps: 45, chargeKg: null, rpe: null }))
     t = T0 + min(2)
     await act(() => r.result.current.validerSerie(E1, { reps: 9, chargeKg: 60, rpe: 8 }))
-    expect(r.result.current.reposRestantMs).toBeNull()
+    expect(r.result.current.reposRestantMs).toBe(20_000)
     await act(() => r.result.current.validerSerie(E2, { reps: 40, chargeKg: null, rpe: null }))
-    expect(r.result.current.reposRestantMs).toBe(60_000)
+    // Fin de tour du bloc : 120 s
+    expect(r.result.current.reposRestantMs).toBe(120_000)
     r.unmount()
 
     // « Rechargement de la page » 30 s plus tard : aucun état React ne survit
@@ -363,7 +364,7 @@ describe('useExecute : reprise après rechargement', () => {
       { numero: 2, reps: 9, chargeKg: 60, rpe: 8 },
     ])
     expect(r2.result.current.elapsedMs).toBe(min(2) + 30_000)
-    expect(r2.result.current.reposRestantMs).toBe(30_000)
+    expect(r2.result.current.reposRestantMs).toBe(90_000)
 
     // Le repos est borné à 0 et disparaît en pause
     t = T0 + min(10)

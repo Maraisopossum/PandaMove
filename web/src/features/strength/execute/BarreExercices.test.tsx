@@ -98,13 +98,28 @@ describe('Barre d’exercices de l’exécution', () => {
     expect(boutons()[0].querySelector('.navex__coche')).not.toBeNull()
   })
 
-  it("dans un superset, rien n'est forcé : l'utilisateur choisit A ou B", async () => {
+  it('superset : après chaque série on passe à l’exercice suivant du tour, puis retour au premier ; choix manuel toujours possible', async () => {
     await monterSeance('b4', [['s', 'SUPERSET']], [
-      { id: 'e1', exo: 'x1', bloc: 's', groupe: 'A' }, { id: 'e2', exo: 'x2', bloc: 's', groupe: 'A' },
+      { id: 'e1', exo: 'x1', bloc: 's', groupe: 'A', series: 2 }, { id: 'e2', exo: 'x2', bloc: 's', groupe: 'A', series: 2 },
     ])
     valider('Développé couché', '8')
-    await waitFor(() => expect(boutons()[0].getAttribute('aria-label')).toMatch(/terminé$/))
-    expect(actifs()).toEqual(['true', null])
-    expect(carte('Développé couché')).toBeTruthy()
+    await waitFor(() => expect(actifs()).toEqual([null, 'true']))
+    expect(carte('Gainage planche')).toBeTruthy()
+    // Repos inter-exercices du bloc (20 s par défaut) lancé après A1
+    expect(await screen.findByText(/^Repos : /)).toBeTruthy()
+    fireEvent.change(within(carte('Gainage planche')).getByLabelText('Série 1, répétitions'), { target: { value: '30' } })
+    fireEvent.click(within(carte('Gainage planche')).getByRole('button', { name: 'Valider la série 1' }))
+    await waitFor(() => expect(actifs()).toEqual(['true', null]))
+    // L'utilisateur peut toujours choisir à la main
+    choisir('Gainage planche')
+    expect(actifs()).toEqual([null, 'true'])
+  })
+
+  it('circuit : même alternance', async () => {
+    await monterSeance('b5', [['k', 'CIRCUIT']], [
+      { id: 'e1', exo: 'x1', bloc: 'k' }, { id: 'e2', exo: 'x2', bloc: 'k' },
+    ])
+    valider('Développé couché', '8')
+    await waitFor(() => expect(actifs()).toEqual([null, 'true']))
   })
 })

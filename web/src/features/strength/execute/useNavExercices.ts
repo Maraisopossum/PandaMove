@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { construireNav, exerciceApresFin, indexParDefaut, libelleTypeBloc, positionDefilement } from './navExercices'
+import { construireNav, indexParDefaut, libelleTypeBloc, positionDefilement } from './navExercices'
+import { apresSerie, exerciceValide } from './navigationSeries'
 import type { BlocVue, ExerciceVue } from './vue'
 
 // Id de l'exercice affiché : le choix de l'utilisateur s'il existe encore, sinon le premier non terminé.
@@ -33,16 +34,18 @@ const preferenceMouvementReduit = () =>
   typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 // Barre d'exercices : exercice actif (état local), groupes à afficher, défilement automatique.
-// L'actif avance tout seul au suivant non terminé quand sa dernière série est saisie (sauf dans un
-// superset, où l'utilisateur choisit à la main).
+// Après chaque série validée l'actif change comme sur Android (voir navigationSeries) ; l'utilisateur peut
+// toujours choisir à la main dans la barre.
 export function useNavExercices(blocs: BlocVue[], exercices: ExerciceVue[]) {
   const [choix, setChoix] = useState<string | null>(null)
   const [precedents, setPrecedents] = useState(exercices)
   if (precedents !== exercices) {
     // Ajustement pendant le rendu (relecture de la base) : comparaison avant/après de l'exercice actif
     setPrecedents(exercices)
-    // Premier chargement : le défaut devient un choix figé (un superset ne bascule pas tout seul de A à B)
-    const suivant = exerciceApresFin(precedents, exercices, idActifDe(choix, precedents) ?? '')
+    // Série validée : navigation comme Android (superset / circuit : exercice suivant du tour ; exercice
+    // complet : suivant). Sinon, premier chargement : le défaut devient un choix figé.
+    const valide = exerciceValide(precedents, exercices)
+    const suivant = valide === null ? null : apresSerie(exercices, valide).activerId
     if (suivant !== null) setChoix(suivant)
     else if (choix === null && exercices.length > 0) setChoix(idActifDe(null, exercices))
   }

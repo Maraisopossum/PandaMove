@@ -1,4 +1,5 @@
 import { LIBELLES_BLOC, type TypeBloc } from '../draft'
+import { nombreLignes } from './lignesSeries'
 import type { BlocVue, ExerciceVue } from './vue'
 
 // Barre horizontale d'exercices de l'écran d'exécution (parité Android : HorizontalExerciseNav).
@@ -50,8 +51,7 @@ export function libelleTypeBloc(type: string | null): string | null {
 
 // Exercice terminé : au moins une série, et toutes les séries prévues saisies.
 export function exerciceTermine(e: Pick<ExerciceVue, 'series' | 'nombreSeriesPrevues' | 'isBilateral'>): boolean {
-  const faites = nombreFaites(e)
-  return faites > 0 && faites >= e.nombreSeriesPrevues * (e.isBilateral ? 2 : 1)
+  return nombreFaites(e) > 0 && nombreFaites(e) >= nombreLignes(e)
 }
 
 // Séries validées (les lignes laissées non validées ne comptent pas)
@@ -61,18 +61,6 @@ const nombreFaites = (e: Pick<ExerciceVue, 'series'>) => e.series.filter((s) => 
 export function indexParDefaut(exercices: ExerciceVue[]): number {
   const i = exercices.findIndex((e) => !exerciceTermine(e))
   return i >= 0 ? i : 0
-}
-
-const dansSuperset = (exercices: ExerciceVue[], e: ExerciceVue) =>
-  e.supersetGroupe !== null && exercices.filter((x) => x.supersetGroupe === e.supersetGroupe && x.blocId === e.blocId).length > 1
-
-// Avancement automatique : l'exercice actif vient de passer à « terminé » (il ne l'était pas avant) et n'est
-// pas dans un superset → id du prochain exercice non terminé qui le suit. Sinon null (rien n'est forcé).
-export function exerciceApresFin(avant: ExerciceVue[], apres: ExerciceVue[], idActif: string): string | null {
-  const a = avant.find((e) => e.id === idActif)
-  const i = apres.findIndex((e) => e.id === idActif)
-  if (!a || i < 0 || exerciceTermine(a) || !exerciceTermine(apres[i]) || dansSuperset(apres, apres[i])) return null
-  return apres.slice(i + 1).find((e) => !exerciceTermine(e))?.id ?? null
 }
 
 export interface BadgeNav {
@@ -97,7 +85,7 @@ export interface GroupeNav {
 function etatExercice(e: ExerciceVue): string {
   if (exerciceTermine(e)) return 'terminé'
   const n = nombreFaites(e)
-  const prevues = e.nombreSeriesPrevues * (e.isBilateral ? 2 : 1)
+  const prevues = nombreLignes(e)
   return `${n} série${n > 1 ? 's' : ''} sur ${prevues} faite${n > 1 ? 's' : ''}`
 }
 

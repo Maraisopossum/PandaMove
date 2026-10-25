@@ -1,4 +1,5 @@
 import { parseTimestamp } from '../../../core/common/parseTimestamp'
+import { apresSerie } from './navigationSeries'
 import type { BlocSeance, ExerciceSeance, RepsType, SerieRealisee } from '../../../core/db/types'
 
 // Fonctions pures de l'écran d'exécution : construction de la vue, validation des mesures, formats.
@@ -36,6 +37,9 @@ export interface ExerciceVue {
   progressionActivee: boolean
   // Consigne clé de l'exercice (affichée 💬), vide si aucune
   consigne: string
+  // Repos du bloc (s) : entre deux exercices d'un superset / circuit, et en fin de tour
+  blocReposInterSec: number
+  blocReposFinRoundSec: number
   // Repos affiché dans la colonne « Repos » (s) : fin de round / inter-exercices en superset, sinon repos de l'exercice
   reposAfficheSec: number
   // Groupes musculaires de l'exercice du catalogue (codes), pour le libellé court de la barre
@@ -109,6 +113,8 @@ export function construireVue(
     isBilateral: e.isBilateral,
     progressionActivee: e.progressionActivee,
     consigne: e.consigneCle,
+    blocReposInterSec: (e.blocId ? blocParId.get(e.blocId)?.tempsReposInterSec : undefined) ?? 0,
+    blocReposFinRoundSec: (e.blocId ? blocParId.get(e.blocId)?.tempsReposFinRoundSec : undefined) ?? 0,
     reposAfficheSec: reposAffiche(e),
     muscles: muscles.get(e.exerciseId) ?? [],
     position: e.position,
@@ -161,28 +167,24 @@ export function verifierMesures(m: Partial<Mesures>, repsType: RepsType): string
   return null
 }
 
-// Repos restant (ms) : dernière série validée (validated_at le plus récent, repli updated_at) + repos de son exercice − maintenant,
-// borné à 0. null s'il n'y a encore aucune série. Dérivé uniquement d'horodatages stockés.
-// Superset (A1 → B1 → repos → A2 → B2…) : pas de repos entre les exercices d'un même tour. Si la dernière série
-// appartient à un exercice suivi, dans son groupe, d'un exercice qui a encore SA série de ce tour à faire, le repos
-// n'a pas commencé (null). Sinon (dernier exercice du groupe, ou suivants complets pour ce tour, ex. nombre de
-// séries inégal), le repos part de cette série avec le temps de repos de son exercice.
+// Repos restant (ms) : dernière série validée (validated_at le plus récent, repli updated_at) + durée du repos
+// qui en découle − maintenant, borné à 0. Durée et lancement viennent de la même règle que la navigation
+// (apresSerie, port de navigateToNext Android) : repos de l'exercice, ou repos inter-exercices / de fin de
+// tour du bloc en superset et circuit ; aucun (null) entre les côtés G et D, pour un repos de 0 s, ou après
+// la dernière série de la séance. null aussi sans série. Dérivé uniquement d'horodatages stockés.
 export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | null {
-  let derniere: { ms: number; exercice: ExerciceVue; rang: number } | null = null
+  let derniere: { ms: number; exercice: ExerciceVue } | null = null
   for (const e of exercices) {
-    for (const [i, s] of e.series.filter((x) => x.terminee).entries()) {
+    for (const s of e.series.filter((x) => x.terminee)) {
       const ms = parseTimestamp(s.valideeA)
-      // rang : tour du superset auquel appartient la série (1 = première série de l'exercice).
-      // Égalité d'horodatage : la série affichée la plus loin (exercice suivant, numéro supérieur) l'emporte.
-      if (ms !== null && (derniere === null || ms >= derniere.ms)) derniere = { ms, exercice: e, rang: i + 1 }
+      // Égalité d'horodatage : la série affichée la plus loin (exercice suivant, numéro supérieur) l'emporte
+      if (ms !== null && (derniere === null || ms >= derniere.ms)) derniere = { ms, exercice: e }
     }
   }
   if (derniere === null) return null
-  const { ms, exercice, rang } = derniere
-  const groupe = groupeSuperset(exercices, exercice)
-  const suivants = groupe.slice(groupe.indexOf(exercice) + 1)
-  if (suivants.some((x) => x.series.filter((s) => s.terminee).length < rang && x.nombreSeriesPrevues >= rang)) return null
-  return Math.max(0, ms + exercice.tempsReposSec * 1000 - nowMs)
+  const { reposSec } = apresSerie(exercices, derniere.exercice.id)
+  if (reposSec <= 0) return null
+  return Math.max(0, derniere.ms + reposSec * 1000 - nowMs)
 }
 
 // Durée affichée : mm:ss sous une heure, h:mm:ss au-delà.
