@@ -1,12 +1,14 @@
 import { Link } from 'react-router'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
-// Profil : variante du panda, mode sombre et accès au matériel, au catalogue et à l'import.
-// Pas d'export pour l'instant (tâche 19). La logique vit dans useProfile.
+// Profil : variante du panda, mode sombre, accès au matériel, au catalogue et à l'import, et
+// sauvegarde (export JSON). La logique vit dans useProfile et useExport.
 export default function ProfileScreen() {
   const { session } = useAuth()
   const p = useProfile({ userId: session?.user.id })
+  const sauvegarde = useExport()
 
   return (
     <>
@@ -53,6 +55,30 @@ export default function ProfileScreen() {
           Importer des données
         </Link>
       </nav>
+
+      <section aria-labelledby="profil-sauvegarde" className="profil__sauvegarde">
+        <h2 id="profil-sauvegarde">Sauvegarde</h2>
+        <p id="profil-sauvegarde-aide">
+          Téléchargez toutes vos données de renforcement (séances, séances jouées, séries, exercices, objectifs et
+          matériel) dans un fichier JSON au format de l'application Android. C'est une sauvegarde locale : gardez-la
+          sur votre appareil ou votre propre support, hors des services tiers. Elle se réimporte depuis « Importer
+          des données ».
+        </p>
+        <button
+          type="button"
+          className="bouton"
+          aria-describedby="profil-sauvegarde-aide"
+          aria-busy={sauvegarde.enCours}
+          disabled={sauvegarde.enCours}
+          onClick={() => void sauvegarde.exporter()}
+        >
+          Exporter mes données
+        </button>
+        <p role="status" className="profil__retour">
+          {sauvegarde.message}
+        </p>
+        {sauvegarde.erreur && <p role="alert">{sauvegarde.erreur}</p>}
+      </section>
     </>
   )
 }

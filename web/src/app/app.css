@@ -403,6 +403,21 @@ h1 {
   text-decoration: none;
 }
 
+/* Sauvegarde : export JSON des données */
+.profil__sauvegarde {
+  max-width: 36rem;
+  margin-top: 2rem;
+}
+
+.profil__sauvegarde .bouton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.profil__retour:empty {
+  margin: 0;
+}
+
 /* Séances de renforcement : liste, dialogue d'affectation, édition */
 .lien-bouton {
   display: inline-flex;
