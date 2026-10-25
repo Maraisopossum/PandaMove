@@ -38,7 +38,10 @@ describe('telechargerJson', () => {
     expect(await blob.text()).toBe('{"version":"3.2"}')
     // Le lien temporaire ne reste pas dans la page
     expect(document.querySelector('a[download]')).toBeNull()
-    vi.runAllTimers()
+    // Révocation différée : Safari iOS lit encore l'URL après le retour de click()
+    vi.advanceTimersByTime(1_000)
+    expect(liberer).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(60_000)
     expect(liberer).toHaveBeenCalledWith('blob:pandamove/1')
   })
 })

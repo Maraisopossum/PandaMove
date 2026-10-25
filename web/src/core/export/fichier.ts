@@ -1,6 +1,10 @@
 // Fichier d'export : nom daté et téléchargement par le navigateur. Le fichier n'est jamais envoyé
 // ailleurs : il est seulement remis au gestionnaire de téléchargements du navigateur.
 
+// Délai avant de libérer l'URL du Blob : Safari iOS peut annuler un téléchargement dont l'URL est
+// révoquée trop tôt (il la lit après le retour de click()).
+export const DELAI_REVOCATION_MS = 60_000
+
 const deuxChiffres = (n: number) => String(n).padStart(2, '0')
 
 /** `pandamove-export-AAAA-MM-JJ.json`, à la date locale de l'utilisateur. */
@@ -22,7 +26,7 @@ export function telechargerJson(nom: string, contenu: string): void {
     lien.click()
   } finally {
     lien.remove()
-    // Libération différée : certains navigateurs lisent l'URL après le retour de click()
-    setTimeout(() => URL.revokeObjectURL(url), 0)
+    // Libération différée (voir DELAI_REVOCATION_MS)
+    setTimeout(() => URL.revokeObjectURL(url), DELAI_REVOCATION_MS)
   }
 }
