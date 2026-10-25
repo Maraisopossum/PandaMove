@@ -5,6 +5,8 @@ import { mapBloc, mapExerciceSeance } from '../../../../core/db/repos/mappers'
 import { construireVue, type ExerciceVue } from '../vue'
 import type { Sonneur } from './audio'
 import type { Bip } from './bips'
+import { DEFAUTS, type ReglagesCircuit } from './reglages'
+import type { Vibreur, Voix } from './retours'
 import { useCircuit, type EntreesCircuit } from './useCircuit'
 
 interface Exo { id: string; bloc?: string; series?: number; cibles?: string }
@@ -25,16 +27,16 @@ const nowFn = () => t
 type Valider = EntreesCircuit['valider']
 const sonneur = () => ({ preparer: vi.fn(), jouer: vi.fn<(bip: Bip) => void>(), fermer: vi.fn() }) satisfies Sonneur
 
-function monter(exos: Exo[], o: { valider?: ReturnType<typeof vi.fn<Valider>>; son?: ReturnType<typeof sonneur>; inter?: number; fin?: number; brouillons?: Record<string, { reps: number }> } = {}) {
+function monter(exos: Exo[], o: { valider?: ReturnType<typeof vi.fn<Valider>>; son?: ReturnType<typeof sonneur>; inter?: number; fin?: number; brouillons?: Record<string, { reps: number }>; reglages?: ReglagesCircuit; vibreur?: Vibreur; voix?: Voix } = {}) {
   const valider = o.valider ?? vi.fn<Valider>(async () => true)
   const son = o.son ?? sonneur()
   const oublier = vi.fn()
   const demarrerSeance = vi.fn(async () => true)
   const surExercice = vi.fn()
   const entrees = {
-    exercices: exercices(exos, o.inter, o.fin), precedentes: new Map(), brouillons: o.brouillons ?? {}, valider, oublierBrouillon: oublier, demarrerSeance, surExercice,
+    exercices: exercices(exos, o.inter, o.fin), precedentes: new Map(), brouillons: o.brouillons ?? {}, valider, oublierBrouillon: oublier, demarrerSeance, surExercice, reglages: o.reglages,
   }
-  const r = renderHook(() => useCircuit(entrees, { nowFn, tickMs: 250, sonneur: son }))
+  const r = renderHook(() => useCircuit(entrees, { nowFn, tickMs: 250, sonneur: son, vibreur: o.vibreur, voix: o.voix }))
   return { ...r, valider, son, oublier, demarrerSeance, surExercice }
 }
 
@@ -197,5 +199,52 @@ describe('useCircuit', () => {
     act(() => h.result.current.lancer({ type: 'circuit', blocId: 'b' }))
     act(() => h.result.current.lancer({ type: 'circuit', blocId: 'b' }))
     expect(h.demarrerSeance).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useCircuit : vibration, voix et réglages', () => {
+  const doubles = () => ({
+    vibreur: { vibrer: vi.fn<(m: readonly number[]) => void>(), arreter: vi.fn() } satisfies Vibreur,
+    voix: { preparer: vi.fn(), dire: vi.fn<(t: string) => void>(), arreter: vi.fn() } satisfies Voix,
+  })
+
+  it('le clic de lancement initialise le son et la voix (si activée) ; rien n’est appelé avant', () => {
+    const d = doubles()
+    const h = monter([{ id: 'a' }], { ...d, reglages: { ...DEFAUTS, voix: true } })
+    expect(h.son.preparer).not.toHaveBeenCalled()
+    expect(d.voix.preparer).not.toHaveBeenCalled()
+    act(() => h.result.current.lancer({ type: 'circuit', blocId: 'b' }))
+    expect(h.son.preparer).toHaveBeenCalledTimes(1)
+    expect(d.voix.preparer).toHaveBeenCalledTimes(1)
+  })
+
+  it('voix désactivée par défaut : jamais de parole ; vibration active : départ puis fin', async () => {
+    const d = doubles()
+    const h = monter([{ id: 'a', cibles: '6' }], { ...d })
+    act(() => h.result.current.lancer({ type: 'seul', exerciceId: 'a' }))
+    await passer(3000)
+    expect(d.vibreur.vibrer).toHaveBeenCalledWith([100])
+    await passer(6000)
+    expect(d.vibreur.vibrer.mock.calls.at(-1)![0]).toEqual([400, 100, 120, 80, 120])
+    expect(d.voix.dire).not.toHaveBeenCalled()
+    expect(d.voix.preparer).not.toHaveBeenCalled()
+  })
+
+  it('voix activée : prochain exercice, « Allez ! », puis fin ; réglage Son coupé : plus de bips', async () => {
+    const d = doubles()
+    const h = monter([{ id: 'a', cibles: '4' }], { ...d, reglages: { ...DEFAUTS, voix: true, son: false } })
+    act(() => h.result.current.lancer({ type: 'seul', exerciceId: 'a' }))
+    await passer(3000 + 4000)
+    expect(d.voix.dire.mock.calls.map((c) => c[0])).toEqual(['Prochain exercice : Nom a', 'Allez !', 'Minuteur terminé'])
+    expect(h.son.jouer).not.toHaveBeenCalled()
+  })
+
+  it('arrêt manuel : voix et vibration coupées', () => {
+    const d = doubles()
+    const h = monter([{ id: 'a' }], { ...d })
+    act(() => h.result.current.lancer({ type: 'circuit', blocId: 'b' }))
+    act(() => h.result.current.arreter())
+    expect(d.voix.arreter).toHaveBeenCalled()
+    expect(d.vibreur.arreter).toHaveBeenCalled()
   })
 })

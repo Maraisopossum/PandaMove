@@ -3,9 +3,10 @@ import type { Brouillon, SerieHisto } from '../lignesSeries'
 import { useWakeLock } from '../useWakeLock'
 import type { ExerciceVue, Mesures } from '../vue'
 import { creerSonneur, type Sonneur } from './audio'
-import { bipsEntre } from './bips'
 import { affichage as calculerAffichage, arreter as arreterMachine, avancer, demarrer, INACTIF, type Affichage, type EffetValider, type EtatCircuit } from './machine'
 import { construirePlan, type Cible } from './plan'
+import { DEFAUTS, type ReglagesCircuit } from './reglages'
+import { creerRetours, creerVibreur, creerVoix, type Retours, type Vibreur, type Voix } from './retours'
 
 export interface EntreesCircuit {
   exercices: ExerciceVue[]
@@ -19,6 +20,8 @@ export interface EntreesCircuit {
   demarrerSeance: () => Promise<boolean>
   /** Notifie l'exercice affiché par le circuit (l'écran le sélectionne dans la barre). */
   surExercice: (exerciceId: string) => void
+  /** Son, vibration, voix (défauts si absent) */
+  reglages?: ReglagesCircuit
 }
 
 export interface OptionsCircuit {
@@ -26,6 +29,8 @@ export interface OptionsCircuit {
   /** Période de recalcul de l'affichage (ms) : un déclencheur de rendu, jamais une source de temps. */
   tickMs?: number
   sonneur?: Sonneur
+  vibreur?: Vibreur
+  voix?: Voix
 }
 
 // Lit Date.now à chaque appel (et non une référence figée à l'import) : horloges simulées des tests comprises
@@ -51,12 +56,14 @@ const MESSAGES = {
 // écritures des séries validées par la même voie que la validation manuelle (file sérialisée), bips,
 // écran gardé allumé. L'état du circuit n'est pas persisté : un rechargement l'abandonne, les séries
 // déjà écrites restent et le circuit se relance (à la première série restante) sans doublon.
-export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefaut, tickMs = 250, sonneur }: OptionsCircuit = {}) {
+export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefaut, tickMs = 250, sonneur, vibreur, voix }: OptionsCircuit = {}) {
   const [aff, setAff] = useState<Affichage | null>(null)
   // Erreur de lancement, valable tant que les saisies n'ont pas changé (corriger la durée la fait disparaître)
   const [erreurLue, setErreur] = useState<{ message: string; brouillons: EntreesCircuit['brouillons'] } | null>(null)
   const [message, setMessage] = useState('')
-  const [son] = useState(() => sonneur ?? creerSonneur())
+  const [retours] = useState<Retours>(() =>
+    creerRetours({ sonneur: sonneur ?? creerSonneur(), vibreur: vibreur ?? creerVibreur(), voix: voix ?? creerVoix() }),
+  )
 
   const dernieres = useRef(entrees)
   useEffect(() => {
@@ -87,6 +94,7 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
         return
       }
       courant.echec = true
+      retours.arreter()
       if (!vivant.current) return
       etat.current = arreterMachine(etat.current)
       setMessage(MESSAGES[mode.current].echec)
@@ -94,7 +102,7 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
       setAff(null)
     }
     file.current = file.current.then(tache, tache)
-  }, [])
+  }, [retours])
 
   // Recalcule depuis l'heure courante : fait avancer la machine, écrit les séries échues, sonne, rend.
   const recalculer = useCallback(() => {
@@ -105,8 +113,10 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
     etat.current = r.etat
     for (const effet of r.effets) ecrire(effet, lot.current)
     const nouvelle = calculerAffichage(r.etat, maintenant)
-    const proche = instantPrecedent.current !== null && maintenant - instantPrecedent.current <= ECART_BIPS_MS
-    if (proche) for (const bip of bipsEntre(affPrecedent.current, nouvelle)) son.jouer(bip)
+    // Premier calcul d'un lancement (instant précédent inconnu) : on annonce le début
+    const proche = instantPrecedent.current === null || maintenant - instantPrecedent.current <= ECART_BIPS_MS
+    const termine = avant.phase !== 'inactif' && r.etat.phase === 'inactif' && r.etat.fin === 'terminee'
+    if (proche) retours.appliquer(affPrecedent.current, nouvelle, { termine, mode: mode.current }, dernieres.current.reglages ?? DEFAUTS)
     instantPrecedent.current = maintenant
     if (avant.phase !== 'inactif' && r.etat.phase === 'inactif' && r.etat.fin) setMessage(MESSAGES[mode.current][r.etat.fin])
     if (nouvelle && nouvelle.phase !== 'repos' && nouvelle.exerciceId !== exerciceSignale.current) {
@@ -116,7 +126,7 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
     const ancienne = affPrecedent.current
     affPrecedent.current = nouvelle
     if (!(ancienne && nouvelle && ancienne.cle === nouvelle.cle && ancienne.restantSec === nouvelle.restantSec)) setAff(nouvelle)
-  }, [nowFn, ecrire, son])
+  }, [nowFn, ecrire, retours])
 
   const actif = aff !== null
   useEffect(() => {
@@ -136,9 +146,9 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
     vivant.current = true
     return () => {
       vivant.current = false
-      son.fermer()
+      retours.fermer()
     }
-  }, [son])
+  }, [retours])
 
   useWakeLock(actif)
 
@@ -153,7 +163,8 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
       }
       setErreur(null)
       setMessage('')
-      son.preparer()
+      // Geste utilisateur (clic de lancement) : débloque audio et voix malgré les restrictions d'autoplay
+      retours.preparer(e.reglages ?? DEFAUTS)
       void e.demarrerSeance()
       mode.current = r.plan.mode
       lot.current = { echec: false }
@@ -163,7 +174,7 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
       etat.current = demarrer(r.plan, r.depart, nowFn())
       recalculer()
     },
-    [nowFn, recalculer, son],
+    [nowFn, recalculer, retours],
   )
 
   const arreter = useCallback(() => {
@@ -173,10 +184,11 @@ export function useCircuit(entrees: EntreesCircuit, { nowFn = maintenantParDefau
     for (const effet of r.effets) ecrire(effet, lot.current)
     const termine = r.etat.phase === 'inactif'
     etat.current = termine ? r.etat : arreterMachine(r.etat)
+    retours.arreter()
     setMessage(MESSAGES[mode.current][termine ? 'terminee' : 'arretee'])
     affPrecedent.current = null
     setAff(null)
-  }, [nowFn, ecrire])
+  }, [nowFn, ecrire, retours])
 
   const erreur = erreurLue && erreurLue.brouillons === entrees.brouillons ? erreurLue.message : null
   return { affichage: aff, actif, erreur, message, lancer, arreter }

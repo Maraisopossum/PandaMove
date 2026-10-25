@@ -34,6 +34,15 @@ const afficher = () =>
     </MemoryRouter>,
   )
 
+describe('ProfileScreen — séance', () => {
+  it('section « Séance » : réglages Son, Vibration, Voix mémorisés par appareil', () => {
+    afficher()
+    expect(screen.getByRole('heading', { name: 'Séance' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('switch', { name: 'Voix' }))
+    expect(JSON.parse(localStorage.getItem('pandamove.circuit.reglages')!)).toMatchObject({ son: true, vibration: true, voix: true })
+  })
+})
+
 describe('ProfileScreen — sauvegarde', () => {
   it("explique la sauvegarde locale et propose « Exporter mes données »", () => {
     afficher()

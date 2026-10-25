@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
 import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
@@ -55,6 +56,12 @@ export default function ProfileScreen() {
           Importer des données
         </Link>
       </nav>
+
+      <section aria-labelledby="profil-seance" className="profil__seance">
+        <h2 id="profil-seance">Séance</h2>
+        <p className="aide">Retours du circuit automatique et du minuteur d’exercice, mémorisés sur cet appareil.</p>
+        <ReglagesRetours />
+      </section>
 
       <section aria-labelledby="profil-sauvegarde" className="profil__sauvegarde">
         <h2 id="profil-sauvegarde">Sauvegarde</h2>

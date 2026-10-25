@@ -5,6 +5,7 @@ import { useImagePanda } from '../../../core/images/usePandaVariante'
 import type { SerieHisto } from './lignesSeries'
 import { recapCircuit, lancementPour } from './circuit/plan'
 import { useCircuit } from './circuit/useCircuit'
+import { useReglagesCircuit } from './circuit/useReglagesCircuit'
 import { useExecute } from './useExecute'
 import { useHistoriqueExercice } from './useHistoriqueExercice'
 import { useNavExercices } from './useNavExercices'
@@ -30,6 +31,7 @@ export function useEcranExecution(instanceId: string) {
   })
   const { demarre, demarrer } = ex
   // Circuit automatique et minuteur d'exercice : valide par le même chemin d'écriture que le tableau
+  const { reglages } = useReglagesCircuit()
   const circuit = useCircuit({
     exercices: ex.exercices,
     precedentes: ex.precedentes,
@@ -38,6 +40,7 @@ export function useEcranExecution(instanceId: string) {
     oublierBrouillon: tableau.oublier,
     demarrerSeance: () => (demarre ? Promise.resolve(true) : demarrer()),
     surExercice: nav.choisir,
+    reglages,
   })
   // Le bouton reste affiché sous l'écran du circuit (le focus y revient à l'arrêt) ; `lancer` ignore un second lancement
   const lancement = ex.terminee ? null : lancementPour(nav.blocActif, actif)

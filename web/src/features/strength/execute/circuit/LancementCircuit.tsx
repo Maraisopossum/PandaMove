@@ -1,4 +1,5 @@
 import type { Lancement } from './plan'
+import { ReglagesRetours } from './ReglagesRetours'
 
 interface Props {
   lancement: Lancement
@@ -25,6 +26,10 @@ export function LancementCircuit({ lancement, recap, erreur, onLancer }: Props) 
         <span aria-hidden="true">▶ </span>
         {circuit ? (lancement.reprise ? 'Reprendre le circuit' : 'Démarrer le circuit') : 'Démarrer le minuteur'}
       </button>
+      <details className="plus-options">
+        <summary>Son, vibration, voix</summary>
+        <ReglagesRetours />
+      </details>
       {erreur && (
         <p role="alert" className="import__erreur">
           {erreur}

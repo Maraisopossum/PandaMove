@@ -103,6 +103,16 @@ E2E_EMAIL=… E2E_PASSWORD=… E2E_EMAIL2=… E2E_PASSWORD2=… E2E_REQUIRED=1 n
 - Les comptes de test se créent dans Supabase (Authentication → Users). Ne jamais écrire leurs identifiants dans un fichier versionné.
 - Développement entièrement local (facultatif, non validé) : `supabase start` puis `dev/docker-compose.powersync.yml` (images épinglées).
 
+## Circuit automatique et minuteur d'exercice
+
+Dans l'écran d'exécution d'une séance : un bloc **Circuit** (au moins un exercice en durée) propose « Démarrer le circuit » ; un exercice en durée hors circuit propose « Démarrer le minuteur ». Décompte 3-2-1, minuteur, série enregistrée automatiquement, repos entre exercices et en fin de tour. Réglages du circuit (tours, repos, durées) : édition de la séance. L'état du circuit n'est pas conservé au rechargement de la page ; les séries déjà enregistrées le restent.
+
+**Retours** (réglages « Son », « Vibration », « Voix » dans l'encart de lancement et dans Profil → Séance, mémorisés par appareil dans `localStorage`, clé `pandamove.circuit.reglages`) :
+- **Son** (activé par défaut) : bips comme sur Android, via Web Audio. Débloqué par le clic de lancement.
+- **Vibration** (activée par défaut) : court au départ et chaque seconde des 5 dernières, long à la fin d'un exercice, double au repos et à la fin du circuit. `navigator.vibrate` : Chrome et Firefox sous Android ; **absente sur iOS Safari** (et sur ordinateur), sans effet ni erreur.
+- **Voix** (désactivée par défaut, pour ne pas doubler un lecteur d'écran) : `speechSynthesis` en fr-FR, « Prochain exercice : … », « Allez ! », « Repos », « Circuit terminé », et compte à rebours 3-2-1 parlé en option. Disponibilité et voix françaises variables selon l'appareil ; silencieux si absente.
+- Pendant le circuit l'écran est gardé allumé (Screen Wake Lock : Chrome, Edge, Safari 16.4+). Android ne vibre ni ne parle : ces deux retours sont une adaptation web.
+
 ## Sauvegarde
 
 Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne pas dépendre seulement de ces services, faire régulièrement une sauvegarde locale.
