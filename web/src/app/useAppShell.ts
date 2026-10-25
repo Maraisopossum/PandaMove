@@ -6,6 +6,7 @@ import { MODULES, moduleActif } from './modules'
 import { useDarkMode } from './theme'
 import { useDeconnexion } from './useDeconnexion'
 import { useDrawer } from './useDrawer'
+import { useInstallationCatalogue } from './useInstallationCatalogue'
 
 const CONFIRMATION_ABANDON =
   'Les modifications non synchronisées de l’autre compte seront définitivement perdues. Continuer ?'
@@ -18,6 +19,7 @@ export function useAppShell() {
     userId: session?.user.id ?? null,
     signOut: deconnecterSupabaseBrut,
   })
+  useInstallationCatalogue(session?.user.id)
   const { refBascule, refDrawer, ...drawer } = useDrawer()
   const sombre = useDarkMode({ userId: session?.user.id })
   const deconnexion = useDeconnexion(signOutSafely)

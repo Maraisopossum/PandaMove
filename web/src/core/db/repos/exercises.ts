@@ -1,3 +1,4 @@
+import { groupesCorriges } from '../../catalogue/groupesCorriges'
 import { normalizeSearch } from '../../common/normalizeSearch'
 import type { Db, DbLecture } from '../Db'
 import { deterministicId } from '../ids'
@@ -35,14 +36,16 @@ export const idExercice = (userId: string, nom: string) => deterministicId(`${us
 
 // Les listes sont stockées en JSON d'un tableau de chaînes (ListConverters Room côté Android).
 function champs(e: NewExercise): Record<string, unknown> {
+  // Muscle principal vide : dérivé du premier groupe (jamais modifié s'il est renseigné)
+  const groupes = groupesCorriges({ musclePrimary: e.musclePrimary ?? '', muscleGroups: e.muscleGroups }, null)
   return {
     name: e.name.trim(),
     category: e.category || 'OTHER',
-    muscle_groups: JSON.stringify(e.muscleGroups),
+    muscle_groups: JSON.stringify(groupes.muscleGroups),
     description: e.description ?? '',
     exercise_type: e.exerciseType ?? '',
     equipment: JSON.stringify(e.equipment ?? []),
-    muscle_primary: e.musclePrimary ?? '',
+    muscle_primary: groupes.musclePrimary,
     is_bodyweight: e.isBodyweight ? 1 : 0,
   }
 }

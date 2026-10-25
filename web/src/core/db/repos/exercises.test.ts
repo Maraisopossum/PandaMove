@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { inserer } from '../../../test/fixtures'
 import { createTestDb } from '../../../test/sqliteDb'
-import { listExercises } from './exercises'
+import { creerExercice, listExercises } from './exercises'
 
 describe('listExercises', () => {
   it('liste par nom, sans les supprimés, avec de vrais booléens', async () => {
@@ -13,5 +13,16 @@ describe('listExercises', () => {
     const liste = await listExercises(db)
     expect(liste.map((e) => e.name)).toEqual(['Dips', 'Squat'])
     expect(liste[0]).toMatchObject({ isCustom: true, isBodyweight: true, isFavorite: false, imageUrl: null })
+  })
+})
+
+describe('creerExercice — muscle principal', () => {
+  it('dérive le muscle principal vide du premier groupe, sans toucher un principal renseigné', async () => {
+    const db = createTestDb()
+    const a = await creerExercice(db, 'u', { name: 'Perso A', muscleGroups: ['DOS', 'BICEPS'] })
+    const b = await creerExercice(db, 'u', { name: 'Perso B', muscleGroups: ['DOS'], musclePrimary: 'BICEPS' })
+    const lire = (id: string) => db.get<{ muscle_primary: string }>('SELECT muscle_primary FROM exercises WHERE id = ?', [id])
+    expect((await lire(a)).muscle_primary).toBe('DOS')
+    expect((await lire(b)).muscle_primary).toBe('BICEPS')
   })
 })
