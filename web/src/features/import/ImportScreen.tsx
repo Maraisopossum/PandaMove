@@ -53,6 +53,16 @@ export default function ImportScreen() {
               {resultat.seances} séance(s), {resultat.instances} séance(s) jouée(s), {resultat.series} série(s),{' '}
               {resultat.exercises} exercice(s) et {resultat.objectifs} objectif(s) de progression importés.
             </p>
+            {resultat.ignores.length > 0 && (
+              <>
+                <h3>Remarques</h3>
+                <ul>
+                  {resultat.ignores.map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              </>
+            )}
             <button type="button" className="bouton" onClick={reset}>
               Importer un autre fichier
             </button>

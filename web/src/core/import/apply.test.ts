@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { Db, DbTx } from '../db/Db'
 import { deterministicId } from '../db/ids'
 import { copyTemplateToInstance } from '../db/repos/instances'
+import { getSeanceTree } from '../db/repos/seances'
+import { addSerie, listSeries } from '../db/repos/series'
+import { resumePeriode } from '../../features/stats/statsQueries'
 import { getSettings, saveSettings } from '../db/repos/settings'
 import { createTestDb } from '../../test/sqliteDb'
 import { applyImportPlan } from './apply'
@@ -275,6 +278,53 @@ describe("applyImportPlan : lignes d'instance déjà copiées sur le web", () =>
       expect(suppression).toBeGreaterThanOrEqual(0)
       expect(suppression).toBeLessThan(ecritureFichier)
     }
+  })
+
+  it("séance jouée sur le web : seules les copies en collision sont retirées, les séries web sont rattachées aux lignes du fichier", async () => {
+    await applyImportPlan(db, plan(fichier(false)))
+    const instanceId = deterministicId(`${USER}:instances_seance`, '100')
+    const seanceId = deterministicId(`${USER}:seances`, '1')
+    await copyTemplateToInstance(db, instanceId)
+    const [copie] = await vivantes('exercices_seance', instanceId)
+    const [blocCopie] = await vivantes('blocs_seance', instanceId)
+    // Ligne ajoutée sur le web (sans ligne source), rangée dans le bloc copié : aucune collision
+    await db.execute(
+      `INSERT INTO exercices_seance (id, user_id, updated_at, deleted_at, seance_id, exercise_id, bloc_id, position,
+         reps_type, instance_seance_id, exercice_source_id)
+       VALUES ('ajout-web', ?, '2026-02-01T09:00:00.000Z', NULL, ?, ?, ?, 1, 'REPS', ?, NULL)`,
+      [USER, seanceId, copie.exercise_id, blocCopie.id, instanceId],
+    )
+    // Séries saisies sur le web, puis séance terminée
+    for (const [numero, reps, charge] of [[1, 10, 60], [2, 8, 62.5]] as const) {
+      await addSerie(db, {
+        instanceSeanceId: instanceId, exerciceSeanceId: String(copie.id), numeroSerie: numero, repsRealisees: reps,
+        chargeKg: charge, chargeLabel: null, rpe: 8, notes: 'web', isCompleted: true,
+      }, '2026-02-01T10:00:00.000Z')
+    }
+
+    const p = plan({ ...fichier(true), strengthSessions: {
+      completed: [{ ...fichier(true).strengthSessions.planned[0], instance: { ...instance, isCompleted: true } }],
+      planned: [],
+    } })
+    const rapport = await applyImportPlan(db, p)
+
+    const ligneFichier = deterministicId(`${USER}:exercices_seance`, '21')
+    const blocFichier = deterministicId(`${USER}:blocs_seance`, '11')
+    const arbre = await getSeanceTree(db, seanceId, instanceId)
+    // La copie en collision (même ligne source) est retirée ; l'ajout web reste, rattaché au bloc du fichier
+    expect(arbre.exercices.map((e) => e.id).sort()).toEqual(['ajout-web', ligneFichier].sort())
+    expect(arbre.exercices.find((e) => e.id === 'ajout-web')?.blocId).toBe(blocFichier)
+    expect(arbre.blocs.map((b) => b.id)).toEqual([blocFichier])
+    // Les séries web restent visibles, valeurs intactes, sur une ligne vivante
+    const series = await listSeries(db, instanceId)
+    expect(series.map((x) => [x.exerciceSeanceId, x.numeroSerie, x.repsRealisees, x.chargeKg, x.rpe, x.notes])).toEqual(
+      expect.arrayContaining([[ligneFichier, 1, 10, 60, 8, 'web'], [ligneFichier, 2, 8, 62.5, 8, 'web']]),
+    )
+    expect(series).toHaveLength(2)
+    // Stats : comptées comme des répétitions de la ligne du fichier
+    expect(await resumePeriode(db, '2026-02-01', '2026-02-01')).toMatchObject({ seriesTotal: 2, repsTotal: 18, tonnageKg: 1100 })
+    // Signalé dans le résultat de l'import
+    expect(rapport.ignores.some((m) => /2 série\(s\) saisie\(s\) sur le web rattachée\(s\)/.test(m))).toBe(true)
   })
 
   it("une instance du fichier sans lignes ne touche pas aux copies locales", async () => {

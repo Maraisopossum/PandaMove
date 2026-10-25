@@ -31,6 +31,15 @@ describe('ImportScreen', () => {
     await waitFor(() => expect(document.activeElement?.className).toBe('import__resultat'))
   })
 
+  it("les remarques de l'import restent lisibles après la fin (l'aperçu disparaît)", async () => {
+    render(<ImportScreen />)
+    deposer(fichier(JSON.stringify({ ...exportV32, runTemplates: [{}] })))
+    expect(await screen.findByText(/runTemplates : 1 élément/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: "Confirmer l'import" }))
+    expect(await screen.findByRole('heading', { name: 'Remarques' })).toBeTruthy()
+    expect(screen.getByText(/runTemplates : 1 élément/)).toBeTruthy()
+  })
+
   it("affiche l'erreur dans une zone role=alert et déplace le focus", async () => {
     render(<ImportScreen />)
     deposer(fichier('{"tronque'))

@@ -33,34 +33,56 @@ async function sansEcraserMarqueur(tx: DbTx, table: TableName, ligne: Record<str
   return reste
 }
 
-// Lignes d'instance du fichier : pour chaque instance qui apporte des blocs ou exercices, le fichier
-// fait foi (« l'export gagne »). Les lignes locales vivantes de cette instance absentes du plan (copie
-// du template faite sur le web avec d'autres ids, même ligne source) passent en suppression logique
-// (jamais de DELETE) ; sinon chaque exercice serait en double et l'index unique serveur
-// (instance_seance_id, exercice_source_id) rejetterait l'envoi. Une instance sans lignes dans le
-// fichier garde ses lignes locales.
-async function retirerLignesInstanceRemplacees(tx: DbTx, plan: ImportPlan): Promise<void> {
+// Lignes d'instance du fichier en COLLISION avec une copie web : même instance et même ligne source
+// (exercice_source_id / bloc_source_id), c'est-à-dire exactement ce que refuse l'index unique serveur
+// (instance_seance_id, ligne source). Le fichier fait foi (« l'export gagne ») : la copie locale passe
+// en suppression logique (jamais de DELETE). Rien n'est perdu de ce qui a été saisi sur le web :
+//  - les séries de la copie retirée sont rattachées à la ligne équivalente du fichier, valeurs intactes ;
+//  - les lignes ajoutées sur le web (sans collision) restent, et celles rangées dans un bloc retiré
+//    passent dans le bloc équivalent du fichier.
+// Renvoie les messages à montrer dans le résultat de l'import.
+async function remplacerCopiesEnCollision(tx: DbTx, plan: ImportPlan): Promise<string[]> {
   const maintenant = new Date().toISOString()
-  const TABLES_LIGNES = ['blocs_seance', 'exercices_seance'] as const
-  const instances = new Set<string>()
-  for (const table of TABLES_LIGNES) {
+  const remplacees = { blocs_seance: new Map<string, string>(), exercices_seance: new Map<string, string>() }
+  const SOURCES = [['blocs_seance', 'bloc_source_id'], ['exercices_seance', 'exercice_source_id']] as const
+  for (const [table, colonneSource] of SOURCES) {
     for (const ligne of plan.rows[table]) {
-      if (typeof ligne.instance_seance_id === 'string') instances.add(ligne.instance_seance_id)
-    }
-  }
-  for (const table of TABLES_LIGNES) {
-    const idsDuPlan = new Set(plan.rows[table].map((l) => String(l.id)))
-    for (const instance of instances) {
-      const locales = await tx.getAll<{ id: string }>(
-        `SELECT id FROM ${table} WHERE instance_seance_id = ? AND deleted_at IS NULL`,
-        [instance],
+      const instance = ligne.instance_seance_id
+      const source = ligne[colonneSource]
+      if (typeof instance !== 'string' || typeof source !== 'string') continue
+      const enCollision = await tx.getAll<{ id: string }>(
+        `SELECT id FROM ${table} WHERE instance_seance_id = ? AND ${colonneSource} = ? AND deleted_at IS NULL AND id <> ?`,
+        [instance, source, ligne.id],
       )
-      for (const { id } of locales) {
-        if (idsDuPlan.has(id)) continue
+      for (const { id } of enCollision) {
         await tx.execute(`UPDATE ${table} SET deleted_at = ?, updated_at = ? WHERE id = ?`, [maintenant, maintenant, id])
+        remplacees[table].set(id, String(ligne.id))
       }
     }
   }
+
+  let seriesRattachees = 0
+  for (const [ancienne, nouvelle] of remplacees.exercices_seance) {
+    const { n } = await tx.get<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM series_realisees WHERE exercice_seance_id = ? AND deleted_at IS NULL',
+      [ancienne],
+    )
+    if (n === 0) continue
+    await tx.execute(
+      'UPDATE series_realisees SET exercice_seance_id = ?, updated_at = ? WHERE exercice_seance_id = ? AND deleted_at IS NULL',
+      [nouvelle, maintenant, ancienne],
+    )
+    seriesRattachees += n
+  }
+  for (const [ancien, nouveau] of remplacees.blocs_seance) {
+    await tx.execute(
+      'UPDATE exercices_seance SET bloc_id = ?, updated_at = ? WHERE bloc_id = ? AND deleted_at IS NULL',
+      [nouveau, maintenant, ancien],
+    )
+  }
+  return seriesRattachees > 0
+    ? [`${seriesRattachees} série(s) saisie(s) sur le web rattachée(s) aux exercices du fichier (même exercice de la séance)`]
+    : []
 }
 
 // Applique un plan d'import en UNE transaction : la moindre erreur annule tout (rien n'est écrit)
@@ -73,7 +95,7 @@ export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportR
     // AVANT les upserts : PowerSync rejoue les écritures dans l'ordre d'exécution. Les copies web
     // remplacées doivent être supprimées sur le serveur avant l'arrivée des lignes du fichier, sinon
     // l'index unique (instance, ligne source) rejette ces dernières (23505).
-    await retirerLignesInstanceRemplacees(tx, plan)
+    const rattachements = await remplacerCopiesEnCollision(tx, plan)
 
     const ecrites: Partial<Record<TableName, number>> = {}
     for (const table of ORDRE) {
@@ -102,7 +124,7 @@ export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportR
       series: ecrites.series_realisees ?? 0,
       exercises: ecrites.exercises ?? 0,
       objectifs: ecrites.objectifs_progression ?? 0,
-      ignores: plan.report.ignores,
+      ignores: [...plan.report.ignores, ...rattachements],
     }
   })
 }
