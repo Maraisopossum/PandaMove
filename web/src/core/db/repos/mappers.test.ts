@@ -71,3 +71,13 @@ describe('mappers : ligne entièrement NULL', () => {
     })
   })
 })
+
+describe('mappers : valeurs de type inattendu', () => {
+  it("mapExercise convertit en texte un nombre rangé dans une colonne texte (nom « 21 »)", () => {
+    const e = mapExercise({ id: 'x', name: 21, muscle_primary: 0, muscle_groups: 5, category: 7 })
+    expect(e.name).toBe('21')
+    expect(e.musclePrimary).toBe('0')
+    expect(e.muscleGroups).toBe('5')
+    expect(e.category).toBe('7')
+  })
+})

@@ -101,3 +101,14 @@ describe('corrigerGroupesMusculaires', () => {
     expect(await corrigerGroupesMusculaires(db)).toBe(0)
   })
 })
+
+describe("installation — lignes synchronisées incomplètes", () => {
+  it('ne plante pas sur un exercice dont le nom, les groupes et le muscle principal sont NULL', async () => {
+    const db = createTestDb()
+    await inserer(db, 'exercises', { id: 'n1', user_id: 'u', updated_at: 'x', deleted_at: null, name: null, muscle_groups: null, muscle_primary: null })
+    await inserer(db, 'exercises', { id: 'n2', user_id: 'u', updated_at: 'x', deleted_at: null, name: 'Sans muscle', muscle_groups: '{}', muscle_primary: null, is_custom: null })
+    const r = await installerCatalogueDeBase(db, 'u')
+    expect(r.ajoutes).toBe(166)
+    await expect(corrigerGroupesMusculaires(db)).resolves.toBeTypeOf('number')
+  })
+})

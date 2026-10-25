@@ -12,8 +12,10 @@ export type Ligne = Record<string, string | number | null>
 // dureeEstimeeMin 60, tempsReposInterSec 20, tempsReposFinRoundSec 120, nombreSeriesPrevues 3,
 // tempsReposSec 90, incrementDureeSec 5, seuilDeload 3, repsType REPS, seanceCategory STRENGTH,
 // type de bloc ECHAUFFEMENT, le reste à 0 / '' / false.
-const s = (l: Ligne, k: string, defaut = '') => (l[k] ?? defaut) as string
-const sn = (l: Ligne, k: string) => (l[k] ?? null) as string | null
+// Une colonne texte peut revenir typée nombre (nom « 21 » relu comme entier) : on la convertit en texte.
+const texte = (v: string | number): string => (typeof v === 'string' ? v : String(v))
+const s = (l: Ligne, k: string, defaut = '') => texte(l[k] ?? defaut)
+const sn = (l: Ligne, k: string) => (l[k] == null ? null : texte(l[k]))
 const n = (l: Ligne, k: string, defaut = 0) => (l[k] ?? defaut) as number
 const nn = (l: Ligne, k: string) => (l[k] ?? null) as number | null
 const b = (l: Ligne, k: string) => l[k] === 1

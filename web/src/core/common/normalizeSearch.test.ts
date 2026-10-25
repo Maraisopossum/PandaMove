@@ -17,3 +17,10 @@ describe('normalizeSearch', () => {
     expect(normalizeSearch('')).toBe('')
   })
 })
+
+describe('normalizeSearch — entrées nullables', () => {
+  it('traite null et undefined comme un texte vide', () => {
+    expect(normalizeSearch(null)).toBe('')
+    expect(normalizeSearch(undefined)).toBe('')
+  })
+})

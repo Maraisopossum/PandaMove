@@ -11,9 +11,9 @@ export interface FiltreCatalogue {
 export const FILTRE_INITIAL: FiltreCatalogue = { query: '', muscle: null, favorisSeulement: false }
 
 // muscle_groups est stocké en JSON d'un tableau de chaînes ; toute autre forme donne une liste vide.
-export function lireGroupes(texte: string): string[] {
+export function lireGroupes(texte: string | null | undefined): string[] {
   try {
-    const v: unknown = JSON.parse(texte)
+    const v: unknown = JSON.parse(texte ?? '[]')
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
   } catch {
     return []
