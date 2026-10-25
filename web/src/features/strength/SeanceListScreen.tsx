@@ -1,9 +1,12 @@
 import { Link } from 'react-router'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { AssignDialog } from './AssignDialog'
+import { BarreSelection } from './BarreSelection'
+import { CarteSelectionnable } from './CarteSelectionnable'
 import { MenuActions } from './MenuActions'
 import { SeanceDirecteDialog } from './SeanceDirecteDialog'
 import { SupprimerDialog } from './SupprimerDialog'
+import { SupprimerSelectionDialog } from './SupprimerSelectionDialog'
 import { useListeSeancesEcran } from './useListeSeancesEcran'
 
 // Liste des séances types (modèles). Seul écran de renforcement à porter le bouton d'affectation au calendrier :
@@ -15,6 +18,8 @@ export default function SeanceListScreen() {
   const d = l.suppression
   const m = l.lancement
   const sd = l.directe
+  const sel = l.selection
+  const ds = l.suppressionSelection
 
   return (
     <>
@@ -22,17 +27,25 @@ export default function SeanceListScreen() {
       <p className="ecran__aide">
         Vos modèles de séance : lancez-en un maintenant, planifiez-le au calendrier avec 📅, ou ouvrez-le pour voir son détail.
       </p>
-      <div className="formulaire__ligne">
-        <Link to="/strength/new" className="bouton bouton--principal lien-bouton">
-          <span aria-hidden="true">＋ </span>Nouvelle séance
-        </Link>
-        <button type="button" className="bouton" onClick={sd.ouvrir}>
-          Séance directe
-        </button>
-        <Link to="/strength/catalog" className="bouton lien-bouton">
-          Catalogue d'exercices
-        </Link>
-      </div>
+      {!sel.mode && (
+        <div className="formulaire__ligne">
+          <Link to="/strength/new" className="bouton bouton--principal lien-bouton">
+            <span aria-hidden="true">＋ </span>Nouvelle séance
+          </Link>
+          <button type="button" className="bouton" onClick={sd.ouvrir}>
+            Séance directe
+          </button>
+          <Link to="/strength/catalog" className="bouton lien-bouton">
+            Catalogue d'exercices
+          </Link>
+          {!l.vide && (
+            <button type="button" className="bouton" onClick={() => sel.entrer()}>
+              Sélectionner
+            </button>
+          )}
+        </div>
+      )}
+      {sel.mode && <BarreSelection nombre={sel.nombre} onSupprimer={ds.demander} onQuitter={sel.quitter} />}
 
       {(l.erreur ?? m.erreur) && (
         <p role="alert" className="import__erreur">
@@ -88,22 +101,30 @@ export default function SeanceListScreen() {
           {l.aucuneActive && <p>Aucune séance type active : créez-en une, ou restaurez une séance archivée ci-dessous.</p>}
           <ul className="seances__liste">
             {l.cartes.map(({ seance: s, details, notes, actions }) => (
-              <li key={s.id} className="seance__carte">
-                <Link to={`/strength/${s.id}`} className="seance__texte seance__ouvrir">
-                  <span className="seance__nom">{s.nom}</span>
-                  <span className="seance__details">{details}</span>
-                  {notes && <span className="seance__notes">{notes}</span>}
-                </Link>
-                <div className="seance__actions">
-                  <button type="button" className="bouton bouton--principal" aria-label={`Lancer ${s.nom} maintenant`} disabled={m.enCours} onClick={() => void m.lancer(s)}>
-                    Lancer
-                  </button>
-                  <button type="button" className="bouton" aria-label={`Affecter ${s.nom} au calendrier`} onClick={() => a.ouvrir(s)}>
-                    <span aria-hidden="true">📅</span>
-                  </button>
-                  <MenuActions libelle={`Plus d'actions pour ${s.nom}`} actions={actions} />
-                </div>
-              </li>
+              <CarteSelectionnable
+                key={s.id}
+                lien={`/strength/${s.id}`}
+                designation={s.nom}
+                mode={sel.mode}
+                choisie={sel.estSelectionne(s.id)}
+                onBasculer={() => sel.basculer(s.id)}
+                onAppuiLong={() => sel.entrer(s.id)}
+                actions={
+                  <>
+                    <button type="button" className="bouton bouton--principal" aria-label={`Lancer ${s.nom} maintenant`} disabled={m.enCours} onClick={() => void m.lancer(s)}>
+                      Lancer
+                    </button>
+                    <button type="button" className="bouton" aria-label={`Affecter ${s.nom} au calendrier`} onClick={() => a.ouvrir(s)}>
+                      <span aria-hidden="true">📅</span>
+                    </button>
+                    <MenuActions libelle={`Plus d'actions pour ${s.nom}`} actions={actions} />
+                  </>
+                }
+              >
+                <span className="seance__nom">{s.nom}</span>
+                <span className="seance__details">{details}</span>
+                {notes && <span className="seance__notes">{notes}</span>}
+              </CarteSelectionnable>
             ))}
           </ul>
         </>
@@ -112,20 +133,27 @@ export default function SeanceListScreen() {
       {l.archivees.length > 0 && (
         <section aria-labelledby="titre-archivees">
           <h2 id="titre-archivees">Séances archivées</h2>
-          <p className="ecran__aide">Masquées de la liste, conservées pour l'historique. Désarchivez-les pour les retrouver.</p>
+          <p className="ecran__aide">
+            Masquées de la liste, conservées pour l'historique. Désarchivez-les pour les retrouver ; sélectionnées puis supprimées, elles sont effacées définitivement.
+          </p>
           <ul className="seances__liste">
             {l.archivees.map(({ seance: s, details, actions }) => (
-              <li key={s.id} className="seance__carte seance__carte--archivee">
-                <Link to={`/strength/${s.id}`} className="seance__texte seance__ouvrir">
-                  <span className="seance__nom">
-                    {s.nom} <span className="instances__badge instances__badge--neutre">Archivée</span>
-                  </span>
-                  <span className="seance__details">{details}</span>
-                </Link>
-                <div className="seance__actions">
-                  <MenuActions libelle={`Plus d'actions pour ${s.nom} (archivée)`} actions={actions} />
-                </div>
-              </li>
+              <CarteSelectionnable
+                key={s.id}
+                lien={`/strength/${s.id}`}
+                designation={`${s.nom} (archivée)`}
+                classe="seance__carte--archivee"
+                mode={sel.mode}
+                choisie={sel.estSelectionne(s.id)}
+                onBasculer={() => sel.basculer(s.id)}
+                onAppuiLong={() => sel.entrer(s.id)}
+                actions={<MenuActions libelle={`Plus d'actions pour ${s.nom} (archivée)`} actions={actions} />}
+              >
+                <span className="seance__nom">
+                  {s.nom} <span className="instances__badge instances__badge--neutre">Archivée</span>
+                </span>
+                <span className="seance__details">{details}</span>
+              </CarteSelectionnable>
             ))}
           </ul>
         </section>
@@ -156,6 +184,15 @@ export default function SeanceListScreen() {
           onNom={sd.setNom}
           onConfirmer={() => void sd.confirmer()}
           onFermer={sd.fermer}
+        />
+      )}
+
+      {ds.ouvert && (
+        <SupprimerSelectionDialog
+          compte={l.compteSelection}
+          erreur={ds.erreur}
+          onConfirmer={() => void ds.confirmer(sel.identifiants)}
+          onFermer={ds.fermer}
         />
       )}
 

@@ -7,6 +7,9 @@ import { formaterJourCourt } from '../calendar/grille'
 import { ErreurSeance } from './affectation'
 import { detailsTerminee } from './listesInstances'
 import { supprimerInstanceRenforcement } from './suppression'
+import { supprimerInstancesSelection } from './suppressionSelection'
+import { useSelection } from './useSelection'
+import { useSuppressionSelection } from './useSuppressionSelection'
 import { useListeInstances, type DepsListeInstances, type TypeListeInstances } from './useListeInstances'
 
 export interface LigneInstance {
@@ -94,6 +97,24 @@ export function useEcranListeInstances(type: TypeListeInstances, deps: DepsListe
     setASupprimer(null)
   }, [aSupprimer, agir, base, enCours])
 
+  // Sélection multiple (appui long ou bouton « Sélectionner ») : suppression groupée comme l'Android
+  const selection = useSelection()
+  const executerSelection = useCallback(
+    async (ids: string[]) => {
+      try {
+        return await supprimerInstancesSelection(base ?? getDb(), ids)
+      } finally {
+        await recharger()
+      }
+    },
+    [base, recharger],
+  )
+  const suppressionSelection = useSuppressionSelection(executerSelection, selection.quitter)
+  const compteSelection =
+    type === 'programmees'
+      ? { types: 0, archivees: 0, planifiees: selection.nombre, terminees: 0 }
+      : { types: 0, archivees: 0, planifiees: 0, terminees: selection.nombre }
+
   const lignes: LigneInstance[] = liste.instances.map((i) => {
     const enCoursDeSeance = i.etat === 'en_cours'
     const terminee = i.etat === 'terminee'
@@ -130,5 +151,8 @@ export function useEcranListeInstances(type: TypeListeInstances, deps: DepsListe
     demanderSuppression,
     fermerSuppression,
     confirmerSuppression,
+    selection,
+    suppressionSelection,
+    compteSelection,
   }
 }

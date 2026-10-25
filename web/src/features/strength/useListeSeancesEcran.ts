@@ -11,7 +11,9 @@ import { useAffectation, type SuccesAffectation } from './useAffectation'
 import { useLancement } from './useLancement'
 import { useSeanceDirecte } from './useSeanceDirecte'
 import { useSeanceList } from './useSeanceList'
+import { useSelection } from './useSelection'
 import { useSuppression } from './useSuppression'
+import { useSuppressionSelection } from './useSuppressionSelection'
 
 /** Message de confirmation affiché sous les boutons, avec un lien utile éventuel. */
 export interface Notice {
@@ -55,6 +57,19 @@ export function useListeSeancesEcran() {
   const lancement = useLancement(liste.lancer, ouvrirInstance)
   const suppression = useSuppression(liste.compterHistorique, liste.supprimer)
   const directe = useSeanceDirecte(liste.creerDirecte, ouvrirInstance)
+  // Sélection multiple (appui long ou bouton « Sélectionner ») : suppression groupée comme l'Android
+  const selection = useSelection()
+  const suppressionSelection = useSuppressionSelection(liste.supprimerSelection, selection.quitter)
+  const compteSelection = useMemo(() => {
+    const types = new Set(liste.seances.map((s) => s.id))
+    const archivees = new Set(liste.archivees.map((s) => s.id))
+    return {
+      types: selection.identifiants.filter((id) => types.has(id)).length,
+      archivees: selection.identifiants.filter((id) => archivees.has(id)).length,
+      planifiees: 0,
+      terminees: 0,
+    }
+  }, [liste.seances, liste.archivees, selection.identifiants])
 
   const demanderDuplication = useCallback(
     async (s: Seance) => {
@@ -138,5 +153,8 @@ export function useListeSeancesEcran() {
     lancement,
     suppression,
     directe,
+    selection,
+    suppressionSelection,
+    compteSelection,
   }
 }

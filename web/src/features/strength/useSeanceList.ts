@@ -8,6 +8,7 @@ import { dupliquerSeance } from './duplication'
 import { assignerDates } from './planification'
 import { creerSeanceDirecte } from './seanceDirecte'
 import { compterHistorique, supprimerSeance, type Historique, type ModeSuppression } from './suppression'
+import { supprimerSeancesSelection } from './suppressionSelection'
 
 export interface DepsListeSeances {
   /** Base à utiliser (défaut : base de l'application, résolue à l'usage). */
@@ -183,7 +184,21 @@ export function useSeanceList({ db }: DepsListeSeances = {}) {
     [db, recharger],
   )
 
+  // Suppression par sélection multiple (règle de l'Android : archive si historique, sinon supprime ; une archivée est purgée).
+  // Rejette en cas d'échec : le dialogue de sélection affiche le message.
+  const supprimerSelection = useCallback(
+    async (ids: string[]) => {
+      try {
+        return await supprimerSeancesSelection(db ?? getDb(), ids)
+      } finally {
+        await recharger()
+      }
+    },
+    [db, recharger],
+  )
+
   return {
+    supprimerSelection,
     seances: donnees.seances, archivees: donnees.archivees, nbExercices: donnees.nbExercices, charge, erreur, archiver,
     desarchiver, dupliquer, assigner, affecter, creerDirecte, lancer, compterHistorique: compter, supprimer,
   }

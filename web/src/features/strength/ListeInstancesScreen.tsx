@@ -2,6 +2,9 @@ import { Link } from 'react-router'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { DateDialog } from '../calendar/DateDialog'
 import { SupprimerInstanceDialog } from '../calendar/SupprimerInstanceDialog'
+import { BarreSelection } from './BarreSelection'
+import { CarteSelectionnable } from './CarteSelectionnable'
+import { SupprimerSelectionDialog } from './SupprimerSelectionDialog'
 import { useEcranListeInstances } from './useEcranListeInstances'
 import type { TypeListeInstances } from './useListeInstances'
 
@@ -11,6 +14,8 @@ import type { TypeListeInstances } from './useListeInstances'
 // Aucune logique : lignes, textes et états viennent de useEcranListeInstances.
 export default function ListeInstancesScreen({ type }: { type: TypeListeInstances }) {
   const e = useEcranListeInstances(type)
+  const sel = e.selection
+  const ds = e.suppressionSelection
 
   return (
     <>
@@ -51,10 +56,39 @@ export default function ListeInstancesScreen({ type }: { type: TypeListeInstance
         </div>
       ) : (
         e.lignes.length > 0 && (
-          <ul className="seances__liste">
-            {e.lignes.map((l) => (
-              <li key={l.id} className="seance__carte">
-                <Link to={l.lien} className="seance__texte seance__ouvrir">
+          <>
+            {sel.mode ? (
+              <BarreSelection nombre={sel.nombre} onSupprimer={ds.demander} onQuitter={sel.quitter} />
+            ) : (
+              <div className="formulaire__ligne">
+                <button type="button" className="bouton" onClick={() => sel.entrer()}>
+                  Sélectionner
+                </button>
+              </div>
+            )}
+            <ul className="seances__liste">
+              {e.lignes.map((l) => (
+                <CarteSelectionnable
+                  key={l.id}
+                  lien={l.lien}
+                  designation={l.designation}
+                  mode={sel.mode}
+                  choisie={sel.estSelectionne(l.id)}
+                  onBasculer={() => sel.basculer(l.id)}
+                  onAppuiLong={() => sel.entrer(l.id)}
+                  actions={
+                    <>
+                      {l.peutChangerDate && (
+                        <button type="button" className="bouton" aria-label={`Changer la date de ${l.designation}`} onClick={() => e.demanderDeplacement(l)}>
+                          Changer la date
+                        </button>
+                      )}
+                      <button type="button" className="bouton" aria-label={`Supprimer ${l.designation}`} onClick={() => e.demanderSuppression(l)}>
+                        Supprimer
+                      </button>
+                    </>
+                  }
+                >
                   <span className="seance__nom">
                     {l.nom}
                     {l.enCours && <span className="instances__badge">En cours</span>}
@@ -63,20 +97,10 @@ export default function ListeInstancesScreen({ type }: { type: TypeListeInstance
                     {l.date}
                     {l.details && <> · {l.details}</>}
                   </span>
-                </Link>
-                <div className="seance__actions">
-                  {l.peutChangerDate && (
-                    <button type="button" className="bouton" aria-label={`Changer la date de ${l.designation}`} onClick={() => e.demanderDeplacement(l)}>
-                      Changer la date
-                    </button>
-                  )}
-                  <button type="button" className="bouton" aria-label={`Supprimer ${l.designation}`} onClick={() => e.demanderSuppression(l)}>
-                    Supprimer
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                </CarteSelectionnable>
+              ))}
+            </ul>
+          </>
         )
       )}
 
@@ -88,6 +112,14 @@ export default function ListeInstancesScreen({ type }: { type: TypeListeInstance
           onDate={e.choisirDate}
           onConfirmer={() => void e.confirmerDeplacement()}
           onFermer={e.fermerDeplacement}
+        />
+      )}
+      {ds.ouvert && (
+        <SupprimerSelectionDialog
+          compte={e.compteSelection}
+          erreur={ds.erreur}
+          onConfirmer={() => void ds.confirmer(sel.identifiants)}
+          onFermer={ds.fermer}
         />
       )}
       {e.aSupprimer && (
