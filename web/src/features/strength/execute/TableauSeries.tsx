@@ -91,8 +91,16 @@ function LigneSerie({ ligne: l, t, lectureSeule }: { ligne: LigneAffichee; t: Ta
           onCommit={(v) => t.setCharge(l.numero, v)}
         />
       </span>
-      <span role="cell" className="tableau-series__cellule tableau-series__cellule--grisee" aria-label={l.repos ? `Série ${l.libelle}, repos ${l.repos}` : undefined}>
-        {l.repos}
+      <span role="cell">
+        <CelluleNombre
+          libelle={`Série ${l.libelle}, repos en secondes`}
+          valeur={l.reposAffiche}
+          facultatif
+          grisee={l.reposGrise}
+          figee={figee}
+          suffixe=""
+          onCommit={(v) => t.setRepos(l.numero, v)}
+        />
       </span>
       {t.rpeVisible && (
         <span role="cell" className="tableau-series__cellule" aria-label={l.rpe !== null ? `Série ${l.libelle}, RPE ${l.rpe}` : undefined}>

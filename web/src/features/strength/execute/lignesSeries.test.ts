@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mapBloc, mapExerciceSeance, mapSerie } from '../../../core/db/repos/mappers'
 import {
-  construireLignes, mesuresLigne, nombreLignes, numeroCourant, premierNombre, rpeApplicable, texteHistorique, texteRepos, valeursLigne,
+  construireLignes, mesuresLigne, nombreLignes, numeroCourant, premierNombre, propagerCharge, reposLigne, rpeApplicable, texteHistorique, texteRepos, valeursLigne,
 } from './lignesSeries'
 import { construireVue } from './vue'
 
@@ -109,5 +109,41 @@ describe('texteHistorique', () => {
   it('date courte, reps et charge ; durée en secondes ; poids du corps sans charge', () => {
     expect(texteHistorique({ dateIso: '2026-10-04', maxChargeKg: 62.5, reps: 8, enSecondes: false })).toBe('4 oct. — 8 reps @ 62,5 kg')
     expect(texteHistorique({ dateIso: '2026-12-24', maxChargeKg: 0, reps: 45, enSecondes: true })).toBe('24 déc. — 45 s')
+  })
+})
+
+describe('repos saisi à la main (reposOverrideSec Android)', () => {
+  it('sans saisie : le repos prévu, grisé ; avec saisie : la valeur saisie', () => {
+    const l = construireLignes(exercice())[0]
+    expect(reposLigne(l, undefined)).toEqual({ sec: 90, saisi: false, override: null })
+    expect(reposLigne(l, { repos: 45 })).toEqual({ sec: 45, saisi: true, override: 45 })
+  })
+
+  it('champ vidé : retour au repos prévu (comme ifBlank { null } Android) ; 0 : aucun repos', () => {
+    const l = construireLignes(exercice())[0]
+    expect(reposLigne(l, { repos: null })).toEqual({ sec: 90, saisi: false, override: null })
+    expect(reposLigne(l, { repos: 0 })).toEqual({ sec: 0, saisi: true, override: 0 })
+  })
+
+  it('valeur décimale ou négative : arrondie à la seconde, jamais négative', () => {
+    const l = construireLignes(exercice())[0]
+    expect(reposLigne(l, { repos: 44.6 }).override).toBe(45)
+    expect(reposLigne(l, { repos: -5 }).override).toBe(0)
+    expect(reposLigne(l, { repos: Number.NaN })).toEqual({ sec: 90, saisi: false, override: null })
+  })
+})
+
+describe('propagerCharge (applyBuffer Android : le kg se répercute sur les séries suivantes non validées)', () => {
+  it('pose la charge sur les lignes suivantes non validées seulement', () => {
+    const lignes = construireLignes(exercice({ nombre_series_prevues: 4 }, [serie(2)]))
+    // ligne 2 validée : intacte ; lignes 3 et 4 suivent ; ligne 1 (avant) intacte
+    expect(propagerCharge(lignes, 1, 70)).toEqual([{ numero: 3, chargeKg: 70 }, { numero: 4, chargeKg: 70 }])
+    expect(propagerCharge(lignes, 3, 80)).toEqual([{ numero: 4, chargeKg: 80 }])
+    expect(propagerCharge(lignes, 4, 80)).toEqual([])
+  })
+
+  it('charge vidée : aucune propagation', () => {
+    const lignes = construireLignes(exercice())
+    expect(propagerCharge(lignes, 1, null)).toEqual([])
   })
 })

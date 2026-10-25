@@ -76,7 +76,8 @@ describe('ExecuteScreen', () => {
     expect(within(dc).getAllByRole('row')).toHaveLength(1 + 3 + 1) // en-tête, 3 séries, puces RPE de la série courante
     expect((within(dc).getByLabelText('Série 1, répétitions') as HTMLInputElement).value).toBe('8')
     expect((within(dc).getByLabelText('Série 3, charge en kilogrammes') as HTMLInputElement).value).toBe('60')
-    expect(within(dc).getByLabelText('Série 2, repos 90s')).toBeTruthy()
+    // Repos éditable (Android : reposOverrideSec), prévu grisé
+    expect((within(dc).getByLabelText('Série 2, repos en secondes') as HTMLInputElement).value).toBe('90')
     expect(within(dc).getByLabelText('Série 1, répétitions').closest('.tableau-series__cellule--grisee')).not.toBeNull()
     expect(within(dc).getByRole('row', { current: true })).toBeTruthy()
     // DURATION : colonne « Temps » en secondes, pas de RPE (on choisit l'exercice dans la barre)
@@ -176,6 +177,64 @@ describe('ExecuteScreen', () => {
     expect(screen.queryByRole('button', { name: 'Démarrer' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Valider la série' })).toBeNull()
     expect(screen.getByRole('link', { name: 'Voir le bilan' }).getAttribute('href')).toBe('/strength/instance/i-terminee/report')
+  })
+})
+
+describe('ExecuteScreen : repos, minuteur et saisie', () => {
+  const repos = () => screen.queryByRole('button', { name: /^Repos : / })
+
+  it('le badge de repos ouvre un menu : +30 s, -30 s, arrêt', async () => {
+    await instance('i-menu-repos')
+    monter('i-menu-repos')
+    fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
+    const dc = carte('Développé couché')
+    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série 1' }))
+    const badge = await screen.findByRole('button', { name: /^Repos : 01:[23]\d$/ })
+    expect(badge.getAttribute('aria-haspopup')).toBe('menu')
+    fireEvent.click(badge)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Allonger de 30 s' }))
+    // 90 s + 30 s, moins le temps écoulé depuis la validation
+    expect(repos()!.textContent).toMatch(/^Repos : (01:5\d|02:00)$/)
+    fireEvent.click(repos()!)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arrêter le repos' }))
+    expect(repos()).toBeNull()
+    expect(screen.queryByText('Repos terminé')).toBeNull()
+  })
+
+  it('un repos saisi sur la ligne remplace celui de l’exercice', async () => {
+    await instance('i-repos-saisi')
+    monter('i-repos-saisi')
+    fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
+    const dc = carte('Développé couché')
+    fireEvent.change(within(dc).getByLabelText('Série 1, repos en secondes'), { target: { value: '20' } })
+    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série 1' }))
+    expect((await screen.findByRole('button', { name: /^Repos : 00:[12]\d$/ })).textContent).toMatch(/00:(19|20)$/)
+  })
+
+  it('le minuteur manuel démarre une durée choisie, puis -30 s / +30 s / Arrêter', async () => {
+    await instance('i-manuel')
+    monter('i-manuel')
+    await screen.findByRole('heading', { level: 1, name: 'Haut du corps' })
+    fireEvent.click(screen.getByRole('button', { name: /Minuteur/ }))
+    const feuille = screen.getByRole('dialog', { name: 'Minuteur' })
+    fireEvent.click(within(feuille).getByRole('button', { name: '2 min' }))
+    expect(within(feuille).getByRole('button', { name: '2 min' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(within(feuille).getByRole('button', { name: 'Ajouter 5 secondes' }))
+    fireEvent.click(within(feuille).getByRole('button', { name: 'Démarrer 2 min 5' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(repos()!.textContent).toMatch(/^Repos : 02:0[45]$/)
+    fireEvent.click(screen.getByRole('button', { name: /Minuteur/ }))
+    expect(within(screen.getByRole('dialog', { name: 'Minuteur' })).getByRole('button', { name: '−30 s' })).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Minuteur' })).getByRole('button', { name: 'Arrêter' }))
+    expect(repos()).toBeNull()
+  })
+
+  it('la charge saisie sur une ligne se répercute sur les lignes suivantes non validées', async () => {
+    await instance('i-propage')
+    monter('i-propage')
+    const dc = await screen.findByRole('article', { name: 'Développé couché' })
+    fireEvent.change(within(dc).getByLabelText('Série 1, charge en kilogrammes'), { target: { value: '70' } })
+    expect((within(dc).getByLabelText('Série 3, charge en kilogrammes') as HTMLInputElement).value).toBe('70')
   })
 })
 

@@ -2897,3 +2897,104 @@ h1 {
   flex: 1 1 10rem;
   font-weight: 600;
 }
+
+/* Outils de l'exécution : barre d'outils, repos, feuilles du bas (minuteur, disques, montée en charge) */
+.execution__outils {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+}
+
+.execution__badge-repos {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid #5b3d9e;
+  border-radius: 999px;
+  background: color-mix(in srgb, #5b3d9e 12%, var(--surface));
+  color: #5b3d9e;
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.execution__badge-repos--urgent {
+  border-color: #b3261e;
+  background: color-mix(in srgb, #b3261e 18%, var(--surface));
+  color: #b3261e;
+}
+
+:root[data-theme='dark'] .execution__badge-repos {
+  border-color: #c9b6f2;
+  background: color-mix(in srgb, #c9b6f2 16%, var(--surface));
+  color: #c9b6f2;
+}
+
+:root[data-theme='dark'] .execution__badge-repos--urgent {
+  border-color: #ff8a80;
+  background: color-mix(in srgb, #ff8a80 18%, var(--surface));
+  color: #ff8a80;
+}
+
+.execution__menu-repos .menu__liste {
+  right: auto;
+  left: 0;
+}
+
+.dialogue--feuille {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(32rem, 100%);
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+@media (min-width: 40rem) {
+  .dialogue--feuille {
+    border-radius: 28px;
+  }
+}
+
+.dialogue--feuille h2 {
+  margin: 0;
+}
+
+.minuteur__presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.minuteur__reglage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.minuteur__temps {
+  min-width: 6rem;
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.minuteur__pas {
+  font-size: 1.5rem;
+}
+
+.minuteur__action {
+  flex: 1;
+}
+
+.minuteur__demarrer {
+  min-height: 52px;
+}

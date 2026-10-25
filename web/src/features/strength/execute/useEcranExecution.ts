@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../../../core/auth/AuthProvider'
 import { useImagePanda } from '../../../core/images/usePandaVariante'
@@ -8,6 +8,7 @@ import { useCircuit } from './circuit/useCircuit'
 import { useReglagesCircuit } from './circuit/useReglagesCircuit'
 import { useExecute } from './useExecute'
 import { useHistoriqueExercice } from './useHistoriqueExercice'
+import { useMinuteurRepos } from './useMinuteurRepos'
 import { useNavExercices } from './useNavExercices'
 import { useNotesSeance } from './useNotesSeance'
 import { useTableauSeries } from './useTableauSeries'
@@ -23,12 +24,20 @@ export function useEcranExecution(instanceId: string) {
   const ex = useExecute(instanceId, { userId: session?.user.id })
   const nav = useNavExercices(ex.blocs, ex.exercices)
   const actif = nav.exerciceActif
+  // Repos : celui des séries validées, réglable (+30 s / −30 s / arrêt / durée saisie) + minuteur manuel
+  const minuteur = useMinuteurRepos(instanceId, ex.infoRepos, ex.maintenantMs)
+  const { noterValidation, noterDevalidation } = minuteur
   const tableau = useTableauSeries(actif, (actif && ex.precedentes.get(actif.exerciseId)) || SANS_HISTORIQUE, {
     valider: ex.validerSerie,
     devalider: ex.devaliderSerie,
     ajouter: ex.ajouterSerie,
     supprimer: ex.supprimerSerie,
+    surValidation: (exerciceId, numero, reposSaisiSec) => noterValidation(`${exerciceId}#${numero}`, reposSaisiSec),
+    surDevalidation: (exerciceId, numero) => noterDevalidation(`${exerciceId}#${numero}`),
   })
+  // Outil ouvert (feuille du bas) : minuteur manuel, calculateur de disques, montée en charge
+  const [feuille, setFeuille] = useState<'minuteur' | 'disques' | 'echauffement' | null>(null)
+  const fermerFeuille = useCallback(() => setFeuille(null), [])
   const { demarre, demarrer } = ex
   // Circuit automatique et minuteur d'exercice : valide par le même chemin d'écriture que le tableau
   const { reglages } = useReglagesCircuit()
@@ -75,8 +84,19 @@ export function useEcranExecution(instanceId: string) {
     notes,
     chrono: formaterDuree(ex.elapsedMs),
     libelleChrono: libelleDureeAccessible(ex.elapsedMs),
-    texteRepos:
-      ex.reposRestantMs === null ? null : ex.reposRestantMs === 0 ? 'Repos terminé' : `Repos : ${formaterDuree(ex.reposRestantMs)}`,
+    repos: {
+      restantMs: minuteur.restantMs,
+      texte: minuteur.restantMs === null ? '' : formaterDuree(minuteur.restantMs),
+      termine: minuteur.restantMs === 0,
+      urgent: minuteur.restantMs !== null && minuteur.restantMs > 0 && minuteur.restantMs <= 5000,
+      allonger: minuteur.allonger,
+      ecourter: minuteur.ecourter,
+      arreter: minuteur.arreter,
+    },
+    minuteurManuel: { derniereSec: minuteur.derniereManuelleSec, demarrer: minuteur.demarrerManuel },
+    feuille,
+    ouvrirFeuille: setFeuille,
+    fermerFeuille,
     lienBilan: `/strength/instance/${instanceId}/report`,
     // Panda de motivation, affiché avant le démarrage de la séance
     pandaMotivation: ex.trouvee && !ex.demarre && !ex.terminee ? pandaMotivation : undefined,

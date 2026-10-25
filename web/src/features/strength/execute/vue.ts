@@ -1,4 +1,5 @@
 import { parseTimestamp } from '../../../core/common/parseTimestamp'
+import type { InfoRepos } from './minuteurRepos'
 import { apresSerie } from './navigationSeries'
 import type { BlocSeance, ExerciceSeance, RepsType, SerieRealisee } from '../../../core/db/types'
 
@@ -186,18 +187,25 @@ export function verifierMesures(m: Partial<Mesures>, repsType: RepsType): string
 // tour du bloc en superset et circuit ; aucun (null) entre les côtés G et D, pour un repos de 0 s, ou après
 // la dernière série de la séance. null aussi sans série. Dérivé uniquement d'horodatages stockés.
 export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | null {
-  let derniere: { ms: number; exercice: ExerciceVue } | null = null
+  const info = infoRepos(exercices)
+  return info === null ? null : Math.max(0, info.debutMs + info.dureeSec * 1000 - nowMs)
+}
+
+// Repos en cours : série validée la plus récente (clé « exercice#rang »), son instant de validation et la durée du
+// repos qui en découle. null sans série validée, pour un repos de 0 s, ou si aucun repos ne suit (voir reposRestant).
+export function infoRepos(exercices: ExerciceVue[]): InfoRepos | null {
+  let derniere: { ms: number; exercice: ExerciceVue; numero: number } | null = null
   for (const e of exercices) {
     for (const s of e.series.filter((x) => x.terminee)) {
       const ms = parseTimestamp(s.valideeA)
       // Égalité d'horodatage : la série affichée la plus loin (exercice suivant, numéro supérieur) l'emporte
-      if (ms !== null && (derniere === null || ms >= derniere.ms)) derniere = { ms, exercice: e }
+      if (ms !== null && (derniere === null || ms >= derniere.ms)) derniere = { ms, exercice: e, numero: s.numero }
     }
   }
   if (derniere === null) return null
   const { reposSec } = apresSerie(exercices, derniere.exercice.id)
   if (reposSec <= 0) return null
-  return Math.max(0, derniere.ms + reposSec * 1000 - nowMs)
+  return { cle: `${derniere.exercice.id}#${derniere.numero}`, debutMs: derniere.ms, dureeSec: reposSec }
 }
 
 // Durée affichée : mm:ss sous une heure, h:mm:ss au-delà.

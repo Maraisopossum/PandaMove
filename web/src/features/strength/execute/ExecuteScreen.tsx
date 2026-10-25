@@ -2,6 +2,8 @@ import { useId } from 'react'
 import { Link, useParams } from 'react-router'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
 import { BarreExercices } from './BarreExercices'
+import { FeuilleMinuteur } from './FeuilleMinuteur'
+import { MenuRepos } from './MenuRepos'
 import { LancementCircuit } from './circuit/LancementCircuit'
 import { OverlayCircuit } from './circuit/OverlayCircuit'
 import { useEcranExecution } from './useEcranExecution'
@@ -27,10 +29,20 @@ export default function ExecuteScreen() {
         </p>
         {e.enPause && <p className="execution__etat">En pause</p>}
         {e.terminee && <p className="execution__etat">Séance terminée</p>}
-        {e.texteRepos && (
-          <p className="execution__repos" aria-live="off">
-            {e.texteRepos}
-          </p>
+        {e.repos.restantMs !== null &&
+          (e.repos.termine ? (
+            <p className="execution__repos" aria-live="off">
+              Repos terminé
+            </p>
+          ) : (
+            <MenuRepos texte={e.repos.texte} urgent={e.repos.urgent} onAllonger={e.repos.allonger} onEcourter={e.repos.ecourter} onArreter={e.repos.arreter} />
+          ))}
+        {!e.terminee && (
+          <div className="execution__outils">
+            <button type="button" className="bouton" onClick={() => e.ouvrirFeuille('minuteur')}>
+              <span aria-hidden="true">⏱ </span>Minuteur
+            </button>
+          </div>
         )}
       </header>
 
@@ -110,6 +122,17 @@ export default function ExecuteScreen() {
             </>
           )}
         </div>
+      )}
+      {e.feuille === 'minuteur' && (
+        <FeuilleMinuteur
+          restantMs={e.repos.restantMs}
+          derniereSec={e.minuteurManuel.derniereSec}
+          onDemarrer={e.minuteurManuel.demarrer}
+          onAllonger={e.repos.allonger}
+          onEcourter={e.repos.ecourter}
+          onArreter={e.repos.arreter}
+          onFermer={e.fermerFeuille}
+        />
       )}
       {e.circuit.affichage && <OverlayCircuit affichage={e.circuit.affichage} onArreter={e.circuit.arreter} />}
     </div>

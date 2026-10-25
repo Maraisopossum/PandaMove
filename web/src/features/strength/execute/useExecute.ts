@@ -13,7 +13,7 @@ import { dernieresSeries } from './historiqueSeries'
 import type { SerieHisto } from './lignesSeries'
 import { clockFromRow, clockToRow, elapsedMs, estEnPause, type SessionClock } from './sessionClock'
 import { useTicker } from './useTicker'
-import { construireVue, reposRestant, verifierMesures, type BlocVue, type ExerciceVue, type Mesures } from './vue'
+import { construireVue, infoRepos, reposRestant, verifierMesures, type BlocVue, type ExerciceVue, type Mesures } from './vue'
 
 export interface DepsExecute {
   /** Base à utiliser (défaut : base de l'application). Référence stable. */
@@ -109,7 +109,9 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   const demarre = horloge.startedAtMs !== null
   const terminee = instance?.isCompleted ?? false
   const enPause = estEnPause(horloge)
-  const { now, rafraichir } = useTicker(demarre && !terminee && !enPause, nowFn, tickMs)
+  // L'affichage bat tant que la séance n'est pas terminée (même en pause ou avant « Démarrer » : le minuteur
+  // manuel doit pouvoir décompter) ; les durées restent calculées depuis des horodatages.
+  const { now, rafraichir } = useTicker(!terminee, nowFn, tickMs)
 
   // Ouverture : copie du modèle UNIQUEMENT pour une instance non terminée (parité Android) ;
   // la copie est idempotente, une réouverture ne duplique rien.
@@ -371,6 +373,10 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     enPause,
     terminee,
     reposRestantMs: demarre && !enPause && !terminee ? reposRestant(donnees.exercices, now) : null,
+    // Repos en cours (série à l'origine, instant, durée) : le minuteur de l'écran y applique ses réglages
+    infoRepos: demarre && !enPause && !terminee ? infoRepos(donnees.exercices) : null,
+    /** Instant affiché (ms), rafraîchi chaque seconde pendant la séance */
+    maintenantMs: now,
     demarrer,
     pause,
     reprendre,

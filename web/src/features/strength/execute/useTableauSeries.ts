@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import {
-  construireLignes, mesuresLigne, numeroCourant, rpeApplicable, texteRepos, valeursLigne,
+  construireLignes, mesuresLigne, numeroCourant, propagerCharge, reposLigne, rpeApplicable, valeursLigne,
   type Brouillon, type SerieHisto,
 } from './lignesSeries'
 import type { ExerciceVue, Mesures } from './vue'
@@ -16,7 +16,9 @@ export interface LigneAffichee {
   // Reps / charge issues du prévu (grisées) et non d'une saisie
   repsGrisees: boolean
   chargeGrisee: boolean
-  repos: string
+  // Repos de la ligne (s) : le prévu, ou celui saisi (grisé tant qu'il n'est pas saisi)
+  reposAffiche: number | null
+  reposGrise: boolean
 }
 
 export interface ActionsSeries {
@@ -24,6 +26,10 @@ export interface ActionsSeries {
   devalider: (exerciceId: string, numero: number) => Promise<boolean>
   ajouter: (exerciceId: string) => Promise<boolean>
   supprimer: (exerciceId: string) => Promise<boolean>
+  /** Après une validation réussie : repos saisi sur la ligne (s), null si aucun (minuteur de repos) */
+  surValidation?: (exerciceId: string, numero: number, reposSaisiSec: number | null) => void
+  /** Après une dé-validation réussie */
+  surDevalidation?: (exerciceId: string, numero: number) => void
 }
 
 // Tableau de séries de l'exercice actif : lignes pré-remplies, brouillons de saisie (conservés quand on
@@ -39,7 +45,9 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
   const courant = numeroCourant(lignesBrutes)
 
   const lignes: LigneAffichee[] = lignesBrutes.map((l) => {
-    const v = valeursLigne(l, brouillons[cle(l.numero)])
+    const b = brouillons[cle(l.numero)]
+    const v = valeursLigne(l, b)
+    const repos = reposLigne(l, b)
     return {
       numero: l.numero,
       libelle: l.libelle,
@@ -50,7 +58,9 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
       rpe: v.rpe,
       repsGrisees: !v.repsSaisies,
       chargeGrisee: !v.chargeSaisie,
-      repos: texteRepos(l.reposSec),
+      // Champ vidé par l'utilisateur : il reste vide (le repos appliqué redevient le prévu)
+      reposAffiche: b?.repos !== undefined ? b.repos : l.reposSec > 0 ? l.reposSec : null,
+      reposGrise: !repos.saisi,
     }
   })
 
@@ -87,7 +97,10 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
     if (!exercice || !ligne || ligne.terminee || enCours) return Promise.resolve(false)
     return exclusif(async () => {
       const ok = await actions.valider(exercice.id, mesuresLigne(ligne, brouillons[cle(numero)]), numero, ligne.cote)
-      if (ok) setBrouillons((b) => Object.fromEntries(Object.entries(b).filter(([k]) => k !== cle(numero))))
+      if (ok) {
+        actions.surValidation?.(exercice.id, numero, reposLigne(ligne, brouillons[cle(numero)]).override)
+        setBrouillons((b) => Object.fromEntries(Object.entries(b).filter(([k]) => k !== cle(numero))))
+      }
       return ok
     })
   }
@@ -98,7 +111,10 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
     if (!exercice || !ligne || !ligne.terminee || enCours) return Promise.resolve(false)
     return exclusif(async () => {
       const ok = await actions.devalider(exercice.id, numero)
-      if (ok) modifier(numero, { reps: ligne.reps, chargeKg: ligne.chargeKg, rpe: ligne.rpe })
+      if (ok) {
+        actions.surDevalidation?.(exercice.id, numero)
+        modifier(numero, { reps: ligne.reps, chargeKg: ligne.chargeKg, rpe: ligne.rpe })
+      }
       return ok
     })
   }
@@ -115,7 +131,12 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
     enDuree: exercice?.repsType === 'DURATION',
     enCours,
     setReps: (numero: number, reps: number | null) => modifier(numero, { reps }),
-    setCharge: (numero: number, chargeKg: number | null) => modifier(numero, { chargeKg }),
+    // La charge saisie se répercute sur les lignes suivantes non validées (comme Android)
+    setCharge: (numero: number, chargeKg: number | null) => {
+      modifier(numero, { chargeKg })
+      for (const p of propagerCharge(lignesBrutes, numero, chargeKg)) modifier(p.numero, { chargeKg: p.chargeKg })
+    },
+    setRepos: (numero: number, repos: number | null) => modifier(numero, { repos }),
     // Re-clic sur la valeur choisie : efface le RPE
     choisirRpe: (numero: number, valeur: number) => {
       const actuel = lignes.find((l) => l.numero === numero)?.rpe

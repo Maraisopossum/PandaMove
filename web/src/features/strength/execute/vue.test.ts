@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mapBloc, mapExerciceSeance, mapSerie } from '../../../core/db/repos/mappers'
-import { construireVue, formaterDuree, libelleDureeAccessible, reposRestant } from './vue'
+import { construireVue, formaterDuree, infoRepos, libelleDureeAccessible, reposRestant } from './vue'
 
 describe('formats de durée', () => {
   it('mm:ss sous une heure, h:mm:ss au-delà', () => {
@@ -249,5 +249,31 @@ describe('construireVue : informations de la barre d’exercices', () => {
       ['SUPERSET', true, ['DOS', 'BICEPS']],
       [null, false, []],
     ])
+  })
+})
+
+describe('infoRepos', () => {
+  it("donne la série qui a lancé le repos (clé « exercice#rang »), son instant et la durée du repos", () => {
+    const vue = construireVue(
+      [],
+      [mapExerciceSeance({ id: 'a', temps_repos_sec: 60 }), mapExerciceSeance({ id: 'b', temps_repos_sec: 120 })],
+      [
+        mapSerie({ is_completed: 1, id: '1', exercice_seance_id: 'a', numero_serie: 1, validated_at: '2026-10-24T10:00:00.000Z' }),
+        mapSerie({ is_completed: 1, id: '2', exercice_seance_id: 'b', numero_serie: 2, validated_at: '2026-10-24T10:01:00.000Z' }),
+      ],
+      new Map(),
+    )
+    expect(infoRepos(vue.exercices)).toEqual({ cle: 'b#2', debutMs: Date.parse('2026-10-24T10:01:00.000Z'), dureeSec: 120 })
+  })
+
+  it('null sans série validée ou pour un repos nul', () => {
+    expect(infoRepos([])).toBeNull()
+    const vue = construireVue(
+      [],
+      [mapExerciceSeance({ id: 'a', temps_repos_sec: 0 })],
+      [mapSerie({ is_completed: 1, id: '1', exercice_seance_id: 'a', numero_serie: 1, validated_at: '2026-10-24T10:00:00.000Z' })],
+      new Map(),
+    )
+    expect(infoRepos(vue.exercices)).toBeNull()
   })
 })

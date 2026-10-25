@@ -90,6 +90,24 @@ export interface Brouillon {
   reps?: number | null
   chargeKg?: number | null
   rpe?: number | null
+  // Repos saisi pour cette ligne (s) ; absent ou vide : repos prévu
+  repos?: number | null
+}
+
+// Repos d'une ligne : la saisie (arrondie à la seconde, jamais négative) remplace le prévu ; vide ou illisible : prévu.
+// `override` est la durée à imposer au repos qui suit la validation (null : celle de l'exercice).
+export function reposLigne(l: Pick<LigneSerie, 'reposSec'>, b: Brouillon | undefined): { sec: number; saisi: boolean; override: number | null } {
+  const v = b?.repos
+  if (v === undefined || v === null || !Number.isFinite(v)) return { sec: l.reposSec, saisi: false, override: null }
+  const sec = Math.max(0, Math.round(v))
+  return { sec, saisi: true, override: sec }
+}
+
+// Charge saisie sur la ligne `numero` : elle se répercute sur les lignes SUIVANTES non validées (applyBuffer Android).
+// Une charge vidée ne se propage pas.
+export function propagerCharge(lignes: LigneSerie[], numero: number, chargeKg: number | null): { numero: number; chargeKg: number }[] {
+  if (chargeKg === null || !Number.isFinite(chargeKg)) return []
+  return lignes.filter((l) => l.numero > numero && !l.terminee).map((l) => ({ numero: l.numero, chargeKg }))
 }
 
 // Valeurs d'une ligne : la saisie en cours prime sur le prévu. Un champ reps vide donne NaN (refusé
