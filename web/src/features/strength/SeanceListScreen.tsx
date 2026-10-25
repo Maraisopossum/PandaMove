@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { lireGroupes } from './catalog/filtreCatalogue'
 import { libelleMuscle } from './catalog/libelles'
 import { AssignDialog } from './AssignDialog'
+import { LancerDialog } from './LancerDialog'
 import { SupprimerDialog } from './SupprimerDialog'
 import { useListeSeancesEcran } from './useListeSeancesEcran'
 
@@ -11,6 +12,7 @@ export default function SeanceListScreen() {
   const l = useListeSeancesEcran()
   const a = l.affectation
   const d = l.suppression
+  const m = l.lancement
 
   return (
     <>
@@ -51,12 +53,12 @@ export default function SeanceListScreen() {
             const nb = l.nbExercices[s.id] ?? 0
             return (
               <li key={s.id} className="seance__carte">
-                <div className="seance__texte">
-                  <h2 className="seance__nom">{s.nom}</h2>
-                  <p className="seance__details">
+                <button type="button" className="seance__texte seance__lancer" aria-label={`Lancer ${s.nom} maintenant`} onClick={() => m.ouvrir(s)}>
+                  <span className="seance__nom">{s.nom}</span>
+                  <span className="seance__details">
                     {muscles || 'Aucun muscle'} · {s.dureeEstimeeMin} min · {nb} exercice{nb > 1 ? 's' : ''}
-                  </p>
-                </div>
+                  </span>
+                </button>
                 <div className="seance__actions">
                   <button type="button" className="bouton" aria-label="Affecter à une date" onClick={() => a.ouvrir(s)}>
                     <span aria-hidden="true">📅</span>
@@ -86,6 +88,16 @@ export default function SeanceListScreen() {
           onDate={a.setDate}
           onConfirmer={() => void a.confirmer()}
           onFermer={a.fermer}
+        />
+      )}
+
+      {m.cible && (
+        <LancerDialog
+          nomSeance={m.cible.nom}
+          erreur={m.erreur}
+          enCours={m.enCours}
+          onConfirmer={() => void m.confirmer()}
+          onFermer={m.fermer}
         />
       )}
 

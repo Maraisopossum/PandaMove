@@ -479,6 +479,29 @@ h1 {
   font-size: 0.875rem;
 }
 
+.seance__lancer {
+  display: block;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.seance__lancer .seance__nom,
+.seance__lancer .seance__details {
+  display: block;
+}
+
+.seance__lancer:focus-visible {
+  outline: 2px solid currentcolor;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
 .seance__actions {
   display: flex;
   flex-wrap: wrap;

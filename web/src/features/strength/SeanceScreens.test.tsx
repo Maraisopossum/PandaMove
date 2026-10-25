@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { inserer } from '../../test/fixtures'
@@ -10,6 +10,7 @@ vi.mock('../../core/db/client', () => ({ getDb: () => base }))
 
 import SeanceEditScreen from './SeanceEditScreen'
 import SeanceListScreen from './SeanceListScreen'
+import { aujourdhuiIso } from './saisie'
 
 afterEach(() => {
   cleanup()
@@ -43,6 +44,7 @@ function monter(chemin: string) {
         <Route path="/strength" element={<SeanceListScreen />} />
         <Route path="/strength/new" element={<SeanceEditScreen />} />
         <Route path="/strength/:id/edit" element={<SeanceEditScreen />} />
+        <Route path="/strength/instance/:id" element={<p>Écran exécution</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -294,5 +296,71 @@ describe('Suppression depuis la liste', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
     expect((await screen.findByRole('alert')).textContent).toBe('Séance introuvable.')
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+
+describe('Lancer une séance type maintenant', () => {
+  const instancesDe = (seanceId: string) =>
+    base.getAll<{ id: string; date: string; started_at: string | null; is_completed: number }>(
+      'SELECT id, date, started_at, is_completed FROM instances_seance WHERE seance_id = ? AND deleted_at IS NULL ORDER BY id',
+      [seanceId],
+    )
+
+  it('la zone principale est un vrai bouton ; « Modifier » reste un lien distinct', async () => {
+    await seance('l1', 'Dos express')
+    monter('/strength')
+    const lancer = await screen.findByRole('button', { name: 'Lancer Dos express maintenant' })
+    expect(lancer.tagName).toBe('BUTTON')
+    const carte = lancer.closest('li') as HTMLElement
+    expect(carte.querySelector('a[href="/strength/l1/edit"]')).not.toBeNull()
+  })
+
+  it("confirmation (focus sur « Lancer »), Annuler ne crée rien ; Lancer crée l'instance du jour, la démarre et ouvre l'exécution", async () => {
+    await seance('l2', 'Bras')
+    monter('/strength')
+    const declencheur = await screen.findByRole('button', { name: 'Lancer Bras maintenant' })
+    declencheur.focus()
+    fireEvent.click(declencheur)
+    const dialogue = await screen.findByRole('dialog', { name: 'Lancer « Bras » maintenant ?' })
+    expect(dialogue.getAttribute('aria-modal')).toBe('true')
+    expect(dialogue.className).toBe('dialogue')
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Lancer' })))
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(declencheur)
+    expect(await instancesDe('l2')).toEqual([])
+
+    fireEvent.click(declencheur)
+    fireEvent.click(await screen.findByRole('button', { name: 'Lancer' }))
+    expect(await screen.findByText('Écran exécution')).toBeTruthy()
+    const lignes = await instancesDe('l2')
+    expect(lignes).toHaveLength(1)
+    expect(lignes[0]).toMatchObject({ date: aujourdhuiIso(), is_completed: 0 })
+    expect(lignes[0].started_at).not.toBeNull()
+  })
+
+  it("une instance non terminée du même modèle prévue aujourd'hui est reprise (pas de seconde instance)", async () => {
+    await seance('l3', 'Jambes')
+    await inserer(base, 'instances_seance', {
+      id: 'l3-prevue', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 'l3', date: aujourdhuiIso(), is_completed: 0,
+    })
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Lancer Jambes maintenant' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Lancer' }))
+    expect(await screen.findByText('Écran exécution')).toBeTruthy()
+    const lignes = await instancesDe('l3')
+    expect(lignes.map((l) => l.id)).toEqual(['l3-prevue'])
+    expect(lignes[0].started_at).not.toBeNull()
+  })
+
+  it('erreur (séance disparue) : message français dans le dialogue, qui reste ouvert', async () => {
+    await seance('l4', 'Disparue')
+    monter('/strength')
+    fireEvent.click(await screen.findByRole('button', { name: 'Lancer Disparue maintenant' }))
+    await screen.findByRole('dialog')
+    await base.execute("UPDATE seances SET deleted_at = 'x' WHERE id = 'l4'")
+    fireEvent.click(screen.getByRole('button', { name: 'Lancer' }))
+    expect((await within(screen.getByRole('dialog')).findByRole('alert')).textContent).toBe('Séance introuvable.')
+    expect(await instancesDe('l4')).toEqual([])
   })
 })

@@ -3,7 +3,7 @@ import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
 import { listSeanceTemplates } from '../../core/db/repos/seances'
 import type { Seance } from '../../core/db/types'
-import { archiverSeance, assignerSeance, ErreurSeance } from './affectation'
+import { archiverSeance, assignerSeance, ErreurSeance, lancerSeanceMaintenant } from './affectation'
 import { compterHistorique, supprimerSeance, type Historique, type ModeSuppression } from './suppression'
 
 export interface DepsListeSeances {
@@ -83,6 +83,9 @@ export function useSeanceList({ db }: DepsListeSeances = {}) {
     [db, recharger],
   )
 
+  // Crée (ou reprend) l'instance du jour et la démarre ; renvoie son id (voir lancerSeanceMaintenant).
+  const lancer = useCallback((seanceId: string) => lancerSeanceMaintenant(db ?? getDb(), seanceId, new Date()), [db])
+
   // Effectifs de l'historique pour le dialogue de suppression ; null (et message) en cas d'échec.
   const compter = useCallback(
     async (seanceId: string): Promise<Historique | null> => {
@@ -120,7 +123,7 @@ export function useSeanceList({ db }: DepsListeSeances = {}) {
   )
 
   return {
-    seances: donnees.seances, nbExercices: donnees.nbExercices, charge, erreur, archiver, assigner,
+    seances: donnees.seances, nbExercices: donnees.nbExercices, charge, erreur, archiver, assigner, lancer,
     compterHistorique: compter, supprimer,
   }
 }
