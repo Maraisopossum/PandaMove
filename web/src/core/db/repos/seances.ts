@@ -47,3 +47,9 @@ export async function lireNomSeance(db: DbLecture, seanceId: string): Promise<st
   const ligne = await db.getOptional<{ nom: string }>('SELECT nom FROM seances WHERE id = ?', [seanceId])
   return ligne ? ligne.nom : null
 }
+
+// Nom et notes d'une séance, même supprimée logiquement (entête du rapport) ; null si elle n'a jamais existé.
+export async function lireSeanceResume(db: DbLecture, seanceId: string): Promise<{ nom: string; notes: string } | null> {
+  const ligne = await db.getOptional<{ nom: string; notes: string | null }>('SELECT nom, notes FROM seances WHERE id = ?', [seanceId])
+  return ligne ? { nom: ligne.nom, notes: ligne.notes ?? '' } : null
+}

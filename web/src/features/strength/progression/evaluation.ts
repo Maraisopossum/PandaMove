@@ -2,7 +2,7 @@ import type { DbLecture, DbTx } from '../../../core/db/Db'
 import { enregistrerProgression, getInstance } from '../../../core/db/repos/instances'
 import { getObjectif, saveObjectif } from '../../../core/db/repos/objectifs'
 import { getSeanceTree } from '../../../core/db/repos/seances'
-import { listSeries } from '../../../core/db/repos/series'
+import { changerSeriesPrevues, listSeries } from '../../../core/db/repos/series'
 import { getSettings } from '../../../core/db/repos/settings'
 import { lireEquipementStocke } from '../../../core/import/equipment'
 import { evaluerExercice, requiresValidation, type PropositionProgression } from '../../../core/progression/engine'
@@ -24,6 +24,8 @@ export interface EvaluationExercice {
   proposition: PropositionProgression
   /** requiresValidation(proposition) — jamais déduit du statut seul */
   aValider: boolean
+  /** Charges composables avec « Mon matériel » (indice « Arrondir » du récap) ; vide si rien n'est déclaré */
+  chargesAtteignables: number[]
   ctx: ContexteDecision
 }
 
@@ -52,6 +54,7 @@ export async function evaluerInstance(db: DbLecture, instanceId: string, userId?
     const objectif = await getObjectif(db, instance.seanceId, es.exerciseId)
     const cible = cibleDepuis(objectif, es)
     const equipement = fiches.get(es.exerciseId)?.equipement ?? []
+    const chargesAtteignables = chargesAtteignablesExercice(equipement, inventaire)
     const proposition = evaluerExercice(
       es,
       cible,
@@ -59,13 +62,14 @@ export async function evaluerInstance(db: DbLecture, instanceId: string, userId?
       series.filter((s) => s.exerciceSeanceId === es.id && s.isCompleted),
       es.isBilateral,
       pasMaterielExercice(equipement, stocke.pasParCategorie),
-      chargesAtteignablesExercice(equipement, inventaire),
+      chargesAtteignables,
     )
     resultats.push({
       exerciceId: es.id,
       nom: fiches.get(es.exerciseId)?.nom ?? 'Exercice inconnu',
       proposition,
       aValider: requiresValidation(proposition),
+      chargesAtteignables: chargesAtteignables ?? [],
       ctx: { seanceId: instance.seanceId, exerciseId: es.exerciseId, cible },
     })
   }
@@ -124,6 +128,11 @@ export async function appliquerDecision(
   const iso = new Date(maintenantMs).toISOString()
   const existant = await getObjectif(tx, e.ctx.seanceId, e.ctx.exerciseId)
   await saveObjectif(tx, objectifApresDecision(decision, e.proposition, existant, e.ctx, dateLocale(maintenantMs)), iso)
+  // « +1 série » (poids de corps au plafond) : comme validerPropositions Android, Oui et Ajuster écrivent aussi le
+  // nombre de séries prévues de la ligne d'exercice de l'instance (appliquerNouveauNombreSeries). Non n'y touche pas.
+  if (decision.type !== 'refuser' && e.proposition.nouveauNombreSeries !== null) {
+    await changerSeriesPrevues(tx, instanceId, e.exerciceId, e.proposition.nouveauNombreSeries, iso)
+  }
   const etat = enregistrerDecision(instance.progression, e.exerciceId, ENREGISTREE[decision.type])
   await enregistrerProgression(tx, instanceId, serialiserProgression(etat), iso)
   return { dejaDecidee: null }

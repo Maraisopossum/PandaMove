@@ -114,9 +114,9 @@ describe('useReport : résumé', () => {
     expect(r.result.current.erreur).toBeNull()
     expect(r.result.current.terminee).toBe(true)
     expect(r.result.current.resume).toEqual({ tonnageKg: 1100, seriesTotal: 3, dureeSec: 2730 })
-    expect(r.result.current.exercices).toEqual([
-      { exerciceId: 'e1', nom: 'Développé couché', seriesPrevues: 3, seriesRealisees: 2, statut: 'partiel' },
-      { exerciceId: 'e2', nom: 'Gainage planche', seriesPrevues: 2, seriesRealisees: 1, statut: 'partiel' },
+    expect(r.result.current.exercices).toMatchObject([
+      { exerciceId: 'e1', nom: 'Développé couché', seriesPrevues: 3, seriesRealisees: 2, seriesSaisies: 3, statut: 'partiel' },
+      { exerciceId: 'e2', nom: 'Gainage planche', seriesPrevues: 2, seriesRealisees: 1, seriesSaisies: 1, statut: 'partiel' },
     ])
     // Aucun exercice en progression : aucune proposition, aucune écriture
     expect(r.result.current.propositions).toEqual([])
@@ -355,5 +355,127 @@ describe('useReport : propositions', () => {
     expect(p).toMatchObject({ aValider: true, actionnable: false, etat: 'en_attente' })
     await act(() => r.result.current.accepter('e1'))
     expect(await objectifs()).toEqual([])
+  })
+})
+
+describe('useReport : contenu du rapport', () => {
+  it('date, notes, blocs et lignes de séries (non validées comprises) dans l’ordre d’exécution', async () => {
+    await db.execute("UPDATE seances SET notes = 'Pecs et dos' WHERE id = 's1'")
+    await db.execute("UPDATE instances_seance SET notes = 'Bonne forme' WHERE id = 'i1'")
+    await inserer(db, 'blocs_seance', {
+      ...commun, id: 'b1', seance_id: 's1', instance_seance_id: 'i1', nom: 'Pecs', type: 'SUPERSET', position: 1,
+      temps_repos_inter_sec: 20, temps_repos_fin_round_sec: 90, description: '',
+    })
+    await exercice('e1', { exercise_id: 'x1', position: 0 })
+    await exercice('e3', { exercise_id: 'x3', position: 0, bloc_id: 'b1' })
+    await series('e1', [[8, 60]])
+    await series('e3', [[10, null], [6, 40, false]])
+    const r = await monter()
+    expect(r.result.current.date).toBe('2026-10-24')
+    expect(r.result.current.notesSeance).toBe('Pecs et dos')
+    expect(r.result.current.notesInstance).toBe('Bonne forme')
+    expect(r.result.current.groupes.map((g) => [g.titre, g.exercices.map((e) => e.nom)])).toEqual([
+      [null, ['Développé couché']],
+      ['Superset — Pecs · repos entre exercices 20 s, fin de tour 1 min 30 s', ['Rowing barre']],
+    ])
+    const rowing = r.result.current.groupes[1].exercices[0]
+    expect(rowing.cible).toBe('3 × 8 reps à 60 kg')
+    expect(rowing.lignes.map((l) => [l.reps, l.charge, l.realisee])).toEqual([['10', 'PDC', true], ['6', '40 kg', false]])
+    expect(rowing).toMatchObject({ seriesRealisees: 1, seriesSaisies: 2 })
+  })
+})
+
+describe('useReport : validation en lot (récap Android : Oui / Non / Ajuster puis Valider)', () => {
+  async function deuxProgressions() {
+    await exercice('e1', { exercise_id: 'x1', progression_activee: 1, position: 0 })
+    await exercice('e3', { exercise_id: 'x3', progression_activee: 1, position: 1 })
+    await series('e1', [[8, 60], [8, 60], [8, 60]])
+    await series('e3', [[8, 60], [8, 60], [8, 60]])
+    return monter()
+  }
+
+  it('applique chaque choix (Oui, Ajuster) en une fois et renvoie true', async () => {
+    const r = await deuxProgressions()
+    let ok = false
+    await act(async () => {
+      ok = await r.result.current.valider([
+        { exerciceId: 'e1', choix: 'oui', chargeKg: null },
+        { exerciceId: 'e3', choix: 'ajuster', chargeKg: 61 },
+      ])
+    })
+    expect(ok).toBe(true)
+    expect(propositionDe(r, 'e1')?.etat).toBe('acceptee')
+    expect(propositionDe(r, 'e3')?.etat).toBe('ajustee')
+    expect((await objectifs()).map((o) => [o.exercise_id, o.charge_cible])).toEqual([['x1', 62.5], ['x3', 61]])
+    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'acceptee', e3: 'ajustee' } })
+  })
+
+  it('un ajustement invalide bloque TOUT le lot : rien n’est écrit, message qui nomme l’exercice', async () => {
+    const r = await deuxProgressions()
+    let ok = true
+    await act(async () => {
+      ok = await r.result.current.valider([
+        { exerciceId: 'e1', choix: 'oui', chargeKg: null },
+        { exerciceId: 'e3', choix: 'ajuster', chargeKg: Number.NaN },
+      ])
+    })
+    expect(ok).toBe(false)
+    expect(r.result.current.erreur).toBe('Rowing barre : la charge doit être un nombre de kg strictement positif.')
+    expect(await objectifs()).toEqual([])
+    expect(propositionDe(r, 'e1')?.etat).toBe('en_attente')
+  })
+
+  it('« Non, garder » dans le lot ne change pas la cible ; une ligne absente du lot reste en attente', async () => {
+    const r = await deuxProgressions()
+    await act(async () => {
+      await r.result.current.valider([{ exerciceId: 'e1', choix: 'non', chargeKg: null }])
+    })
+    expect(propositionDe(r, 'e1')?.etat).toBe('refusee')
+    expect(propositionDe(r, 'e3')?.etat).toBe('en_attente')
+  })
+})
+
+describe('useReport : « +1 série » (poids de corps au plafond de reps)', () => {
+  async function pdcAuPlafond() {
+    await exercice('e1', {
+      exercise_id: 'x2', progression_activee: 1, systeme_progression: 'DOUBLE', reps_min: 8, reps_max: 12,
+      is_bodyweight: 1, reps_cibles: '12', charge_cible: '', nombre_series_prevues: 3,
+    })
+    // Le modèle de la séance porte aussi l'exercice (isolation : il ne doit pas bouger)
+    await inserer(db, 'exercices_seance', {
+      ...commun, id: 'modele-e1', seance_id: 's1', instance_seance_id: null, bloc_id: null, position: 0, nombre_series_prevues: 3,
+      reps_cibles: '12', charge_cible: '', reps_type: 'REPS', temps_repos_sec: 90, exercise_id: 'x2', progression_activee: 1,
+    })
+    await objectifStocke('x2', { charge_cible: null, reps_cible: 12 })
+    await series('e1', [[12, null], [12, null], [12, null]])
+    return monter()
+  }
+  const prevues = (id: string) => db.get<{ n: number }>('SELECT nombre_series_prevues AS n FROM exercices_seance WHERE id = ?', [id])
+
+  it('Oui : le nombre de séries prévues de la ligne d’instance passe à 4 (comme l’Android), le modèle reste intact', async () => {
+    const r = await pdcAuPlafond()
+    expect(propositionDe(r, 'e1')?.proposition?.nouveauNombreSeries).toBe(4)
+    await act(() => r.result.current.accepter('e1'))
+    expect((await prevues('e1')).n).toBe(4)
+    expect((await prevues('modele-e1')).n).toBe(3)
+    expect((await objectifs())[0]).toMatchObject({ nombre_series_cible: 4, reps_cible: 8 })
+  })
+
+  it('Non : le nombre de séries ne change pas', async () => {
+    const r = await pdcAuPlafond()
+    await act(() => r.result.current.refuser('e1'))
+    expect((await prevues('e1')).n).toBe(3)
+  })
+})
+
+describe('useReport : aide à l’ajustement', () => {
+  it('expose les charges composables avec « Mon matériel » pour l’indice « Arrondir »', async () => {
+    await materiel({ barre: { barreKg: 20, disques: { '10': 2, '5': 2, '2.5': 2 } }, selectedCategories: ['BARRE'], pasParCategorie: {} })
+    await exercice('e1', { exercise_id: 'x1', progression_activee: 1 })
+    await series('e1', [[8, 60], [8, 60], [8, 60]])
+    const r = await monter()
+    const charges = propositionDe(r, 'e1')?.chargesAtteignables ?? []
+    expect(charges.length).toBeGreaterThan(3)
+    expect(charges).toContain(55)
   })
 })
