@@ -22,6 +22,8 @@ interface AvecUuid {
 
 export type SeanceExport = z.input<typeof SeanceDtoSchema> & AvecUuid & {
   isArchived: boolean
+  /** Non nul pour une séance supprimée dont l'historique (séances jouées) est gardé. */
+  deletedAt: string | null
 }
 export type BlocExport = z.input<typeof BlocDtoSchema> & AvecUuid
 export type ExerciceExport = z.input<typeof ExerciceDtoSchema> & AvecUuid
@@ -40,6 +42,8 @@ export type SerieExport = z.input<typeof SerieDtoSchema> & AvecUuid & {
 export type CustomExerciseExport = z.input<typeof CustomExerciseDtoSchema> & AvecUuid & {
   isFavorite: boolean
   isBodyweight: boolean
+  /** Non nul pour un exercice supprimé encore référencé par une séance exportée. */
+  deletedAt: string | null
 }
 export type ObjectifExport = z.input<typeof ObjectifProgressionDtoSchema> & AvecUuid & {
   nombreSeriesCible: number | null
@@ -68,6 +72,8 @@ interface SessionsVides {
 export interface PandaMoveExport {
   version: '3.2'
   exportDate: string
+  /** Compte qui a produit le fichier : l'import ne reprend les `uuid` comme ids que pour ce compte. */
+  webUserId?: string
   strengthTemplates: StrengthTemplateExport[]
   strengthSessions: { completed: StrengthSessionExport[]; planned: StrengthSessionExport[] }
   runTemplates: never[]

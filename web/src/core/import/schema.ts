@@ -19,6 +19,12 @@ export class ImportError extends Error {
 const entier = z.number().int()
 const listeTextes = z.array(z.string()).default([])
 
+// Champs additionnels d'une sauvegarde web (core/export) : absents des fichiers Android, donc tous
+// facultatifs. `uuid` = id d'origine de la ligne ; il n'est utilisé comme id que pour un fichier du
+// même compte (voir plan.ts). Les autres champs portent ce que le format Android ne sait pas porter.
+const uuid = z.string().min(1).optional()
+const texteWeb = z.string().nullable().optional()
+
 // ── Renforcement ───────────────────────────────────────────────────────────────
 
 export const SeanceDtoSchema = z.object({
@@ -30,6 +36,9 @@ export const SeanceDtoSchema = z.object({
   seanceCategory: z.string().default('STRENGTH'),
   createdAt: z.string().default(''),
   updatedAt: z.string().default(''),
+  uuid,
+  isArchived: z.boolean().optional(),
+  deletedAt: texteWeb,
 })
 
 export const BlocDtoSchema = z.object({
@@ -43,6 +52,7 @@ export const BlocDtoSchema = z.object({
   tempsReposInterSec: entier.default(20),
   tempsReposFinRoundSec: entier.default(120),
   instanceSeanceId: entier.nullable().default(null),
+  uuid,
 })
 
 export const ExerciceDtoSchema = z.object({
@@ -76,6 +86,7 @@ export const ExerciceDtoSchema = z.object({
   incrementPct: z.number().nullable().default(null),
   // Poids de corps (ajouté v3.3)
   isBodyweight: z.boolean().default(false),
+  uuid,
 })
 
 export const InstanceDtoSchema = z.object({
@@ -87,6 +98,10 @@ export const InstanceDtoSchema = z.object({
   completedAt: z.string().nullable().default(null),
   durationSeconds: entier.default(0),
   createdAt: z.string().default(''),
+  uuid,
+  startedAt: texteWeb,
+  pausedJson: texteWeb,
+  progressionJson: texteWeb,
 })
 
 export const SerieDtoSchema = z.object({
@@ -100,6 +115,9 @@ export const SerieDtoSchema = z.object({
   rpe: z.number().nullable().default(null),
   notes: z.string().default(''),
   isCompleted: z.boolean().default(false),
+  uuid,
+  validatedAt: texteWeb,
+  updatedAt: texteWeb,
 })
 
 export const StrengthTemplateDtoSchema = z.object({
@@ -131,6 +149,10 @@ export const CustomExerciseDtoSchema = z.object({
   exerciseType: z.string().default(''),
   equipment: listeTextes,
   musclePrimary: z.string().default(''),
+  uuid,
+  isFavorite: z.boolean().optional(),
+  isBodyweight: z.boolean().optional(),
+  deletedAt: texteWeb,
 })
 
 export const ObjectifProgressionDtoSchema = z.object({
@@ -143,6 +165,8 @@ export const ObjectifProgressionDtoSchema = z.object({
   dureeCibleSec: entier.nullable().default(null),
   compteurEchec: entier.default(0),
   derniereMaj: z.string().nullable().default(null),
+  uuid,
+  nombreSeriesCible: entier.nullable().optional(),
 })
 
 // ── Inventaire matériel ─────────────────────────────────────────────────────────
@@ -201,6 +225,8 @@ const sessionsIgnorees = z
 export const PandaMoveExportSchema = z.object({
   version: z.string().default('3.0'),
   exportDate: z.string().default(''),
+  // Sauvegarde web : compte qui a produit le fichier (les `uuid` ne servent d'id que pour ce compte)
+  webUserId: z.string().optional(),
   strengthTemplates: z.array(StrengthTemplateDtoSchema).default([]),
   strengthSessions: StrengthSessionsDtoSchema.default({ completed: [], planned: [] }),
   runTemplates: sectionIgnoree,

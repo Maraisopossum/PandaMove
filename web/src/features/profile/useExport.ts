@@ -9,6 +9,8 @@ export type StatutExport = 'repos' | 'generation' | 'termine' | 'erreur'
 export interface DepsExport {
   /** Base à lire (défaut : base de l'application, résolue à l'usage). */
   db?: DbLecture
+  /** Compte connecté : écrit dans le fichier (webUserId) pour qu'un réimport dans ce compte soit exact. */
+  userId?: string
   /** Remise du fichier au navigateur (défaut : téléchargement Blob + <a download>). */
   telecharger?: (nom: string, contenu: string) => void
   /** Horloge (défaut : maintenant) : date le fichier et son nom. */
@@ -18,7 +20,7 @@ export interface DepsExport {
 export const ERREUR_EXPORT = "L'export a échoué : aucun fichier n'a été créé. Réessayez."
 
 // Sauvegarde : génère l'export JSON v3.2 de la base locale et le télécharge. Un seul export à la fois.
-export function useExport({ db, telecharger = telechargerJson, maintenant = () => new Date() }: DepsExport = {}) {
+export function useExport({ db, userId, telecharger = telechargerJson, maintenant = () => new Date() }: DepsExport = {}) {
   const [statut, setStatut] = useState<StatutExport>('repos')
   const [nomFichier, setNomFichier] = useState<string | null>(null)
   const enCoursRef = useRef(false)
@@ -29,7 +31,7 @@ export function useExport({ db, telecharger = telechargerJson, maintenant = () =
     setStatut('generation')
     try {
       const date = maintenant()
-      const contenu = JSON.stringify(await construireExport(db ?? getDb(), date), null, 2)
+      const contenu = JSON.stringify(await construireExport(db ?? getDb(), date, userId), null, 2)
       const nom = nomFichierExport(date)
       telecharger(nom, contenu)
       setNomFichier(nom)
@@ -40,7 +42,7 @@ export function useExport({ db, telecharger = telechargerJson, maintenant = () =
     } finally {
       enCoursRef.current = false
     }
-  }, [db, telecharger, maintenant])
+  }, [db, userId, telecharger, maintenant])
 
   const message =
     statut === 'generation'

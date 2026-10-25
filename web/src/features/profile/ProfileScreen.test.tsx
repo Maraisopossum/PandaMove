@@ -39,6 +39,7 @@ describe('ProfileScreen — sauvegarde', () => {
     afficher()
     expect(screen.getByRole('heading', { name: 'Sauvegarde' })).toBeTruthy()
     expect(screen.getByText(/hors des services tiers/)).toBeTruthy()
+    expect(screen.getByText(/sans doublon/)).toBeTruthy()
     const bouton = screen.getByRole('button', { name: 'Exporter mes données' })
     expect(bouton.className).toContain('bouton') // .bouton : cible tactile 44 px
     expect(screen.getByRole('status').textContent).toBe('')
@@ -48,7 +49,9 @@ describe('ProfileScreen — sauvegarde', () => {
     afficher()
     fireEvent.click(screen.getByRole('button', { name: 'Exporter mes données' }))
     await waitFor(() => expect(telecharger).toHaveBeenCalledTimes(1))
-    const [nom] = telecharger.mock.calls[0] as [string, string]
+    const [nom, contenu] = telecharger.mock.calls[0] as [string, string]
+    // Le fichier porte le compte exportateur : réimporté dans ce compte, il met à jour sans doublon
+    expect(JSON.parse(contenu).webUserId).toBe('11111111-1111-4111-8111-111111111111')
     expect(nom).toMatch(/^pandamove-export-\d{4}-\d{2}-\d{2}\.json$/)
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain(nom))
     expect((screen.getByRole('button', { name: 'Exporter mes données' }) as HTMLButtonElement).disabled).toBe(false)

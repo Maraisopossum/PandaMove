@@ -315,14 +315,47 @@ describe('construireExport', () => {
     expect(exp.objectifsProgression).toHaveLength(1)
   })
 
-  it("séance supprimée mais historique gardé : l'instance reste dans le fichier, l'import la signale", async () => {
+  it("séance supprimée avec historique gardé : exportée archivée, sans blocs, et ses séances jouées restent importables", async () => {
     const web = await ajouterDonneesWeb(db)
     await db.execute("UPDATE seances SET deleted_at = '2026-10-22T10:00:00.000Z' WHERE id = ?", [web.seance])
+    await db.execute("UPDATE blocs_seance SET deleted_at = '2026-10-22T10:00:00.000Z' WHERE instance_seance_id IS NULL")
+    await db.execute("UPDATE exercices_seance SET deleted_at = '2026-10-22T10:00:00.000Z' WHERE instance_seance_id IS NULL")
     const exp = await construireExport(db, MAINTENANT)
-    expect(exp.strengthTemplates).toEqual([])
+    expect(exp.strengthTemplates).toHaveLength(1)
+    expect(exp.strengthTemplates[0]).toMatchObject({
+      seance: { uuid: web.seance, nom: 'Jambes web', isArchived: true, deletedAt: '2026-10-22T10:00:00.000Z' },
+      blocs: [],
+      exercices: [],
+    })
     expect(exp.strengthSessions.completed).toHaveLength(1)
+
     const plan = buildImportPlan(JSON.parse(JSON.stringify(exp)), AUTRE, { now: NOW })
-    expect(plan.report.ignores.some((m) => m.includes("séance d'origine absente"))).toBe(true)
+    expect(plan.report.ignores).toEqual([])
+    expect(verifierIntegrite(plan)).toEqual([])
+    const cible = createTestDb()
+    await applyImportPlan(cible, plan)
+    // La séance revient comme suppression logique (nom lisible), l'historique est intact
+    const seance = await cible.get<{ nom: string; deleted_at: string | null; is_archived: number }>('SELECT * FROM seances')
+    expect(seance).toMatchObject({ nom: 'Jambes web', deleted_at: '2026-10-22T10:00:00.000Z', is_archived: 1 })
+    expect((await compterVivantes(cible)).instances_seance).toBe(1)
+    expect((await compterVivantes(cible)).series_realisees).toBe(2)
+  })
+
+  it('exercice supprimé encore référencé : exporté avec deletedAt, non recréé en fiche minimale', async () => {
+    const web = await ajouterDonneesWeb(db)
+    await db.execute("UPDATE exercises SET deleted_at = '2026-10-22T10:00:00.000Z' WHERE id = ?", [web.ex])
+    const exp = await construireExport(db, MAINTENANT)
+    expect(exp.customExercises).toEqual([
+      expect.objectContaining({ uuid: web.ex, name: 'Fente bulgare', deletedAt: '2026-10-22T10:00:00.000Z' }),
+    ])
+    const plan = buildImportPlan(JSON.parse(JSON.stringify(exp)), AUTRE, { now: NOW })
+    expect(plan.report.exercisesCrees).toBe(0)
+    expect(plan.rows.exercises[0].deleted_at).toBe('2026-10-22T10:00:00.000Z')
+  })
+
+  it('porte le compte exportateur (webUserId) quand il est connu', async () => {
+    expect((await construireExport(db, MAINTENANT, USER)).webUserId).toBe(USER)
+    expect('webUserId' in (await construireExport(db, MAINTENANT))).toBe(false)
   })
 
   it('stable : deux exports successifs donnent les mêmes ids (réimports successifs sans mélange)', async () => {
@@ -340,5 +373,84 @@ describe('construireExport', () => {
     const apres1 = await compterVivantes(cible)
     await importer(cible, json, AUTRE)
     expect(await compterVivantes(cible)).toEqual(apres1)
+  })
+})
+
+// Instantané complet d'une base (toutes les colonnes, tombstones compris), hors updated_at ; les
+// horodatages sont comparés en instants (le format peut changer, pas l'instant).
+const HORODATAGES = ['created_at', 'completed_at', 'started_at', 'validated_at', 'deleted_at']
+async function instantane(base: Db) {
+  const out: Record<string, unknown> = {}
+  for (const t of TABLES) {
+    out[t] = (await base.getAll<L>(`SELECT * FROM ${t} ORDER BY id`)).map((ligne) => {
+      const copie: L = { ...ligne }
+      delete copie.updated_at
+      for (const h of HORODATAGES) if (h in copie) copie[h] = instant(copie[h])
+      return copie
+    })
+  }
+  const reglages = await base.getOptional<{ equipment_json: string }>('SELECT equipment_json FROM user_settings')
+  out.materiel = reglages ? JSON.parse(reglages.equipment_json) : null
+  return out
+}
+
+describe('réimport d’une sauvegarde web', () => {
+  async function scenario() {
+    await importer(db, exportV32)
+    const web = await ajouterDonneesWeb(db)
+    return web
+  }
+  const fichier = async (user?: string) => JSON.parse(JSON.stringify(await construireExport(db, MAINTENANT, user))) as unknown
+
+  it('dans le même compte : mise à jour exacte, aucun doublon, valeurs inchangées', async () => {
+    await scenario()
+    const avant = await instantane(db)
+    const plan = buildImportPlan(await fichier(USER), USER, { now: NOW })
+    expect(plan.report.ignores).toEqual([])
+    await applyImportPlan(db, plan)
+    expect(await instantane(db)).toEqual(avant)
+  })
+
+  it('dans le même compte après une suppression par erreur : la séance revient, rien n’est dupliqué', async () => {
+    const web = await scenario()
+    const json = await fichier(USER)
+    const avant = await instantane(db)
+    await db.execute("UPDATE seances SET deleted_at = '2026-10-26T10:00:00.000Z' WHERE id = ?", [web.seance])
+    await applyImportPlan(db, buildImportPlan(json, USER, { now: NOW }))
+    expect(await instantane(db)).toEqual(avant)
+  })
+
+  it('dans le même compte, séance supprimée avec historique : aucun doublon', async () => {
+    const web = await scenario()
+    await db.execute("UPDATE seances SET deleted_at = '2026-10-22T10:00:00.000Z' WHERE id = ?", [web.seance])
+    const avant = await compterVivantes(db)
+    const total = async () => (await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM exercices_seance')).n
+    const totalAvant = await total()
+    await applyImportPlan(db, buildImportPlan(await fichier(USER), USER, { now: NOW }))
+    expect(await compterVivantes(db)).toEqual(avant)
+    expect(await total()).toBe(totalAvant)
+  })
+
+  it('dans un compte vide (même utilisateur, appareil effacé) : base identique', async () => {
+    await scenario()
+    const avant = await instantane(db)
+    const cible = createTestDb()
+    await applyImportPlan(cible, buildImportPlan(await fichier(USER), USER, { now: NOW }))
+    expect(await instantane(cible)).toEqual(avant)
+  })
+
+  it('fichier d’un autre compte : les uuid ne sont pas repris (ids propres au compte importateur)', async () => {
+    const web = await scenario()
+    const plan = buildImportPlan(await fichier(USER), AUTRE, { now: NOW })
+    const ids = new Set(Object.values(plan.rows).flat().map((l) => l.id))
+    expect(ids.has(web.seance)).toBe(false)
+    expect(ids.has(web.instance)).toBe(false)
+    expect(ids.has(web.ex)).toBe(false)
+  })
+
+  it('fichier web sans webUserId : traité comme un fichier étranger (uuid ignorés)', async () => {
+    const web = await scenario()
+    const plan = buildImportPlan(await fichier(), USER, { now: NOW })
+    expect(plan.rows.seances.some((l) => l.id === web.seance)).toBe(false)
   })
 })

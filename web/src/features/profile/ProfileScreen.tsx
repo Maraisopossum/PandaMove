@@ -8,7 +8,7 @@ import { useProfile } from './useProfile'
 export default function ProfileScreen() {
   const { session } = useAuth()
   const p = useProfile({ userId: session?.user.id })
-  const sauvegarde = useExport()
+  const sauvegarde = useExport({ userId: session?.user.id })
 
   return (
     <>
@@ -61,8 +61,9 @@ export default function ProfileScreen() {
         <p id="profil-sauvegarde-aide">
           Téléchargez toutes vos données de renforcement (séances, séances jouées, séries, exercices, objectifs et
           matériel) dans un fichier JSON au format de l'application Android. C'est une sauvegarde locale : gardez-la
-          sur votre appareil ou votre propre support, hors des services tiers. Elle se réimporte depuis « Importer
-          des données ».
+          sur votre appareil ou votre propre support, hors des services tiers. Pour restaurer, importez-la avec ce
+          compte depuis « Importer des données » : les éléments existants reprennent l'état du fichier, sans doublon,
+          et ceux supprimés depuis reviennent.
         </p>
         <button
           type="button"

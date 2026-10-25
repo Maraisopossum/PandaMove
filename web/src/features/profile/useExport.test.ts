@@ -21,10 +21,20 @@ describe('useExport', () => {
     const [nom, contenu] = telecharger.mock.calls[0] as [string, string]
     expect(nom).toBe('pandamove-export-2026-10-25.json')
     expect(analyser(PandaMoveExportSchema, JSON.parse(contenu)).version).toBe('3.2')
+    expect(JSON.parse(contenu).webUserId).toBeUndefined()
     expect(result.current.statut).toBe('termine')
     expect(result.current.enCours).toBe(false)
     expect(result.current.message).toMatch(/pandamove-export-2026-10-25\.json/)
     expect(result.current.erreur).toBeNull()
+  })
+
+  it('avec userId : le fichier porte webUserId', async () => {
+    const telecharger = vi.fn()
+    const { result } = renderHook(() =>
+      useExport({ db: createTestDb(), userId: 'u-1', telecharger, maintenant: () => MAINTENANT }),
+    )
+    await act(() => result.current.exporter())
+    expect(JSON.parse((telecharger.mock.calls[0] as [string, string])[1]).webUserId).toBe('u-1')
   })
 
   it('en cours : état « génération » et un second appel est ignoré', async () => {

@@ -3,7 +3,8 @@ import { useAuth } from '../../core/auth/AuthProvider'
 import { useImport } from './useImport'
 
 const AVERTISSEMENT =
-  "L'import remplace les séances, exercices et séries ayant le même identifiant par le contenu du fichier."
+  "Le contenu du fichier remplace les éléments correspondants déjà présents (sauvegarde PandaMove de ce compte, ou " +
+  "export Android déjà importé) ; les autres éléments sont ajoutés. Réimporter le même fichier ne crée pas de doublon."
 
 // Écran d'import d'un export JSON PandaFit (Android). Toute la logique vit dans useImport.
 export default function ImportScreen() {

@@ -24,7 +24,12 @@ import {
 //  - lignes à id Long Android : deterministicId(`${userId}:${table}`, String(idLong)) ;
 //  - exercices : deterministicId(`${userId}:exercises`, normalizeSearch(nom)), car l'export ne
 //    contient pas le catalogue de base et les ids Long du catalogue diffèrent d'un téléphone à l'autre ;
-//  - matériel : pas de ligne user_settings, un patch fusionné par Task 10 via mergeEquipment.
+//  - matériel : pas de ligne user_settings, un patch fusionné par Task 10 via mergeEquipment ;
+//  - sauvegarde web du MÊME compte (webUserId = userId) : chaque ligne qui porte un `uuid` reprend cet
+//    uuid comme id (exercices compris), et les références Long sont résolues par une table Long -> uuid
+//    par table. Réimporter sa propre sauvegarde met donc à jour les lignes d'origine, sans doublon. Un
+//    fichier Android, ou une sauvegarde d'un autre compte, garde les règles ci-dessus (jamais l'id d'une
+//    ligne d'un autre compte : les uuid y seraient refusés par la RLS du serveur).
 
 export { detecterTypeExport, ImportError }
 export { mergeEquipment, type EquipmentPatch, type EquipmentStocke } from './equipment'
@@ -130,6 +135,8 @@ class Constructeur {
   private equipmentPatch: EquipmentPatch | null = null
   private readonly userId: string
   readonly now: string
+  /** Sauvegarde web du même compte : Long du fichier -> uuid d'origine, par table (sinon null). */
+  uuids: Map<TableName, Map<number, string>> | null = null
 
   constructor(userId: string, now: string) {
     this.userId = userId
@@ -137,7 +144,12 @@ class Constructeur {
   }
 
   id(table: TableName, legacy: number): string {
-    return deterministicId(`${this.userId}:${table}`, String(legacy))
+    return this.uuids?.get(table)?.get(legacy) ?? deterministicId(`${this.userId}:${table}`, String(legacy))
+  }
+
+  private uuidExercice(legacy: number): string | null {
+    const uuid = this.uuids?.get('exercises')?.get(legacy)
+    return uuid !== undefined && (this.tables.get('exercises') as Map<string, Row>).has(uuid) ? uuid : null
   }
 
   idExercice(nom: string): string {
@@ -153,7 +165,7 @@ class Constructeur {
   exercice(dto: CustomExerciseDto, ecraser: boolean) {
     // Nom vide : ignoré (comme l'import en masse Android)
     if (!normalizeSearch(dto.name)) return
-    const id = this.idExercice(dto.name)
+    const id = this.uuids && dto.uuid ? dto.uuid : this.idExercice(dto.name)
     // Une fiche complète remplace une éventuelle fiche minimale
     if (this.minimaux.delete(id)) ecraser = true
     this.ligneExercice(id, dto, ecraser)
@@ -165,18 +177,22 @@ class Constructeur {
       category: enumOu(dto.category, EXERCISE_CATEGORIES, 'OTHER'),
       muscle_groups: liste(dto.muscleGroups),
       description: dto.description,
-      is_favorite: 0,
+      is_favorite: bool(dto.isFavorite ?? false),
       is_custom: 1,
       image_url: null,
       exercise_type: dto.exerciseType,
       equipment: liste(dto.equipment),
       muscle_primary: dto.musclePrimary,
-      is_bodyweight: 0,
+      is_bodyweight: bool(dto.isBodyweight ?? false),
+      // Exercice supprimé encore référencé (sauvegarde web) : recréé en suppression logique
+      deleted_at: dto.deletedAt ?? null,
     }, ecraser)
   }
 
   /** Résout un exercice par nom ; crée une fiche minimale s'il n'existe pas encore. */
   referenceExercice(nom: string, exerciceIdLegacy: number): string {
+    const uuid = this.uuidExercice(exerciceIdLegacy)
+    if (uuid) return uuid
     let nomEffectif = nom.trim()
     if (!normalizeSearch(nomEffectif)) {
       nomEffectif = `Exercice inconnu #${exerciceIdLegacy}`
@@ -203,7 +219,9 @@ class Constructeur {
       notes: dto.notes,
       seance_category: enumOu(dto.seanceCategory, SEANCE_CATEGORIES, 'STRENGTH'),
       created_at: dateHeure(dto.createdAt) ?? this.now,
-      is_archived: 0,
+      is_archived: bool(dto.isArchived ?? false),
+      // Séance supprimée gardée pour son historique (sauvegarde web) : tombstone, nom lisible
+      deleted_at: dto.deletedAt ?? null,
     })
   }
 
@@ -269,7 +287,11 @@ class Constructeur {
       created_at: createdAt ?? this.now,
       // Android applique toujours la progression avant finishInstance : une instance terminée importée
       // est déjà évaluée (jamais ré-évaluée ici) ; une instance planifiée sera évaluée à sa fin.
-      progression_json: inst.isCompleted ? MARQUEUR_IMPORT : null,
+      // Sauvegarde web : marqueur d'origine (décisions Oui / Non / Ajuster comprises)
+      progression_json: inst.progressionJson !== undefined ? inst.progressionJson : inst.isCompleted ? MARQUEUR_IMPORT : null,
+      // Horloge de séance : seulement si le fichier la porte (sinon la valeur locale est gardée)
+      ...(inst.startedAt !== undefined ? { started_at: inst.startedAt } : {}),
+      ...(inst.pausedJson !== undefined ? { paused_json: inst.pausedJson } : {}),
     })
     // Copies d'instance : isolées par instance_seance_id (forcé sur l'instance de la session si
     // absent, pour ne jamais créer de faux template) et reliées au template d'origine.
@@ -295,6 +317,9 @@ class Constructeur {
         rpe: serie.rpe,
         notes: serie.notes,
         is_completed: bool(serie.isCompleted),
+        // Sauvegarde web : instant de validation (ancre du repos) et updated_at (départage des doublons)
+        ...(serie.validatedAt !== undefined ? { validated_at: serie.validatedAt } : {}),
+        ...(serie.updatedAt ? { updated_at: serie.updatedAt } : {}),
       })
     }
   }
@@ -302,7 +327,8 @@ class Constructeur {
   objectif(o: PandaMoveExport['objectifsProgression'][number]) {
     // Pas de fiche minimale pour un objectif : un exercice qu'aucune séance ni fiche du fichier ne
     // connaît rend l'objectif orphelin (écarté et signalé, comme errors++ côté Android).
-    const exerciseId = normalizeSearch(o.exerciceName) ? this.idExercice(o.exerciceName) : null
+    const exerciseId =
+      this.uuidExercice(o.exerciceId) ?? (normalizeSearch(o.exerciceName) ? this.idExercice(o.exerciceName) : null)
     if (exerciseId === null || !(this.tables.get('exercises') as Map<string, Row>).has(exerciseId)) {
       this.objectifsSansExercice++
       return
@@ -315,7 +341,7 @@ class Constructeur {
       duree_cible_sec: o.dureeCibleSec,
       compteur_echec: o.compteurEchec,
       derniere_maj: dateSeule(o.derniereMaj),
-      nombre_series_cible: null,
+      nombre_series_cible: o.nombreSeriesCible ?? null,
     })
   }
 
@@ -378,10 +404,11 @@ class Constructeur {
       userId: this.userId,
       rows,
       report: {
-        seances: rows.seances.length,
+        // Les tombstones (séance supprimée gardée pour son historique) ne comptent pas dans l'aperçu
+        seances: rows.seances.filter((r) => r.deleted_at === null).length,
         instances: rows.instances_seance.length,
         series: rows.series_realisees.length,
-        exercises: rows.exercises.length,
+        exercises: rows.exercises.filter((r) => r.deleted_at === null).length,
         exercisesCrees: this.minimaux.size,
         ignores,
       },
@@ -429,9 +456,36 @@ const SECTIONS_IGNOREES = [
   'hikingTemplates', 'hikingSessions', 'breathingSessions',
 ] as const
 
-function planComplet(input: Record<string, unknown>, c: Constructeur): void {
+/** Table Long -> uuid par table, pour une sauvegarde web (le premier uuid d'un Long gagne). */
+function collecterUuids(exp: PandaMoveExport): Map<TableName, Map<number, string>> {
+  const uuids = new Map<TableName, Map<number, string>>()
+  const noter = (table: TableName, dto: { id: number; uuid?: string }) => {
+    if (!dto.uuid) return
+    let t = uuids.get(table)
+    if (!t) uuids.set(table, (t = new Map()))
+    if (!t.has(dto.id)) t.set(dto.id, dto.uuid)
+  }
+  for (const e of exp.customExercises) noter('exercises', e)
+  for (const t of exp.strengthTemplates) {
+    noter('seances', t.seance)
+    for (const b of t.blocs) noter('blocs_seance', b)
+    for (const e of t.exercices) noter('exercices_seance', e)
+  }
+  for (const s of [...exp.strengthSessions.completed, ...exp.strengthSessions.planned]) {
+    noter('instances_seance', s.instance)
+    for (const b of s.blocs) noter('blocs_seance', b)
+    for (const e of s.exercices) noter('exercices_seance', e)
+    for (const r of s.series) noter('series_realisees', r)
+  }
+  for (const o of exp.objectifsProgression) noter('objectifs_progression', o)
+  return uuids
+}
+
+function planComplet(input: Record<string, unknown>, c: Constructeur, userId: string): void {
   verifierVersion(input)
   const exp = analyser(PandaMoveExportSchema, input)
+  // Les uuid ne deviennent des ids que pour une sauvegarde de ce même compte
+  if (exp.webUserId === userId) c.uuids = collecterUuids(exp)
 
   for (const cle of SECTIONS_IGNOREES) {
     const section = exp[cle]
@@ -468,7 +522,7 @@ export function buildImportPlan(input: unknown, userId: string, opts: ImportOpti
   const type = detecterTypeExport(input)
   const objet = input as Record<string, unknown>
   if (type === 'complet') {
-    planComplet(objet, c)
+    planComplet(objet, c, userId)
   } else if (type === 'catalogue') {
     // Import en masse Android : doublon de nom ignoré (le premier gagne)
     for (const ex of analyser(ExerciseCatalogExportSchema, objet).exercises) c.exercice(ex, false)

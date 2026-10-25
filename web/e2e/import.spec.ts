@@ -24,7 +24,7 @@ test("l'import d'un export v3.2 affiche l'aperçu puis le résumé", async ({ pa
   await page.getByLabel("Fichier d'export (.json)").setInputFiles(fixture)
   await expect(page.getByRole('heading', { name: 'Aperçu' })).toBeVisible()
   await expect(page.getByText('2 séance(s)', { exact: true })).toBeVisible()
-  await expect(page.getByText(/remplace les séances, exercices et séries ayant le même identifiant/)).toBeVisible()
+  await expect(page.getByText(/remplace les éléments correspondants déjà présents/)).toBeVisible()
 
   await page.getByRole('button', { name: "Confirmer l'import" }).click()
   await expect(page.getByRole('heading', { name: 'Import terminé' })).toBeVisible({ timeout: 30_000 })

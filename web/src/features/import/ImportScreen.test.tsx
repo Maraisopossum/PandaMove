@@ -23,7 +23,7 @@ describe('ImportScreen', () => {
     render(<ImportScreen />)
     deposer(fichier(JSON.stringify(exportV32)))
     expect(await screen.findByText('2 séance(s)')).toBeTruthy()
-    expect(screen.getByText(/remplace les séances, exercices et séries ayant le même identifiant/)).toBeTruthy()
+    expect(screen.getByText(/remplace les éléments correspondants déjà présents/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: "Confirmer l'import" }))
     expect(await screen.findByText(/importés\./)).toBeTruthy()

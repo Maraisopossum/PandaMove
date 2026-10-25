@@ -19,12 +19,16 @@ import type {
 export type { PandaMoveExport } from './types'
 
 // Export JSON « PandaMoveExport » v3.2 (format de l'export Android, relu par l'import web et Android).
-// Lecture seule de la base locale ; seules les lignes vivantes (deleted_at IS NULL) sont exportées.
+// Lecture seule de la base locale ; seules les lignes vivantes (deleted_at IS NULL) sont exportées, avec
+// deux exceptions pour que l'historique reste importable : une séance supprimée dont des séances jouées
+// sont gardées (« Garder l'historique ») est exportée archivée, sans blocs ni exercices, avec deletedAt ;
+// un exercice supprimé encore référencé est exporté avec deletedAt (l'import les recrée en suppression
+// logique, nom lisible).
 //
 // Identifiants : chaque id Long est dérivé de l'UUID de la ligne (voir ids.ts) et l'UUID est recopié
-// dans un champ additionnel `uuid`. Réimporter le fichier redonne les mêmes valeurs ; l'import
-// recalcule toutefois ses propres UUID à partir des Long : dans un compte qui contient encore les
-// lignes d'origine, il crée donc une copie au lieu de les mettre à jour (voir README, Sauvegarde).
+// dans un champ additionnel `uuid`, avec le compte exportateur (`webUserId`). Pour un fichier de ce
+// même compte, l'import reprend les `uuid` comme ids : réimporter est une mise à jour exacte, sans
+// doublon. Pour un autre compte, il calcule ses propres ids à partir des Long (voir import/plan.ts).
 //
 // Horodatages des champs du format : date-heure ISO sans fuseau, comme le LocalDateTime Android. Une
 // valeur déjà sans fuseau (importée d'Android) est recopiée telle quelle ; une valeur avec fuseau
@@ -105,13 +109,11 @@ function materiel(equipmentJson: unknown): EquipmentConfigExport | null {
  * Construit l'export complet de la base locale. `maintenant` date le fichier (exportDate) ; il n'a
  * aucun autre effet : deux exports d'une même base ne diffèrent que par exportDate.
  */
-export async function construireExport(db: DbLecture, maintenant: Date): Promise<PandaMoveExport> {
+export async function construireExport(db: DbLecture, maintenant: Date, userId?: string): Promise<PandaMoveExport> {
   const lire = (sql: string) => db.getAll<Ligne>(sql)
   const vivantes = (table: string, suite = '') => lire(`SELECT * FROM ${table} WHERE deleted_at IS NULL ${suite}`)
 
   // Tri explicite partout (l'ordre de lecture SQLite n'est pas garanti) : export reproductible
-  const exercises = await vivantes('exercises', 'ORDER BY name, id')
-  const seances = await vivantes('seances', 'ORDER BY created_at, nom, id')
   const blocs = await vivantes('blocs_seance', 'ORDER BY position, id')
   const lignesEx = await vivantes('exercices_seance', 'ORDER BY position, id')
   const instances = await vivantes('instances_seance', 'ORDER BY date, created_at, id')
@@ -130,6 +132,17 @@ export async function construireExport(db: DbLecture, maintenant: Date): Promise
   const blocsExportes = blocs.filter((b) => b.instance_seance_id === null || instancesExportees.has(b.instance_seance_id))
   const lignesExportees = lignesEx.filter((e) => e.instance_seance_id === null || instancesExportees.has(e.instance_seance_id))
   const seriesExportees = series.filter((s) => instancesExportees.has(s.instance_seance_id))
+
+  // Séances : vivantes + supprimées référencées par une instance exportée (historique gardé)
+  const seancesReferencees = new Set(instances.map((i) => i.seance_id))
+  const seances = (await lire('SELECT * FROM seances ORDER BY created_at, nom, id')).filter(
+    (s) => s.deleted_at === null || seancesReferencees.has(s.id),
+  )
+  // Exercices : vivants + supprimés encore référencés par une ligne de séance ou un objectif exportés
+  const exercicesReferences = new Set([...lignesExportees, ...objectifs].map((l) => l.exercise_id))
+  const exercises = (await lire('SELECT * FROM exercises ORDER BY name, id')).filter(
+    (e) => e.deleted_at === null || exercicesReferences.has(e.id),
+  )
   const lignesParTable: Record<TableIds, Ligne[]> = {
     exercises, seances, blocs_seance: blocsExportes, exercices_seance: lignesExportees,
     instances_seance: instances, series_realisees: seriesExportees, objectifs_progression: objectifs,
@@ -200,7 +213,9 @@ export async function construireExport(db: DbLecture, maintenant: Date): Promise
     createdAt: horodatage(s.created_at) ?? '',
     updatedAt: horodatage(s.updated_at) ?? '',
     uuid: String(s.id),
-    isArchived: bool(s.is_archived),
+    // Une séance supprimée gardée pour son historique est présentée archivée (hors liste)
+    isArchived: bool(s.is_archived) || s.deleted_at !== null,
+    deletedAt: texteOuNull(s.deleted_at),
   })
 
   const instance = (i: Ligne): InstanceExport => ({
@@ -246,6 +261,7 @@ export async function construireExport(db: DbLecture, maintenant: Date): Promise
     uuid: String(e.id),
     isFavorite: bool(e.is_favorite),
     isBodyweight: bool(e.is_bodyweight),
+    deletedAt: texteOuNull(e.deleted_at),
   })
 
   const objectif = (o: Ligne): ObjectifExport => ({
@@ -285,10 +301,12 @@ export async function construireExport(db: DbLecture, maintenant: Date): Promise
   return {
     version: '3.2',
     exportDate: maintenant.toISOString().slice(0, 23),
+    ...(userId ? { webUserId: userId } : {}),
     strengthTemplates: seances.map((s) => ({
       seance: seance(s),
-      blocs: (blocsTemplate.get(s.id) ?? []).map(bloc),
-      exercices: (lignesTemplate.get(s.id) ?? []).map(exercice),
+      // Séance supprimée : seulement de quoi rattacher l'historique, pas de modèle
+      blocs: s.deleted_at === null ? (blocsTemplate.get(s.id) ?? []).map(bloc) : [],
+      exercices: s.deleted_at === null ? (lignesTemplate.get(s.id) ?? []).map(exercice) : [],
     })),
     strengthSessions: sessions,
     runTemplates: [],
