@@ -2,6 +2,7 @@ import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { ignorerOnboarding } from './onboarding.ts'
 import { exigerVariables } from './prerequis.ts'
+import { attendreServiceWorker } from './serviceWorker.ts'
 
 // Parcours renforcement complet, au cœur de la règle « ne jamais perdre une série » :
 // import du fixture synthétique, affectation depuis la liste, exécution, 3 séries saisies réseau
@@ -49,6 +50,8 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   // 3. Démarrer, couper le réseau, saisir 3 séries sur le premier exercice
   await page.getByRole('button', { name: 'Démarrer' }).click()
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+  // Le rechargement hors ligne (étape 4) exige le service worker du build actif et aux commandes
+  await attendreServiceWorker(page)
   await contexteA.setOffline(true)
   await expect(page.getByTestId('sync-state')).toHaveText('hors ligne', { timeout: 30_000 })
 

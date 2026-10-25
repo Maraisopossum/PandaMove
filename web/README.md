@@ -97,6 +97,7 @@ cd web
 E2E_EMAIL=… E2E_PASSWORD=… E2E_EMAIL2=… E2E_PASSWORD2=… E2E_REQUIRED=1 npm run test:e2e
 ```
 
+- Playwright sert le **build de production** (`npm run build` puis `npm run preview -- --port 4173 --strictPort`, http://localhost:4173) : le rechargement hors ligne exige le service worker, absent du serveur de dev. `web/.env.local` est lu par le build. Le parcours attend que le service worker contrôle la page avant de couper le réseau. Un serveur déjà lancé sur 4173 est réutilisé : le relancer après une modification du code.
 - Sans les variables, chaque test est **sauté** avec la liste des variables manquantes ; avec `E2E_REQUIRED=1`, il **échoue** à la place (à utiliser avant une bascule).
 - `rls-live.spec.ts` demande deux comptes de test distincts : le second ne doit voir ni modifier aucune ligne du premier, et le rôle anonyme doit être refusé (migration 0006 requise).
 - Les comptes de test se créent dans Supabase (Authentication → Users). Ne jamais écrire leurs identifiants dans un fichier versionné.
