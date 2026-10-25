@@ -70,6 +70,13 @@ const nbLignesInstance = async (instanceId: string) =>
   (await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM exercices_seance WHERE instance_seance_id = ?', [instanceId])).n
 
 describe('useExecute : ouverture et copie', () => {
+  it("séance supprimée avec historique gardé : la séance jouée garde le nom de sa séance", async () => {
+    await db.execute("UPDATE instances_seance SET is_completed = 1, completed_at = '2026-10-24T11:00:00.000Z' WHERE id = 'i1'")
+    await db.execute("UPDATE seances SET deleted_at = '2026-10-25T08:00:00.000Z'")
+    const r = await monter()
+    expect(r.result.current.nomSeance).toBe('Haut du corps')
+  })
+
   it('copie le modèle à la première ouverture d\'une instance planifiée, sans doublon à la réouverture', async () => {
     const r = await monter()
     expect(r.result.current.erreur).toBeNull()

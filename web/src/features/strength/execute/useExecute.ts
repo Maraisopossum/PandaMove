@@ -4,7 +4,7 @@ import type { Db, DbLecture } from '../../../core/db/Db'
 import {
   copyTemplateToInstance, demarrerInstance, enregistrerPauses, ErreurInstance, getInstance, terminerInstance,
 } from '../../../core/db/repos/instances'
-import { getSeanceTree } from '../../../core/db/repos/seances'
+import { getSeanceTree, lireNomSeance } from '../../../core/db/repos/seances'
 import { addSerie, listSeries, updateSerie } from '../../../core/db/repos/series'
 import type { InstanceSeance, RepsType } from '../../../core/db/types'
 import { evaluerEtAppliquerSilencieux } from '../progression/evaluation'
@@ -44,9 +44,8 @@ const horlogeDe = (i: InstanceSeance): SessionClock => clockFromRow({ started_at
 async function lire(db: Db, instanceId: string): Promise<Donnees> {
   const instance = await getInstance(db, instanceId)
   if (!instance) throw new ErreurExecution('Séance introuvable.')
-  const seance = await db.getOptional<{ nom: string }>('SELECT nom FROM seances WHERE id = ? AND deleted_at IS NULL', [
-    instance.seanceId,
-  ])
+  // Nom lisible même si la séance a été supprimée avec « Garder l'historique » (comme le calendrier)
+  const nomSeanceLu = await lireNomSeance(db, instance.seanceId)
   const arbre = await getSeanceTree(db, instance.seanceId, instanceId)
   const series = await listSeries(db, instanceId)
   const idsExercices = [...new Set(arbre.exercices.map((e) => e.exerciseId))]
@@ -58,7 +57,7 @@ async function lire(db: Db, instanceId: string): Promise<Donnees> {
           idsExercices,
         )
   const vue = construireVue(arbre.blocs, arbre.exercices, series, new Map(noms.map((n) => [n.id, n.name])))
-  return { instance, nomSeance: seance?.nom ?? 'Séance', ...vue }
+  return { instance, nomSeance: nomSeanceLu ?? 'Séance', ...vue }
 }
 
 // Instance vivante et non terminée, relue en base (jamais depuis l'état React, qui peut être en retard).

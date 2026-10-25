@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDb } from '../../../core/db/client'
 import type { Db } from '../../../core/db/Db'
 import { getInstance } from '../../../core/db/repos/instances'
-import { getSeanceTree } from '../../../core/db/repos/seances'
+import { getSeanceTree, lireNomSeance } from '../../../core/db/repos/seances'
 import { listSeries } from '../../../core/db/repos/series'
 import type { InstanceSeance } from '../../../core/db/types'
 import type { PropositionProgression } from '../../../core/progression/engine'
@@ -113,10 +113,9 @@ async function propositionsDe(
 async function lire(db: Db, instanceId: string, userId: string | undefined, maintenantMs: number): Promise<Donnees> {
   let instance = await getInstance(db, instanceId)
   if (!instance) throw new ErreurBilan('Séance introuvable.')
-  const seance = await db.getOptional<{ nom: string }>('SELECT nom FROM seances WHERE id = ? AND deleted_at IS NULL', [
-    instance.seanceId,
-  ])
-  const base = { ...VIDE, trouvee: true, nomSeance: seance?.nom ?? 'Séance' }
+  // Nom lisible même si la séance a été supprimée avec « Garder l'historique » (comme le calendrier)
+  const nomSeanceLu = await lireNomSeance(db, instance.seanceId)
+  const base = { ...VIDE, trouvee: true, nomSeance: nomSeanceLu ?? 'Séance' }
   if (!instance.isCompleted) return base
 
   // Cas hérité : instance web terminée AVANT la migration 0005 (marqueur absent). Elle est évaluée une

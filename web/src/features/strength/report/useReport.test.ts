@@ -98,6 +98,12 @@ const propositionDe = (r: Awaited<ReturnType<typeof monter>>, id: string) =>
   r.result.current.propositions.find((p) => p.exerciceId === id)
 
 describe('useReport : résumé', () => {
+  it("séance supprimée avec historique gardé : le rapport garde le nom de la séance", async () => {
+    await db.execute("UPDATE seances SET deleted_at = '2026-10-25T08:00:00.000Z' WHERE id = 's1'")
+    const r = await monter()
+    expect(r.result.current.nomSeance).toBe('Haut du corps')
+  })
+
   it('tonnage, séries et durée sur une séance connue (DURATION exclue du tonnage)', async () => {
     await exercice('e1', { exercise_id: 'x1', position: 0 })
     await exercice('e2', { exercise_id: 'x2', position: 1, reps_type: 'DURATION', reps_cibles: '45', charge_cible: '10 kg', nombre_series_prevues: 2 })
