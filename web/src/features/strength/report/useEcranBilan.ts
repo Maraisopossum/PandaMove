@@ -102,7 +102,7 @@ export function useEcranBilan(instanceId: string) {
             series: seriesLibelle,
             groupes: r.groupes.map((g) => ({
               titre: g.titre,
-              exercices: g.exercices.map((e) => ({ nom: e.nom, cible: e.cible, lignes: e.lignes })),
+              exercices: g.exercices.map((e) => ({ nom: e.nom, cible: e.cible, note: e.note, lignes: e.lignes })),
             })),
           }
         : null,

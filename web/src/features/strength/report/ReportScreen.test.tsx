@@ -141,6 +141,15 @@ describe('ReportScreen : rapport', () => {
     expect(screen.queryByRole('heading', { name: 'Note de séance' })).toBeNull()
   })
 
+  it('la note d’un exercice saisie pendant la séance est affichée dans son détail', async () => {
+    await seanceTerminee('r-noteex')
+    await base.execute("UPDATE exercices_seance SET notes = 'Épaule gauche sensible' WHERE id = 'r-noteex-e1'")
+    monter('r-noteex')
+    await screen.findByRole('heading', { level: 1, name: 'Rapport de séance' })
+    expect(screen.getByText('Note : Épaule gauche sensible')).toBeTruthy()
+    expect(screen.queryByText(/Note : $/)).toBeNull()
+  })
+
   it('« Copier le résumé » met le résumé dans le presse-papiers et l’annonce', async () => {
     await seanceTerminee('r-copie')
     const ecrire = vi.fn().mockResolvedValue(undefined)

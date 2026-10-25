@@ -1,5 +1,5 @@
 // Petit stockage local du navigateur (localStorage), tolérant : indisponible, plein ou refusé => on continue sans.
-// Sert aux réglages d'exécution qui n'ont pas de colonne en base (minuteur de repos, notes d'exercice).
+// Sert aux réglages d'exécution qui n'ont pas de colonne en base (minuteur de repos).
 export function lireStockage(cle: string): string | null {
   try {
     return window.localStorage.getItem(cle)

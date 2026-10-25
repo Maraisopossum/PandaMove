@@ -11,7 +11,6 @@ import { useHistoriqueExercice } from './useHistoriqueExercice'
 import { useMateriel } from './useMateriel'
 import { useMinuteurRepos } from './useMinuteurRepos'
 import { useMontee } from './useMontee'
-import { useNotesExercices } from './useNotesExercices'
 import { useTitreOnglet } from './useTitreOnglet'
 import { useSuppressionSeanceEnCours } from './useSuppressionSeanceEnCours'
 import { useNavExercices } from './useNavExercices'
@@ -54,7 +53,6 @@ export function useEcranExecution(instanceId: string) {
   // « Mon matériel » : disques du calculateur, charges composables de la montée en charge
   const materiel = useMateriel(session?.user.id)
   const montee = useMontee(materiel)
-  const notesExercices = useNotesExercices(instanceId)
   const { ouvrir: ouvrirMontee } = montee
   const { demarre, demarrer } = ex
   // Circuit automatique et minuteur d'exercice : valide par le même chemin d'écriture que le tableau
@@ -174,7 +172,11 @@ export function useEcranExecution(instanceId: string) {
       },
     },
     bandeau: actif ? bandeauProgression(actif, ex.apercus.get(actif.id)) : null,
-    noteExercice: { texte: actif ? notesExercices.note(actif.id) : '', changer: (t: string) => actif && notesExercices.changer(actif.id, t) },
+    // Note de l'exercice actif : enregistrée en base à la sortie du champ (colonne exercices_seance.notes, migration 0007)
+    noteExercice: {
+      enregistree: actif?.ligne.notes ?? '',
+      enregistrer: (texte: string) => (actif ? ex.noterExercice(actif.id, texte) : Promise.resolve(false)),
+    },
     lienBilan: `/strength/instance/${instanceId}/report`,
     // Panda de motivation, affiché avant le démarrage de la séance
     pandaMotivation: ex.trouvee && !ex.demarre && !ex.terminee ? pandaMotivation : undefined,

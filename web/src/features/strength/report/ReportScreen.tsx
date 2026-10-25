@@ -75,6 +75,7 @@ export default function ReportScreen() {
                             <span className="bilan__statut">{e.libelleStatut}</span>
                           </summary>
                           <p className="bilan__cible">Cible : {e.cible}</p>
+                          {e.note && <p className="bilan__cible">Note : {e.note}</p>}
                           {e.libelleProgression && <p className="bilan__cible">Progression : {e.libelleProgression}</p>}
                           {e.lignes.length === 0 ? (
                             <p>Aucune série enregistrée.</p>

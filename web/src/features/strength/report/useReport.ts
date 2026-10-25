@@ -35,6 +35,8 @@ export interface LigneBilan {
   statut: 'complet' | 'partiel' | 'aucune'
   /** Cible du modèle en une ligne (« 3 × 8 reps à 50 kg ») */
   cible: string
+  /** Note saisie sur l'exercice pendant la séance (vide si aucune) */
+  note: string
   /** Tableau des séries, dans l'ordre des numéros */
   lignes: LigneSerie[]
 }
@@ -200,6 +202,7 @@ async function lire(db: Db, instanceId: string, userId: string | undefined, main
       seriesSaisies: saisies.length,
       statut: statutLigne(e.nombreSeriesPrevues, terminees(e.id)),
       cible: libelleCible(e),
+      note: e.notes.trim(),
       lignes: saisies.map((s) => ligneSerie(s, e.repsType)),
     }
   }

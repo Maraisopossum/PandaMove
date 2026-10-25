@@ -6,6 +6,8 @@ import type { LigneSerie } from './bilan'
 export interface ExerciceExport {
   nom: string
   cible: string
+  /** Note saisie sur l'exercice pendant la séance (vide si aucune) */
+  note?: string
   lignes: LigneSerie[]
 }
 
@@ -45,6 +47,7 @@ export function texteResume(r: RapportExport): string {
     if (g.titre) lignes.push(g.titre)
     for (const e of g.exercices) {
       lignes.push(`${e.nom} (${e.cible})`)
+      if (e.note?.trim()) lignes.push(`  Note : ${e.note.trim()}`)
       for (const l of e.lignes) lignes.push(`  ${detailLigne(l)}`)
     }
   }
@@ -80,7 +83,10 @@ export function genererHtml(r: RapportExport): string {
     .map(
       (g) =>
         `${g.titre ? `<p class="bloc">${echapper(g.titre)}</p>` : ''}${g.exercices
-          .map((e) => `<h3>${echapper(e.nom)} <small>${echapper(e.cible)}</small></h3>${tableau(e)}`)
+          .map(
+            (e) =>
+              `<h3>${echapper(e.nom)} <small>${echapper(e.cible)}</small></h3>${e.note?.trim() ? `<p class="note-ex">Note : ${echapper(e.note.trim())}</p>` : ''}${tableau(e)}`,
+          )
           .join('')}`,
     )
     .join('')

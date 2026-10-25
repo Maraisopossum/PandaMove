@@ -311,6 +311,12 @@ describe('ExecuteScreen : outils de l’exercice', () => {
     const champ = async () => (await within(await screen.findByRole('article', { name: 'Développé couché' })).findByLabelText('Note sur Développé couché')) as HTMLTextAreaElement
     fireEvent.change(await champ(), { target: { value: 'Épaule gauche sensible' } })
     expect((await champ()).value).toBe('Épaule gauche sensible')
+    // Enregistrée à la sortie du champ, sur la ligne de l'instance seulement (jamais le modèle)
+    fireEvent.blur(await champ())
+    await waitFor(async () =>
+      expect((await base.get<{ notes: string | null }>("SELECT notes FROM exercices_seance WHERE instance_seance_id = 'i-note' AND exercice_source_id = 'e1'")).notes).toBe('Épaule gauche sensible'),
+    )
+    expect((await base.get<{ notes: string | null }>("SELECT notes FROM exercices_seance WHERE id = 'e1'")).notes).toBeNull()
     choisir('Gainage planche')
     expect((within(carte('Gainage planche')).getByLabelText('Note sur Gainage planche') as HTMLTextAreaElement).value).toBe('')
     rendu.unmount()

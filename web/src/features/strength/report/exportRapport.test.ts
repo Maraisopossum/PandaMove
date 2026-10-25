@@ -63,3 +63,22 @@ describe('nomFichierRapport', () => {
     expect(nomFichierRapport('', '2026-10-24')).toBe('rapport-seance-2026-10-24.html')
   })
 })
+
+describe('note par exercice', () => {
+  const avecNote: RapportExport = {
+    ...rapport,
+    groupes: [{ titre: null, exercices: [{ nom: 'Curl <b>', cible: '3 × 10', note: 'Épaule & coude sensibles', lignes: [] }] }],
+  }
+  it('le résumé texte porte la note sous l’exercice', () => {
+    expect(texteResume(avecNote)).toContain('Curl <b> (3 × 10)\n  Note : Épaule & coude sensibles')
+  })
+  it('le HTML la porte, échappée', () => {
+    const h = genererHtml(avecNote)
+    expect(h).toContain('Note : Épaule &amp; coude sensibles')
+    expect(h).not.toContain('Curl <b>')
+  })
+  it('sans note, rien n’est ajouté', () => {
+    expect(texteResume(rapport)).not.toContain('Note : \n')
+    expect(genererHtml(rapport)).not.toContain('class="note-ex"')
+  })
+})

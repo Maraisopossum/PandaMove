@@ -14,6 +14,7 @@ import { RenommerSeanceDialog } from './RenommerSeanceDialog'
 import { LancementCircuit } from './circuit/LancementCircuit'
 import { OverlayCircuit } from './circuit/OverlayCircuit'
 import { useEcranExecution } from './useEcranExecution'
+import { useNotesSeance } from './useNotesSeance'
 import { TableauSeries } from './TableauSeries'
 import { texteCibles, type ExerciceVue } from './vue'
 
@@ -233,6 +234,8 @@ function CarteExercice({
 }) {
   const idTitre = useId()
   const idNote = useId()
+  // Carte clé par exercice : le texte en cours de frappe est propre à chaque exercice
+  const noteSaisie = useNotesSeance(note.enregistree, note.enregistrer)
   return (
     <article className="execution__exercice" aria-labelledby={idTitre}>
       <h3 id={idTitre} className="execution__nom">
@@ -254,10 +257,11 @@ function CarteExercice({
         <textarea
           id={idNote}
           rows={1}
-          value={note.texte}
+          value={noteSaisie.texte}
           readOnly={lectureSeule}
           placeholder="Note sur cet exercice…"
-          onChange={(ev) => note.changer(ev.target.value)}
+          onChange={(ev) => noteSaisie.changer(ev.target.value)}
+          onBlur={noteSaisie.sortir}
         />
       </div>
       {!lectureSeule && (
