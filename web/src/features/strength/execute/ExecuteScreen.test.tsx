@@ -144,3 +144,25 @@ describe('ExecuteScreen', () => {
     expect(screen.getByRole('link', { name: 'Voir le bilan' }).getAttribute('href')).toBe('/strength/instance/i-terminee/report')
   })
 })
+
+describe('ExecuteScreen : superset', () => {
+  it("libellé « Superset A » sur chaque exercice, consigne d'enchaînement sur le non final uniquement", async () => {
+    await inserer(base, 'seances', { ...commun, id: 's-ss', nom: 'Superset', is_archived: 0, seance_category: 'STRENGTH', created_at: 'c' })
+    await inserer(base, 'blocs_seance', { ...commun, id: 'b-ss', seance_id: 's-ss', nom: 'Bloc superset', position: 0, instance_seance_id: null })
+    for (const [id, exo, position] of [['ss1', 'x1', 0], ['ss2', 'x2', 1]] as const) {
+      await inserer(base, 'exercices_seance', {
+        ...commun, id, seance_id: 's-ss', exercise_id: exo, bloc_id: 'b-ss', position, superset_groupe: 'A',
+        nombre_series_prevues: 3, reps_type: 'REPS', temps_repos_sec: 60, instance_seance_id: null,
+      })
+    }
+    await inserer(base, 'instances_seance', {
+      ...commun, id: 'i-ss', seance_id: 's-ss', date: '2026-10-24', notes: '', is_completed: 0, completed_at: null, duration_seconds: 0, created_at: 'c',
+    })
+    monter('i-ss')
+    await screen.findByRole('heading', { level: 1, name: 'Superset' })
+    expect(within(carte('Développé couché')).getByText('Superset A')).toBeTruthy()
+    expect(within(carte('Gainage planche')).getByText('Superset A')).toBeTruthy()
+    expect(within(carte('Développé couché')).getByText('Enchaîne sans repos avec Gainage planche')).toBeTruthy()
+    expect(within(carte('Gainage planche')).queryByText(/Enchaîne sans repos/)).toBeNull()
+  })
+})

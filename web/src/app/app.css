@@ -613,6 +613,12 @@ h1 {
   color: var(--texte-secondaire);
 }
 
+.execution__enchainement {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--texte-secondaire);
+}
+
 .execution__cibles {
   margin: 0.25rem 0 0.5rem;
   color: var(--texte-secondaire);

@@ -29,6 +29,8 @@ export interface ExerciceVue {
   position: number
   supersetGroupe: string | null
   libelleSuperset: string | null
+  // Superset : nom de l'exercice suivant du groupe, à enchaîner sans repos (null pour le dernier ou hors superset)
+  enchaineAvec: string | null
   series: SerieVue[]
 }
 
@@ -76,6 +78,7 @@ export function construireVue(
     position: e.position,
     supersetGroupe: e.supersetGroupe,
     libelleSuperset: e.supersetGroupe ? `Superset ${e.supersetGroupe}` : null,
+    enchaineAvec: null,
     series: (parExercice.get(e.id) ?? []).sort((a, b) => a.numero - b.numero),
   })
   const parPosition = <T extends { position: number }>(a: T, b: T) => a.position - b.position
@@ -89,7 +92,23 @@ export function construireVue(
   const horsBloc = exercices.filter((e) => e.blocId === null || !idsBlocs.has(e.blocId)).sort(parPosition)
   if (horsBloc.length > 0) groupes.push({ id: null, nom: 'Exercices', exercices: horsBloc.map(versVue) })
   const visibles = groupes.filter((g) => g.exercices.length > 0)
-  return { blocs: visibles, exercices: visibles.flatMap((g) => g.exercices) }
+  const tous = visibles.flatMap((g) => g.exercices)
+  for (const e of tous) e.enchaineAvec = suivantDuSuperset(tous, e)?.nom ?? null
+  return { blocs: visibles, exercices: tous }
+}
+
+// Exercices du même superset que `e` (même lettre ET même bloc), dans l'ordre d'affichage (position).
+// Un groupe d'un seul exercice n'est pas un superset : renvoie [] dans ce cas comme hors superset.
+function groupeSuperset(exercices: ExerciceVue[], e: ExerciceVue): ExerciceVue[] {
+  if (!e.supersetGroupe) return []
+  const groupe = exercices.filter((x) => x.supersetGroupe === e.supersetGroupe && x.blocId === e.blocId)
+  return groupe.length > 1 ? groupe : []
+}
+
+function suivantDuSuperset(exercices: ExerciceVue[], e: ExerciceVue): ExerciceVue | null {
+  const groupe = groupeSuperset(exercices, e)
+  const i = groupe.indexOf(e)
+  return i >= 0 && i < groupe.length - 1 ? groupe[i + 1] : null
 }
 
 // Validation des mesures (champs fournis seulement). Renvoie un message français ou null.
@@ -108,16 +127,26 @@ export function verifierMesures(m: Partial<Mesures>, repsType: RepsType): string
 
 // Repos restant (ms) : dernière série validée (validated_at le plus récent, repli updated_at) + repos de son exercice − maintenant,
 // borné à 0. null s'il n'y a encore aucune série. Dérivé uniquement d'horodatages stockés.
+// Superset (A1 → B1 → repos → A2 → B2…) : pas de repos entre les exercices d'un même tour. Si la dernière série
+// appartient à un exercice suivi, dans son groupe, d'un exercice qui a encore SA série de ce tour à faire, le repos
+// n'a pas commencé (null). Sinon (dernier exercice du groupe, ou suivants complets pour ce tour, ex. nombre de
+// séries inégal), le repos part de cette série avec le temps de repos de son exercice.
 export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | null {
-  let derniere: { ms: number; reposSec: number } | null = null
+  let derniere: { ms: number; exercice: ExerciceVue; rang: number } | null = null
   for (const e of exercices) {
-    for (const s of e.series) {
+    for (const [i, s] of e.series.entries()) {
       const ms = parseTimestamp(s.valideeA)
-      if (ms !== null && (derniere === null || ms > derniere.ms)) derniere = { ms, reposSec: e.tempsReposSec }
+      // rang : tour du superset auquel appartient la série (1 = première série de l'exercice).
+      // Égalité d'horodatage : la série affichée la plus loin (exercice suivant, numéro supérieur) l'emporte.
+      if (ms !== null && (derniere === null || ms >= derniere.ms)) derniere = { ms, exercice: e, rang: i + 1 }
     }
   }
   if (derniere === null) return null
-  return Math.max(0, derniere.ms + derniere.reposSec * 1000 - nowMs)
+  const { ms, exercice, rang } = derniere
+  const groupe = groupeSuperset(exercices, exercice)
+  const suivants = groupe.slice(groupe.indexOf(exercice) + 1)
+  if (suivants.some((x) => x.series.length < rang && x.nombreSeriesPrevues >= rang)) return null
+  return Math.max(0, ms + exercice.tempsReposSec * 1000 - nowMs)
 }
 
 // Durée affichée : mm:ss sous une heure, h:mm:ss au-delà.

@@ -108,6 +108,7 @@ function CarteExercice({
         {ex.nom}
       </h3>
       {ex.libelleSuperset && <span className="execution__superset">{ex.libelleSuperset}</span>}
+      {ex.enchaineAvec && <p className="execution__enchainement">Enchaîne sans repos avec {ex.enchaineAvec}</p>}
       <p className="execution__cibles">{texteCibles(ex)}</p>
 
       {ex.series.length > 0 && (
