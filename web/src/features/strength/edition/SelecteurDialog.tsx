@@ -1,4 +1,5 @@
-import { useId, useRef } from 'react'
+import { useId, useRef, type CSSProperties } from 'react'
+import { COULEURS_GROUPE } from '../../../core/catalogue/couleursGroupes'
 import { LIBELLES_GROUPE } from '../../../core/catalogue/muscleToGroup'
 import { MUSCLE_GROUPS } from '../../../core/db/types'
 import { ChampTexte } from '../champs'
@@ -32,7 +33,14 @@ export function SelecteurDialog({ selecteur: s, titreCible }: { selecteur: Selec
             Tous
           </button>
           {MUSCLE_GROUPS.map((g) => (
-            <button key={g} type="button" className="puce" aria-pressed={s.filtre.groupe === g} onClick={() => s.setGroupe(s.filtre.groupe === g ? null : g)}>
+            <button
+              key={g}
+              type="button"
+              className="puce puce--groupe"
+              style={{ '--groupe': COULEURS_GROUPE[g] } as CSSProperties}
+              aria-pressed={s.filtre.groupe === g}
+              onClick={() => s.setGroupe(s.filtre.groupe === g ? null : g)}
+            >
               {LIBELLES_GROUPE[g]}
             </button>
           ))}

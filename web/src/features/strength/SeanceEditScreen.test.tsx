@@ -122,6 +122,18 @@ describe('SeanceEditScreen : parcours rapide', () => {
 })
 
 describe('SeanceEditScreen : sélecteur d’exercices', () => {
+  it('les puces de groupe portent la couleur de l’Android en repère, le nom reste écrit', async () => {
+    monter('/strength/new')
+    fireEvent.click(await screen.findByRole('button', { name: /Rechercher ou ajouter un exercice/ }))
+    const dialogue = await screen.findByRole('dialog', { name: 'Ajouter des exercices' })
+    const dos = within(dialogue).getByRole('button', { name: 'Dos' })
+    expect(dos.style.getPropertyValue('--groupe')).toBe('#4db6ac')
+    expect(dos.className).toContain('puce--groupe')
+    expect(within(dialogue).getByRole('button', { name: 'Quadriceps' }).style.getPropertyValue('--groupe')).toBe('#ffd54f')
+    // les filtres qui ne sont pas des groupes n'en portent pas
+    expect(within(dialogue).getByRole('button', { name: 'Tous' }).className).not.toContain('puce--groupe')
+  })
+
   it('recherche sans accents, filtre par groupe, « Mon matériel », rang de sélection', async () => {
     await base.writeTransaction((tx) =>
       saveSettingsTx(tx, 'u1', { equipmentJson: JSON.stringify({ selectedCategories: ['HALTERES'], halteres: { poidsFixes: [10], chargeable: null } }) }),
