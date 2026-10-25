@@ -1,3 +1,5 @@
+import { baseParNom } from '../catalogue/catalogueDeBase'
+import { groupesCorriges } from '../catalogue/groupesCorriges'
 import { normalizeSearch } from '../common/normalizeSearch'
 import { deterministicId } from '../db/ids'
 import type { Ligne } from '../db/repos/mappers'
@@ -84,6 +86,8 @@ const REPS_TYPES = ['REPS', 'DURATION']
 const TYPES_EXERCICE = ['COMPOSE_BAS', 'COMPOSE_HAUT', 'ISOLATION', 'MACHINE', 'PDC']
 const SYSTEMES_PROGRESSION = ['LINEAIRE', 'DOUBLE', 'TEMPORELLE']
 const EXERCISE_CATEGORIES = ['CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'LEGS', 'GLUTES', 'CORE', 'CARDIO', 'FULL_BODY', 'OTHER']
+
+const BASE_PAR_NOM = baseParNom()
 
 const enumOu = (valeur: string, valides: string[], defaut: string) => (valides.includes(valeur) ? valeur : defaut)
 const enumOuNull = (valeur: string | null, valides: string[]) => (valeur !== null && valides.includes(valeur) ? valeur : null)
@@ -176,17 +180,23 @@ class Constructeur {
   }
 
   private ligneExercice(id: string, dto: CustomExerciseDto, ecraser: boolean) {
+    // Groupes corrigés (catalogue de base ou dérivation du muscle principal) : l'export Android a souvent
+    // un muscle_primary vide et des noms anatomiques, alors que stats et filtres lisent les codes.
+    const groupes = groupesCorriges(
+      { musclePrimary: dto.musclePrimary, muscleGroups: dto.muscleGroups },
+      BASE_PAR_NOM.get(normalizeSearch(dto.name)) ?? null,
+    )
     this.ajouter('exercises', id, {
       name: dto.name,
       category: enumOu(dto.category, EXERCISE_CATEGORIES, 'OTHER'),
-      muscle_groups: liste(dto.muscleGroups),
+      muscle_groups: liste(groupes.muscleGroups),
       description: dto.description,
       is_favorite: bool(dto.isFavorite ?? false),
       is_custom: 1,
       image_url: null,
       exercise_type: dto.exerciseType,
       equipment: liste(dto.equipment),
-      muscle_primary: dto.musclePrimary,
+      muscle_primary: groupes.musclePrimary,
       is_bodyweight: bool(dto.isBodyweight ?? false),
       // Exercice supprimé encore référencé (sauvegarde web) : recréé en suppression logique
       deleted_at: dto.deletedAt ?? null,

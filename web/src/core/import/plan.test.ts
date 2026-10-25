@@ -510,3 +510,26 @@ describe('sauvegarde web : uuid et exercices supprimés', () => {
     }
   })
 })
+
+describe('buildImportPlan — groupes musculaires corrigés', () => {
+  const exo = (id: number, name: string, extra: Record<string, unknown>) => ({
+    id, name, description: '', category: 'OTHER', muscleGroups: [], exerciseType: '', equipment: [], musclePrimary: '', ...extra,
+  })
+  const importer = (liste: unknown[]) => buildImportPlan({ version: '3.2', customExercises: liste }, USER, { now: NOW }).rows.exercises
+
+  it('exercice du catalogue de base : principal et groupes du catalogue', () => {
+    const [l] = importer([exo(1, 'Développé couché barre', { muscleGroups: ['Pectoraux (chef sternal)'] })])
+    expect(l.muscle_primary).toBe('PECTORAUX')
+    expect(JSON.parse(l.muscle_groups as string)).toEqual(['PECTORAUX', 'TRICEPS', 'EPAULES'])
+  })
+
+  it('exercice perso : principal vide dérivé, principal renseigné intact', () => {
+    const [a, b] = importer([
+      exo(1, 'Mon exo A', { muscleGroups: ['Grand dorsal'] }),
+      exo(2, 'Mon exo B', { muscleGroups: ['Grand dorsal'], musclePrimary: 'Biceps brachial' }),
+    ])
+    expect(a.muscle_primary).toBe('DOS')
+    expect(JSON.parse(a.muscle_groups as string)).toEqual(['DOS'])
+    expect(b.muscle_primary).toBe('Biceps brachial')
+  })
+})
