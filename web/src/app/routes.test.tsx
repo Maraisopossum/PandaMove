@@ -22,6 +22,7 @@ const CHEMINS_ATTENDUS = [
   '/strength/planned',
   '/strength/done',
   '/strength/new',
+  '/strength/abc',
   '/strength/abc/edit',
   '/strength/instance/abc',
   '/strength/instance/abc/report',
@@ -69,6 +70,13 @@ describe('table de routes', () => {
   it('les sous-menus du renforcement ne tombent pas sur un paramètre (/strength/:id/…)', () => {
     expect(routeFeuille('/strength/planned')?.path).toBe('strength/planned')
     expect(routeFeuille('/strength/done')?.path).toBe('strength/done')
+    expect(routeFeuille('/strength/new')?.path).toBe('strength/new')
+    expect(routeFeuille('/strength/catalog')?.path).toBe('strength/catalog')
+  })
+
+  it("/strength/:id est le détail d'un modèle", () => {
+    expect(routeFeuille('/strength/abc')?.path).toBe('strength/:id')
+    expect(routeFeuille('/strength/abc/edit')?.path).toBe('strength/:id/edit')
   })
 
   it("/debug/write n'est pas enregistrée hors développement", () => {
