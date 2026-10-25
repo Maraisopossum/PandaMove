@@ -2186,3 +2186,23 @@ h1 {
   justify-content: flex-end;
   padding-top: 0.5rem;
 }
+
+/* Catalogue : actions de maintenance (catalogue de base, correction des groupes) */
+.catalogue__maintenance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 1rem 0;
+}
+
+.catalogue__resultat {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--texte-secondaire);
+}
+
+.bouton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

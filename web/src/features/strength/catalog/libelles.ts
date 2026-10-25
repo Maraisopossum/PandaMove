@@ -1,13 +1,11 @@
-import { MUSCLE_GROUPS } from '../../../core/db/types'
+import { LIBELLES_GROUPE } from '../../../core/catalogue/muscleToGroup'
+import { MUSCLE_GROUPS, type MuscleGroup } from '../../../core/db/types'
 
 export { MUSCLE_GROUPS }
 
-// Groupes dont le libellé n'est pas la simple mise en forme du code
-const SPECIAUX: Record<string, string> = { AVANT_BRAS: 'Avant-bras', AUTRE: 'Autre' }
-
-// « PECTORAUX » -> « Pectoraux »
+// « EPAULES » -> « Épaules » (libellés français de muscleToGroup) ; un texte libre est seulement mis en forme.
 export function libelleMuscle(code: string): string {
-  if (SPECIAUX[code]) return SPECIAUX[code]
+  if ((MUSCLE_GROUPS as readonly string[]).includes(code)) return LIBELLES_GROUPE[code as MuscleGroup]
   const minuscules = code.toLowerCase().replace(/_/g, ' ')
   return minuscules.charAt(0).toUpperCase() + minuscules.slice(1)
 }

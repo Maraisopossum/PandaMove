@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  catalogueDeBaseInstalle, corrigerGroupesMusculaires, installerCatalogueDeBase, messageCorrection, messageInstallation,
+} from '../../../core/catalogue/installerCatalogue'
 import { getDb } from '../../../core/db/client'
 import type { Db } from '../../../core/db/Db'
 import {
@@ -10,6 +13,15 @@ import { FILTRE_INITIAL, filtrerExercices, type FiltreCatalogue } from './filtre
 
 export type { NewExercise } from '../../../core/db/repos/exercises'
 export type { FiltreCatalogue } from './filtreCatalogue'
+
+// Résultat de la dernière action de maintenance (installation, correction), annoncé à l'utilisateur.
+export interface OperationCatalogue {
+  enCours: boolean
+  message: string | null
+  erreur: string | null
+}
+
+const OPERATION_INITIALE: OperationCatalogue = { enCours: false, message: null, erreur: null }
 
 export interface DepsCatalogue {
   /** Base à utiliser (défaut : base de l'application, résolue à l'usage). */
@@ -23,18 +35,24 @@ export function useCatalog({ db, userId }: DepsCatalogue = {}) {
   const [tous, setTous] = useState<Exercise[]>([])
   const [charge, setCharge] = useState(false)
   const [filtre, setFiltre] = useState<FiltreCatalogue>(FILTRE_INITIAL)
+  const [baseInstallee, setBaseInstallee] = useState<boolean | null>(null)
+  const [operation, setOperation] = useState<OperationCatalogue>(OPERATION_INITIALE)
 
   const recharger = useCallback(async () => {
-    setTous(await listExercises(db ?? getDb()))
+    const base = db ?? getDb()
+    setTous(await listExercises(base))
+    setBaseInstallee(await catalogueDeBaseInstalle(base))
     setCharge(true)
   }, [db])
 
   useEffect(() => {
     let annule = false
-    listExercises(db ?? getDb())
-      .then((liste) => {
+    const base = db ?? getDb()
+    Promise.all([listExercises(base), catalogueDeBaseInstalle(base)])
+      .then(([liste, installee]) => {
         if (annule) return
         setTous(liste)
+        setBaseInstallee(installee)
         setCharge(true)
       })
       .catch((e: unknown) => console.error('Chargement du catalogue impossible', e))
@@ -80,5 +98,33 @@ export function useCatalog({ db, userId }: DepsCatalogue = {}) {
     [db, recharger],
   )
 
-  return { exercices, charge, filtre, setFiltre, toggleFavori, creerPersonnalise, modifier, supprimer }
+  // Une action de maintenance à la fois : pas de seconde exécution pendant la première
+  const lancer = useCallback(
+    async (action: () => Promise<string>, messageErreur: string) => {
+      if (operation.enCours) return
+      setOperation({ enCours: true, message: null, erreur: null })
+      try {
+        const message = await action()
+        await recharger()
+        setOperation({ enCours: false, message, erreur: null })
+      } catch (e) {
+        console.error(messageErreur, e)
+        setOperation({ enCours: false, message: null, erreur: messageErreur })
+      }
+    },
+    [operation.enCours, recharger],
+  )
+
+  const installerBase = useCallback(async () => {
+    await lancer(async () => {
+      if (!userId) throw new Error('Utilisateur non connecté.')
+      return messageInstallation(await installerCatalogueDeBase(db ?? getDb(), userId))
+    }, "L'ajout du catalogue de base a échoué. Réessayez.")
+  }, [db, userId, lancer])
+
+  const corrigerGroupes = useCallback(async () => {
+    await lancer(async () => messageCorrection(await corrigerGroupesMusculaires(db ?? getDb())), 'La correction a échoué. Réessayez.')
+  }, [db, lancer])
+
+  return { exercices, charge, filtre, baseInstallee, operation, installerBase, corrigerGroupes, setFiltre, toggleFavori, creerPersonnalise, modifier, supprimer }
 }

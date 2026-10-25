@@ -1,6 +1,6 @@
 import { useAuth } from '../../../core/auth/AuthProvider'
 import type { MuscleGroup } from '../../../core/db/types'
-import { lireGroupes } from './filtreCatalogue'
+import { musclesAffiches } from './filtreCatalogue'
 import { CATEGORIES_EXERCICE, libelleMuscle, MUSCLE_GROUPS } from './libelles'
 import { useCatalog } from './useCatalog'
 import { useFormulaireExercice, useSuppressionExercice } from './useFormulaireExercice'
@@ -55,6 +55,21 @@ export default function CatalogScreen() {
           Nouvel exercice
         </button>
       </div>
+
+      <section className="catalogue__maintenance" aria-label="Catalogue de base">
+        {c.baseInstallee === false && (
+          <button type="button" className="bouton" disabled={c.operation.enCours} onClick={() => void c.installerBase()}>
+            Ajouter le catalogue de base
+          </button>
+        )}
+        <button type="button" className="bouton" disabled={c.operation.enCours} onClick={() => void c.corrigerGroupes()}>
+          Corriger les groupes musculaires
+        </button>
+        <p role="status" aria-label="Résultat de l'opération" className="catalogue__resultat">
+          {c.operation.enCours ? 'Opération en cours…' : (c.operation.message ?? '')}
+        </p>
+        {c.operation.erreur && <p role="alert" className="import__erreur">{c.operation.erreur}</p>}
+      </section>
 
       {form.ouvert && (
         <form
@@ -138,15 +153,15 @@ export default function CatalogScreen() {
         <>
           <p role="status">{c.exercices.length} exercice(s)</p>
           <ul className="catalogue__liste">
-            {c.exercices.map((e) => (
+            {c.exercices.map((e) => {
+              const muscles = musclesAffiches(e)
+              return (
               <li key={e.id} className="catalogue__carte">
                 <div className="catalogue__texte">
                   <strong>{e.name}</strong>
                   <span className="catalogue__muscles">
-                    {[e.musclePrimary, ...lireGroupes(e.muscleGroups)]
-                      .filter((m, i, tous) => m && tous.indexOf(m) === i)
-                      .map(libelleMuscle)
-                      .join(', ')}
+                    {muscles.principal === null ? 'Muscle non renseigné' : <>Principal : <b>{muscles.principal}</b></>}
+                    {muscles.secondaires.length > 0 && ' · Aussi : ' + muscles.secondaires.join(', ')}
                   </span>
                 </div>
                 <button
@@ -165,7 +180,8 @@ export default function CatalogScreen() {
                   Supprimer
                 </button>
               </li>
-            ))}
+              )
+            })}
           </ul>
         </>
       )}

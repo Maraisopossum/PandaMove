@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Exercise } from '../../../core/db/types'
-import { FILTRE_INITIAL, filtrerExercices } from './filtreCatalogue'
+import { FILTRE_INITIAL, filtrerExercices, musclesAffiches } from './filtreCatalogue'
 
 const ex = (id: string, name: string, muscleGroups: string[], musclePrimary = ''): Exercise => ({
   id, name, category: 'OTHER', muscleGroups: JSON.stringify(muscleGroups), description: '', isFavorite: false,
@@ -25,5 +25,20 @@ describe('filtrerExercices par muscle', () => {
 
   it("un exercice sans muscle n'est pas rangé dans « Autre »", () => {
     expect(noms('AUTRE')).toEqual([])
+  })
+})
+
+describe('musclesAffiches', () => {
+  const m = (musclePrimary: string, groupes: string[]) => musclesAffiches({ musclePrimary, muscleGroups: JSON.stringify(groupes) })
+
+  it('libellés français : principal puis secondaires', () => {
+    expect(m('PECTORAUX', ['PECTORAUX', 'TRICEPS', 'EPAULES'])).toEqual({ principal: 'Pectoraux', secondaires: ['Triceps', 'Épaules'] })
+  })
+  it('noms anatomiques rangés dans leur groupe, sans doublon', () => {
+    expect(m('', ['Grand dorsal', 'Biceps brachial', 'Brachial'])).toEqual({ principal: 'Dos', secondaires: ['Biceps'] })
+  })
+  it('sans groupe : muscle_primary ; sans rien : aucun principal', () => {
+    expect(m('ISCHIO', [])).toEqual({ principal: 'Ischio-jambiers', secondaires: [] })
+    expect(m('', [])).toEqual({ principal: null, secondaires: [] })
   })
 })

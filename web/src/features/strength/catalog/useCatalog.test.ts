@@ -147,3 +147,37 @@ describe('useCatalog', () => {
     await act(() => result.current.modifier('a', { name: 'DÉVELOPPÉ INCLINÉ', muscleGroups: [] }))
   })
 })
+
+describe('useCatalog — catalogue de base', () => {
+  it("installe le catalogue de base, affiche le résultat en français et masque l'action", async () => {
+    const db = createTestDb()
+    const { result } = await monter(db)
+    await waitFor(() => expect(result.current.baseInstallee).toBe(false))
+    await act(async () => { await result.current.installerBase() })
+    expect(result.current.operation.message).toBe('166 exercices ajoutés, 0 corrigé.')
+    expect(result.current.operation.erreur).toBeNull()
+    expect(result.current.baseInstallee).toBe(true)
+    expect(result.current.exercices).toHaveLength(166)
+  })
+
+  it('corrige les groupes musculaires et recharge la liste', async () => {
+    const db = createTestDb()
+    await exo(db, 'z', 'Mon exo', { muscle_groups: '["Grand dorsal"]' })
+    const { result } = await monter(db)
+    await act(async () => { await result.current.corrigerGroupes() })
+    expect(result.current.operation.message).toBe('1 exercice corrigé.')
+    expect(result.current.exercices[0].musclePrimary).toBe('DOS')
+  })
+
+  it("expose une erreur en français quand l'écriture échoue", async () => {
+    const db = createTestDb()
+    const { result } = await monter(db)
+    const casse: Db = { ...db, getAll: db.getAll.bind(db), get: db.get.bind(db), getOptional: db.getOptional.bind(db), execute: db.execute.bind(db), writeTransaction: () => Promise.reject(new Error('boom')) }
+    const rendu = renderHook(() => useCatalog({ db: casse, userId: USER }))
+    await waitFor(() => expect(rendu.result.current.charge).toBe(true))
+    await act(async () => { await rendu.result.current.corrigerGroupes() })
+    expect(rendu.result.current.operation.erreur).toBe('La correction a échoué. Réessayez.')
+    expect(rendu.result.current.operation.enCours).toBe(false)
+    void result
+  })
+})

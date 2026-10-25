@@ -1,4 +1,4 @@
-import { muscleToGroup } from '../../../core/catalogue/muscleToGroup'
+import { LIBELLES_GROUPE, muscleToGroup } from '../../../core/catalogue/muscleToGroup'
 import { normalizeSearch } from '../../../core/common/normalizeSearch'
 import type { Exercise, MuscleGroup } from '../../../core/db/types'
 
@@ -38,4 +38,22 @@ export function filtrerExercices(liste: Exercise[], filtre: FiltreCatalogue): Ex
     .map((e) => ({ e, cle: normalizeSearch(e.name) }))
     .sort((a, b) => (a.cle < b.cle ? -1 : a.cle > b.cle ? 1 : 0))
     .map(({ e }) => e)
+}
+
+export interface MusclesAffiches {
+  /** Libellé français du muscle principal (même règle que les stats : premier groupe, sinon muscle_primary). */
+  principal: string | null
+  /** Libellés français des autres groupes sollicités. */
+  secondaires: string[]
+}
+
+// Muscles d'un exercice pour l'affichage : codes, libellés ou noms anatomiques rangés par muscleToGroup.
+export function musclesAffiches(e: Pick<Exercise, 'musclePrimary' | 'muscleGroups'>): MusclesAffiches {
+  const groupes = lireGroupes(e.muscleGroups).filter((m) => m.trim() !== '')
+  const tous = groupes.length > 0 ? groupes : e.musclePrimary.trim() !== '' ? [e.musclePrimary] : []
+  const codes = tous.map(muscleToGroup).filter((g, i, liste) => liste.indexOf(g) === i)
+  return {
+    principal: codes.length > 0 ? LIBELLES_GROUPE[codes[0]] : null,
+    secondaires: codes.slice(1).map((g) => LIBELLES_GROUPE[g]),
+  }
 }
