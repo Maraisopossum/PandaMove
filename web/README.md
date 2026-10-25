@@ -127,3 +127,12 @@ Contenu : export « PandaMoveExport » v3.2, le format de l'application Android,
 - **Pas de Docker en CI** : la CI lance lint, typecheck, tests Vitest (schéma et RLS vérifiés sous PGlite) et build. Les e2e, le test pgTAP (`supabase/tests/rls.test.sql`) et la vérification RLS sur le vrai Supabase se lancent à la main.
 - **Envois rejetés par le serveur** : une modification refusée définitivement par Supabase (contrainte, droit, donnée invalide) est signalée par un message sous la barre du haut (« Une modification n'a pas pu être envoyée au serveur (code …) »), mais elle n'est pas rejouable : elle disparaît de l'appareil au point de synchro suivant. Le détail (table, opération, identifiant) est dans la console du navigateur.
 - **Indicateur de synchro** : une coupure Wi-Fi peut mettre quelques secondes à apparaître ; le mode « Offline » des outils de développement ne coupe pas une connexion de synchro déjà ouverte.
+
+## Différences connues avec Android
+
+Le moteur de progression (`src/core/progression/engine.ts`) reproduit volontairement le Kotlin (`ProgressionEngine.kt`), y compris deux particularités qui ressemblent à des défauts côté Android. Elles ne sont pas corrigées dans le web, pour que les deux applications proposent la même chose.
+
+- **Exercice bilatéral** : les côtés sont repérés par la présence de « G » ou « D » dans les notes de série (sans tenir compte de la casse). Le verdict retenu est le pire des deux côtés, mais à sévérité égale c'est le côté G qui l'emporte. Conséquences : si seul le côté D est noté, l'exercice est « non noté » ; si seul le côté G est noté, son verdict s'applique ; à égalité de sévérité, la valeur atteinte par G pilote la hausse de charge même si D a fait moins.
+- **Exercice en durée (`DURATION`) hors système `TEMPORELLE`** : en double progression, la valeur atteinte (des secondes) est comparée à `repsMax` (des répétitions) pour décider du passage au palier de charge.
+
+Vérifier la parité après une modification du moteur Kotlin : `./gradlew :core:database:testDebugUnitTest` (tests `ProgressionEngineTest`, `EquipmentInventoryTest`) côté Android, puis `npm test` côté web (fixtures `test-kotlin` de `engine.json`).
