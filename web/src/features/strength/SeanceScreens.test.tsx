@@ -261,12 +261,12 @@ describe('Suppression depuis la liste', () => {
     const dialogue = await screen.findByRole('dialog', { name: 'Supprimer cette séance ?' })
     expect(dialogue.getAttribute('aria-modal')).toBe('true')
     expect(dialogue.className).toBe('dialogue')
-    expect(dialogue.textContent).toContain('1 séance planifiée et 2 séances réalisées liées à ce modèle')
+    expect(dialogue.textContent).toContain('1 séance programmée et 2 séances terminées liées à cette séance type')
     expect(dialogue.textContent).toContain('Cette action est définitive')
     expect(dialogue.textContent).toContain(
-      "Supprime le modèle et les séances planifiées, conserve les séances déjà réalisées (calendrier, statistiques)",
+      "Supprime la séance type et les séances programmées, conserve les séances déjà terminées (calendrier, statistiques)",
     )
-    expect(dialogue.textContent).toContain('Supprime aussi les séances réalisées et leurs séries')
+    expect(dialogue.textContent).toContain('Supprime aussi les séances terminées et leurs séries')
     for (const nom of ["Garder l'historique", 'Tout supprimer', 'Annuler']) {
       expect(screen.getByRole('button', { name: nom })).toBeTruthy()
     }

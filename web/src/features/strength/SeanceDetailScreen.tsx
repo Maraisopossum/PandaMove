@@ -5,7 +5,7 @@ import type { BlocDetail, ExerciceDetail, InstanceDetail } from './detailSeance'
 import { useDetailSeance } from './useDetailSeance'
 
 const ETATS: Record<InstanceDetail['etat'], { libelle: string; icone: string }> = {
-  planifiee: { libelle: 'Planifiée', icone: '▶' },
+  planifiee: { libelle: 'Programmée', icone: '▶' },
   en_cours: { libelle: 'En cours', icone: '▶' },
   terminee: { libelle: 'Terminée', icone: '✓' },
 }
@@ -174,7 +174,7 @@ export default function SeanceDetailScreen() {
       <section aria-labelledby={idHistorique}>
         <h2 id={idHistorique}>Historique</h2>
         {d.instances.length === 0 ? (
-          <p>Aucune séance jouée ou planifiée à partir de ce modèle pour l'instant.</p>
+          <p>Aucune séance terminée ou programmée à partir de cette séance type pour l'instant.</p>
         ) : (
           <ul className="seances__liste">
             {d.instances.map((i) => (

@@ -167,7 +167,7 @@ export default function ExecuteScreen() {
           <p>
             {e.suppression.motif === 'sortie'
               ? 'Cette séance sera supprimée, avec ses séries déjà saisies. La séance type n’est pas touchée.'
-              : 'Cette séance planifiée sera supprimée, avec ses séries déjà saisies. La séance type n’est pas touchée.'}
+              : 'Cette séance programmée sera supprimée, avec ses séries déjà saisies. La séance type n’est pas touchée.'}
           </p>
           {e.suppression.erreur && (
             <p role="alert" className="import__erreur">

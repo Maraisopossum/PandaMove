@@ -3272,3 +3272,60 @@ h1 {
   outline: 3px solid var(--focus);
   outline-offset: -2px;
 }
+
+/* Carte « Pour commencer » (accueil et module Renforcement) */
+.demarrage {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--bord);
+  border-left: 4px solid #7c5cbf;
+  border-radius: 16px;
+  background: color-mix(in srgb, #7c5cbf 8%, var(--surface));
+}
+
+.demarrage h2 {
+  margin: 0 0 0.5rem;
+}
+
+.demarrage__etapes {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.demarrage__etape {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.demarrage__numero {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #5b3f9e;
+  color: #fff;
+  font-weight: 800;
+}
+
+.demarrage__titre {
+  margin: 0;
+  font-weight: 800;
+}
+
+.demarrage__aide {
+  margin: 0.125rem 0 0.5rem;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.demarrage__etape--faite .demarrage__titre {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}

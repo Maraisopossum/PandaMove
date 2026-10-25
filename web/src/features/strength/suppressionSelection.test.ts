@@ -86,7 +86,7 @@ describe('textesSuppressionSelection (dialogue de l’Android)', () => {
     expect(t.lignes[0]).toBe('2 séances types et 1 séance archivée seront supprimées.')
   })
   it('séances jouées : planifiées et terminées', () => {
-    expect(textesSuppressionSelection({ types: 0, archivees: 0, planifiees: 1, terminees: 0 }).lignes[0]).toBe('1 séance planifiée sera supprimée.')
+    expect(textesSuppressionSelection({ types: 0, archivees: 0, planifiees: 1, terminees: 0 }).lignes[0]).toBe('1 séance programmée sera supprimée.')
     expect(textesSuppressionSelection({ types: 0, archivees: 0, planifiees: 0, terminees: 3 }).lignes[0]).toBe('3 séances terminées seront supprimées.')
   })
   it('explique l’archivage d’une séance type qui a de l’historique et la purge d’une archivée', () => {

@@ -32,7 +32,7 @@ export function SeanceDirecteDialog({ nom, proposition, erreur, enCours, onNom, 
         >
           <h2 id={idTitre}>Séance directe</h2>
           <p id={idAide} className="dialogue__aide">
-            Séance planifiée aujourd'hui, sans séance type associée. Vous ajoutez ses exercices pendant la séance ; elle apparaît dans « Séances programmées ».
+            Séance programmée aujourd'hui, sans séance type associée. Vous ajoutez ses exercices pendant la séance ; elle apparaît dans « Séances programmées ».
           </p>
           <div className="formulaire__champ">
             <label htmlFor={idNom}>Nom de la séance</label>

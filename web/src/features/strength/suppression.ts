@@ -26,7 +26,7 @@ const pluriel = (n: number, mot: string, accord: string) => `${n} ${mot}${n > 1 
 
 // Phrase du dialogue de suppression (« 1 séance planifiée et 2 séances réalisées liées à ce modèle »).
 export function texteHistorique({ planifiees, realisees }: Historique): string {
-  return `${pluriel(planifiees, 'séance', 'planifiée')} et ${pluriel(realisees, 'séance', 'réalisée')} liées à ce modèle`
+  return `${pluriel(planifiees, 'séance', 'programmée')} et ${pluriel(realisees, 'séance', 'terminée')} liées à cette séance type`
 }
 
 // Marque supprimées (tombstone synchronisable) les lignes vivantes de `table` correspondant à `condition`.

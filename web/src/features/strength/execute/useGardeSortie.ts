@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 
 // Garde de sortie de l'écran d'exécution : `bloquerRef` dit si une navigation doit être interceptée (lu par useBlocker).
 // `contourner` désarme la garde juste avant une navigation voulue par l'écran lui-même (bilan, suppression, édition
@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef } from 'react'
 export function useGardeSortie(active: boolean) {
   const bloquerRef = useRef(active)
   const contourne = useRef(false)
-  useEffect(() => {
+  // Effet de mise en page : la garde est armée dès que l'écran apparaît, sans attendre le rendu différé des effets passifs
+  useLayoutEffect(() => {
     bloquerRef.current = active && !contourne.current
   }, [active])
   const contourner = useCallback(() => {

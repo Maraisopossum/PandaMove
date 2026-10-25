@@ -87,10 +87,10 @@ describe('compterHistorique', () => {
 describe('texteHistorique', () => {
   it('accorde le pluriel', () => {
     expect(texteHistorique({ planifiees: 1, realisees: 2 })).toBe(
-      '1 séance planifiée et 2 séances réalisées liées à ce modèle',
+      '1 séance programmée et 2 séances terminées liées à cette séance type',
     )
     expect(texteHistorique({ planifiees: 0, realisees: 1 })).toBe(
-      '0 séance planifiée et 1 séance réalisée liées à ce modèle',
+      '0 séance programmée et 1 séance terminée liées à cette séance type',
     )
   })
 })

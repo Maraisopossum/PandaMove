@@ -8,11 +8,11 @@ import { useEcranCalendrier } from './useEcranCalendrier'
 
 const FILTRES: { statut: StatutFiltre; libelle: string }[] = [
   { statut: 'toutes', libelle: 'Toutes' },
-  { statut: 'planifiees', libelle: 'Planifiées' },
+  { statut: 'planifiees', libelle: 'Programmées' },
   { statut: 'terminees', libelle: 'Terminées' },
 ]
 
-const LIBELLE_ETAT = { planifiee: 'Planifiée', en_cours: 'En cours', terminee: 'Terminée' } as const
+const LIBELLE_ETAT = { planifiee: 'Programmée', en_cours: 'En cours', terminee: 'Terminée' } as const
 
 const libelleSeances = (n: number) => (n === 0 ? 'aucune séance' : `${n} séance${n > 1 ? 's' : ''}`)
 

@@ -140,7 +140,7 @@ describe('séances programmées et terminées : sélection multiple', () => {
     expect(screen.getByText('2 sélectionnés')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
     const dialogue = screen.getByRole('dialog', { name: 'Supprimer ces 2 éléments ?' })
-    expect(within(dialogue).getByText('2 séances planifiées seront supprimées.')).toBeTruthy()
+    expect(within(dialogue).getByText('2 séances programmées seront supprimées.')).toBeTruthy()
     fireEvent.click(within(dialogue).getByRole('button', { name: 'Supprimer' }))
     await waitFor(async () => expect(await supprimee('instances_seance', 'i-plan')).toBe(true), LARGE)
     expect(await supprimee('instances_seance', 'i-plan2')).toBe(true)

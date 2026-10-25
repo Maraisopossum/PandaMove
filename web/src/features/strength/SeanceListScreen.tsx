@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { AssignDialog } from './AssignDialog'
 import { BarreSelection } from './BarreSelection'
+import { CarteDemarrage } from '../demarrage/CarteDemarrage'
 import { CarteSelectionnable } from './CarteSelectionnable'
 import { MenuActions } from './MenuActions'
 import { SeanceDirecteDialog } from './SeanceDirecteDialog'
@@ -25,8 +26,9 @@ export default function SeanceListScreen() {
     <>
       <h1>Séances types</h1>
       <p className="ecran__aide">
-        Vos modèles de séance : lancez-en un maintenant, planifiez-le au calendrier avec 📅, ou ouvrez-le pour voir son détail.
+        Vos séances types, des modèles réutilisables : lancez-en une maintenant, planifiez-la au calendrier avec 📅, ou ouvrez-la pour voir son détail.
       </p>
+      <CarteDemarrage />
       {!sel.mode && (
         <div className="formulaire__ligne">
           <Link to="/strength/new" className="bouton bouton--principal lien-bouton">

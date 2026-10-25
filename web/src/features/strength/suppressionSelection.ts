@@ -68,7 +68,7 @@ export function textesSuppressionSelection(c: CompteSelection): TextesSuppressio
   const parties = [
     c.types > 0 ? seances(c.types, 'type', 's') : null,
     c.archivees > 0 ? seances(c.archivees, 'archivée', 's') : null,
-    c.planifiees > 0 ? seances(c.planifiees, 'planifiée', 's') : null,
+    c.planifiees > 0 ? seances(c.planifiees, 'programmée', 's') : null,
     c.terminees > 0 ? seances(c.terminees, 'terminée', 's') : null,
   ].filter((p): p is string => p !== null)
   const detail = `${parties.join(' et ')} ${total > 1 ? 'seront supprimées' : 'sera supprimée'}.`
