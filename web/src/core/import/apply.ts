@@ -70,6 +70,11 @@ async function retirerLignesInstanceRemplacees(tx: DbTx, plan: ImportPlan): Prom
 export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportReport> {
   const minimaux = new Set(plan.exercisesMinimauxIds)
   return db.writeTransaction(async (tx) => {
+    // AVANT les upserts : PowerSync rejoue les écritures dans l'ordre d'exécution. Les copies web
+    // remplacées doivent être supprimées sur le serveur avant l'arrivée des lignes du fichier, sinon
+    // l'index unique (instance, ligne source) rejette ces dernières (23505).
+    await retirerLignesInstanceRemplacees(tx, plan)
+
     const ecrites: Partial<Record<TableName, number>> = {}
     for (const table of ORDRE) {
       let n = 0
@@ -83,8 +88,6 @@ export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportR
       }
       ecrites[table] = n
     }
-
-    await retirerLignesInstanceRemplacees(tx, plan)
 
     // Matériel : fusion avec l'inventaire existant, écrite dans la même transaction
     if (plan.equipmentPatch) {

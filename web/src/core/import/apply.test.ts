@@ -243,6 +243,40 @@ describe("applyImportPlan : lignes d'instance déjà copiées sur le web", () =>
     expect(toutes.filter((l) => l.deleted_at !== null)).toHaveLength(1)
   })
 
+  it("ordre des écritures (rejouées telles quelles par PowerSync) : les suppressions des copies web précèdent les insertions du fichier", async () => {
+    await applyImportPlan(db, plan(fichier(false)))
+    const instanceId = deterministicId(`${USER}:instances_seance`, '100')
+    await copyTemplateToInstance(db, instanceId)
+    const copies = (await vivantes('exercices_seance', instanceId)).map((l) => String(l.id))
+    const blocsCopies = (await vivantes('blocs_seance', instanceId)).map((l) => String(l.id))
+
+    // Base qui journalise chaque instruction d'écriture de la transaction, dans l'ordre
+    const journal: { sql: string; params: unknown[] }[] = []
+    const journalisee: Db = {
+      ...db,
+      writeTransaction: (fn) =>
+        db.writeTransaction((tx) =>
+          fn({ ...tx, execute: (sql, params = []) => { journal.push({ sql, params }); return tx.execute(sql, params) } }),
+        ),
+    }
+    await applyImportPlan(journalisee, plan(fichier(true)))
+
+    const indice = (predicat: (e: { sql: string; params: unknown[] }) => boolean) => journal.findIndex(predicat)
+    const contient = (e: { params: unknown[] }, id: string) => e.params.includes(id)
+    const fichierEx = deterministicId(`${USER}:exercices_seance`, '21')
+    const fichierBloc = deterministicId(`${USER}:blocs_seance`, '11')
+    const ecritureFichier = Math.min(
+      indice((e) => contient(e, fichierEx)),
+      indice((e) => contient(e, fichierBloc)),
+    )
+    expect(ecritureFichier).toBeGreaterThanOrEqual(0)
+    for (const id of [...copies, ...blocsCopies]) {
+      const suppression = indice((e) => /deleted_at/.test(e.sql) && contient(e, id))
+      expect(suppression).toBeGreaterThanOrEqual(0)
+      expect(suppression).toBeLessThan(ecritureFichier)
+    }
+  })
+
   it("une instance du fichier sans lignes ne touche pas aux copies locales", async () => {
     await applyImportPlan(db, plan(fichier(false)))
     const instanceId = deterministicId(`${USER}:instances_seance`, '100')
