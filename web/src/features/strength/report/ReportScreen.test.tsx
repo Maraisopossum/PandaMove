@@ -179,6 +179,36 @@ describe('ReportScreen : rapport', () => {
     expect(revoquer).toHaveBeenCalledWith('blob:rapport')
   })
 
+  it('« Télécharger l’image (PNG) » dessine le rapport et télécharge un fichier PNG nommé et daté', async () => {
+    await seanceTerminee('r-png')
+    const creer = vi.fn().mockReturnValue('blob:image')
+    Object.defineProperty(URL, 'createObjectURL', { value: creer, configurable: true })
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true })
+    const textes: string[] = []
+    const ctx = {
+      font: '', fillStyle: '', textBaseline: '', fillRect: vi.fn(), fillText: (t: string) => textes.push(t),
+      measureText: (t: string) => ({ width: t.length * 12 }),
+    }
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb) => cb(new Blob(['png'], { type: 'image/png' })))
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    monter('r-png')
+    fireEvent.click(await screen.findByRole('button', { name: 'Télécharger l’image (PNG)' }))
+    await waitFor(() => expect(clic).toHaveBeenCalled())
+    expect((creer.mock.calls[0][0] as Blob).type).toBe('image/png')
+    expect(textes).toContain('Haut du corps')
+    expect(screen.getByRole('status').textContent).toBe('Image téléchargée.')
+  })
+
+  it('image impossible (canvas indisponible) : message clair, le HTML reste proposé', async () => {
+    await seanceTerminee('r-png-ko')
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+    monter('r-png-ko')
+    fireEvent.click(await screen.findByRole('button', { name: 'Télécharger l’image (PNG)' }))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/La création de l’image a échoué/))
+  })
+
   it('séance introuvable : message et retour', async () => {
     monter('inconnue')
     expect(await screen.findByRole('alert')).toBeTruthy()

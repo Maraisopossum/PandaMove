@@ -148,6 +148,7 @@ export function useEcranBilan(instanceId: string) {
     ),
     copier: exportation.copier,
     telecharger: exportation.telecharger,
+    telechargerImage: exportation.telechargerImage,
     partager: exportation.partager,
     peutPartager: exportation.peutPartager,
     lienSeance: `/strength/instance/${instanceId}`,

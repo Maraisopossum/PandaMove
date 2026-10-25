@@ -150,6 +150,9 @@ export default function ReportScreen() {
               <button type="button" className="bouton" onClick={b.telecharger}>
                 Télécharger le rapport (HTML)
               </button>
+              <button type="button" className="bouton" onClick={() => void b.telechargerImage()}>
+                Télécharger l’image (PNG)
+              </button>
               {b.peutPartager && (
                 <button type="button" className="bouton" onClick={() => void b.partager()}>
                   Partager

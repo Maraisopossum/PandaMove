@@ -28,7 +28,7 @@ export interface RapportExport {
   groupes: GroupeExport[]
 }
 
-function detailLigne(l: LigneSerie): string {
+export function detailLigne(l: LigneSerie): string {
   if (!l.realisee) return `${l.libelle} : non validée`
   const rpe = l.rpe === '—' ? '' : `, RPE ${l.rpe}`
   const reps = /^\d+$/.test(l.reps) ? `${l.reps} reps` : l.reps
