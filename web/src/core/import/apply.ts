@@ -33,6 +33,36 @@ async function sansEcraserMarqueur(tx: DbTx, table: TableName, ligne: Record<str
   return reste
 }
 
+// Lignes d'instance du fichier : pour chaque instance qui apporte des blocs ou exercices, le fichier
+// fait foi (« l'export gagne »). Les lignes locales vivantes de cette instance absentes du plan (copie
+// du template faite sur le web avec d'autres ids, même ligne source) passent en suppression logique
+// (jamais de DELETE) ; sinon chaque exercice serait en double et l'index unique serveur
+// (instance_seance_id, exercice_source_id) rejetterait l'envoi. Une instance sans lignes dans le
+// fichier garde ses lignes locales.
+async function retirerLignesInstanceRemplacees(tx: DbTx, plan: ImportPlan): Promise<void> {
+  const maintenant = new Date().toISOString()
+  const TABLES_LIGNES = ['blocs_seance', 'exercices_seance'] as const
+  const instances = new Set<string>()
+  for (const table of TABLES_LIGNES) {
+    for (const ligne of plan.rows[table]) {
+      if (typeof ligne.instance_seance_id === 'string') instances.add(ligne.instance_seance_id)
+    }
+  }
+  for (const table of TABLES_LIGNES) {
+    const idsDuPlan = new Set(plan.rows[table].map((l) => String(l.id)))
+    for (const instance of instances) {
+      const locales = await tx.getAll<{ id: string }>(
+        `SELECT id FROM ${table} WHERE instance_seance_id = ? AND deleted_at IS NULL`,
+        [instance],
+      )
+      for (const { id } of locales) {
+        if (idsDuPlan.has(id)) continue
+        await tx.execute(`UPDATE ${table} SET deleted_at = ?, updated_at = ? WHERE id = ?`, [maintenant, maintenant, id])
+      }
+    }
+  }
+}
+
 // Applique un plan d'import en UNE transaction : la moindre erreur annule tout (rien n'est écrit)
 // et est relancée. « L'export gagne » : une ligne complète remplace la ligne locale de même id
 // (réimporter deux fois donne les mêmes comptes). Les exercices minimaux (créés pour une référence
@@ -53,6 +83,8 @@ export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportR
       }
       ecrites[table] = n
     }
+
+    await retirerLignesInstanceRemplacees(tx, plan)
 
     // Matériel : fusion avec l'inventaire existant, écrite dans la même transaction
     if (plan.equipmentPatch) {

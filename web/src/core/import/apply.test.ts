@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Db, DbTx } from '../db/Db'
+import { deterministicId } from '../db/ids'
+import { copyTemplateToInstance } from '../db/repos/instances'
 import { getSettings, saveSettings } from '../db/repos/settings'
 import { createTestDb } from '../../test/sqliteDb'
 import { applyImportPlan } from './apply'
@@ -197,5 +199,56 @@ describe('parseImportFile', () => {
     expect(() => parseImportFile('[1,2]')).toThrow(ImportError)
     expect(() => parseImportFile('42')).toThrow(ImportError)
     expect(() => parseImportFile('null')).toThrow(ImportError)
+  })
+})
+
+describe("applyImportPlan : lignes d'instance déjà copiées sur le web", () => {
+  const seance = { id: 1, nom: 'Jambes', createdAt: '2026-01-01T10:00:00' }
+  const blocT = { id: 10, seanceId: 1, nom: 'Principal', position: 0 }
+  const exT = { id: 20, seanceId: 1, exerciceId: 5, exerciceName: 'Squat', blocId: 10, position: 0 }
+  const instance = { id: 100, seanceId: 1, date: '2026-02-01', isCompleted: false }
+  const fichier = (lignes: boolean) => ({
+    version: '3.2',
+    strengthTemplates: [{ seance, blocs: [blocT], exercices: [exT] }],
+    strengthSessions: {
+      completed: [],
+      planned: [{
+        instance,
+        blocs: lignes ? [{ ...blocT, id: 11, instanceSeanceId: 100 }] : [],
+        exercices: lignes ? [{ ...exT, id: 21, blocId: 11, instanceSeanceId: 100 }] : [],
+      }],
+    },
+  })
+  const vivantes = (table: string, instanceId: string) =>
+    db.getAll<Record<string, unknown>>(`SELECT * FROM ${table} WHERE instance_seance_id = ? AND deleted_at IS NULL`, [instanceId])
+
+  it("le fichier gagne : les copies web absentes du plan passent en suppression logique (jamais de DELETE)", async () => {
+    await applyImportPlan(db, plan(fichier(false)))
+    const instanceId = deterministicId(`${USER}:instances_seance`, '100')
+    await copyTemplateToInstance(db, instanceId)
+    expect(await vivantes('exercices_seance', instanceId)).toHaveLength(1)
+
+    const p = plan(fichier(true))
+    await applyImportPlan(db, p)
+
+    const exercices = await vivantes('exercices_seance', instanceId)
+    const blocs = await vivantes('blocs_seance', instanceId)
+    expect(exercices.map((e) => e.id)).toEqual([deterministicId(`${USER}:exercices_seance`, '21')])
+    expect(blocs.map((b) => b.id)).toEqual([deterministicId(`${USER}:blocs_seance`, '11')])
+    // Une seule ligne vivante par (instance, source) : l'index unique serveur 0006 est respecté
+    expect(new Set(exercices.map((e) => e.exercice_source_id)).size).toBe(exercices.length)
+    // Les copies web restent en base, marquées supprimées
+    const toutes = await db.getAll<{ deleted_at: string | null }>('SELECT deleted_at FROM exercices_seance WHERE instance_seance_id = ?', [instanceId])
+    expect(toutes).toHaveLength(2)
+    expect(toutes.filter((l) => l.deleted_at !== null)).toHaveLength(1)
+  })
+
+  it("une instance du fichier sans lignes ne touche pas aux copies locales", async () => {
+    await applyImportPlan(db, plan(fichier(false)))
+    const instanceId = deterministicId(`${USER}:instances_seance`, '100')
+    await copyTemplateToInstance(db, instanceId)
+    await applyImportPlan(db, plan(fichier(false)))
+    expect(await vivantes('exercices_seance', instanceId)).toHaveLength(1)
+    expect(await vivantes('blocs_seance', instanceId)).toHaveLength(1)
   })
 })
