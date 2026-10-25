@@ -160,15 +160,31 @@ describe('ExecuteScreen', () => {
     await instance('i-fin')
     monter('i-fin')
     fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
-    const confirmer = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     fireEvent.click(await screen.findByRole('button', { name: 'Terminer la séance' }))
-    expect(confirmer).toHaveBeenCalledTimes(1)
+    // Dialogue arrondi (texte de l'Android + précisions), « Annuler » ne termine rien
+    const dialogue = screen.getByRole('dialog', { name: 'Terminer la séance ?' })
+    expect(dialogue.textContent).toContain('Aucune série n’est validée : le rapport sera vide.')
+    expect(dialogue.textContent).toContain('Les résultats seront sauvegardés et la séance marquée comme terminée.')
+    fireEvent.click(within(dialogue).getByRole('button', { name: 'Annuler' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
     const ligne = () => base.get<{ is_completed: number }>("SELECT is_completed FROM instances_seance WHERE id = 'i-fin'")
     expect((await ligne()).is_completed).toBe(0)
 
     fireEvent.click(screen.getByRole('button', { name: 'Terminer la séance' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Terminer la séance ?' })).getByRole('button', { name: 'Terminer' }))
     expect(await screen.findByText('Écran bilan')).toBeTruthy()
     expect((await ligne()).is_completed).toBe(1)
+  })
+
+  it('la confirmation rappelle les séries prévues non validées', async () => {
+    await instance('i-fin-reste')
+    monter('i-fin-reste')
+    fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
+    fireEvent.click(within(carte('Développé couché')).getByRole('button', { name: 'Valider la série 1' }))
+    await waitFor(async () => expect(await series('i-fin-reste')).toHaveLength(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer la séance' }))
+    // 3 + 2 séries prévues, 1 validée
+    expect(screen.getByRole('dialog', { name: 'Terminer la séance ?' }).textContent).toContain('4 séries prévues ne sont pas validées : elles ne seront pas comptées.')
   })
 
   it('une séance terminée est affichée en lecture seule', async () => {
@@ -326,6 +342,22 @@ describe('ExecuteScreen : outils de l’exercice', () => {
     monter('i-sans-bandeau')
     const dc = await screen.findByRole('article', { name: 'Développé couché' })
     expect(within(dc).queryByRole('region', { name: /Progression de/ })).toBeNull()
+  })
+})
+
+describe('ExecuteScreen : titre de l’onglet', () => {
+  it('nom de la séance, puis chrono et repos une fois démarrée ; titre d’origine rétabli à la sortie', async () => {
+    document.title = 'PandaMove'
+    await instance('i-titre')
+    const rendu = monter('i-titre')
+    await screen.findByRole('heading', { level: 1, name: 'Haut du corps' })
+    expect(document.title).toBe('Haut du corps · PandaMove')
+    fireEvent.click(screen.getByRole('button', { name: 'Démarrer' }))
+    await waitFor(() => expect(document.title).toMatch(/^00:0\d · Haut du corps · PandaMove$/))
+    fireEvent.click(within(carte('Développé couché')).getByRole('button', { name: 'Valider la série 1' }))
+    await waitFor(() => expect(document.title).toMatch(/^Repos 01:\d\d · 00:0\d · Haut du corps · PandaMove$/))
+    rendu.unmount()
+    expect(document.title).toBe('PandaMove')
   })
 })
 

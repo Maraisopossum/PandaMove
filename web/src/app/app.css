@@ -3193,3 +3193,27 @@ h1 {
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+
+/* Bandeau « Séance en cours » (reprise) */
+.seance-active {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--bord);
+  background: var(--progression-fond);
+}
+
+.seance-active__texte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.seance-active__chrono {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}

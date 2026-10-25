@@ -132,12 +132,26 @@ export default function ExecuteScreen() {
                   Pause
                 </button>
               )}
-              <button type="button" className="bouton bouton--principal" onClick={() => void e.terminerAvecConfirmation()}>
+              <button type="button" className="bouton bouton--principal" onClick={e.fin.demander}>
                 Terminer la séance
               </button>
             </>
           )}
         </div>
+      )}
+      {e.fin.ouverte && (
+        <DialogueConfirmation
+          titre={e.fin.message.titre}
+          libelleConfirmer="Terminer"
+          libelleAnnuler="Annuler"
+          destructif={false}
+          onConfirmer={() => void e.fin.confirmer()}
+          onAnnuler={e.fin.annuler}
+        >
+          {e.fin.message.lignes.map((ligne) => (
+            <p key={ligne}>{ligne}</p>
+          ))}
+        </DialogueConfirmation>
       )}
       {e.suppression.ouverte && (
         <DialogueConfirmation

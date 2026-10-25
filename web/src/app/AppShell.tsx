@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { Outlet } from 'react-router'
+import { BandeauSeanceActive } from '../features/strength/execute/BandeauSeanceActive'
 import { AlerteRejetEnvoi } from '../core/sync/AlerteRejetEnvoi'
 import { SyncIndicator } from '../core/sync/SyncIndicator'
 import { Drawer } from './Drawer'
@@ -19,11 +20,13 @@ interface VueProps {
   indicateurSynchro: ReactNode
   /** Alerte des envois rejetés définitivement par le serveur (sous la barre du haut). */
   alerteEnvoi?: ReactNode
+  /** Bandeau « Séance en cours » (reprise en un clic) */
+  seanceActive?: ReactNode
   children: ReactNode
 }
 
 // Présentation pure de la coque : lien d'évitement, drawer, barre du haut colorée par module, contenu.
-export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon, indicateurSynchro, alerteEnvoi, children }: VueProps) {
+export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon, indicateurSynchro, alerteEnvoi, seanceActive, children }: VueProps) {
   return (
     <div className="coque">
       <a className="coque__evitement" href="#contenu">
@@ -48,6 +51,7 @@ export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, de
           {indicateurSynchro}
         </header>
         {alerteEnvoi}
+        {seanceActive}
         {messageAutreCompte && (
           <section role="alert" className="bandeau">
             <p>{messageAutreCompte}</p>
@@ -68,7 +72,7 @@ export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, de
 export function AppShell() {
   const etat = useAppShell()
   return (
-    <AppShellView {...etat} indicateurSynchro={<SyncIndicator />} alerteEnvoi={<AlerteRejetEnvoi />}>
+    <AppShellView {...etat} indicateurSynchro={<SyncIndicator />} alerteEnvoi={<AlerteRejetEnvoi />} seanceActive={<BandeauSeanceActive />}>
       <Outlet />
     </AppShellView>
   )

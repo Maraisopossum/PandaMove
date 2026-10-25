@@ -12,12 +12,15 @@ import { useMateriel } from './useMateriel'
 import { useMinuteurRepos } from './useMinuteurRepos'
 import { useMontee } from './useMontee'
 import { useNotesExercices } from './useNotesExercices'
+import { useTitreOnglet } from './useTitreOnglet'
 import { useSuppressionSeanceEnCours } from './useSuppressionSeanceEnCours'
 import { useNavExercices } from './useNavExercices'
 import { useNotesSeance } from './useNotesSeance'
 import { useTableauSeries } from './useTableauSeries'
 import { useWakeLock } from './useWakeLock'
 import { bandeauProgression } from './bandeauProgression'
+import { messageFin } from './confirmationFin'
+import { titreOnglet } from './seanceActive'
 import { chargeInitialeCalculateur } from './disques'
 import { monteeDisponible } from './montee'
 import { formaterDuree, libelleDureeAccessible } from './vue'
@@ -72,10 +75,24 @@ export function useEcranExecution(instanceId: string) {
   const modifierExercices = useCallback(() => navigate(`/strength/instance/${instanceId}/edit`), [instanceId, navigate])
   const { terminer } = ex
   useWakeLock(ex.demarre && !ex.terminee)
+  useTitreOnglet(
+    titreOnglet({
+      nomSeance: ex.chargement ? 'Séance' : ex.nomSeance,
+      chrono: formaterDuree(ex.elapsedMs),
+      repos: minuteur.restantMs !== null && minuteur.restantMs > 0 ? formaterDuree(minuteur.restantMs) : null,
+      enPause: ex.enPause,
+      termine: ex.terminee,
+      demarre: ex.demarre,
+    }),
+  )
   const pandaMotivation = useImagePanda('motivation', { userId: session?.user.id, taille: 'sm' })
 
-  const terminerAvecConfirmation = useCallback(async () => {
-    if (!window.confirm('Terminer la séance ? Les séries saisies sont enregistrées ; la séance ne sera plus modifiable.')) return
+  // Fin de séance : confirmation (texte de l'Android + séries non validées), puis clôture et ouverture du bilan
+  const [finOuverte, setFinOuverte] = useState(false)
+  const demanderFin = useCallback(() => setFinOuverte(true), [])
+  const annulerFin = useCallback(() => setFinOuverte(false), [])
+  const confirmerFin = useCallback(async () => {
+    setFinOuverte(false)
     if (await terminer()) navigate(`/strength/instance/${instanceId}/report`)
   }, [instanceId, navigate, terminer])
 
@@ -139,6 +156,6 @@ export function useEcranExecution(instanceId: string) {
     lienBilan: `/strength/instance/${instanceId}/report`,
     // Panda de motivation, affiché avant le démarrage de la séance
     pandaMotivation: ex.trouvee && !ex.demarre && !ex.terminee ? pandaMotivation : undefined,
-    terminerAvecConfirmation,
+    fin: { ouverte: finOuverte, message: messageFin(ex.exercices), demander: demanderFin, annuler: annulerFin, confirmer: confirmerFin },
   }
 }
