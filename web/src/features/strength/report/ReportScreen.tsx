@@ -159,6 +159,9 @@ export default function ReportScreen() {
           </section>
 
           <div className="formulaire__ligne">
+            <Link to={b.lienCorrection} className="bouton lien-bouton">
+              Corriger la séance
+            </Link>
             <Link to="/strength" className="bouton lien-bouton">
               Retour aux séances
             </Link>

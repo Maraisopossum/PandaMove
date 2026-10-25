@@ -26,6 +26,7 @@ const CHEMINS_ATTENDUS = [
   '/strength/abc/edit',
   '/strength/instance/abc',
   '/strength/instance/abc/report',
+  '/strength/instance/abc/correct',
   '/calendar',
   '/stats',
   '/profile',

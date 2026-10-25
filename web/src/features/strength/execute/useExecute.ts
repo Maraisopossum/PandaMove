@@ -29,6 +29,8 @@ export interface DepsExecute {
   tickMs?: number
   /** Utilisateur connecté : « Mon matériel » pour l'évaluation de progression à la fin. */
   userId?: string
+  /** Corriger une séance TERMINÉE (séries, notes) : l'horloge et l'état « terminée » ne bougent pas. */
+  correction?: boolean
 }
 
 // Erreur destinée à l'utilisateur (message français affiché tel quel).
@@ -78,10 +80,11 @@ async function lire(db: Db, instanceId: string, userId: string | undefined): Pro
 }
 
 // Instance vivante et non terminée, relue en base (jamais depuis l'état React, qui peut être en retard).
-async function instanceModifiable(db: DbLecture, instanceId: string): Promise<InstanceSeance> {
+// `correction` : le mode « Corriger la séance » (Android : Modifier depuis le rapport) accepte une séance terminée.
+async function instanceModifiable(db: DbLecture, instanceId: string, correction = false): Promise<InstanceSeance> {
   const instance = await getInstance(db, instanceId)
   if (!instance) throw new ErreurExecution('Séance introuvable.')
-  if (instance.isCompleted) throw new ErreurExecution(TERMINEE)
+  if (instance.isCompleted && !correction) throw new ErreurExecution(TERMINEE)
   return instance
 }
 
@@ -98,11 +101,13 @@ async function repsTypeExercice(db: DbLecture, instanceId: string, exerciceId: s
 // AVANT toute mise à jour de l'affichage, qui est ensuite relu depuis la base. Les écritures passent
 // par une file sérialisée (deux appuis rapides ne réutilisent jamais un numéro de série).
 // Le chrono et le repos sont dérivés d'horodatages stockés : un rechargement restitue tout.
-export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 1000, userId }: DepsExecute = {}) {
+export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 1000, userId, correction = false }: DepsExecute = {}) {
   const [donnees, setDonnees] = useState<Donnees>(VIDE)
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
   const file = useRef<Promise<unknown>>(Promise.resolve())
+  // Correction d'une séance terminée : vrai dès qu'une écriture a réussi (sert au dialogue « Retourner au rapport ? »)
+  const [modifie, setModifie] = useState(false)
   // Exercices dont une validation de série est en cours : la ref garde contre un double appui
   // (synchrone), l'état sert à désactiver le bouton à l'écran.
   const validationsRef = useRef(new Set<string>())
@@ -166,6 +171,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
           await action(base, nowFn())
           setErreur(null)
           ok = true
+          if (correction) setModifie(true)
         } catch (e) {
           if (e instanceof ErreurExecution || e instanceof ErreurInstance) setErreur(e.message)
           else {
@@ -185,8 +191,11 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
       file.current = suite
       return suite
     },
-    [db, instanceId, nowFn, rafraichir, userId],
+    [correction, db, instanceId, nowFn, rafraichir, userId],
   )
+
+  // Contrôle d'écriture : séance vivante, et non terminée sauf en mode correction
+  const modifiable = useCallback((b: DbLecture) => instanceModifiable(b, instanceId, correction), [correction, instanceId])
 
   const demarrer = useCallback(
     () =>
@@ -256,12 +265,12 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
         const iso = new Date(maintenant).toISOString()
         // Lecture du numéro max ET insertion dans UNE transaction : aucun autre écrit ne s'intercale.
         await base.writeTransaction(async (tx) => {
-          const inst = await instanceModifiable(tx, instanceId)
+          const inst = await modifiable(tx)
           const repsType = await repsTypeExercice(tx, instanceId, exerciceId)
           const invalide = verifierMesures(s, repsType)
           if (invalide) throw new ErreurExecution(invalide)
           // Valider une série sans avoir appuyé sur « Démarrer » lance le chrono (aucune saisie perdue).
-          if (inst.startedAt === null) await demarrerInstance(tx, instanceId, iso)
+          if (inst.startedAt === null && !inst.isCompleted) await demarrerInstance(tx, instanceId, iso)
           const existantes = (await listSeries(tx, instanceId)).filter((x) => x.exerciceSeanceId === exerciceId)
           // Ligne du tableau : son rang est imposé. Une ligne laissée « non validée » (Android) est remplacée,
           // jamais écrasée (la série validée est une nouvelle ligne datée).
@@ -288,7 +297,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
         })
       }, "L'enregistrement de la série a échoué. Réessayez.").finally(() => marquerValidation(exerciceId, false))
     },
-    [ecrire, instanceId, marquerValidation],
+    [ecrire, instanceId, marquerValidation, modifiable],
   )
 
   // Dé-validation d'une ligne (comme unvalidateSerie Android) : la série est masquée (suppression logique) ;
@@ -296,17 +305,17 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   const devaliderSerie = useCallback(
     (exerciceId: string, numero: number) =>
       ecrire(async (base, maintenant) => {
-        await instanceModifiable(base, instanceId)
+        await modifiable(base)
         await supprimerSeriesNumeros(base, instanceId, exerciceId, [numero], new Date(maintenant).toISOString())
       }, "L'annulation de la validation a échoué."),
-    [ecrire, instanceId],
+    [ecrire, instanceId, modifiable],
   )
 
   // « Ajouter » : une série prévue de plus (un tour G+D complet en bilatéral), sur la ligne de l'instance.
   const ajouterSerie = useCallback(
     (exerciceId: string) =>
       ecrire(async (base, maintenant) => {
-        await instanceModifiable(base, instanceId)
+        await modifiable(base)
         const ligne = await base.getOptional<{ n: number }>(
           'SELECT nombre_series_prevues AS n FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
           [exerciceId, instanceId],
@@ -314,7 +323,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
         if (!ligne) throw new ErreurExecution('Exercice introuvable dans cette séance.')
         await changerSeriesPrevues(base, instanceId, exerciceId, ligne.n + 1, new Date(maintenant).toISOString())
       }, "L'ajout de la série a échoué."),
-    [ecrire, instanceId],
+    [ecrire, instanceId, modifiable],
   )
 
   // « Supprimer » : retire la dernière ligne (le dernier tour G+D en bilatéral), validée ou non, et une série
@@ -323,7 +332,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     (exerciceId: string) =>
       ecrire(async (base, maintenant) => {
         await base.writeTransaction(async (tx) => {
-          await instanceModifiable(tx, instanceId)
+          await modifiable(tx)
           const ligne = await tx.getOptional<{ n: number; bilateral: number | null }>(
             'SELECT nombre_series_prevues AS n, is_bilateral AS bilateral FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
             [exerciceId, instanceId],
@@ -338,16 +347,16 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
           if (ligne.n > 1) await changerSeriesPrevues(tx, instanceId, exerciceId, ligne.n - 1, iso)
         })
       }, 'La suppression de la série a échoué.'),
-    [ecrire, instanceId],
+    [ecrire, instanceId, modifiable],
   )
 
   const enregistrerNotes = useCallback(
     (notes: string) =>
       ecrire(async (base, maintenant) => {
-        await instanceModifiable(base, instanceId)
+        await modifiable(base)
         await majNotesInstance(base, instanceId, notes, new Date(maintenant).toISOString())
       }, "L'enregistrement du commentaire a échoué."),
-    [ecrire, instanceId],
+    [ecrire, instanceId, modifiable],
   )
 
   // Menu crayon « Modifier le nom » : renomme LA SÉANCE JOUÉE (jamais le modèle, contrairement à l'Android qui écrit le
@@ -365,10 +374,10 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   const noterExercice = useCallback(
     (exerciceId: string, texte: string) =>
       ecrire(async (base, maintenant) => {
-        await instanceModifiable(base, instanceId)
+        await modifiable(base)
         await majNoteExercice(base, instanceId, exerciceId, texte, new Date(maintenant).toISOString())
       }, "L'enregistrement de la note a échoué."),
-    [ecrire, instanceId],
+    [ecrire, instanceId, modifiable],
   )
 
   // « Quitter sans enregistrer » (aucune série validée) : la séance redevient planifiée. Résout à true si remise à zéro.
@@ -383,7 +392,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   const corrigerSerie = useCallback(
     (serieId: string, s: Partial<Mesures>) =>
       ecrire(async (base, maintenant) => {
-        await instanceModifiable(base, instanceId)
+        await modifiable(base)
         const serie = await base.getOptional<{ exercice_seance_id: string }>(
           'SELECT exercice_seance_id FROM series_realisees WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
           [serieId, instanceId],
@@ -398,7 +407,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
           new Date(maintenant).toISOString(),
         )
       }, "La correction de la série a échoué. Réessayez."),
-    [ecrire, instanceId],
+    [ecrire, instanceId, modifiable],
   )
 
   return {
@@ -415,6 +424,8 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     demarre,
     enPause,
     terminee,
+    /** Correction d'une séance terminée : vrai dès qu'une écriture a réussi */
+    modifie,
     reposRestantMs: demarre && !enPause && !terminee ? reposRestant(donnees.exercices, now) : null,
     // Repos en cours (série à l'origine, instant, durée) : le minuteur de l'écran y applique ses réglages
     infoRepos: demarre && !enPause && !terminee ? infoRepos(donnees.exercices) : null,

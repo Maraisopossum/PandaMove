@@ -32,9 +32,9 @@ const SANS_HISTORIQUE: SerieHisto[] = []
 
 // Orchestration de l'écran d'exécution : données et actions (useExecute), écran gardé allumé pendant
 // la séance, confirmation de fin puis ouverture du bilan, textes du chrono et du repos.
-export function useEcranExecution(instanceId: string) {
+export function useEcranExecution(instanceId: string, { correction = false }: { correction?: boolean } = {}) {
   const { session } = useAuth()
-  const ex = useExecute(instanceId, { userId: session?.user.id })
+  const ex = useExecute(instanceId, { userId: session?.user.id, correction })
   const nav = useNavExercices(ex.blocs, ex.exercices)
   const actif = nav.exerciceActif
   // Repos : celui des séries validées, réglable (+30 s / −30 s / arrêt / durée saisie) + minuteur manuel
@@ -76,8 +76,10 @@ export function useEcranExecution(instanceId: string) {
   const notes = useNotesSeance(ex.notes, ex.enregistrerNotes)
   const navigate = useNavigate()
   // Garde de sortie (dialogue de l'Android) : désarmée avant toute navigation voulue par l'écran lui-même
-  const garde = useGardeSortie(gardeSortieActive({ trouvee: ex.trouvee, terminee: ex.terminee, exercices: ex.exercices }))
+  const garde = useGardeSortie(!correction && gardeSortieActive({ trouvee: ex.trouvee, terminee: ex.terminee, exercices: ex.exercices }))
   const { contourner } = garde
+  // Correction d'une séance terminée : le dialogue « Retourner au rapport ? » n'apparaît qu'après une modification
+  const gardeCorrection = useGardeSortie(correction && ex.modifie)
   const suppression = useSuppressionSeanceEnCours(instanceId, undefined, contourner)
   const renommage = useRenommageSeance(ex.nomSeance, ex.renommer)
   const modifierExercices = useCallback(() => {
@@ -147,6 +149,10 @@ export function useEcranExecution(instanceId: string) {
     ],
     renommage,
     suppression,
+    correction,
+    // Séance terminée en lecture seule (hors correction)
+    lectureSeule: ex.terminee && !correction,
+    sortieCorrection: { bloquerRef: gardeCorrection.bloquerRef, contourner: gardeCorrection.contourner },
     // Dialogue de sortie : « Annuler la séance » ouvre la confirmation de suppression
     sortie: {
       bloquerRef: garde.bloquerRef,

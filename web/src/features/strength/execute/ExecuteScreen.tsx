@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, Navigate, useParams } from 'react-router'
 import { MenuActions } from '../MenuActions'
 import { DialogueConfirmation } from '../edition/DialogueConfirmation'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
@@ -8,7 +8,7 @@ import { BandeauLive } from './BandeauLive'
 import { FeuilleDisques } from './FeuilleDisques'
 import { FeuilleMinuteur } from './FeuilleMinuteur'
 import { FeuilleMontee } from './FeuilleMontee'
-import { GardeSortieExecution } from './GardeSortieExecution'
+import { GardeCorrection, GardeSortieExecution } from './GardeSortieExecution'
 import { MenuRepos } from './MenuRepos'
 import { RenommerSeanceDialog } from './RenommerSeanceDialog'
 import { LancementCircuit } from './circuit/LancementCircuit'
@@ -20,10 +20,13 @@ import { texteCibles, type ExerciceVue } from './vue'
 
 // Séance en cours (spec §5) : tout est écrit en base locale d'abord, l'affichage est relu ensuite.
 // Aucune logique ici : données et actions viennent de useEcranExecution.
-export default function ExecuteScreen() {
+export default function ExecuteScreen({ correction = false }: { correction?: boolean }) {
   const { id = '' } = useParams()
-  const e = useEcranExecution(id)
+  const e = useEcranExecution(id, { correction })
   const actif = e.nav.exerciceActif
+
+  // La correction ne concerne que les séances terminées : une séance en cours se joue sur l'écran d'exécution
+  if (correction && e.trouvee && !e.terminee) return <Navigate to={`/strength/instance/${id}`} replace />
 
   return (
     <div className="execution">
@@ -36,7 +39,7 @@ export default function ExecuteScreen() {
           {e.chrono}
         </p>
         {e.enPause && <p className="execution__etat">En pause</p>}
-        {e.terminee && <p className="execution__etat">Séance terminée</p>}
+        {e.terminee && <p className="execution__etat">{correction ? 'Correction d’une séance terminée' : 'Séance terminée'}</p>}
         {e.repos.restantMs !== null &&
           (e.repos.termine ? (
             <p className="execution__repos" aria-live="off">
@@ -92,7 +95,7 @@ export default function ExecuteScreen() {
                 exercice={actif}
                 tableau={e.tableau}
                 historique={e.historique}
-                lectureSeule={e.terminee}
+                lectureSeule={e.lectureSeule}
                 outils={e.outilsExercice}
                 bandeau={e.bandeau}
                 note={e.noteExercice}
@@ -105,7 +108,7 @@ export default function ExecuteScreen() {
               id="notes-seance"
               rows={2}
               value={e.notes.texte}
-              readOnly={e.terminee}
+              readOnly={e.lectureSeule}
               placeholder="Notes sur la séance"
               onChange={(ev) => e.notes.changer(ev.target.value)}
               onBlur={e.notes.sortir}
@@ -117,9 +120,15 @@ export default function ExecuteScreen() {
       {e.trouvee && (
         <div className="execution__actions">
           {e.terminee ? (
-            <Link to={e.lienBilan} className="bouton lien-bouton bouton--principal">
-              Voir le bilan
-            </Link>
+            correction ? (
+              <Link to={e.lienBilan} className="bouton lien-bouton bouton--principal" onClick={e.sortieCorrection.contourner}>
+                Retour au rapport
+              </Link>
+            ) : (
+              <Link to={e.lienBilan} className="bouton lien-bouton bouton--principal">
+                Voir le bilan
+              </Link>
+            )
           ) : !e.demarre ? (
             <button type="button" className="bouton bouton--principal" onClick={() => void e.demarrer()}>
               Démarrer
@@ -186,12 +195,17 @@ export default function ExecuteScreen() {
           onFermer={e.renommage.fermer}
         />
       )}
-      <GardeSortieExecution
-        bloquerRef={e.sortie.bloquerRef}
-        progression={e.sortie.progression}
-        onQuitter={e.sortie.quitter}
-        onAnnuler={e.sortie.annuler}
-      />
+      {/* Un seul bloqueur de navigation à la fois (limite du routeur) : celui de la correction ou celui de la séance */}
+      {correction ? (
+        <GardeCorrection bloquerRef={e.sortieCorrection.bloquerRef} />
+      ) : (
+        <GardeSortieExecution
+          bloquerRef={e.sortie.bloquerRef}
+          progression={e.sortie.progression}
+          onQuitter={e.sortie.quitter}
+          onAnnuler={e.sortie.annuler}
+        />
+      )}
       {e.feuille === 'minuteur' && (
         <FeuilleMinuteur
           restantMs={e.repos.restantMs}

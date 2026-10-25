@@ -1,5 +1,6 @@
 import { useCallback, useContext, useState, type RefObject } from 'react'
 import { UNSAFE_DataRouterContext, useBlocker } from 'react-router'
+import { DialogueConfirmation } from '../edition/DialogueConfirmation'
 import { DialogueSortie } from './DialogueSortie'
 import { optionsSortie } from './sortie'
 
@@ -50,4 +51,27 @@ function Blocage({ bloquerRef, progression, onQuitter, onAnnuler }: Props) {
 export function GardeSortieExecution(props: Props) {
   const routeur = useContext(UNSAFE_DataRouterContext)
   return routeur ? <Blocage {...props} /> : null
+}
+
+function BlocageCorrection({ bloquerRef }: { bloquerRef: RefObject<boolean> }) {
+  const blocage = useBlocker(() => bloquerRef.current)
+  if (blocage.state !== 'blocked') return null
+  return (
+    <DialogueConfirmation
+      titre="Retourner au rapport ?"
+      libelleConfirmer="Retourner"
+      libelleAnnuler="Continuer à modifier"
+      destructif={false}
+      onConfirmer={() => blocage.proceed()}
+      onAnnuler={() => blocage.reset()}
+    >
+      <p>Les modifications ont été enregistrées automatiquement.</p>
+    </DialogueConfirmation>
+  )
+}
+
+// Garde de la correction d'une séance terminée (Android : « Retourner au rapport ? ») : seulement après une modification.
+export function GardeCorrection({ bloquerRef }: { bloquerRef: RefObject<boolean> }) {
+  const routeur = useContext(UNSAFE_DataRouterContext)
+  return routeur ? <BlocageCorrection bloquerRef={bloquerRef} /> : null
 }

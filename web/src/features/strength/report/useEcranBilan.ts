@@ -151,6 +151,7 @@ export function useEcranBilan(instanceId: string) {
     partager: exportation.partager,
     peutPartager: exportation.peutPartager,
     lienSeance: `/strength/instance/${instanceId}`,
+    lienCorrection: `/strength/instance/${instanceId}/correct`,
     pandaVictoire,
   }
 }
