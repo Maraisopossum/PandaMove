@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { useAuth } from '../../../core/auth/AuthProvider'
 import { useImagePanda } from '../../../core/images/usePandaVariante'
 import { useExecute } from './useExecute'
+import { useNavExercices } from './useNavExercices'
 import { useWakeLock } from './useWakeLock'
 import { formaterDuree, libelleDureeAccessible } from './vue'
 
@@ -11,6 +12,7 @@ import { formaterDuree, libelleDureeAccessible } from './vue'
 export function useEcranExecution(instanceId: string) {
   const { session } = useAuth()
   const ex = useExecute(instanceId, { userId: session?.user.id })
+  const nav = useNavExercices(ex.blocs, ex.exercices)
   const navigate = useNavigate()
   const { terminer } = ex
   useWakeLock(ex.demarre && !ex.terminee)
@@ -23,6 +25,7 @@ export function useEcranExecution(instanceId: string) {
 
   return {
     ...ex,
+    nav,
     chrono: formaterDuree(ex.elapsedMs),
     libelleChrono: libelleDureeAccessible(ex.elapsedMs),
     texteRepos:

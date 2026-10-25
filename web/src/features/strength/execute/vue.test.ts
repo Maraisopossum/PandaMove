@@ -215,3 +215,23 @@ describe('construireVue : enchaînement du superset', () => {
     expect(v.exercices.map((e) => [e.id, e.enchaineAvec])).toEqual([['a', 'Tractions'], ['b', null], ['c', null], ['d', null]])
   })
 })
+
+describe('construireVue : informations de la barre d’exercices', () => {
+  it('type du bloc, bilatéral et groupes musculaires du catalogue', () => {
+    const v = construireVue(
+      [mapBloc({ id: 'b', nom: 'Bloc', position: 0, type: 'SUPERSET' })],
+      [
+        mapExerciceSeance({ id: 'e1', exercise_id: 'x', bloc_id: 'b', position: 0, is_bilateral: 1 }),
+        mapExerciceSeance({ id: 'e2', exercise_id: 'y', bloc_id: null, position: 0 }),
+      ],
+      [],
+      new Map(),
+      new Map([['x', ['DOS', 'BICEPS']]]),
+    )
+    expect(v.blocs.map((b) => b.type)).toEqual(['SUPERSET', null])
+    expect(v.exercices.map((e) => [e.blocType, e.isBilateral, e.muscles])).toEqual([
+      ['SUPERSET', true, ['DOS', 'BICEPS']],
+      [null, false, []],
+    ])
+  })
+})

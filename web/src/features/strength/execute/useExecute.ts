@@ -7,6 +7,7 @@ import {
 import { getSeanceTree, lireNomSeance } from '../../../core/db/repos/seances'
 import { addSerie, listSeries, updateSerie } from '../../../core/db/repos/series'
 import type { InstanceSeance, RepsType } from '../../../core/db/types'
+import { lireGroupes } from '../catalog/filtreCatalogue'
 import { evaluerEtAppliquerSilencieux } from '../progression/evaluation'
 import { clockFromRow, clockToRow, elapsedMs, estEnPause, type SessionClock } from './sessionClock'
 import { useTicker } from './useTicker'
@@ -52,11 +53,13 @@ async function lire(db: Db, instanceId: string): Promise<Donnees> {
   const noms =
     idsExercices.length === 0
       ? []
-      : await db.getAll<{ id: string; name: string }>(
-          `SELECT id, name FROM exercises WHERE deleted_at IS NULL AND id IN (${idsExercices.map(() => '?').join(', ')})`,
+      : await db.getAll<{ id: string; name: string; muscle_groups: string | null }>(
+          `SELECT id, name, muscle_groups FROM exercises WHERE deleted_at IS NULL AND id IN (${idsExercices.map(() => '?').join(', ')})`,
           idsExercices,
         )
-  const vue = construireVue(arbre.blocs, arbre.exercices, series, new Map(noms.map((n) => [n.id, n.name])))
+  const vue = construireVue(arbre.blocs, arbre.exercices, series, new Map(noms.map((n) => [n.id, n.name])),
+    new Map(noms.map((n) => [n.id, lireGroupes(n.muscle_groups ?? '')])),
+  )
   return { instance, nomSeance: nomSeanceLu ?? 'Séance', ...vue }
 }
 

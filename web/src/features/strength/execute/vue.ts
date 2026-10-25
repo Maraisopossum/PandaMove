@@ -26,6 +26,11 @@ export interface ExerciceVue {
   nombreSeriesPrevues: number
   tempsReposSec: number
   blocId: string | null
+  // Type du bloc (ECHAUFFEMENT, SUPERSET…), null hors bloc : sert à la barre de navigation
+  blocType: string | null
+  isBilateral: boolean
+  // Groupes musculaires de l'exercice du catalogue (codes), pour le libellé court de la barre
+  muscles: string[]
   position: number
   supersetGroupe: string | null
   libelleSuperset: string | null
@@ -38,6 +43,7 @@ export interface BlocVue {
   // null : exercices hors bloc
   id: string | null
   nom: string
+  type: string | null
   exercices: ExerciceVue[]
 }
 
@@ -57,6 +63,7 @@ export function construireVue(
   exercices: ExerciceSeance[],
   series: SerieRealisee[],
   noms: Map<string, string>,
+  muscles: Map<string, string[]> = new Map(),
 ): { blocs: BlocVue[]; exercices: ExerciceVue[] } {
   const parExercice = new Map<string, SerieVue[]>()
   for (const s of series) {
@@ -64,6 +71,7 @@ export function construireVue(
     liste.push({ id: s.id, numero: s.numeroSerie, reps: s.repsRealisees, chargeKg: s.chargeKg, rpe: s.rpe, updatedAt: s.updatedAt, valideeA: s.validatedAt ?? s.updatedAt })
     parExercice.set(s.exerciceSeanceId, liste)
   }
+  const typeDuBloc = new Map(blocs.map((b) => [b.id, b.type]))
   const versVue = (e: ExerciceSeance): ExerciceVue => ({
     id: e.id,
     exerciseId: e.exerciseId,
@@ -75,6 +83,9 @@ export function construireVue(
     nombreSeriesPrevues: e.nombreSeriesPrevues,
     tempsReposSec: e.tempsReposSec,
     blocId: e.blocId,
+    blocType: e.blocId === null ? null : (typeDuBloc.get(e.blocId) ?? null),
+    isBilateral: e.isBilateral,
+    muscles: muscles.get(e.exerciseId) ?? [],
     position: e.position,
     supersetGroupe: e.supersetGroupe,
     libelleSuperset: e.supersetGroupe ? `Superset ${e.supersetGroupe}` : null,
@@ -87,10 +98,11 @@ export function construireVue(
   const groupes: BlocVue[] = [...blocs].sort(parPosition).map((b) => ({
     id: b.id,
     nom: b.nom,
+    type: b.type,
     exercices: exercices.filter((e) => e.blocId === b.id).sort(parPosition).map(versVue),
   }))
   const horsBloc = exercices.filter((e) => e.blocId === null || !idsBlocs.has(e.blocId)).sort(parPosition)
-  if (horsBloc.length > 0) groupes.push({ id: null, nom: 'Exercices', exercices: horsBloc.map(versVue) })
+  if (horsBloc.length > 0) groupes.push({ id: null, nom: 'Exercices', type: null, exercices: horsBloc.map(versVue) })
   const visibles = groupes.filter((g) => g.exercices.length > 0)
   const tous = visibles.flatMap((g) => g.exercices)
   for (const e of tous) e.enchaineAvec = suivantDuSuperset(tous, e)?.nom ?? null

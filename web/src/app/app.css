@@ -652,6 +652,148 @@ h1 {
   font-size: 1.25rem;
 }
 
+/* Barre d'exercices défilante (écran d'exécution, parité Android) : groupes par bloc, un badge par exercice.
+   Teintes par bloc via --bloc-clair / --bloc-sombre (contrastes vérifiés dans navExercices.test.ts). */
+.navex {
+  margin: 0.5rem 0;
+}
+
+.navex ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navex__piste {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.navex__groupe {
+  --bloc-texte: var(--bloc-clair, #5b3d9e);
+  --bloc-sur-plein: #ffffff;
+  flex: none;
+}
+
+:root[data-theme='dark'] .navex__groupe {
+  --bloc-texte: var(--bloc-sombre, #b8a1f0);
+  --bloc-sur-plein: #1e1e22;
+}
+
+.navex__groupe--cadre {
+  padding: 4px 6px;
+  border: 2px solid var(--bloc-texte);
+  border-radius: 12px;
+}
+
+.navex__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navex__badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bloc-texte);
+  font: inherit;
+  cursor: pointer;
+}
+
+.navex__pastille {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bloc-texte) 10%, transparent);
+  color: var(--bloc-texte);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.navex__badge[aria-current='true'] .navex__pastille {
+  background: var(--bloc-texte);
+  color: var(--bloc-sur-plein);
+}
+
+/* Exercice terminé : coche, en plus de la couleur */
+.navex__coche {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--bloc-texte);
+  border: 1px solid var(--bloc-texte);
+  font-size: 0.6875rem;
+  line-height: 1;
+}
+
+.navex__nom {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--texte-secondaire);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.navex__badge[aria-current='true'] .navex__nom {
+  color: var(--bloc-texte);
+  font-weight: 600;
+}
+
+/* Trait sous le badge : hauteur toujours réservée */
+.navex__trait {
+  width: 20px;
+  height: 2px;
+  background: transparent;
+}
+
+.navex__badge[aria-current='true'] .navex__trait {
+  background: var(--bloc-texte);
+}
+
+.execution__type-bloc {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--texte) 8%, var(--surface));
+  color: var(--texte-secondaire);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .navex__pastille {
+    transition: background-color 150ms;
+  }
+}
+
 .execution__exercice {
   margin: 0.75rem 0;
   padding: 0.75rem 1rem;

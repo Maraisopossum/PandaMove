@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { Link, useParams } from 'react-router'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
 import { ChampNombreFacultatif } from '../champs'
+import { BarreExercices } from './BarreExercices'
 import { useEcranExecution } from './useEcranExecution'
 import { useSaisieSerie } from './useSaisieSerie'
 import { texteCibles, texteSerie, type ExerciceVue, type Mesures, type SerieVue } from './vue'
@@ -11,6 +12,7 @@ import { texteCibles, texteSerie, type ExerciceVue, type Mesures, type SerieVue 
 export default function ExecuteScreen() {
   const { id = '' } = useParams()
   const e = useEcranExecution(id)
+  const actif = e.nav.exerciceActif
 
   return (
     <div className="execution">
@@ -42,21 +44,23 @@ export default function ExecuteScreen() {
       ) : e.exercices.length === 0 ? (
         <p>Aucun exercice enregistré pour cette séance.</p>
       ) : (
-        e.blocs.map((bloc) => (
-          <section key={bloc.id ?? 'hors-bloc'} className="execution__bloc">
-            <h2>{bloc.nom}</h2>
-            {bloc.exercices.map((ex) => (
+        <>
+          <BarreExercices groupes={e.nav.groupes} piste={e.nav.piste} onChoisir={e.nav.choisir} />
+          {actif && e.nav.blocActif && (
+            <section className="execution__bloc">
+              <h2>{e.nav.blocActif.nom}</h2>
+              {e.nav.libelleTypeBloc && <span className="execution__type-bloc">{e.nav.libelleTypeBloc}</span>}
               <CarteExercice
-                key={ex.id}
-                exercice={ex}
+                key={actif.id}
+                exercice={actif}
                 lectureSeule={e.terminee}
-                validationEnCours={e.validationEnCours(ex.id)}
-                onValider={(m) => void e.validerSerie(ex.id, m)}
+                validationEnCours={e.validationEnCours(actif.id)}
+                onValider={(m) => void e.validerSerie(actif.id, m)}
                 onCorriger={(serieId, m) => void e.corrigerSerie(serieId, m)}
               />
-            ))}
-          </section>
-        ))
+            </section>
+          )}
+        </>
       )}
 
       {e.trouvee && (

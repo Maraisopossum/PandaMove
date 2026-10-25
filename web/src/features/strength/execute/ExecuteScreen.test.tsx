@@ -48,6 +48,9 @@ function monter(id: string) {
   )
 }
 
+// Barre d'exercices : un bouton par exercice (nom accessible « exercice, bloc, état »)
+const choisir = (nom: string) =>
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'Exercices de la séance' })).getByRole('button', { name: new RegExp(`^${nom},`) }))
 const carte = (nom: string) => screen.getByRole('article', { name: nom })
 const series = (instanceId: string) =>
   base.getAll<{ id: string; numero_serie: number; reps_realisees: number; charge_kg: number | null; rpe: number | null }>(
@@ -67,9 +70,10 @@ describe('ExecuteScreen', () => {
     expect(chrono.getAttribute('aria-label')).toBe('Temps écoulé : moins d’une minute')
     expect(screen.getByRole('button', { name: 'Démarrer' })).toBeTruthy()
     expect(within(carte('Développé couché')).getByText('3 séries × 8-10 · 60 kg · repos 90 s')).toBeTruthy()
-    // DURATION : le champ est libellé en secondes
-    expect(within(carte('Gainage planche')).getByLabelText('Durée (s)')).toBeTruthy()
     expect(within(carte('Développé couché')).getByLabelText('Répétitions')).toBeTruthy()
+    // DURATION : le champ est libellé en secondes (on choisit l'exercice dans la barre)
+    choisir('Gainage planche')
+    expect(within(carte('Gainage planche')).getByLabelText('Durée (s)')).toBeTruthy()
     // Panda de motivation avant le démarrage, décoratif
     await waitFor(() => expect(document.querySelector('img.execution__panda')).not.toBeNull())
     expect(document.querySelector('img.execution__panda')!.getAttribute('alt')).toBe('')
@@ -161,8 +165,9 @@ describe('ExecuteScreen : superset', () => {
     monter('i-ss')
     await screen.findByRole('heading', { level: 1, name: 'Superset' })
     expect(within(carte('Développé couché')).getByText('Superset A')).toBeTruthy()
-    expect(within(carte('Gainage planche')).getByText('Superset A')).toBeTruthy()
     expect(within(carte('Développé couché')).getByText('Enchaîne sans repos avec Gainage planche')).toBeTruthy()
+    choisir('Gainage planche')
+    expect(within(carte('Gainage planche')).getByText('Superset A')).toBeTruthy()
     expect(within(carte('Gainage planche')).queryByText(/Enchaîne sans repos/)).toBeNull()
   })
 })
