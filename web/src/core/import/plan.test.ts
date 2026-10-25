@@ -478,3 +478,35 @@ describe('intégrité référentielle (orphelins : écartés et signalés)', () 
     expect(verifierIntegrite(p)).toEqual([])
   })
 })
+
+describe('sauvegarde web : uuid et exercices supprimés', () => {
+  const U1 = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const seance = (id: number, uuid: string, nom: string) => ({ seance: { id, nom, uuid }, blocs: [], exercices: [] })
+
+  it("un uuid invalide n'est jamais repris : repli sur l'id dérivé du numéro", () => {
+    const p = buildImportPlan({ version: '3.2', webUserId: USER, strengthTemplates: [seance(1, 'pas-un-uuid', 'A')] }, USER, { now: NOW })
+    expect(p.rows.seances.map((r) => r.id)).toEqual([deterministicId(`${USER}:seances`, '1')])
+  })
+
+  it('un même uuid sur deux numéros : seul le premier le garde, aucune fusion silencieuse', () => {
+    const p = buildImportPlan(
+      { version: '3.2', webUserId: USER, strengthTemplates: [seance(1, U1, 'A'), seance(2, U1, 'B')] },
+      USER,
+      { now: NOW },
+    )
+    expect(p.rows.seances.map((r) => [r.nom, r.id])).toEqual([
+      ['A', U1],
+      ['B', deterministicId(`${USER}:seances`, '2')],
+    ])
+  })
+
+  it("un exercice marqué supprimé n'écrase jamais une fiche vivante de même id, quel que soit l'ordre", () => {
+    const vivant = { id: 1, name: 'Squat', category: 'LEGS' }
+    const supprime = { id: 2, name: 'squat', category: 'OTHER', deletedAt: '2026-10-01T00:00:00.000Z' }
+    for (const liste of [[vivant, supprime], [supprime, vivant]]) {
+      const p = buildImportPlan({ version: '3.2', customExercises: liste }, USER, { now: NOW })
+      expect(p.rows.exercises).toHaveLength(1)
+      expect(p.rows.exercises[0]).toMatchObject({ name: 'Squat', category: 'LEGS', deleted_at: null })
+    }
+  })
+})

@@ -165,7 +165,11 @@ class Constructeur {
   exercice(dto: CustomExerciseDto, ecraser: boolean) {
     // Nom vide : ignoré (comme l'import en masse Android)
     if (!normalizeSearch(dto.name)) return
-    const id = this.uuids && dto.uuid ? dto.uuid : this.idExercice(dto.name)
+    const id = this.uuids?.get('exercises')?.get(dto.id) ?? this.idExercice(dto.name)
+    // Une fiche marquée supprimée n'écrase jamais une fiche vivante de même id (même nom normalisé :
+    // ancien exercice renommé puis supprimé, et nouvel exercice vivant)
+    const existante = (this.tables.get('exercises') as Map<string, Row>).get(id)
+    if (dto.deletedAt && existante && existante.deleted_at === null && !this.minimaux.has(id)) return
     // Une fiche complète remplace une éventuelle fiche minimale
     if (this.minimaux.delete(id)) ecraser = true
     this.ligneExercice(id, dto, ecraser)
@@ -456,14 +460,25 @@ const SECTIONS_IGNOREES = [
   'hikingTemplates', 'hikingSessions', 'breathingSessions',
 ] as const
 
-/** Table Long -> uuid par table, pour une sauvegarde web (le premier uuid d'un Long gagne). */
+const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Table Long -> uuid par table, pour une sauvegarde web. Un uuid mal formé est ignoré (repli sur l'id
+ * dérivé du numéro, comme un fichier Android) ; un uuid déjà attribué à un autre numéro de la même
+ * table aussi (sinon deux lignes fusionneraient en silence) : le premier numéro le garde.
+ */
 function collecterUuids(exp: PandaMoveExport): Map<TableName, Map<number, string>> {
   const uuids = new Map<TableName, Map<number, string>>()
+  const pris = new Map<TableName, Set<string>>()
   const noter = (table: TableName, dto: { id: number; uuid?: string }) => {
-    if (!dto.uuid) return
+    if (!dto.uuid || !RE_UUID.test(dto.uuid)) return
     let t = uuids.get(table)
     if (!t) uuids.set(table, (t = new Map()))
-    if (!t.has(dto.id)) t.set(dto.id, dto.uuid)
+    let dejaPris = pris.get(table)
+    if (!dejaPris) pris.set(table, (dejaPris = new Set()))
+    if (t.has(dto.id) || dejaPris.has(dto.uuid)) return
+    t.set(dto.id, dto.uuid)
+    dejaPris.add(dto.uuid)
   }
   for (const e of exp.customExercises) noter('exercises', e)
   for (const t of exp.strengthTemplates) {
