@@ -113,6 +113,15 @@ Dans l'écran d'exécution d'une séance : un bloc **Circuit** (au moins un exer
 - **Voix** (désactivée par défaut, pour ne pas doubler un lecteur d'écran) : `speechSynthesis` en fr-FR, « Prochain exercice : … », « Allez ! », « Repos », « Circuit terminé », et compte à rebours 3-2-1 parlé en option. Disponibilité et voix françaises variables selon l'appareil ; silencieux si absente.
 - Pendant le circuit l'écran est gardé allumé (Screen Wake Lock : Chrome, Edge, Safari 16.4+). Android ne vibre ni ne parle : ces deux retours sont une adaptation web.
 
+## Outils de l'écran d'exécution
+
+- **Repos** : le badge « Repos : mm:ss » ouvre un menu (allonger / écourter de 30 s, arrêter). La colonne « Repos » du tableau est saisissable : la durée saisie remplace celle de l'exercice pour le repos qui suit la validation. **Minuteur** : préréglages (30 s à 5 min), ± 5 s. Tout est basé sur des horodatages ; les réglages (+30 s, arrêt, minuteur manuel) sont gardés par séance dans `localStorage` (clé `pandamove.repos.<id de la séance>`) : un rechargement restitue le décompte.
+- **Disques** : calculateur barre / haltère chargeable avec les disques de « Mon matériel » (algorithme glouton de l'Android, charge atteignable la plus proche sinon). **Montée en charge** : paliers d'échauffement (protocole débutant / standard / lourd) arrondis sur le matériel déclaré, à cocher dans l'ordre ; comme sur Android ce sont des paliers éphémères, ils ne créent pas de séries.
+- **Note par exercice** : gardée par séance dans `localStorage` (clé `pandamove.notes-exercices.<id>`), sans colonne en base : sur Android elle n'est qu'en mémoire (`exerciceNotesLocal`) et n'est jamais enregistrée. Le commentaire de séance, lui, est enregistré avec l'instance.
+- **Bandeau de progression** : pour un exercice en progression, objectif de la prochaine fois et séries qui atteignent déjà la cible. À l'ouverture d'une séance non terminée, charge et reps cibles sont alignées sur l'objectif de progression courant (comme l'Android).
+- **Menu ⋮ de la séance** : « Modifier les exercices » (éditeur de séance appliqué à CETTE séance seulement, jamais au modèle ; retirer un exercice déjà travaillé demande confirmation et supprime ses séries) et « Supprimer la séance » (suppression logique avec confirmation). Renommer n'est pas repris : il n'existe pas de nom propre à l'instance, et renommer changerait le modèle (c'est ce que fait l'Android).
+- **Séance en cours** : le titre de l'onglet affiche chrono et repos, l'écran reste allumé (Wake Lock) et un bandeau « Reprendre » apparaît sur les autres écrans pour une séance démarrée depuis moins de 24 h et non terminée.
+
 ## Sauvegarde
 
 Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne pas dépendre seulement de ces services, faire régulièrement une sauvegarde locale.
