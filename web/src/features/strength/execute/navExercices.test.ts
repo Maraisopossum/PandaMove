@@ -10,7 +10,7 @@ import { construireVue, type ExerciceVue } from './vue'
 const bloc = (id: string, position: number, type: string) => mapBloc({ id, nom: `Bloc ${id}`, position, type })
 const ex = (id: string, blocId: string | null, position: number, extra: Record<string, unknown> = {}) =>
   mapExerciceSeance({ id, exercise_id: `x-${id}`, bloc_id: blocId, position, nombre_series_prevues: 2, ...extra })
-const serie = (exId: string, n: number) => mapSerie({ id: `${exId}-${n}`, exercice_seance_id: exId, numero_serie: n })
+const serie = (exId: string, n: number) => mapSerie({ is_completed: 1, id: `${exId}-${n}`, exercice_seance_id: exId, numero_serie: n })
 
 function vue(blocs: ReturnType<typeof bloc>[], exos: ReturnType<typeof ex>[], series: ReturnType<typeof serie>[] = []) {
   const noms = new Map(exos.map((e) => [e.exerciseId, `Nom ${e.id}`]))

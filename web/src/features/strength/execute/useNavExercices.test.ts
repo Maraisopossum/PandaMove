@@ -59,7 +59,7 @@ describe('useNavExercices', () => {
     act(() => r.result.current.choisir('c'))
     expect(r.result.current.idActif).toBe('c')
     act(() => r.result.current.choisir('a'))
-    r.rerender({ v: vue([mapSerie({ id: 's1', exercice_seance_id: 'a', numero_serie: 1 })]) })
+    r.rerender({ v: vue([mapSerie({ is_completed: 1, id: 's1', exercice_seance_id: 'a', numero_serie: 1 })]) })
     expect(r.result.current.idActif).toBe('c')
   })
 

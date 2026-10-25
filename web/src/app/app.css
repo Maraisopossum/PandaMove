@@ -794,6 +794,239 @@ h1 {
   }
 }
 
+/* Tableau de séries (écran d'exécution, parité Android : SerieRow / SerieCell) */
+.visuellement-cache {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tableau-series {
+  --colonnes: 24px 1fr 1.2fr 1fr 44px;
+  margin: 0.5rem 0;
+}
+
+.tableau-series--rpe {
+  --colonnes: 24px 1fr 1.2fr 1fr 0.8fr 44px;
+}
+
+.tableau-series [role='rowgroup'] {
+  display: block;
+}
+
+.tableau-series__ligne {
+  display: grid;
+  grid-template-columns: var(--colonnes);
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+}
+
+.tableau-series__entete {
+  padding-block: 4px;
+  color: var(--texte-secondaire);
+  font-size: 0.75rem;
+}
+
+.tableau-series__numero {
+  color: #b3261e;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+:root[data-theme='dark'] .tableau-series__numero {
+  color: #ff8a80;
+}
+
+/* Série courante : fond teinté + barre à gauche (pas la couleur seule : aria-current) */
+.tableau-series__ligne--courante {
+  border-left: 4px solid var(--focus);
+  background: color-mix(in srgb, var(--focus) 10%, transparent);
+}
+
+.tableau-series__ligne--faite > :not(.tableau-series__valide) {
+  opacity: 0.45;
+}
+
+.tableau-series__cellule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 2px 4px;
+  border: 1px solid color-mix(in srgb, var(--bord) 60%, var(--texte-secondaire));
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.tableau-series__cellule:focus-within {
+  border: 2px solid #b3261e;
+}
+
+:root[data-theme='dark'] .tableau-series__cellule:focus-within {
+  border-color: #ff8a80;
+}
+
+.tableau-series__cellule input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font: inherit;
+  text-align: center;
+}
+
+.tableau-series__cellule input:focus {
+  outline: none;
+}
+
+.tableau-series__cellule--grisee,
+.tableau-series__cellule--grisee input {
+  color: var(--texte-secondaire);
+}
+
+.tableau-series__suffixe {
+  margin-left: 1px;
+}
+
+.tableau-series__valide {
+  display: flex;
+  justify-content: center;
+}
+
+.tableau-series__fait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--texte-secondaire);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--texte-secondaire);
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+
+.tableau-series__fait--oui {
+  border-color: #b3261e;
+  background: #b3261e;
+  color: #ffffff;
+}
+
+:root[data-theme='dark'] .tableau-series__fait--oui {
+  border-color: #ff8a80;
+  background: #ff8a80;
+  color: #1e1e22;
+}
+
+.tableau-series__rpe-contenu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 8px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--texte) 6%, var(--surface));
+}
+
+.tableau-series__rpe-titre {
+  color: var(--texte-secondaire);
+  font-size: 0.75rem;
+}
+
+.tableau-series__puces {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.tableau-series__puce {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tableau-series__puce[aria-pressed='true'] {
+  border-color: var(--focus);
+  box-shadow: inset 0 0 0 2px var(--focus);
+  font-weight: 800;
+}
+
+.tableau-series__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.bouton--alerte {
+  border-color: #b3261e;
+  color: #b3261e;
+}
+
+:root[data-theme='dark'] .bouton--alerte {
+  border-color: #ff8a80;
+  color: #ff8a80;
+}
+
+.tableau-series__historique h4 {
+  margin: 0.75rem 0 0.25rem;
+  color: var(--texte-secondaire);
+  font-size: 0.75rem;
+}
+
+.tableau-series__historique ul {
+  margin: 0;
+  padding: 0;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.execution__consigne {
+  margin: 0.25rem 0;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+}
+
+.execution__notes {
+  margin-top: 1rem;
+}
+
+.execution__notes label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--texte-secondaire);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.execution__notes textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+}
+
 .execution__exercice {
   margin: 0.75rem 0;
   padding: 0.75rem 1rem;

@@ -55,8 +55,8 @@ const carte = (nom: string) => screen.getByRole('article', { name: nom })
 const choisir = (nom: string) => fireEvent.click(within(barre()).getByRole('button', { name: new RegExp(`^${nom},`) }))
 function valider(nom: string, reps: string) {
   const c = carte(nom)
-  fireEvent.change(within(c).getByLabelText('Répétitions'), { target: { value: reps } })
-  fireEvent.click(within(c).getByRole('button', { name: 'Valider la série' }))
+  fireEvent.change(within(c).getByLabelText('Série 1, répétitions'), { target: { value: reps } })
+  fireEvent.click(within(c).getByRole('button', { name: 'Valider la série 1' }))
 }
 
 describe('Barre d’exercices de l’exécution', () => {

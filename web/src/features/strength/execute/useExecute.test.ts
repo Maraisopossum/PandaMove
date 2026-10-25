@@ -486,3 +486,60 @@ describe('useExecute : progression appliquée à « Terminer » (ordre Android)'
     expect(await objectifsSp()).toEqual([expect.objectContaining({ id: 'obj-import', compteur_echec: 1 })])
   })
 })
+
+describe('useExecute : tableau de séries (lignes, dé-validation, ajout, suppression)', () => {
+  const vivantes = () => db.getAll<{ numero_serie: number; notes: string }>('SELECT numero_serie, notes FROM series_realisees WHERE deleted_at IS NULL ORDER BY numero_serie')
+  const prevues = (id: string) => db.get<{ n: number }>('SELECT nombre_series_prevues AS n FROM exercices_seance WHERE id = ?', [id])
+
+  it('valide une ligne à son rang (pas le suivant libre) ; une ligne déjà validée est refusée', async () => {
+    const r = await monter()
+    await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null }, 2))
+    expect(await vivantes()).toEqual([{ numero_serie: 2, notes: '' }])
+    await act(() => r.result.current.validerSerie(E1, { reps: 9, chargeKg: 60, rpe: null }, 2))
+    expect(r.result.current.erreur).toBe('Cette série est déjà validée.')
+    expect(await vivantes()).toHaveLength(1)
+  })
+
+  it('une ligne laissée non validée est remplacée par la série validée ; le côté est enregistré', async () => {
+    await db.execute("INSERT INTO series_realisees (id, user_id, updated_at, instance_seance_id, exercice_seance_id, numero_serie, reps_realisees, is_completed, notes) VALUES ('vieille', 'u1', 'u', 'i1', ?, 1, 5, 0, 'G')", [E1])
+    const r = await monter()
+    await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: null, rpe: null }, 1, 'G'))
+    expect(await vivantes()).toEqual([{ numero_serie: 1, notes: 'G' }])
+    expect((await db.get<{ deleted_at: string | null }>("SELECT deleted_at FROM series_realisees WHERE id = 'vieille'")).deleted_at).not.toBeNull()
+  })
+
+  it('devaliderSerie masque la série (suppression logique) et la ligne redevient à valider', async () => {
+    const r = await monter()
+    await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: null, rpe: null }, 1))
+    await act(() => r.result.current.devaliderSerie(E1, 1))
+    expect(await vivantes()).toEqual([])
+    expect(await lignesSeries()).toHaveLength(1)
+    expect(r.result.current.exercices[0].series).toEqual([])
+  })
+
+  it("ajouterSerie / supprimerSerie : séries prévues de la ligne d'instance, jamais du modèle", async () => {
+    const r = await monter()
+    await act(() => r.result.current.ajouterSerie(E1))
+    expect((await prevues(E1)).n).toBe(4)
+    expect((await prevues('e1')).n).toBe(3)
+    expect(r.result.current.exercices[0].nombreSeriesPrevues).toBe(4)
+    await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: null, rpe: null }, 4))
+    await act(() => r.result.current.supprimerSerie(E1))
+    expect((await prevues(E1)).n).toBe(3)
+    expect(await vivantes()).toEqual([])
+    expect(await lignesSeries()).toHaveLength(1)
+  })
+
+  it('supprimerSerie garde au moins une série ; en bilatéral retire un tour G+D', async () => {
+    const r = await monter()
+    await db.execute('UPDATE exercices_seance SET nombre_series_prevues = 1 WHERE id = ?', [E2])
+    await act(() => r.result.current.supprimerSerie(E2))
+    expect(r.result.current.erreur).toBe('Il faut garder au moins une série.')
+    await db.execute('UPDATE exercices_seance SET nombre_series_prevues = 2, is_bilateral = 1 WHERE id = ?', [E2])
+    await act(() => r.result.current.validerSerie(E2, { reps: 30, chargeKg: null, rpe: null }, 4, 'D'))
+    await act(() => r.result.current.validerSerie(E2, { reps: 30, chargeKg: null, rpe: null }, 3, 'G'))
+    await act(() => r.result.current.supprimerSerie(E2))
+    expect((await prevues(E2)).n).toBe(1)
+    expect(await vivantes()).toEqual([])
+  })
+})

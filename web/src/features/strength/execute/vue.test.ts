@@ -27,8 +27,8 @@ describe('construireVue', () => {
       mapExerciceSeance({ id: 'e4', exercise_id: 'inconnu', bloc_id: 'b2', position: 0 }),
     ]
     const series = [
-      mapSerie({ id: 's2', exercice_seance_id: 'e1', numero_serie: 2 }),
-      mapSerie({ id: 's1', exercice_seance_id: 'e1', numero_serie: 1 }),
+      mapSerie({ is_completed: 1, id: 's2', exercice_seance_id: 'e1', numero_serie: 2 }),
+      mapSerie({ is_completed: 1, id: 's1', exercice_seance_id: 'e1', numero_serie: 1 }),
     ]
     const vue = construireVue(blocs, exercices, series, new Map([['x', 'Squat']]))
     expect(vue.blocs.map((b) => [b.nom, b.exercices.map((e) => e.id)])).toEqual([
@@ -51,8 +51,8 @@ describe('reposRestant', () => {
         mapExerciceSeance({ id: 'b', temps_repos_sec: 120 }),
       ],
       [
-        mapSerie({ id: '1', exercice_seance_id: 'a', numero_serie: 1, updated_at: '2026-10-24T10:00:00.000Z' }),
-        mapSerie({ id: '2', exercice_seance_id: 'b', numero_serie: 1, updated_at: '2026-10-24T10:01:00.000Z' }),
+        mapSerie({ is_completed: 1, id: '1', exercice_seance_id: 'a', numero_serie: 1, updated_at: '2026-10-24T10:00:00.000Z' }),
+        mapSerie({ is_completed: 1, id: '2', exercice_seance_id: 'b', numero_serie: 1, updated_at: '2026-10-24T10:01:00.000Z' }),
       ],
       new Map(),
     )
@@ -67,7 +67,7 @@ describe('reposRestant', () => {
       [],
       [mapExerciceSeance({ id: 'a', temps_repos_sec: 60 })],
       [
-        mapSerie({
+        mapSerie({ is_completed: 1,
           id: '1', exercice_seance_id: 'a', numero_serie: 1,
           validated_at: '2026-10-24T10:00:00.000Z', updated_at: '2026-10-24 10:00:40+00',
         }),
@@ -81,7 +81,7 @@ describe('reposRestant', () => {
     const vue = construireVue(
       [],
       [mapExerciceSeance({ id: 'a', temps_repos_sec: 60 })],
-      [mapSerie({ id: '1', exercice_seance_id: 'a', numero_serie: 1, validated_at: null, updated_at: '2026-10-24T10:00:00.000Z' })],
+      [mapSerie({ is_completed: 1, id: '1', exercice_seance_id: 'a', numero_serie: 1, validated_at: null, updated_at: '2026-10-24T10:00:00.000Z' })],
       new Map(),
     )
     expect(reposRestant(vue.exercices, Date.parse('2026-10-24T10:00:50.000Z'))).toBe(10_000)
@@ -92,8 +92,8 @@ describe('reposRestant', () => {
       [],
       [mapExerciceSeance({ id: 'a', temps_repos_sec: 60 }), mapExerciceSeance({ id: 'b', temps_repos_sec: 120 })],
       [
-        mapSerie({ id: '1', exercice_seance_id: 'a', numero_serie: 1, updated_at: '2026-10-24 10:02:00+00' }),
-        mapSerie({ id: '2', exercice_seance_id: 'b', numero_serie: 1, updated_at: '2026-10-24T10:01:00.000Z' }),
+        mapSerie({ is_completed: 1, id: '1', exercice_seance_id: 'a', numero_serie: 1, updated_at: '2026-10-24 10:02:00+00' }),
+        mapSerie({ is_completed: 1, id: '2', exercice_seance_id: 'b', numero_serie: 1, updated_at: '2026-10-24T10:01:00.000Z' }),
       ],
       new Map(),
     )
@@ -118,7 +118,7 @@ describe('reposRestant : superset (repos après le DERNIER exercice du groupe)',
       id, exercise_id: id, bloc_id: 'b1', position, superset_groupe: groupe, temps_repos_sec: 60, nombre_series_prevues: 3, ...extra,
     })
   const serie = (id: string, exercice: string, numero: number, valideeSec: number) =>
-    mapSerie({ id, exercice_seance_id: exercice, numero_serie: numero, validated_at: a(valideeSec), updated_at: a(valideeSec) })
+    mapSerie({ is_completed: 1, id, exercice_seance_id: exercice, numero_serie: numero, validated_at: a(valideeSec), updated_at: a(valideeSec) })
   const vueDe = (exercices: ReturnType<typeof exo>[], series: ReturnType<typeof serie>[]) =>
     construireVue([mapBloc({ id: 'b1', nom: 'Bloc', position: 0 })], exercices, series, new Map()).exercices
 
@@ -193,7 +193,7 @@ describe('reposRestant : superset (repos après le DERNIER exercice du groupe)',
 
   it("série corrigée après coup : l'ancre reste validated_at (corriger A1 ne relance rien)", () => {
     const exos = [exo('A', 0, 'X'), exo('B', 1, 'X', { temps_repos_sec: 120 })]
-    const corrigee = mapSerie({ id: '1', exercice_seance_id: 'A', numero_serie: 1, validated_at: a(0), updated_at: a(100) })
+    const corrigee = mapSerie({ is_completed: 1, id: '1', exercice_seance_id: 'A', numero_serie: 1, validated_at: a(0), updated_at: a(100) })
     const v = vueDe(exos, [corrigee, serie('2', 'B', 1, 30)])
     expect(reposRestant(v, T + 110_000)).toBe(40_000)
   })

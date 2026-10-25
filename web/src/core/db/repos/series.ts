@@ -75,3 +75,36 @@ export async function listSeries(db: DbLecture, instanceId: string): Promise<Ser
     (a, b) => a.exerciceSeanceId.localeCompare(b.exerciceSeanceId) || a.numeroSerie - b.numeroSerie,
   )
 }
+
+// Suppression LOGIQUE (deleted_at, jamais DELETE) des séries vivantes d'un exercice d'instance pour les
+// numéros donnés : dé-validation d'une ligne, ou retrait des dernières lignes.
+export async function supprimerSeriesNumeros(
+  db: Db | DbTx,
+  instanceId: string,
+  exerciceId: string,
+  numeros: number[],
+  maintenant: string = new Date().toISOString(),
+): Promise<void> {
+  if (numeros.length === 0) return
+  await db.execute(
+    `UPDATE series_realisees SET deleted_at = ?, updated_at = ?
+     WHERE instance_seance_id = ? AND exercice_seance_id = ? AND deleted_at IS NULL
+       AND numero_serie IN (${numeros.map(() => '?').join(', ')})`,
+    [maintenant, maintenant, instanceId, exerciceId, ...numeros],
+  )
+}
+
+// Nombre de séries prévues de la ligne D'INSTANCE d'un exercice (jamais celle du modèle).
+export async function changerSeriesPrevues(
+  db: Db | DbTx,
+  instanceId: string,
+  exerciceId: string,
+  nombre: number,
+  maintenant: string = new Date().toISOString(),
+): Promise<void> {
+  await db.execute(
+    `UPDATE exercices_seance SET nombre_series_prevues = ?, updated_at = ?
+     WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL`,
+    [nombre, maintenant, exerciceId, instanceId],
+  )
+}

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createTestDb } from '../../../test/sqliteDb'
 import type { Db } from '../Db'
-import { addSerie, listSeries, updateSerie, type NouvelleSerie } from './series'
+import { addSerie, changerSeriesPrevues, listSeries, supprimerSeriesNumeros, updateSerie, type NouvelleSerie } from './series'
 
 let db: Db
 beforeEach(() => {
@@ -76,5 +76,31 @@ describe('series', () => {
     const id = await addSerie(db, serie())
     await db.execute('UPDATE series_realisees SET deleted_at = ? WHERE id = ?', ['2026-01-01T00:00:00Z', id])
     expect(await listSeries(db, 'i1')).toHaveLength(0)
+  })
+})
+
+describe('suppression logique et séries prévues', () => {
+  it('supprimerSeriesNumeros masque les numéros demandés de cet exercice seulement, sans DELETE', async () => {
+    await addSerie(db, serie({ numeroSerie: 1 }))
+    await addSerie(db, serie({ numeroSerie: 2 }))
+    await addSerie(db, serie({ numeroSerie: 1, exerciceSeanceId: 'x2' }))
+    await supprimerSeriesNumeros(db, 'i1', 'x1', [2], '2026-10-24T10:00:00.000Z')
+    expect((await listSeries(db, 'i1')).map((l) => `${l.exerciceSeanceId}#${l.numeroSerie}`)).toEqual(['x1#1', 'x2#1'])
+    const brut = await db.getAll<{ deleted_at: string | null }>('SELECT deleted_at FROM series_realisees WHERE numero_serie = 2')
+    expect(brut).toEqual([{ deleted_at: '2026-10-24T10:00:00.000Z' }])
+    await supprimerSeriesNumeros(db, 'i1', 'x1', [])
+  })
+
+  it("changerSeriesPrevues ne touche que la ligne d'instance", async () => {
+    const ligne = { user_id: 'u', updated_at: 'u', deleted_at: null, seance_id: 's', exercise_id: 'x', nombre_series_prevues: 3 }
+    await db.execute(
+      'INSERT INTO exercices_seance (id, user_id, updated_at, seance_id, exercise_id, nombre_series_prevues, instance_seance_id) VALUES (?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?)',
+      ['m', ligne.user_id, 'u', 's', 'x', 3, null, 'e1', ligne.user_id, 'u', 's', 'x', 3, 'i1'],
+    )
+    await changerSeriesPrevues(db, 'i1', 'e1', 4, '2026-10-24T10:00:00.000Z')
+    await changerSeriesPrevues(db, 'i1', 'm', 9)
+    expect(await db.getAll('SELECT id, nombre_series_prevues AS n FROM exercices_seance ORDER BY id')).toEqual([
+      { id: 'e1', n: 4 }, { id: 'm', n: 3 },
+    ])
   })
 })

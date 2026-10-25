@@ -20,7 +20,7 @@ const commun = { user_id: 'u1', updated_at: '2026-01-01T00:00:00.000Z', deleted_
 await inserer(base, 'seances', { ...commun, id: 's1', nom: 'Haut du corps', is_archived: 0, seance_category: 'STRENGTH', created_at: 'c' })
 await inserer(base, 'exercises', { ...commun, id: 'x1', name: 'Développé couché' })
 await inserer(base, 'exercises', { ...commun, id: 'x2', name: 'Gainage planche' })
-await inserer(base, 'blocs_seance', { ...commun, id: 'b1', seance_id: 's1', nom: 'Bloc principal', position: 0, instance_seance_id: null })
+await inserer(base, 'blocs_seance', { ...commun, id: 'b1', seance_id: 's1', nom: 'Bloc principal', type: 'AUTRE', position: 0, instance_seance_id: null })
 await inserer(base, 'exercices_seance', {
   ...commun, id: 'e1', seance_id: 's1', exercise_id: 'x1', bloc_id: 'b1', position: 0, nombre_series_prevues: 3,
   reps_cibles: '8-10', charge_cible: '60 kg', reps_type: 'REPS', temps_repos_sec: 90, instance_seance_id: null,
@@ -54,7 +54,7 @@ const choisir = (nom: string) =>
 const carte = (nom: string) => screen.getByRole('article', { name: nom })
 const series = (instanceId: string) =>
   base.getAll<{ id: string; numero_serie: number; reps_realisees: number; charge_kg: number | null; rpe: number | null }>(
-    'SELECT id, numero_serie, reps_realisees, charge_kg, rpe FROM series_realisees WHERE instance_seance_id = ? ORDER BY numero_serie',
+    'SELECT id, numero_serie, reps_realisees, charge_kg, rpe FROM series_realisees WHERE instance_seance_id = ? AND deleted_at IS NULL ORDER BY numero_serie',
     [instanceId],
   )
 
@@ -70,17 +70,28 @@ describe('ExecuteScreen', () => {
     expect(chrono.getAttribute('aria-label')).toBe('Temps écoulé : moins d’une minute')
     expect(screen.getByRole('button', { name: 'Démarrer' })).toBeTruthy()
     expect(within(carte('Développé couché')).getByText('3 séries × 8-10 · 60 kg · repos 90 s')).toBeTruthy()
-    expect(within(carte('Développé couché')).getByLabelText('Répétitions')).toBeTruthy()
-    // DURATION : le champ est libellé en secondes (on choisit l'exercice dans la barre)
+    // Une ligne par série prévue, pré-remplie avec le prévu (grisée), repos de l'exercice, en-tête façon Android
+    const dc = carte('Développé couché')
+    expect(within(dc).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['#', 'Reps', 'kg', 'Repos', 'RPE', 'Validation'])
+    expect(within(dc).getAllByRole('row')).toHaveLength(1 + 3 + 1) // en-tête, 3 séries, puces RPE de la série courante
+    expect((within(dc).getByLabelText('Série 1, répétitions') as HTMLInputElement).value).toBe('8')
+    expect((within(dc).getByLabelText('Série 3, charge en kilogrammes') as HTMLInputElement).value).toBe('60')
+    expect(within(dc).getByLabelText('Série 2, repos 90s')).toBeTruthy()
+    expect(within(dc).getByLabelText('Série 1, répétitions').closest('.tableau-series__cellule--grisee')).not.toBeNull()
+    expect(within(dc).getByRole('row', { current: true })).toBeTruthy()
+    // DURATION : colonne « Temps » en secondes, pas de RPE (on choisit l'exercice dans la barre)
     choisir('Gainage planche')
-    expect(within(carte('Gainage planche')).getByLabelText('Durée (s)')).toBeTruthy()
+    const gp = carte('Gainage planche')
+    expect(within(gp).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['#', 'Temps', 'kg', 'Repos', 'Validation'])
+    expect((within(gp).getByLabelText('Série 1, durée en secondes') as HTMLInputElement).value).toBe('45')
+    expect(within(gp).queryByRole('group', { name: 'RPE' })).toBeNull()
     // Panda de motivation avant le démarrage, décoratif
     await waitFor(() => expect(document.querySelector('img.execution__panda')).not.toBeNull())
     expect(document.querySelector('img.execution__panda')!.getAttribute('alt')).toBe('')
     expect(document.querySelector('img.execution__panda')!.getAttribute('src')).toMatch(/^\/panda\/motivation-male-sm\.webp$/)
   })
 
-  it('démarre, valide une série avec une charge décimale « 17,5 » puis la corrige en place', async () => {
+  it('démarre, valide la ligne 1 (charge « 17,5 », RPE par puce), la dé-valide, la corrige puis la revalide', async () => {
     await instance('i-saisie')
     monter('i-saisie')
     fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
@@ -89,26 +100,45 @@ describe('ExecuteScreen', () => {
     expect(document.querySelector('.execution__panda')).toBeNull()
 
     const dc = carte('Développé couché')
-    fireEvent.change(within(dc).getByLabelText('Répétitions'), { target: { value: '8' } })
-    fireEvent.change(within(dc).getByLabelText('Charge (kg)'), { target: { value: '17,5' } })
-    fireEvent.change(within(dc).getByLabelText('RPE (facultatif)'), { target: { value: '8' } })
-    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série' }))
+    fireEvent.change(within(dc).getByLabelText('Série 1, charge en kilogrammes'), { target: { value: '17,5' } })
+    expect(within(dc).getByLabelText('Série 1, charge en kilogrammes').closest('.tableau-series__cellule--grisee')).toBeNull()
+    fireEvent.click(within(dc).getByRole('button', { name: 'RPE 8, série 1' }))
+    expect(within(dc).getByRole('button', { name: 'RPE 8, série 1' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série 1' }))
 
     await waitFor(async () => expect(await series('i-saisie')).toMatchObject([{ numero_serie: 1, reps_realisees: 8, charge_kg: 17.5, rpe: 8 }]))
-    const ligne = await within(dc).findByRole('group', { name: 'Série 1' })
+    // Ligne validée : bouton ✓ qui annule, champs figés, la série courante passe à la ligne 2 (charge propagée)
+    const annuler = await within(dc).findByRole('button', { name: 'Annuler la validation de la série 1' })
+    expect((within(dc).getByLabelText('Série 1, répétitions') as HTMLInputElement).readOnly).toBe(true)
+    expect((within(dc).getByLabelText('Série 2, charge en kilogrammes') as HTMLInputElement).value).toBe('17,5')
     expect(await screen.findByText(/^Repos : /)).toBeTruthy()
 
-    fireEvent.change(within(ligne).getByLabelText('Répétitions'), { target: { value: '7' } })
-    fireEvent.click(within(ligne).getByRole('button', { name: 'Corriger la série 1' }))
+    fireEvent.click(annuler)
+    fireEvent.change(await within(dc).findByLabelText('Série 1, répétitions'), { target: { value: '7' } })
+    expect((within(dc).getByLabelText('Série 1, charge en kilogrammes') as HTMLInputElement).value).toBe('17,5')
+    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série 1' }))
     await waitFor(async () => expect(await series('i-saisie')).toMatchObject([{ numero_serie: 1, reps_realisees: 7, charge_kg: 17.5 }]))
     expect(await series('i-saisie')).toHaveLength(1)
+  })
+
+  it('« Ajouter » et « Supprimer » changent le nombre de lignes', async () => {
+    await instance('i-lignes')
+    monter('i-lignes')
+    const dc = await screen.findByRole('article', { name: 'Développé couché' })
+    const lignes = () => within(carte('Développé couché')).getAllByLabelText(/^Série \d, répétitions$/)
+    expect(lignes()).toHaveLength(3)
+    fireEvent.click(within(dc).getByRole('button', { name: /Ajouter/ }))
+    await waitFor(() => expect(lignes()).toHaveLength(4))
+    fireEvent.click(within(carte('Développé couché')).getByRole('button', { name: 'Supprimer' }))
+    await waitFor(() => expect(lignes()).toHaveLength(3))
   })
 
   it('affiche une erreur de saisie en français', async () => {
     await instance('i-erreur')
     monter('i-erreur')
     const dc = await screen.findByRole('article', { name: 'Développé couché' })
-    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série' }))
+    fireEvent.change(within(dc).getByLabelText('Série 1, répétitions'), { target: { value: '' } })
+    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série 1' }))
     expect((await screen.findByRole('alert')).textContent).toBe('Saisissez un nombre de répétitions entier.')
   })
 

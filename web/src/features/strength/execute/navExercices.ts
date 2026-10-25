@@ -49,9 +49,13 @@ export function libelleTypeBloc(type: string | null): string | null {
 }
 
 // Exercice terminé : au moins une série, et toutes les séries prévues saisies.
-export function exerciceTermine(e: Pick<ExerciceVue, 'series' | 'nombreSeriesPrevues'>): boolean {
-  return e.series.length > 0 && e.series.length >= e.nombreSeriesPrevues
+export function exerciceTermine(e: Pick<ExerciceVue, 'series' | 'nombreSeriesPrevues' | 'isBilateral'>): boolean {
+  const faites = nombreFaites(e)
+  return faites > 0 && faites >= e.nombreSeriesPrevues * (e.isBilateral ? 2 : 1)
 }
+
+// Séries validées (les lignes laissées non validées ne comptent pas)
+const nombreFaites = (e: Pick<ExerciceVue, 'series'>) => e.series.filter((s) => s.terminee).length
 
 // Exercice actif au chargement : premier non terminé, à défaut le premier.
 export function indexParDefaut(exercices: ExerciceVue[]): number {
@@ -92,8 +96,9 @@ export interface GroupeNav {
 
 function etatExercice(e: ExerciceVue): string {
   if (exerciceTermine(e)) return 'terminé'
-  const n = e.series.length
-  return `${n} série${n > 1 ? 's' : ''} sur ${e.nombreSeriesPrevues} faite${n > 1 ? 's' : ''}`
+  const n = nombreFaites(e)
+  const prevues = e.nombreSeriesPrevues * (e.isBilateral ? 2 : 1)
+  return `${n} série${n > 1 ? 's' : ''} sur ${prevues} faite${n > 1 ? 's' : ''}`
 }
 
 // Un groupe par bloc (les exercices sont déjà dans l'ordre bloc puis position, hors-bloc en dernier).

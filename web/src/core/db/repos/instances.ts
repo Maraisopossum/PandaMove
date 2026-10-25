@@ -127,3 +127,10 @@ export async function copyTemplateToInstance(db: Db, instanceId: string): Promis
     }
   })
 }
+
+// Commentaire de séance (texte libre) d'une instance non terminée.
+export async function majNotesInstance(db: Db | DbTx, id: string, notes: string, maintenantIso: string): Promise<void> {
+  await db.execute('UPDATE instances_seance SET notes = ?, updated_at = ? WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL', [
+    notes, maintenantIso, id,
+  ])
+}

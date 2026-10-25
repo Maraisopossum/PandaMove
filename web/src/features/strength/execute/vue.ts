@@ -13,6 +13,10 @@ export interface SerieVue {
   updatedAt: string
   // Ancre du repos : instant de validation (validated_at), à défaut updated_at (séries antérieures à 0006)
   valideeA: string
+  // false : ligne laissée « non validée » (ex. venue d'Android) ; ne compte ni pour le repos ni pour la progression
+  terminee: boolean
+  // Côté d'un exercice bilatéral (« G » / « D »), vide sinon
+  notes: string
 }
 
 export interface ExerciceVue {
@@ -29,6 +33,11 @@ export interface ExerciceVue {
   // Type du bloc (ECHAUFFEMENT, SUPERSET…), null hors bloc : sert à la barre de navigation
   blocType: string | null
   isBilateral: boolean
+  progressionActivee: boolean
+  // Consigne clé de l'exercice (affichée 💬), vide si aucune
+  consigne: string
+  // Repos affiché dans la colonne « Repos » (s) : fin de round / inter-exercices en superset, sinon repos de l'exercice
+  reposAfficheSec: number
   // Groupes musculaires de l'exercice du catalogue (codes), pour le libellé court de la barre
   muscles: string[]
   position: number
@@ -55,6 +64,8 @@ export interface Mesures {
 
 export const libelleReps = (repsType: RepsType) => (repsType === 'DURATION' ? 'Durée (s)' : 'Répétitions')
 
+const parPosition = <T extends { position: number }>(a: T, b: T) => a.position - b.position
+
 // Blocs triés par position, exercices triés par position dans leur bloc ; les exercices hors bloc
 // (ou dont le bloc n'existe plus) forment un groupe final « Exercices ». Les séries vivantes
 // (déjà dédoublonnées par listSeries) sont rattachées et triées par numéro.
@@ -68,10 +79,21 @@ export function construireVue(
   const parExercice = new Map<string, SerieVue[]>()
   for (const s of series) {
     const liste = parExercice.get(s.exerciceSeanceId) ?? []
-    liste.push({ id: s.id, numero: s.numeroSerie, reps: s.repsRealisees, chargeKg: s.chargeKg, rpe: s.rpe, updatedAt: s.updatedAt, valideeA: s.validatedAt ?? s.updatedAt })
+    liste.push({ id: s.id, numero: s.numeroSerie, reps: s.repsRealisees, chargeKg: s.chargeKg, rpe: s.rpe, updatedAt: s.updatedAt, valideeA: s.validatedAt ?? s.updatedAt, terminee: s.isCompleted, notes: s.notes })
     parExercice.set(s.exerciceSeanceId, liste)
   }
   const typeDuBloc = new Map(blocs.map((b) => [b.id, b.type]))
+  const blocParId = new Map(blocs.map((b) => [b.id, b]))
+  // Dernier exercice de chaque bloc (position la plus haute) : celui qui ferme le round d'un superset
+  const dernierDuBloc = new Map<string, string>()
+  for (const e of [...exercices].sort(parPosition)) if (e.blocId) dernierDuBloc.set(e.blocId, e.id)
+  const reposAffiche = (e: ExerciceSeance): number => {
+    const b = e.blocId ? blocParId.get(e.blocId) : undefined
+    if (b && (b.type === 'SUPERSET' || b.type === 'CIRCUIT')) {
+      return dernierDuBloc.get(b.id) === e.id ? b.tempsReposFinRoundSec : b.tempsReposInterSec
+    }
+    return e.tempsReposSec
+  }
   const versVue = (e: ExerciceSeance): ExerciceVue => ({
     id: e.id,
     exerciseId: e.exerciseId,
@@ -85,6 +107,9 @@ export function construireVue(
     blocId: e.blocId,
     blocType: e.blocId === null ? null : (typeDuBloc.get(e.blocId) ?? null),
     isBilateral: e.isBilateral,
+    progressionActivee: e.progressionActivee,
+    consigne: e.consigneCle,
+    reposAfficheSec: reposAffiche(e),
     muscles: muscles.get(e.exerciseId) ?? [],
     position: e.position,
     supersetGroupe: e.supersetGroupe,
@@ -92,7 +117,6 @@ export function construireVue(
     enchaineAvec: null,
     series: (parExercice.get(e.id) ?? []).sort((a, b) => a.numero - b.numero),
   })
-  const parPosition = <T extends { position: number }>(a: T, b: T) => a.position - b.position
 
   const idsBlocs = new Set(blocs.map((b) => b.id))
   const groupes: BlocVue[] = [...blocs].sort(parPosition).map((b) => ({
@@ -146,7 +170,7 @@ export function verifierMesures(m: Partial<Mesures>, repsType: RepsType): string
 export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | null {
   let derniere: { ms: number; exercice: ExerciceVue; rang: number } | null = null
   for (const e of exercices) {
-    for (const [i, s] of e.series.entries()) {
+    for (const [i, s] of e.series.filter((x) => x.terminee).entries()) {
       const ms = parseTimestamp(s.valideeA)
       // rang : tour du superset auquel appartient la série (1 = première série de l'exercice).
       // Égalité d'horodatage : la série affichée la plus loin (exercice suivant, numéro supérieur) l'emporte.
@@ -157,7 +181,7 @@ export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | 
   const { ms, exercice, rang } = derniere
   const groupe = groupeSuperset(exercices, exercice)
   const suivants = groupe.slice(groupe.indexOf(exercice) + 1)
-  if (suivants.some((x) => x.series.length < rang && x.nombreSeriesPrevues >= rang)) return null
+  if (suivants.some((x) => x.series.filter((s) => s.terminee).length < rang && x.nombreSeriesPrevues >= rang)) return null
   return Math.max(0, ms + exercice.tempsReposSec * 1000 - nowMs)
 }
 

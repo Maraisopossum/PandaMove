@@ -1,11 +1,10 @@
 import { useId } from 'react'
 import { Link, useParams } from 'react-router'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
-import { ChampNombreFacultatif } from '../champs'
 import { BarreExercices } from './BarreExercices'
 import { useEcranExecution } from './useEcranExecution'
-import { useSaisieSerie } from './useSaisieSerie'
-import { texteCibles, texteSerie, type ExerciceVue, type Mesures, type SerieVue } from './vue'
+import { TableauSeries } from './TableauSeries'
+import { texteCibles, type ExerciceVue } from './vue'
 
 // Séance en cours (spec §5) : tout est écrit en base locale d'abord, l'affichage est relu ensuite.
 // Aucune logique ici : données et actions viennent de useEcranExecution.
@@ -53,13 +52,24 @@ export default function ExecuteScreen() {
               <CarteExercice
                 key={actif.id}
                 exercice={actif}
+                tableau={e.tableau}
+                historique={e.historique}
                 lectureSeule={e.terminee}
-                validationEnCours={e.validationEnCours(actif.id)}
-                onValider={(m) => void e.validerSerie(actif.id, m)}
-                onCorriger={(serieId, m) => void e.corrigerSerie(serieId, m)}
               />
             </section>
           )}
+          <section className="execution__notes">
+            <label htmlFor="notes-seance">Commentaire de séance</label>
+            <textarea
+              id="notes-seance"
+              rows={2}
+              value={e.notes.texte}
+              readOnly={e.terminee}
+              placeholder="Notes sur la séance"
+              onChange={(ev) => e.notes.changer(ev.target.value)}
+              onBlur={e.notes.sortir}
+            />
+          </section>
         </>
       )}
 
@@ -96,16 +106,14 @@ export default function ExecuteScreen() {
 }
 
 function CarteExercice({
-  exercice: ex, lectureSeule, validationEnCours, onValider, onCorriger,
+  exercice: ex, tableau, historique, lectureSeule,
 }: {
   exercice: ExerciceVue
+  tableau: ReturnType<typeof useEcranExecution>['tableau']
+  historique: string[]
   lectureSeule: boolean
-  validationEnCours: boolean
-  onValider: (m: Mesures) => void
-  onCorriger: (serieId: string, m: Mesures) => void
 }) {
   const idTitre = useId()
-  const derniere = ex.series.at(-1)
   return (
     <article className="execution__exercice" aria-labelledby={idTitre}>
       <h3 id={idTitre} className="execution__nom">
@@ -114,80 +122,14 @@ function CarteExercice({
       {ex.libelleSuperset && <span className="execution__superset">{ex.libelleSuperset}</span>}
       {ex.enchaineAvec && <p className="execution__enchainement">Enchaîne sans repos avec {ex.enchaineAvec}</p>}
       <p className="execution__cibles">{texteCibles(ex)}</p>
-
-      {ex.series.length > 0 && (
-        <ol className="execution__series">
-          {ex.series.map((s) => (
-            <li key={s.id}>
-              {lectureSeule ? (
-                <p>
-                  Série {s.numero} : {texteSerie(s, ex.repsType)}
-                </p>
-              ) : (
-                <LigneSerie serie={s} libelleReps={ex.libelleReps} onCorriger={(m) => onCorriger(s.id, m)} />
-              )}
-            </li>
-          ))}
-        </ol>
+      {ex.consigne && (
+        <p className="execution__consigne">
+          <span aria-hidden="true">💬 </span>
+          {ex.consigne}
+        </p>
       )}
-
-      {!lectureSeule && (
-        <FormulaireSerie
-          libelleReps={ex.libelleReps}
-          initial={{ reps: derniere?.reps ?? null, chargeKg: derniere?.chargeKg ?? null, rpe: null }}
-          enCours={validationEnCours}
-          onValider={onValider}
-        />
-      )}
+      {ex.isBilateral && <p className="execution__consigne">Exercice unilatéral : une ligne par côté (G puis D).</p>}
+      <TableauSeries nomExercice={ex.nom} tableau={tableau} lectureSeule={lectureSeule} historique={historique} />
     </article>
-  )
-}
-
-function ChampsSerie({ libelleReps, saisie }: { libelleReps: string; saisie: ReturnType<typeof useSaisieSerie> }) {
-  return (
-    <div className="execution__champs">
-      <ChampNombreFacultatif libelle={libelleReps} valeur={saisie.reps} onChange={saisie.setReps} />
-      <ChampNombreFacultatif libelle="Charge (kg)" valeur={saisie.chargeKg} onChange={saisie.setChargeKg} />
-      <ChampNombreFacultatif libelle="RPE (facultatif)" valeur={saisie.rpe} onChange={saisie.setRpe} />
-    </div>
-  )
-}
-
-function LigneSerie({ serie, libelleReps, onCorriger }: { serie: SerieVue; libelleReps: string; onCorriger: (m: Mesures) => void }) {
-  const saisie = useSaisieSerie({ reps: serie.reps, chargeKg: serie.chargeKg, rpe: serie.rpe })
-  return (
-    <fieldset className="execution__ligne">
-      <legend>Série {serie.numero}</legend>
-      <ChampsSerie libelleReps={libelleReps} saisie={saisie} />
-      <button type="button" className="bouton" aria-label={`Corriger la série ${serie.numero}`} onClick={() => onCorriger(saisie.mesures())}>
-        Corriger
-      </button>
-    </fieldset>
-  )
-}
-
-function FormulaireSerie({
-  libelleReps, initial, enCours, onValider,
-}: {
-  libelleReps: string
-  initial: { reps: number | null; chargeKg: number | null; rpe: number | null }
-  // Enregistrement en cours : bouton désactivé (anti double appui, doublé par la garde de useExecute)
-  enCours: boolean
-  onValider: (m: Mesures) => void
-}) {
-  const saisie = useSaisieSerie(initial)
-  return (
-    <form
-      className="execution__nouvelle"
-      onSubmit={(ev) => {
-        ev.preventDefault()
-        onValider(saisie.mesures())
-      }}
-    >
-      <ChampsSerie libelleReps={libelleReps} saisie={saisie} />
-      <button type="submit" className="bouton bouton--principal" disabled={enCours} aria-busy={enCours}>
-        Valider la série
-      </button>
-    </form>
   )
 }

@@ -2,13 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDb } from '../../../core/db/client'
 import type { Db, DbLecture } from '../../../core/db/Db'
 import {
-  copyTemplateToInstance, demarrerInstance, enregistrerPauses, ErreurInstance, getInstance, terminerInstance,
+  copyTemplateToInstance, demarrerInstance, enregistrerPauses, ErreurInstance, getInstance, majNotesInstance, terminerInstance,
 } from '../../../core/db/repos/instances'
 import { getSeanceTree, lireNomSeance } from '../../../core/db/repos/seances'
-import { addSerie, listSeries, updateSerie } from '../../../core/db/repos/series'
+import { addSerie, changerSeriesPrevues, listSeries, supprimerSeriesNumeros, updateSerie } from '../../../core/db/repos/series'
 import type { InstanceSeance, RepsType } from '../../../core/db/types'
 import { lireGroupes } from '../catalog/filtreCatalogue'
 import { evaluerEtAppliquerSilencieux } from '../progression/evaluation'
+import { dernieresSeries } from './historiqueSeries'
+import type { SerieHisto } from './lignesSeries'
 import { clockFromRow, clockToRow, elapsedMs, estEnPause, type SessionClock } from './sessionClock'
 import { useTicker } from './useTicker'
 import { construireVue, reposRestant, verifierMesures, type BlocVue, type ExerciceVue, type Mesures } from './vue'
@@ -34,9 +36,11 @@ interface Donnees {
   nomSeance: string
   blocs: BlocVue[]
   exercices: ExerciceVue[]
+  // Séries de la dernière séance terminée, par exercice du catalogue (pré-remplissage)
+  precedentes: Map<string, SerieHisto[]>
 }
 
-const VIDE: Donnees = { instance: null, nomSeance: '', blocs: [], exercices: [] }
+const VIDE: Donnees = { instance: null, nomSeance: '', blocs: [], exercices: [], precedentes: new Map() }
 const SANS_HORLOGE: SessionClock = { startedAtMs: null, pauses: [] }
 
 const horlogeDe = (i: InstanceSeance): SessionClock => clockFromRow({ started_at: i.startedAt, paused_json: i.pausedJson })
@@ -60,7 +64,8 @@ async function lire(db: Db, instanceId: string): Promise<Donnees> {
   const vue = construireVue(arbre.blocs, arbre.exercices, series, new Map(noms.map((n) => [n.id, n.name])),
     new Map(noms.map((n) => [n.id, lireGroupes(n.muscle_groups ?? '')])),
   )
-  return { instance, nomSeance: nomSeanceLu ?? 'Séance', ...vue }
+  const precedentes = await dernieresSeries(db, instanceId, idsExercices)
+  return { instance, nomSeance: nomSeanceLu ?? 'Séance', ...vue, precedentes }
 }
 
 // Instance vivante et non terminée, relue en base (jamais depuis l'état React, qui peut être en retard).
@@ -227,7 +232,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
   )
 
   const validerSerie = useCallback(
-    (exerciceId: string, s: Mesures): Promise<boolean> => {
+    (exerciceId: string, s: Mesures, numeroVoulu?: number, cote = ''): Promise<boolean> => {
       // Anti double appui : une seconde validation du même exercice, tant que la première n'est pas
       // terminée, est ignorée (sinon deux séries identiques seraient enregistrées).
       if (validationsRef.current.has(exerciceId)) return Promise.resolve(false)
@@ -243,7 +248,13 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
           // Valider une série sans avoir appuyé sur « Démarrer » lance le chrono (aucune saisie perdue).
           if (inst.startedAt === null) await demarrerInstance(tx, instanceId, iso)
           const existantes = (await listSeries(tx, instanceId)).filter((x) => x.exerciceSeanceId === exerciceId)
-          const numero = 1 + existantes.reduce((max, x) => Math.max(max, x.numeroSerie), 0)
+          // Ligne du tableau : son rang est imposé. Une ligne laissée « non validée » (Android) est remplacée,
+          // jamais écrasée (la série validée est une nouvelle ligne datée).
+          if (numeroVoulu !== undefined) {
+            if (existantes.some((x) => x.numeroSerie === numeroVoulu && x.isCompleted)) throw new ErreurExecution('Cette série est déjà validée.')
+            await supprimerSeriesNumeros(tx, instanceId, exerciceId, [numeroVoulu], iso)
+          }
+          const numero = numeroVoulu ?? 1 + existantes.reduce((max, x) => Math.max(max, x.numeroSerie), 0)
           await addSerie(
             tx,
             {
@@ -254,7 +265,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
               chargeKg: s.chargeKg,
               chargeLabel: null,
               rpe: s.rpe,
-              notes: '',
+              notes: cote,
               isCompleted: true,
             },
             iso,
@@ -263,6 +274,65 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
       }, "L'enregistrement de la série a échoué. Réessayez.").finally(() => marquerValidation(exerciceId, false))
     },
     [ecrire, instanceId, marquerValidation],
+  )
+
+  // Dé-validation d'une ligne (comme unvalidateSerie Android) : la série est masquée (suppression logique) ;
+  // elle redevient une ligne à valider.
+  const devaliderSerie = useCallback(
+    (exerciceId: string, numero: number) =>
+      ecrire(async (base, maintenant) => {
+        await instanceModifiable(base, instanceId)
+        await supprimerSeriesNumeros(base, instanceId, exerciceId, [numero], new Date(maintenant).toISOString())
+      }, "L'annulation de la validation a échoué."),
+    [ecrire, instanceId],
+  )
+
+  // « Ajouter » : une série prévue de plus (un tour G+D complet en bilatéral), sur la ligne de l'instance.
+  const ajouterSerie = useCallback(
+    (exerciceId: string) =>
+      ecrire(async (base, maintenant) => {
+        await instanceModifiable(base, instanceId)
+        const ligne = await base.getOptional<{ n: number }>(
+          'SELECT nombre_series_prevues AS n FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
+          [exerciceId, instanceId],
+        )
+        if (!ligne) throw new ErreurExecution('Exercice introuvable dans cette séance.')
+        await changerSeriesPrevues(base, instanceId, exerciceId, ligne.n + 1, new Date(maintenant).toISOString())
+      }, "L'ajout de la série a échoué."),
+    [ecrire, instanceId],
+  )
+
+  // « Supprimer » : retire la dernière ligne (le dernier tour G+D en bilatéral), validée ou non, et une série
+  // prévue (comme removeSerie Android). Suppression logique ; jamais en dessous d'une série.
+  const supprimerSerie = useCallback(
+    (exerciceId: string) =>
+      ecrire(async (base, maintenant) => {
+        await base.writeTransaction(async (tx) => {
+          await instanceModifiable(tx, instanceId)
+          const ligne = await tx.getOptional<{ n: number; bilateral: number | null }>(
+            'SELECT nombre_series_prevues AS n, is_bilateral AS bilateral FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
+            [exerciceId, instanceId],
+          )
+          if (!ligne) throw new ErreurExecution('Exercice introuvable dans cette séance.')
+          const series = (await listSeries(tx, instanceId)).filter((x) => x.exerciceSeanceId === exerciceId)
+          const pas = ligne.bilateral ? 2 : 1
+          const total = Math.max(ligne.n * pas, ...series.map((s) => s.numeroSerie))
+          if (total <= pas) throw new ErreurExecution('Il faut garder au moins une série.')
+          const iso = new Date(maintenant).toISOString()
+          await supprimerSeriesNumeros(tx, instanceId, exerciceId, Array.from({ length: pas }, (_, i) => total - i), iso)
+          if (ligne.n > 1) await changerSeriesPrevues(tx, instanceId, exerciceId, ligne.n - 1, iso)
+        })
+      }, 'La suppression de la série a échoué.'),
+    [ecrire, instanceId],
+  )
+
+  const enregistrerNotes = useCallback(
+    (notes: string) =>
+      ecrire(async (base, maintenant) => {
+        await instanceModifiable(base, instanceId)
+        await majNotesInstance(base, instanceId, notes, new Date(maintenant).toISOString())
+      }, "L'enregistrement du commentaire a échoué."),
+    [ecrire, instanceId],
   )
 
   const corrigerSerie = useCallback(
@@ -307,6 +377,12 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     terminer,
     validerSerie,
     corrigerSerie,
+    devaliderSerie,
+    enregistrerNotes,
+    notes: instance?.notes ?? '',
+    ajouterSerie,
+    supprimerSerie,
+    precedentes: donnees.precedentes,
     /** Vrai pendant l'enregistrement d'une série de cet exercice (bouton « Valider » désactivé). */
     validationEnCours: (exerciceId: string) => validations.has(exerciceId),
   }
