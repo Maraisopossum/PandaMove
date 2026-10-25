@@ -53,6 +53,8 @@ export interface ExerciceVue {
 }
 
 export interface BlocVue {
+  // Clé unique du groupe (id du bloc, ou « libre-<id du 1er exercice> » pour un groupe d'exercices libres)
+  cle: string
   // null : exercices hors bloc
   id: string | null
   nom: string
@@ -70,9 +72,11 @@ export const libelleReps = (repsType: RepsType) => (repsType === 'DURATION' ? 'D
 
 const parPosition = <T extends { position: number }>(a: T, b: T) => a.position - b.position
 
-// Blocs triés par position, exercices triés par position dans leur bloc ; les exercices hors bloc
-// (ou dont le bloc n'existe plus) forment un groupe final « Exercices ». Les séries vivantes
-// (déjà dédoublonnées par listSeries) sont rattachées et triées par numéro.
+// Ordre UNIFIÉ comme sur Android (buildOrderedExercicesFromLists) : blocs et exercices hors bloc (ou dont le bloc
+// n'existe plus) partagent la même échelle de positions et s'entrelacent ; à position égale, l'exercice libre
+// précède le bloc. Les exercices d'un bloc sont triés par position dans leur bloc. Des exercices libres
+// consécutifs forment un groupe « Exercices ». Les séries vivantes (déjà dédoublonnées par listSeries) sont
+// rattachées et triées par numéro.
 export function construireVue(
   blocs: BlocSeance[],
   exercices: ExerciceSeance[],
@@ -125,18 +129,27 @@ export function construireVue(
   })
 
   const idsBlocs = new Set(blocs.map((b) => b.id))
-  const groupes: BlocVue[] = [...blocs].sort(parPosition).map((b) => ({
-    id: b.id,
-    nom: b.nom,
-    type: b.type,
-    exercices: exercices.filter((e) => e.blocId === b.id).sort(parPosition).map(versVue),
-  }))
-  const horsBloc = exercices.filter((e) => e.blocId === null || !idsBlocs.has(e.blocId)).sort(parPosition)
-  if (horsBloc.length > 0) groupes.push({ id: null, nom: 'Exercices', type: null, exercices: horsBloc.map(versVue) })
-  const visibles = groupes.filter((g) => g.exercices.length > 0)
-  const tous = visibles.flatMap((g) => g.exercices)
+  // Libres d'abord : le tri stable les place avant un bloc de même position
+  const elements: { position: number; bloc: BlocSeance | null; libre: ExerciceSeance | null }[] = [
+    ...exercices.filter((e) => e.blocId === null || !idsBlocs.has(e.blocId)).map((e) => ({ position: e.position, bloc: null, libre: e })),
+    ...blocs.map((b) => ({ position: b.position, bloc: b, libre: null })),
+  ].sort((x, y) => x.position - y.position)
+  const groupes: BlocVue[] = []
+  for (const el of elements) {
+    if (el.bloc) {
+      const b = el.bloc
+      const enfants = exercices.filter((e) => e.blocId === b.id).sort(parPosition).map(versVue)
+      // Un bloc vide n'apparaît pas et n'interrompt pas une suite d'exercices libres
+      if (enfants.length > 0) groupes.push({ cle: b.id, id: b.id, nom: b.nom, type: b.type, exercices: enfants })
+      continue
+    }
+    const dernier = groupes[groupes.length - 1]
+    if (dernier && dernier.id === null) dernier.exercices.push(versVue(el.libre!))
+    else groupes.push({ cle: 'libre-' + el.libre!.id, id: null, nom: 'Exercices', type: null, exercices: [versVue(el.libre!)] })
+  }
+  const tous = groupes.flatMap((g) => g.exercices)
   for (const e of tous) e.enchaineAvec = suivantDuSuperset(tous, e)?.nom ?? null
-  return { blocs: visibles, exercices: tous }
+  return { blocs: groupes, exercices: tous }
 }
 
 // Exercices du même superset que `e` (même lettre ET même bloc), dans l'ordre d'affichage (position).

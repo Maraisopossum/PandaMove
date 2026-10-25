@@ -89,10 +89,10 @@ function etatExercice(e: ExerciceVue): string {
   return `${n} série${n > 1 ? 's' : ''} sur ${prevues} faite${n > 1 ? 's' : ''}`
 }
 
-// Un groupe par bloc (les exercices sont déjà dans l'ordre bloc puis position, hors-bloc en dernier).
+// Un groupe par bloc ou par suite d'exercices libres (ordre unifié de construireVue).
 export function construireNav(blocs: BlocVue[], idActif: string | null): GroupeNav[] {
   return blocs.map((b) => ({
-    cle: b.id ?? 'hors-bloc',
+    cle: b.cle,
     encadre: estGroupeEncadre(b.type, b.exercices.length),
     couleurs: couleursBloc(b.type),
     badges: b.exercices.map((e) => {

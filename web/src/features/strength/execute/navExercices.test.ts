@@ -74,13 +74,13 @@ describe('exercice terminé et actif par défaut', () => {
 
 describe('construireNav', () => {
   const blocs = [bloc('e', 0, 'ECHAUFFEMENT'), bloc('s1', 1, 'SUPERSET'), bloc('s2', 2, 'SUPERSET'), bloc('f', 3, 'AUTRE')]
-  const exos = [ex('e1', 'e', 0), ex('s1a', 's1', 0), ex('s1b', 's1', 1), ex('s2a', 's2', 0), ex('f1', 'f', 0), ex('h1', null, 0)]
+  const exos = [ex('e1', 'e', 0), ex('s1a', 's1', 0), ex('s1b', 's1', 1), ex('s2a', 's2', 0), ex('f1', 'f', 0), ex('h1', null, 9)]
   const v = vue(blocs, exos, [serie('e1', 1)])
   const nav = construireNav(v.blocs, 's1b')
 
   it('un groupe par bloc ; encadré : échauffement/activation/récupération, superset/circuit à 2+ exercices', () => {
     expect(nav.map((g) => [g.cle, g.encadre])).toEqual([
-      ['e', true], ['s1', true], ['s2', false], ['f', false], ['hors-bloc', false],
+      ['e', true], ['s1', true], ['s2', false], ['f', false], ['libre-h1', false],
     ])
   })
   it('couleur du bloc ; violet du module pour un bloc sans couleur propre', () => {

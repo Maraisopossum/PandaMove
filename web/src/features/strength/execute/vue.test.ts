@@ -18,27 +18,50 @@ describe('formats de durée', () => {
 })
 
 describe('construireVue', () => {
-  it('ordonne blocs et exercices par position, regroupe les exercices hors bloc à la fin', () => {
+  it('ordonne blocs et exercices libres sur la MÊME échelle de positions (ordre unifié, comme Android)', () => {
     const blocs = [mapBloc({ id: 'b2', nom: 'Fin', position: 5 }), mapBloc({ id: 'b1', nom: 'Début', position: 1 })]
     const exercices = [
       mapExerciceSeance({ id: 'e3', exercise_id: 'x', bloc_id: null, position: 0 }),
       mapExerciceSeance({ id: 'e2', exercise_id: 'x', bloc_id: 'b1', position: 2 }),
       mapExerciceSeance({ id: 'e1', exercise_id: 'x', bloc_id: 'b1', position: 1 }),
       mapExerciceSeance({ id: 'e4', exercise_id: 'inconnu', bloc_id: 'b2', position: 0 }),
+      mapExerciceSeance({ id: 'e5', exercise_id: 'x', bloc_id: null, position: 3 }),
     ]
     const series = [
       mapSerie({ is_completed: 1, id: 's2', exercice_seance_id: 'e1', numero_serie: 2 }),
       mapSerie({ is_completed: 1, id: 's1', exercice_seance_id: 'e1', numero_serie: 1 }),
     ]
     const vue = construireVue(blocs, exercices, series, new Map([['x', 'Squat']]))
+    // e3 (0), Début (1), e5 (3), Fin (5) : l'exercice libre e5 s'intercale entre les deux blocs
     expect(vue.blocs.map((b) => [b.nom, b.exercices.map((e) => e.id)])).toEqual([
-      ['Début', ['e1', 'e2']],
-      ['Fin', ['e4']],
       ['Exercices', ['e3']],
+      ['Début', ['e1', 'e2']],
+      ['Exercices', ['e5']],
+      ['Fin', ['e4']],
     ])
-    expect(vue.exercices.map((e) => e.id)).toEqual(['e1', 'e2', 'e4', 'e3'])
-    expect(vue.exercices[0].series.map((s) => s.id)).toEqual(['s1', 's2'])
-    expect(vue.exercices[2].nom).toBe('Exercice inconnu')
+    expect(vue.exercices.map((e) => e.id)).toEqual(['e3', 'e1', 'e2', 'e5', 'e4'])
+    expect(vue.exercices[1].series.map((s) => s.id)).toEqual(['s1', 's2'])
+    expect(vue.exercices[4].nom).toBe('Exercice inconnu')
+    // Chaque groupe a une clé unique, même quand plusieurs groupes sont des exercices libres
+    expect(new Set(vue.blocs.map((b) => b.cle)).size).toBe(4)
+  })
+
+  it('des exercices libres consécutifs forment un seul groupe ; à position égale le libre précède le bloc', () => {
+    const blocs = [mapBloc({ id: 'b1', nom: 'Bloc', position: 2 })]
+    const exercices = [
+      mapExerciceSeance({ id: 'l1', exercise_id: 'x', bloc_id: null, position: 2 }),
+      mapExerciceSeance({ id: 'l0', exercise_id: 'x', bloc_id: null, position: 0 }),
+      mapExerciceSeance({ id: 'c', exercise_id: 'x', bloc_id: 'b1', position: 0 }),
+    ]
+    const vue = construireVue(blocs, exercices, [], new Map())
+    expect(vue.blocs.map((b) => [b.nom, b.exercices.map((e) => e.id)])).toEqual([['Exercices', ['l0', 'l1']], ['Bloc', ['c']]])
+  })
+
+  it('un exercice dont le bloc a disparu est traité comme libre, à sa position', () => {
+    const exercices = [mapExerciceSeance({ id: 'o', exercise_id: 'x', bloc_id: 'fantome', position: 0 })]
+    const vue = construireVue([], exercices, [], new Map())
+    expect(vue.exercices.map((e) => [e.id, e.blocId, e.blocType])).toEqual([['o', 'fantome', null]])
+    expect(vue.blocs).toHaveLength(1)
   })
 })
 
@@ -215,7 +238,7 @@ describe('construireVue : informations de la barre d’exercices', () => {
       [mapBloc({ id: 'b', nom: 'Bloc', position: 0, type: 'SUPERSET' })],
       [
         mapExerciceSeance({ id: 'e1', exercise_id: 'x', bloc_id: 'b', position: 0, is_bilateral: 1 }),
-        mapExerciceSeance({ id: 'e2', exercise_id: 'y', bloc_id: null, position: 0 }),
+        mapExerciceSeance({ id: 'e2', exercise_id: 'y', bloc_id: null, position: 1 }),
       ],
       [],
       new Map(),
