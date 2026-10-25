@@ -9,7 +9,7 @@ import { buildImportPlan, verifierIntegrite } from '../import/plan'
 import { analyser, PandaMoveExportSchema } from '../import/schema'
 import { createTestDb } from '../../test/sqliteDb'
 import { inserer } from '../../test/fixtures'
-import { construireExport } from './construireExport'
+import { construireExport, ErreurExport } from './construireExport'
 import { idLongDepuisUuid } from './ids'
 
 const USER = '11111111-1111-4111-8111-111111111111'
@@ -351,6 +351,22 @@ describe('construireExport', () => {
     const plan = buildImportPlan(JSON.parse(JSON.stringify(exp)), AUTRE, { now: NOW })
     expect(plan.report.exercisesCrees).toBe(0)
     expect(plan.rows.exercises[0].deleted_at).toBe('2026-10-22T10:00:00.000Z')
+  })
+
+  it("refuse l'export si l'appareil contient des lignes d'un autre compte (aucune donnée d'autrui dans le fichier)", async () => {
+    await ajouterDonneesWeb(db) // lignes de USER
+    await expect(construireExport(db, MAINTENANT, AUTRE)).rejects.toThrow(ErreurExport)
+    await expect(construireExport(db, MAINTENANT, AUTRE)).rejects.toThrow(/autre compte/)
+    // Lignes non encore synchronisées (user_id vide) : acceptées, ce sont celles de l'appareil
+    await db.execute('UPDATE seances SET user_id = NULL')
+    await db.execute("UPDATE exercises SET user_id = NULL")
+    await db.execute("UPDATE blocs_seance SET user_id = NULL")
+    await db.execute("UPDATE exercices_seance SET user_id = NULL")
+    await db.execute("UPDATE instances_seance SET user_id = NULL")
+    await db.execute("UPDATE series_realisees SET user_id = NULL")
+    await db.execute("UPDATE objectifs_progression SET user_id = NULL")
+    await expect(construireExport(db, MAINTENANT, AUTRE)).resolves.toMatchObject({ webUserId: AUTRE })
+    expect((await construireExport(db, MAINTENANT, USER)).strengthTemplates).toHaveLength(1)
   })
 
   it('porte le compte exportateur (webUserId) quand il est connu', async () => {

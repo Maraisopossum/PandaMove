@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { DbLecture } from '../../core/db/Db'
-import { construireExport } from '../../core/export/construireExport'
+import { construireExport, ErreurExport } from '../../core/export/construireExport'
 import { nomFichierExport, telechargerJson } from '../../core/export/fichier'
 
 export type StatutExport = 'repos' | 'generation' | 'termine' | 'erreur'
@@ -23,6 +23,7 @@ export const ERREUR_EXPORT = "L'export a échoué : aucun fichier n'a été cré
 export function useExport({ db, userId, telecharger = telechargerJson, maintenant = () => new Date() }: DepsExport = {}) {
   const [statut, setStatut] = useState<StatutExport>('repos')
   const [nomFichier, setNomFichier] = useState<string | null>(null)
+  const [messageErreur, setMessageErreur] = useState(ERREUR_EXPORT)
   const enCoursRef = useRef(false)
 
   const exporter = useCallback(async () => {
@@ -38,6 +39,7 @@ export function useExport({ db, userId, telecharger = telechargerJson, maintenan
       setStatut('termine')
     } catch (e) {
       console.error("Export des données impossible", e)
+      setMessageErreur(e instanceof ErreurExport ? e.message : ERREUR_EXPORT)
       setStatut('erreur')
     } finally {
       enCoursRef.current = false
@@ -57,6 +59,6 @@ export function useExport({ db, userId, telecharger = telechargerJson, maintenan
     enCours: statut === 'generation',
     /** Retour à annoncer (role="status") ; vide au repos et en cas d'erreur. */
     message,
-    erreur: statut === 'erreur' ? ERREUR_EXPORT : null,
+    erreur: statut === 'erreur' ? messageErreur : null,
   }
 }

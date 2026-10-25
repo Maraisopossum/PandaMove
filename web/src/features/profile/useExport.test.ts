@@ -89,6 +89,18 @@ describe('useExport', () => {
     erreurConsole.mockRestore()
   })
 
+  it("lignes d'un autre compte sur l'appareil : message explicite, aucun fichier", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const db = createTestDb()
+    await db.execute("INSERT INTO seances (id, user_id, nom, deleted_at) VALUES ('s1', 'autre', 'A', NULL)")
+    const telecharger = vi.fn()
+    const { result } = renderHook(() => useExport({ db, userId: 'moi', telecharger, maintenant: () => MAINTENANT }))
+    await act(() => result.current.exporter())
+    expect(telecharger).not.toHaveBeenCalled()
+    expect(result.current.erreur).toMatch(/autre compte/)
+    vi.restoreAllMocks()
+  })
+
   it('un échec du téléchargement lui-même est aussi signalé', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const telecharger = vi.fn(() => {

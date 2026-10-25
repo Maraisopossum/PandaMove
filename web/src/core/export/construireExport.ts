@@ -105,12 +105,37 @@ function materiel(equipmentJson: unknown): EquipmentConfigExport | null {
   }
 }
 
+/** Export refusé, message français affichable tel quel. */
+export class ErreurExport extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ErreurExport'
+  }
+}
+
+export const MESSAGE_AUTRE_COMPTE =
+  "Cet appareil contient des données d'un autre compte : export impossible. Reconnectez-vous avec ce compte " +
+  'pour les synchroniser, ou effacez les données locales, puis réessayez.'
+
 /**
  * Construit l'export complet de la base locale. `maintenant` date le fichier (exportDate) ; il n'a
  * aucun autre effet : deux exports d'une même base ne diffèrent que par exportDate.
  */
 export async function construireExport(db: DbLecture, maintenant: Date, userId?: string): Promise<PandaMoveExport> {
   const lire = (sql: string) => db.getAll<Ligne>(sql)
+
+  // Jamais de données d'un autre utilisateur dans le fichier (cas d'un compte bloqué par la file
+  // d'envoi d'un autre) : une ligne étiquetée d'un autre user_id fait refuser l'export. Une ligne
+  // sans user_id (pas encore synchronisée) appartient à l'appareil et reste exportée.
+  if (userId) {
+    for (const table of [...TABLES_IDS, 'user_settings']) {
+      const etrangere = await db.getOptional<{ one: number }>(
+        `SELECT 1 AS one FROM ${table} WHERE user_id IS NOT NULL AND user_id <> ? LIMIT 1`,
+        [userId],
+      )
+      if (etrangere) throw new ErreurExport(MESSAGE_AUTRE_COMPTE)
+    }
+  }
   const vivantes = (table: string, suite = '') => lire(`SELECT * FROM ${table} WHERE deleted_at IS NULL ${suite}`)
 
   // Tri explicite partout (l'ordre de lecture SQLite n'est pas garanti) : export reproductible
