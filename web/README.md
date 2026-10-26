@@ -75,21 +75,24 @@ Authentification : ajouter l'origine du site (locale et Cloudflare) dans **Authe
 - Supabase : région du projet = _à compléter_ (Project Settings → General)
 - PowerSync : région de l'instance = _à compléter_
 
-## Déploiement sur Cloudflare Pages
+## Déploiement sur Cloudflare (Workers avec ressources statiques)
+
+Cloudflare propose maintenant « Create application » avec Git (Workers Builds). `web/wrangler.jsonc` déclare le dossier `dist` comme ressources statiques et renvoie `index.html` pour toute URL inconnue (une URL profonde rechargée, ex. `/strength/catalog`, sert l'application au lieu d'une 404).
 
 Étapes manuelles, dans le tableau de bord Cloudflare :
 
 0. **Avant le premier push qui déploie ce client** : migrations 0001 à 0007 exécutées dans Supabase (voir « Supabase » ; sinon la file d'envoi des appareils se bloque).
-1. **Workers & Pages → Create → Pages → Connect to Git**, choisir le dépôt.
+1. **Workers & Pages → Create application → Import a repository**, choisir le dépôt, nom du projet `pandamove`.
 2. Réglages de build :
-   - répertoire racine : `web`
+   - répertoire racine (Advanced settings → Root directory) : `web`
    - commande de build : `npm run build`
-   - répertoire de sortie : `dist`
-   - variable `NODE_VERSION` = `22` si la version par défaut est plus ancienne
-3. **Variables d'environnement** (production et préversions) : `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_POWERSYNC_URL`. Elles sont intégrées au build : relancer un déploiement après toute modification.
-4. Fallback SPA : `public/_redirects` (`/* /index.html 200`) est copié dans `dist/` ; une URL profonde (ex. `/strength/instance/…`) rechargée sert l'application au lieu d'une 404.
-5. Ajouter l'URL Cloudflare (`https://<projet>.pages.dev` ou le domaine) dans Supabase Auth (URL Configuration).
+   - commande de déploiement : `npx wrangler deploy` (valeur par défaut ; lit `wrangler.jsonc`)
+3. **Variables de build** (Settings → Build → Variables and secrets, côté *build*, pas seulement côté Worker) : `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_POWERSYNC_URL`, et `NODE_VERSION` = `22`. Elles sont intégrées au build : relancer un déploiement après toute modification.
+4. **Branche de production** (Settings → Build → Branch control) : la branche qui contient `web/wrangler.jsonc` (avant la fusion : `feat/pandamove-web-phase1`).
+5. Ajouter l'URL Cloudflare (`https://pandamove.<compte>.workers.dev` ou le domaine) dans Supabase Auth (URL Configuration).
 6. Vérifier sur téléphone : ouverture, connexion, installation (« Ajouter à l'écran d'accueil »), puis rechargement en mode avion.
+
+Alternative Cloudflare Pages : build `npm run build`, sortie `dist`, répertoire racine `web`, et un fichier `public/_redirects` contenant `/* /index.html 200`.
 
 ## Tests de bout en bout
 
