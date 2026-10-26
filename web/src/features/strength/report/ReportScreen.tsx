@@ -37,6 +37,16 @@ export default function ReportScreen() {
       ) : (
         <>
           <PandaIllustration image={b.pandaVictoire} sizes="120px" className="bilan__panda" />
+          {b.phrasesRecalcul.length > 0 && (
+            <div role="status" className="bilan__annonce">
+              <p>
+                <strong>Votre correction a modifié la progression.</strong>
+              </p>
+              {b.phrasesRecalcul.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+            </div>
+          )}
           <section aria-label="Résumé" className="bilan__entete">
             <h2>{b.nomSeance}</h2>
             {b.dateLongue && <p className="bilan__date">{b.dateLongue}</p>}

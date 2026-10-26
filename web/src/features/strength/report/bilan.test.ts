@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SerieRealisee } from '../../../core/db/types'
 import type { PropositionProgression } from '../../../core/progression/engine'
 import {
+  phrasesRecalcul,
   compterSeries, conseilCharge, formaterDateLongue, formaterDureeBilan, formaterRpe, formaterTonnage, libelleCible, ligneSerie,
   messageEnregistrement, resumerSeance, sousTitreRecap, texteProposition, texteStatut, titreBloc,
 } from './bilan'
@@ -138,5 +139,22 @@ describe('annonces du récap', () => {
     expect(sousTitreRecap(3)).toBe('3 exercices prêts à progresser')
     expect(messageEnregistrement(1)).toBe('Progression enregistrée pour 1 exercice.')
     expect(messageEnregistrement(2)).toBe('Progression enregistrée pour 2 exercices.')
+  })
+})
+
+describe('phrasesRecalcul', () => {
+  it('une phrase par exercice, selon l’effet', () => {
+    expect(
+      phrasesRecalcul([
+        { exerciceId: 'a', nom: 'Squat', effet: 'recalculee' },
+        { exerciceId: 'b', nom: 'Rowing', effet: 'a_redecider' },
+        { exerciceId: 'c', nom: 'Tractions', effet: 'objectif_deja_evolue' },
+      ]),
+    ).toEqual([
+      'Squat : progression recalculée après votre correction.',
+      'Rowing : nouvelle proposition à valider après votre correction.',
+      'Tractions : objectif déjà modifié par une séance plus récente, il n’est pas changé.',
+    ])
+    expect(phrasesRecalcul([])).toEqual([])
   })
 })

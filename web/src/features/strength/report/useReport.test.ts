@@ -278,7 +278,7 @@ describe('useReport : propositions', () => {
     // Échec simple appliqué sans validation : « appliquee_auto », jamais confondu avec un « Oui » explicite
     expect(propositionDe(r, 'e1')).toMatchObject({ etat: 'appliquee_auto', actionnable: false, proposition: null })
     expect(await objectifs()).toEqual([expect.objectContaining({ charge_cible: 50, compteur_echec: 1, derniere_maj: JOUR })])
-    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'appliquee_auto' } })
+    expect(await marqueur()).toMatchObject({ evaluee: true, decisions: { e1: 'appliquee_auto' } })
     r.unmount()
     const bis = await monter()
     expect(propositionDe(bis, 'e1')?.etat).toBe('appliquee_auto')
@@ -319,7 +319,7 @@ describe('useReport : propositions', () => {
     const r = await monter()
     await act(() => r.result.current.accepter('e1'))
     await act(() => r.result.current.refuser('e3'))
-    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'acceptee', e3: 'refusee' } })
+    expect(await marqueur()).toMatchObject({ evaluee: true, decisions: { e1: 'acceptee', e3: 'refusee' } })
     r.unmount()
     const bis = await monter()
     expect(bis.result.current.propositions.map((p) => [p.exerciceId, p.etat, p.actionnable])).toEqual([
@@ -407,7 +407,7 @@ describe('useReport : validation en lot (récap Android : Oui / Non / Ajuster pu
     expect(propositionDe(r, 'e1')?.etat).toBe('acceptee')
     expect(propositionDe(r, 'e3')?.etat).toBe('ajustee')
     expect((await objectifs()).map((o) => [o.exercise_id, o.charge_cible])).toEqual([['x1', 62.5], ['x3', 61]])
-    expect(await marqueur()).toEqual({ evaluee: true, decisions: { e1: 'acceptee', e3: 'ajustee' } })
+    expect(await marqueur()).toMatchObject({ evaluee: true, decisions: { e1: 'acceptee', e3: 'ajustee' } })
   })
 
   it('un ajustement invalide bloque TOUT le lot : rien n’est écrit, message qui nomme l’exercice', async () => {
@@ -477,5 +477,29 @@ describe('useReport : aide à l’ajustement', () => {
     const charges = propositionDe(r, 'e1')?.chargesAtteignables ?? []
     expect(charges.length).toBeGreaterThan(3)
     expect(charges).toContain(55)
+  })
+})
+
+describe('useReport : séance corrigée', () => {
+  it('à l’ouverture, une correction qui change le résultat recalcule la progression et le signale, une seule fois', async () => {
+    const { evaluerEtAppliquerSilencieux } = await import('../progression/evaluation')
+    await exercice('e1', { exercise_id: 'x1', progression_activee: 1 })
+    await objectifStocke('x1', { charge_cible: 60, reps_cible: 8, compteur_echec: 1 })
+    await series('e1', [[7, 60], [7, 60], [7, 60]])
+    await db.execute('UPDATE instances_seance SET progression_json = NULL WHERE id = ?', ['i1'])
+    await db.writeTransaction((tx) => evaluerEtAppliquerSilencieux(tx, 'i1', { userId: 'u1', maintenantMs: MAINTENANT }))
+    expect((await objectifs())[0].compteur_echec).toBe(2)
+
+    // Correction : les trois séries étaient en réalité réussies
+    await db.execute('UPDATE series_realisees SET reps_realisees = 8 WHERE exercice_seance_id = ?', ['e1'])
+    const r = await monter()
+    expect(r.result.current.recalcul).toEqual([{ exerciceId: 'e1', nom: 'Développé couché', effet: 'a_redecider' }])
+    expect(propositionDe(r, 'e1')).toMatchObject({ aValider: true, actionnable: true, etat: 'en_attente' })
+    expect((await objectifs())[0].compteur_echec).toBe(1)
+    r.unmount()
+
+    const second = await monter()
+    expect(second.result.current.recalcul).toEqual([])
+    expect((await objectifs())[0].compteur_echec).toBe(1)
   })
 })

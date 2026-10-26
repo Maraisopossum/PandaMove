@@ -7,8 +7,10 @@ import { getSettings } from '../../../core/db/repos/settings'
 import { lireEquipementStocke } from '../../../core/import/equipment'
 import { evaluerExercice, requiresValidation, type PropositionProgression } from '../../../core/progression/engine'
 import {
-  enregistrerDecision, marquerEvaluee, serialiserProgression, type DecisionEnregistree,
+  enregistrerBase, enregistrerDecision, marquerEvaluee, serialiserProgression,
+  type BaseExercice, type DecisionEnregistree, type EtatProgression, type ObjectifMarque, type PropositionMarquee,
 } from '../../../core/progression/marqueur'
+import type { ObjectifProgression } from '../../../core/db/types'
 import {
   chargesAtteignablesExercice, cibleDepuis, dateLocale, lireListeEquipement, objectifApresDecision, pasMaterielExercice,
   type ContexteDecision, type Decision,
@@ -30,7 +32,13 @@ export interface EvaluationExercice {
 }
 
 /** Évalue (LECTURE SEULE) chaque exercice en progression_activee de l'instance, dans l'ordre des positions. */
-export async function evaluerInstance(db: DbLecture, instanceId: string, userId?: string): Promise<EvaluationExercice[]> {
+export async function evaluerInstance(
+  db: DbLecture,
+  instanceId: string,
+  userId?: string,
+  // Bases d'évaluation (recalcul après correction) : la cible et le compteur d'ORIGINE remplacent l'objectif courant
+  bases?: Record<string, BaseExercice>,
+): Promise<EvaluationExercice[]> {
   const instance = await getInstance(db, instanceId)
   if (!instance) throw new Error('Instance introuvable')
   const arbre = await getSeanceTree(db, instance.seanceId, instanceId)
@@ -52,13 +60,15 @@ export async function evaluerInstance(db: DbLecture, instanceId: string, userId?
   const resultats: EvaluationExercice[] = []
   for (const es of candidats) {
     const objectif = await getObjectif(db, instance.seanceId, es.exerciseId)
-    const cible = cibleDepuis(objectif, es)
+    const base = bases?.[es.id]
+    const cible = base ? { chargeKg: base.cible.chargeKg, reps: base.cible.reps, dureeSec: base.cible.dureeSec } : cibleDepuis(objectif, es)
+    const compteur = base ? (base.avant?.compteurEchec ?? 0) : (objectif?.compteurEchec ?? 0)
     const equipement = fiches.get(es.exerciseId)?.equipement ?? []
     const chargesAtteignables = chargesAtteignablesExercice(equipement, inventaire)
     const proposition = evaluerExercice(
       es,
       cible,
-      objectif?.compteurEchec ?? 0,
+      compteur,
       series.filter((s) => s.exerciceSeanceId === es.id && s.isCompleted),
       es.isBilateral,
       pasMaterielExercice(equipement, stocke.pasParCategorie),
@@ -95,12 +105,56 @@ export async function evaluerEtAppliquerSilencieux(
   let etat = marquerEvaluee(instance.progression)
   for (const e of await evaluerInstance(tx, instanceId, userId)) {
     if (e.aValider) continue
-    const existant = await getObjectif(tx, e.ctx.seanceId, e.ctx.exerciseId)
-    await saveObjectif(tx, objectifApresDecision({ type: 'accepter' }, e.proposition, existant, e.ctx, dateLocale(maintenantMs)), iso)
-    etat = enregistrerDecision(etat, e.exerciceId, 'appliquee_auto')
+    etat = await appliquerSilencieusement(tx, e, etat, maintenantMs)
   }
   await enregistrerProgression(tx, instanceId, serialiserProgression(etat), iso)
   return true
+}
+
+export const marquerObjectif = (o: ObjectifProgression): ObjectifMarque => ({
+  chargeCible: o.chargeCible, repsCible: o.repsCible, dureeCibleSec: o.dureeCibleSec, compteurEchec: o.compteurEchec,
+  nombreSeriesCible: o.nombreSeriesCible, derniereMaj: o.derniereMaj ?? '',
+})
+
+export const marquerProposition = (p: PropositionProgression): PropositionMarquee => ({
+  statut: p.statut, chargeCible: p.nouvelleChargeCible, repsCible: p.nouveauRepsCible, dureeCibleSec: p.nouvelleDureeCible,
+  compteurEchec: p.nouveauCompteurEchec, nombreSeries: p.nouveauNombreSeries, deload: p.deload,
+})
+
+// Écrit l'objectif d'une décision et renvoie la base d'évaluation à garder dans le marqueur (relue après l'écriture).
+async function ecrireAvecBase(
+  tx: DbTx,
+  e: Pick<EvaluationExercice, 'proposition' | 'ctx'>,
+  decision: Decision,
+  maintenantMs: number,
+  seriesAvant: number | null,
+  seriesApres: number | null,
+): Promise<BaseExercice> {
+  const existant = await getObjectif(tx, e.ctx.seanceId, e.ctx.exerciseId)
+  await saveObjectif(
+    tx, objectifApresDecision(decision, e.proposition, existant, e.ctx, dateLocale(maintenantMs)), new Date(maintenantMs).toISOString(),
+  )
+  const ecrit = await getObjectif(tx, e.ctx.seanceId, e.ctx.exerciseId)
+  if (!ecrit) throw new Error('Objectif introuvable après écriture')
+  return {
+    cible: { chargeKg: e.ctx.cible.chargeKg, reps: e.ctx.cible.reps, dureeSec: e.ctx.cible.dureeSec },
+    avant: existant ? marquerObjectif(existant) : null,
+    ecrit: marquerObjectif(ecrit),
+    proposition: marquerProposition(e.proposition),
+    seriesAvant,
+    seriesApres,
+  }
+}
+
+/** Applique une issue sans validation (échec simple) : objectif, décision « appliquee_auto » et base. */
+export async function appliquerSilencieusement(
+  tx: DbTx,
+  e: Pick<EvaluationExercice, 'exerciceId' | 'proposition' | 'ctx'>,
+  etat: EtatProgression,
+  maintenantMs: number,
+): Promise<EtatProgression> {
+  const base = await ecrireAvecBase(tx, e, { type: 'accepter' }, maintenantMs, null, null)
+  return enregistrerBase(enregistrerDecision(etat, e.exerciceId, 'appliquee_auto'), e.exerciceId, base)
 }
 
 const ENREGISTREE: Record<Decision['type'], DecisionEnregistree> = {
@@ -126,14 +180,20 @@ export async function appliquerDecision(
   const enregistree = instance.progression?.decisions[e.exerciceId]
   if (enregistree) return { dejaDecidee: enregistree }
   const iso = new Date(maintenantMs).toISOString()
-  const existant = await getObjectif(tx, e.ctx.seanceId, e.ctx.exerciseId)
-  await saveObjectif(tx, objectifApresDecision(decision, e.proposition, existant, e.ctx, dateLocale(maintenantMs)), iso)
   // « +1 série » (poids de corps au plafond) : comme validerPropositions Android, Oui et Ajuster écrivent aussi le
   // nombre de séries prévues de la ligne d'exercice de l'instance (appliquerNouveauNombreSeries). Non n'y touche pas.
-  if (decision.type !== 'refuser' && e.proposition.nouveauNombreSeries !== null) {
+  const ajoutSerie = decision.type !== 'refuser' && e.proposition.nouveauNombreSeries !== null
+  const prevues = ajoutSerie
+    ? (await tx.getOptional<{ n: number }>(
+        'SELECT nombre_series_prevues AS n FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
+        [e.exerciceId, instanceId],
+      ))?.n ?? null
+    : null
+  const base = await ecrireAvecBase(tx, e, decision, maintenantMs, prevues, prevues === null ? null : e.proposition.nouveauNombreSeries)
+  if (ajoutSerie && e.proposition.nouveauNombreSeries !== null) {
     await changerSeriesPrevues(tx, instanceId, e.exerciceId, e.proposition.nouveauNombreSeries, iso)
   }
-  const etat = enregistrerDecision(instance.progression, e.exerciceId, ENREGISTREE[decision.type])
+  const etat = enregistrerBase(enregistrerDecision(instance.progression, e.exerciceId, ENREGISTREE[decision.type]), e.exerciceId, base)
   await enregistrerProgression(tx, instanceId, serialiserProgression(etat), iso)
   return { dejaDecidee: null }
 }

@@ -4,7 +4,7 @@ import { useImagePanda } from '../../../core/images/usePandaVariante'
 import { chargeLisible } from '../../../core/progression/chargeLisible'
 import type { DecisionEnregistree } from '../../../core/progression/marqueur'
 import {
-  compterSeries, formaterDateLongue, formaterDureeBilan, formaterTonnage, messageEnregistrement, sousTitreRecap, texteProposition, texteStatut,
+  compterSeries, phrasesRecalcul, formaterDateLongue, formaterDureeBilan, formaterTonnage, messageEnregistrement, sousTitreRecap, texteProposition, texteStatut,
 } from './bilan'
 import type { RapportExport } from './exportRapport'
 import { useExportRapport } from './useExportRapport'
@@ -129,6 +129,7 @@ export function useEcranBilan(instanceId: string) {
     sousTitreRecap: sousTitreRecap(nbAValider),
     recapOuvert: !r.chargement && (ouvert ?? nbAValider > 0) && recap.length > 0,
     aDesDecisions: r.propositions.length > 0,
+    phrasesRecalcul: phrasesRecalcul(r.recalcul),
     annonce,
     enCours,
     ouvrirRecap: useCallback(() => setOuvert(true), []),

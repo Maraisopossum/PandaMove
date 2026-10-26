@@ -12,6 +12,7 @@ import type { Decision } from '../progression/cible'
 import {
   appliquerDecision, evaluerEtAppliquerSilencieux, evaluerInstance, type EvaluationExercice,
 } from '../progression/evaluation'
+import { reevaluerApresCorrection, type ChangementProgression } from '../progression/reevaluation'
 import { libelleCible, ligneSerie, resumerSeance, titreBloc, type LigneSerie, type ResumeSeance } from './bilan'
 
 export interface DepsReport {
@@ -88,6 +89,8 @@ interface Donnees {
   exercices: LigneBilan[]
   groupes: GroupeBilan[]
   propositions: PropositionBilan[]
+  /** Exercices dont la progression a été recalculée à l'ouverture, après une correction de la séance */
+  recalcul: ChangementProgression[]
   // Évaluation des propositions actionnables (par exerciceId), pour écrire une décision
   evaluations: Map<string, EvaluationExercice>
 }
@@ -103,6 +106,7 @@ const VIDE: Donnees = {
   exercices: [],
   groupes: [],
   propositions: [],
+  recalcul: [],
   evaluations: new Map(),
 }
 
@@ -169,6 +173,12 @@ async function lire(db: Db, instanceId: string, userId: string | undefined, main
     await db.writeTransaction((tx) => evaluerEtAppliquerSilencieux(tx, instanceId, { userId, maintenantMs }))
     instance = (await getInstance(db, instanceId)) ?? instance
   }
+  // Séance corrigée depuis l'évaluation d'origine : la progression est recalculée (voir progression/reevaluation.ts)
+  let recalcul: ChangementProgression[] = []
+  if (evaluable(instance) && instance.progression?.evaluee) {
+    recalcul = await reevaluerApresCorrection(db, instanceId, { userId, maintenantMs })
+    if (recalcul.length > 0) instance = (await getInstance(db, instanceId)) ?? instance
+  }
 
   // Lignes D'INSTANCE uniquement (jamais le modèle), séries dédoublonnées à la lecture
   const arbre = await getSeanceTree(db, instance.seanceId, instanceId)
@@ -229,6 +239,7 @@ async function lire(db: Db, instanceId: string, userId: string | undefined, main
     exercices,
     groupes,
     propositions,
+    recalcul,
     evaluations,
   }
 }
@@ -359,6 +370,7 @@ export function useReport(instanceId: string, { db, userId, nowFn = Date.now }: 
     exercices: donnees.exercices,
     groupes: donnees.groupes,
     propositions,
+    recalcul: donnees.recalcul,
     accepter,
     refuser,
     ajuster,

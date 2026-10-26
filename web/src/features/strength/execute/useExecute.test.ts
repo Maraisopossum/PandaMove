@@ -429,7 +429,7 @@ describe('useExecute : progression appliquée à « Terminer » (ordre Android)'
     ])
     const inst = await instanceSp('ia')
     expect(inst.is_completed).toBe(1)
-    expect(JSON.parse(inst.progression_json ?? 'null')).toEqual({ evaluee: true, decisions: { [ex]: 'appliquee_auto' } })
+    expect(JSON.parse(inst.progression_json ?? 'null')).toMatchObject({ evaluee: true, decisions: { [ex]: 'appliquee_auto' } })
 
     t = T0 + min(10)
     await act(() => r.result.current.terminer())

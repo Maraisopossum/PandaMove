@@ -182,3 +182,14 @@ export function sousTitreRecap(n: number): string {
 export function messageEnregistrement(n: number): string {
   return n === 1 ? 'Progression enregistrée pour 1 exercice.' : `Progression enregistrée pour ${n} exercices.`
 }
+
+const PHRASES_RECALCUL = {
+  recalculee: 'progression recalculée après votre correction.',
+  a_redecider: 'nouvelle proposition à valider après votre correction.',
+  objectif_deja_evolue: 'objectif déjà modifié par une séance plus récente, il n’est pas changé.',
+} as const
+
+/** Phrases du bandeau « progression recalculée » du rapport d'une séance corrigée. */
+export function phrasesRecalcul(changements: { nom: string; effet: keyof typeof PHRASES_RECALCUL }[]): string[] {
+  return changements.map((c) => `${c.nom} : ${PHRASES_RECALCUL[c.effet]}`)
+}

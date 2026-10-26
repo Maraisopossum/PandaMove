@@ -61,3 +61,11 @@ export async function saveObjectif(
   if ('writeTransaction' in db) return db.writeTransaction((tx) => ecrire(tx, o, maintenant))
   return ecrire(db, o, maintenant)
 }
+
+// Suppression LOGIQUE de l'objectif vivant du couple (retour à « aucun objectif » après l'annulation d'une évaluation).
+export async function supprimerObjectif(tx: DbTx, seanceId: string, exerciseId: string, maintenant: string): Promise<void> {
+  await tx.execute(
+    'UPDATE objectifs_progression SET deleted_at = ?, updated_at = ? WHERE seance_id = ? AND exercise_id = ? AND deleted_at IS NULL',
+    [maintenant, maintenant, seanceId, exerciseId],
+  )
+}
