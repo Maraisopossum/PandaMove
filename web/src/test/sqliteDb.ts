@@ -1,6 +1,11 @@
-import { DatabaseSync } from 'node:sqlite'
+import { createRequire } from 'node:module'
+import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite'
 import type { Db, DbTx } from '../core/db/Db'
 import { AppSchema } from '../core/db/schema'
+
+// Chargé par require : sous Node 22, Vite ne reconnaît pas `node:sqlite` comme module natif et tente de le
+// résoudre (« Cannot bundle Node.js built-in »). Un require échappe à sa résolution.
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: typeof DatabaseSyncType }
 
 type Param = null | number | bigint | string
 
