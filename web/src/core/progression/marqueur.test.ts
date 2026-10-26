@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { enregistrerDecision, lireProgression, marquerEvaluee, serialiserProgression } from './marqueur'
+import { enregistrerBase, enregistrerDecision, lireProgression, marquerEvaluee, retirerExercice, serialiserProgression, type BaseExercice } from './marqueur'
 
 describe('lireProgression', () => {
   it('lit la forme stockée', () => {
@@ -52,5 +52,46 @@ describe('marquerEvaluee / enregistrerDecision', () => {
     const etat = { evaluee: true, decisions: { e1: 'acceptee' as const } }
     expect(lireProgression(serialiserProgression(etat))).toEqual(etat)
     expect(serialiserProgression(marquerEvaluee(null))).toBe('{"evaluee":true,"decisions":{}}')
+  })
+})
+
+// Bases d'évaluation (lot 29) : de quoi recalculer proprement la progression d'une séance corrigée
+describe('bases d’évaluation par exercice', () => {
+  const objectif = { chargeCible: 50, repsCible: 8, dureeCibleSec: null, compteurEchec: 1, nombreSeriesCible: null, derniereMaj: '2026-10-01' }
+  const base: BaseExercice = {
+    cible: { chargeKg: 50, reps: 8, dureeSec: null },
+    avant: objectif,
+    ecrit: { ...objectif, chargeCible: 52.5, compteurEchec: 0, derniereMaj: '2026-10-24' },
+    proposition: { statut: 'SUCCES', chargeCible: 52.5, repsCible: 8, dureeCibleSec: null, compteurEchec: 0, nombreSeries: null, deload: false },
+    seriesAvant: null,
+    seriesApres: null,
+  }
+
+  it('enregistre une base sans muter l’état d’origine et la relit à l’identique', () => {
+    const etat = { evaluee: true, decisions: { e1: 'acceptee' as const } }
+    const suivant = enregistrerBase(etat, 'e1', base)
+    expect(etat).toEqual({ evaluee: true, decisions: { e1: 'acceptee' } })
+    expect(lireProgression(serialiserProgression(suivant))).toEqual({ evaluee: true, decisions: { e1: 'acceptee' }, bases: { e1: base } })
+  })
+
+  it('sans base, le JSON reste exactement celui d’avant (aucune clé « bases »)', () => {
+    expect(serialiserProgression({ evaluee: true, decisions: {}, bases: {} })).toBe('{"evaluee":true,"decisions":{}}')
+  })
+
+  it('une base absente de l’objectif (avant = null) est lisible', () => {
+    const sansAvant = { ...base, avant: null }
+    expect(lireProgression(serialiserProgression(enregistrerBase(null, 'e1', sansAvant)))?.bases?.e1).toEqual(sansAvant)
+  })
+
+  it('ignore une base malformée sans rejeter le reste du marqueur', () => {
+    const json = '{"evaluee":true,"decisions":{"e1":"acceptee"},"bases":{"e1":{"cible":1},"e2":"x"}}'
+    expect(lireProgression(json)).toEqual({ evaluee: true, decisions: { e1: 'acceptee' } })
+  })
+
+  it('retirerExercice efface la décision ET la base de cet exercice seulement', () => {
+    const etat = enregistrerBase(enregistrerBase({ evaluee: true, decisions: { e1: 'acceptee', e2: 'refusee' } }, 'e1', base), 'e2', base)
+    const apres = retirerExercice(etat, 'e1')
+    expect(apres.decisions).toEqual({ e2: 'refusee' })
+    expect(Object.keys(apres.bases ?? {})).toEqual(['e2'])
   })
 })
