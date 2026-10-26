@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const rules = readFileSync(join(here, 'sync-rules.yaml'), 'utf8')
-const schema = readFileSync(join(here, '..', 'src', 'core', 'db', 'schema.ts'), 'utf8')
+// Fins de ligne normalisées : sous Windows, Git peut extraire les fichiers en CRLF.
+const rules = readFileSync(join(here, 'sync-rules.yaml'), 'utf8').replace(/\r\n/g, '\n')
+const schema = readFileSync(join(here, '..', 'src', 'core', 'db', 'schema.ts'), 'utf8').replace(/\r\n/g, '\n')
 
 // Tables déclarées dans AppSchema (une ligne `  nom: new Table({` par table)
 const schemaTables = [...schema.matchAll(/^ {2}(\w+): new Table\(/gm)].map((m) => m[1]).sort()

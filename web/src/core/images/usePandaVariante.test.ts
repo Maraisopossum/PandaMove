@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { renderHook, waitFor } from '@testing-library/react'
+import { cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Db } from '../db/Db'
 import { saveSettings } from '../db/repos/settings'
@@ -9,7 +9,12 @@ import { useImagePanda, usePandaVariante } from './usePandaVariante'
 
 const USER = 'u1'
 
-afterEach(() => vi.restoreAllMocks())
+// Sans globals Vitest, Testing Library ne démonte pas tout seul : une lecture encore en cours à la fin d'un test
+// provoquerait un rendu après la destruction de jsdom (« window is not defined »).
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 describe('usePandaVariante', () => {
   it('null pendant la lecture, puis la variante enregistrée dans user_settings', async () => {
