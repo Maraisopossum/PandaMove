@@ -35,6 +35,8 @@ const TONALITES: Record<Bip, { hz: number; sec: number }> = {
   depart: { hz: 880, sec: 0.2 },
   fin: { hz: 660, sec: 0.8 },
   repos: { hz: 660, sec: 0.12 },
+  // Fin naturelle du repos (Android : TONE_CDMA_ALERT_CALL_GUARD, 1,5 s)
+  finRepos: { hz: 520, sec: 1.5 },
 }
 const VOLUME = 0.25
 

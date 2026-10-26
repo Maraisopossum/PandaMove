@@ -8,3 +8,8 @@ export function bipRepos(avantMs: number | null, apresMs: number | null): boolea
   const apres = Math.ceil(apresMs / 1000)
   return apres < avant && apres >= 1 && apres <= 5
 }
+
+/** Vrai quand le décompte atteint zéro de lui-même (≤ 1,5 s restantes juste avant) ; un repos arrêté (null) ou raccourci à la main ne sonne pas. */
+export function finRepos(avantMs: number | null, apresMs: number | null): boolean {
+  return avantMs !== null && apresMs === 0 && avantMs > 0 && avantMs <= 1500
+}

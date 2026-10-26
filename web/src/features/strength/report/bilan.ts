@@ -190,6 +190,6 @@ const PHRASES_RECALCUL = {
 } as const
 
 /** Phrases du bandeau « progression recalculée » du rapport d'une séance corrigée. */
-export function phrasesRecalcul(changements: { nom: string; effet: keyof typeof PHRASES_RECALCUL }[]): string[] {
+export function phrasesRecalcul(changements: { exerciceId?: string; nom: string; effet: keyof typeof PHRASES_RECALCUL }[]): string[] {
   return changements.map((c) => `${c.nom} : ${PHRASES_RECALCUL[c.effet]}`)
 }

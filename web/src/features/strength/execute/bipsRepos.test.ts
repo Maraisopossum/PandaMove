@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bipRepos } from './bipsRepos'
+import { bipRepos, finRepos } from './bipsRepos'
 
 // Android (ActiveSessionManager) : un bip discret chaque seconde des 5 dernières secondes du repos.
 describe('bipRepos', () => {
@@ -35,5 +35,22 @@ describe('bipRepos', () => {
 
   it('une seconde sautée (onglet ralenti) sonne une seule fois', () => {
     expect(bipRepos(5900, 3900)).toBe(true)
+  })
+})
+
+// Android (ActiveSessionManager.restFinishedEvent) : un signal sonore de 1,5 s à la FIN naturelle du repos. Arrêter le
+// repos ou le raccourcir à la main n'émet rien.
+describe('finRepos', () => {
+  it('sonne quand le décompte arrive naturellement à zéro', () => {
+    expect(finRepos(900, 0)).toBe(true)
+    expect(finRepos(1400, 0)).toBe(true)
+  })
+  it('ne sonne pas si le repos est arrêté (null) ou raccourci de plus d’une seconde', () => {
+    expect(finRepos(900, null)).toBe(false)
+    expect(finRepos(30_000, 0)).toBe(false)
+  })
+  it('ne sonne pas sans repos avant, ni quand le repos reste à zéro', () => {
+    expect(finRepos(null, 0)).toBe(false)
+    expect(finRepos(0, 0)).toBe(false)
   })
 })

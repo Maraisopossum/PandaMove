@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { creerSonneur, type Sonneur } from './circuit/audio'
-import { bipRepos } from './bipsRepos'
+import { bipRepos, finRepos } from './bipsRepos'
 
 // Bips des 5 dernières secondes du repos (Android : bip simple discret à chaque seconde). Réglage « Son » commun avec le
 // circuit. Les navigateurs refusent le son avant un geste : le sonneur est préparé au premier appui sur la page
@@ -11,6 +11,7 @@ export function useBipsRepos(restantMs: number | null, son: boolean, sonneurInje
 
   useEffect(() => {
     if (son && bipRepos(precedent.current, restantMs)) sonneur.jouer('repos')
+    if (son && finRepos(precedent.current, restantMs)) sonneur.jouer('finRepos')
     precedent.current = restantMs
   }, [restantMs, son, sonneur])
 

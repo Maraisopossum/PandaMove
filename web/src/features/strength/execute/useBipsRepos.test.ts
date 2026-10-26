@@ -12,7 +12,7 @@ describe('useBipsRepos', () => {
     const { rerender } = renderHook(({ ms }: { ms: number | null }) => useBipsRepos(ms, true, sonneur), { initialProps: { ms: 7000 as number | null } })
     for (const ms of [6000, 5000, 4000, 3000, 2000, 1000, 0]) rerender({ ms })
     // 5, 4, 3, 2, 1 -> cinq bips ; le passage de 7 à 6 et de 1 à 0 n'en font pas
-    expect(sonneur.jouer).toHaveBeenCalledTimes(5)
+    expect(vi.mocked(sonneur.jouer).mock.calls.filter(([b]) => b === 'repos')).toHaveLength(5)
     expect(sonneur.jouer).toHaveBeenCalledWith('repos')
   })
 
@@ -45,5 +45,18 @@ describe('useBipsRepos', () => {
     renderHook(() => useBipsRepos(null, false, sonneur))
     window.dispatchEvent(new Event('pointerdown'))
     expect(sonneur.preparer).not.toHaveBeenCalled()
+  })
+})
+
+describe('useBipsRepos : fin du repos', () => {
+  it('joue le signal de fin quand le repos arrive à zéro, pas quand il est arrêté', () => {
+    const sonneur = faux()
+    const { rerender } = renderHook(({ ms }: { ms: number | null }) => useBipsRepos(ms, true, sonneur), { initialProps: { ms: 900 as number | null } })
+    rerender({ ms: 0 })
+    expect(sonneur.jouer).toHaveBeenCalledWith('finRepos')
+    const arret = faux()
+    const h = renderHook(({ ms }: { ms: number | null }) => useBipsRepos(ms, true, arret), { initialProps: { ms: 900 as number | null } })
+    h.rerender({ ms: null })
+    expect(arret.jouer).not.toHaveBeenCalled()
   })
 })

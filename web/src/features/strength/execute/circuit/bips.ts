@@ -5,7 +5,7 @@ import type { Affichage } from './machine'
 // Ni vibration ni synthèse vocale côté Android : rien de tel ici. Fonction pure, comparée d'un affichage
 // au suivant (l'appelant n'appelle pas après une longue suspension de l'onglet, pour ne pas rejouer le passé).
 
-export type Bip = 'depart' | 'compte' | 'fin' | 'repos'
+export type Bip = 'depart' | 'compte' | 'fin' | 'repos' | 'finRepos'
 
 export function bipsEntre(avant: Affichage | null, apres: Affichage | null): Bip[] {
   const bips: Bip[] = []
