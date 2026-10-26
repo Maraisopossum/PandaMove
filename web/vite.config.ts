@@ -15,6 +15,10 @@ export default defineConfig({
   // Le SDK PowerSync + Supabase pèse ~550 Kio : seuil relevé pour garder un build sans avertissement
   build: { chunkSizeWarningLimit: 800 },
   test: {
+    // Machines lentes (CI) : les attentes asynchrones et les tests ont plus de temps avant d'échouer.
+    setupFiles: ['src/test/setup.ts'],
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     // Les tests e2e Playwright vivent dans e2e/ et ne doivent pas être collectés par Vitest
     include: ['src/**/*.test.{ts,tsx}', 'supabase/tests/**/*.test.ts', 'pwa.config.test.ts', 'powersync/**/*.test.ts', 'e2e/**/*.test.ts'],
   },
