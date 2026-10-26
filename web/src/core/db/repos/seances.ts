@@ -1,0 +1,59 @@
+import { AppSchema } from '../schema'
+import type { Db, DbLecture } from '../Db'
+import type { BlocSeance, ExerciceSeance, Seance } from '../types'
+import { mapBloc, mapExerciceSeance, mapSeance, type Ligne } from './mappers'
+
+// Séances « modèle » (non supprimées, archivées comprises : l'écran filtre selon son besoin).
+export async function listSeanceTemplates(db: Db): Promise<Seance[]> {
+  const lignes = await db.getAll<Ligne>('SELECT * FROM seances WHERE deleted_at IS NULL ORDER BY nom')
+  return lignes.map(mapSeance)
+}
+
+// Arbre d'une séance. instanceId null => lignes du modèle uniquement (instance_seance_id IS NULL) ;
+// sinon uniquement les lignes copiées pour cette instance (isolation template/instance).
+// Les enfants sont toujours triés par position (l'ordre n'est jamais garanti sans tri explicite).
+export async function getSeanceTree(
+  db: DbLecture,
+  seanceId: string,
+  instanceId: string | null,
+): Promise<{ blocs: BlocSeance[]; exercices: ExerciceSeance[] }> {
+  const filtre =
+    instanceId === null ? 'instance_seance_id IS NULL' : 'instance_seance_id = ?'
+  const params = instanceId === null ? [seanceId] : [seanceId, instanceId]
+  const blocs = await db.getAll<Ligne>(
+    `SELECT * FROM blocs_seance WHERE seance_id = ? AND ${filtre} AND deleted_at IS NULL ORDER BY position, id`,
+    params,
+  )
+  const exercices = await db.getAll<Ligne>(
+    `SELECT * FROM exercices_seance WHERE seance_id = ? AND ${filtre} AND deleted_at IS NULL ORDER BY position, id`,
+    params,
+  )
+  return { blocs: blocs.map(mapBloc), exercices: exercices.map(mapExerciceSeance) }
+}
+
+const TABLES = new Set(AppSchema.tables.map((t) => t.name))
+
+// Suppression logique : la ligne reste comme tombstone et se synchronise (updated_at rafraîchi).
+export async function softDelete(db: Db, table: string, id: string): Promise<void> {
+  if (!TABLES.has(table)) throw new Error(`Table inconnue : ${table}`)
+  const maintenant = new Date().toISOString()
+  await db.execute(`UPDATE ${table} SET deleted_at = ?, updated_at = ? WHERE id = ?`, [maintenant, maintenant, id])
+}
+
+// Nom d'une séance, MÊME SI elle a été supprimée logiquement : le calendrier et les statistiques
+// en ont besoin pour libeller l'historique conservé après une suppression « garder l'historique ».
+// Renvoie null uniquement si la ligne n'a jamais existé.
+// `nomInstance` : nom propre de la séance jouée (instances_seance.nom, migration 0007) ; s'il est renseigné il l'emporte
+// sur le nom du modèle, qui n'est jamais modifié par un renommage depuis l'exécution.
+export async function lireNomSeance(db: DbLecture, seanceId: string, nomInstance?: string | null): Promise<string | null> {
+  const propre = nomInstance?.trim()
+  if (propre) return propre
+  const ligne = await db.getOptional<{ nom: string }>('SELECT nom FROM seances WHERE id = ?', [seanceId])
+  return ligne ? ligne.nom : null
+}
+
+// Nom et notes d'une séance, même supprimée logiquement (entête du rapport) ; null si elle n'a jamais existé.
+export async function lireSeanceResume(db: DbLecture, seanceId: string): Promise<{ nom: string; notes: string } | null> {
+  const ligne = await db.getOptional<{ nom: string; notes: string | null }>('SELECT nom, notes FROM seances WHERE id = ?', [seanceId])
+  return ligne ? { nom: ligne.nom, notes: ligne.notes ?? '' } : null
+}

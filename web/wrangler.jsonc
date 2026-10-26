@@ -1,0 +1,10 @@
+{
+  // Déploiement Cloudflare (Workers avec ressources statiques) : sert le dossier `dist` produit par `npm run build`.
+  // `single-page-application` renvoie index.html pour toute URL inconnue (ex. /strength/catalog rechargé).
+  "name": "pandamove",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

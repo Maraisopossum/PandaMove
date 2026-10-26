@@ -1,0 +1,18 @@
+# Dépendances et build
+node_modules
+dist
+*.tsbuildinfo
+
+# Secrets locaux
+.env.local
+.env.*.local
+
+# Playwright
+test-results
+playwright-report
+
+# Logs
+*.log
+
+# Variables locales de la pile de dev (compose PowerSync)
+dev/.env

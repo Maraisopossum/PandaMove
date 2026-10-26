@@ -1,0 +1,252 @@
+import { parseTimestamp } from '../../../core/common/parseTimestamp'
+import type { InfoRepos } from './minuteurRepos'
+import { apresSerie } from './navigationSeries'
+import type { BlocSeance, ExerciceSeance, RepsType, SerieRealisee } from '../../../core/db/types'
+
+// Fonctions pures de l'écran d'exécution : construction de la vue, validation des mesures, formats.
+
+export interface SerieVue {
+  id: string
+  numero: number
+  // Répétitions, ou SECONDES pour un exercice DURATION
+  reps: number | null
+  chargeKg: number | null
+  rpe: number | null
+  updatedAt: string
+  // Ancre du repos : instant de validation (validated_at), à défaut updated_at (séries antérieures à 0006)
+  valideeA: string
+  // false : ligne laissée « non validée » (ex. venue d'Android) ; ne compte ni pour le repos ni pour la progression
+  terminee: boolean
+  // Côté d'un exercice bilatéral (« G » / « D »), vide sinon
+  notes: string
+}
+
+export interface ExerciceVue {
+  id: string
+  exerciseId: string
+  nom: string
+  repsType: RepsType
+  libelleReps: string
+  repsCibles: string
+  chargeCible: string
+  nombreSeriesPrevues: number
+  tempsReposSec: number
+  blocId: string | null
+  // Type du bloc (ECHAUFFEMENT, SUPERSET…), null hors bloc : sert à la barre de navigation
+  blocType: string | null
+  isBilateral: boolean
+  progressionActivee: boolean
+  // Consigne clé de l'exercice (affichée 💬), vide si aucune
+  consigne: string
+  // Repos du bloc (s) : entre deux exercices d'un superset / circuit, et en fin de tour
+  blocReposInterSec: number
+  blocReposFinRoundSec: number
+  // Repos affiché dans la colonne « Repos » (s) : fin de round / inter-exercices en superset, sinon repos de l'exercice
+  reposAfficheSec: number
+  // Groupes musculaires de l'exercice du catalogue (codes), pour le libellé court de la barre
+  muscles: string[]
+  // Ligne d'exercice de l'instance telle qu'en base (réglages de progression, type d'exercice)
+  ligne: ExerciceSeance
+  // Équipement de l'exercice du catalogue (libellés), pour le matériel et la montée en charge
+  equipement: string[]
+  position: number
+  supersetGroupe: string | null
+  libelleSuperset: string | null
+  // Superset : nom de l'exercice suivant du groupe, à enchaîner sans repos (null pour le dernier ou hors superset)
+  enchaineAvec: string | null
+  series: SerieVue[]
+}
+
+export interface BlocVue {
+  // Clé unique du groupe (id du bloc, ou « libre-<id du 1er exercice> » pour un groupe d'exercices libres)
+  cle: string
+  // null : exercices hors bloc
+  id: string | null
+  nom: string
+  type: string | null
+  exercices: ExerciceVue[]
+}
+
+export interface Mesures {
+  reps: number
+  chargeKg: number | null
+  rpe: number | null
+}
+
+export const libelleReps = (repsType: RepsType) => (repsType === 'DURATION' ? 'Durée (s)' : 'Répétitions')
+
+const parPosition = <T extends { position: number }>(a: T, b: T) => a.position - b.position
+
+// Ordre UNIFIÉ comme sur Android (buildOrderedExercicesFromLists) : blocs et exercices hors bloc (ou dont le bloc
+// n'existe plus) partagent la même échelle de positions et s'entrelacent ; à position égale, l'exercice libre
+// précède le bloc. Les exercices d'un bloc sont triés par position dans leur bloc. Des exercices libres
+// consécutifs forment un groupe « Exercices ». Les séries vivantes (déjà dédoublonnées par listSeries) sont
+// rattachées et triées par numéro.
+export function construireVue(
+  blocs: BlocSeance[],
+  exercices: ExerciceSeance[],
+  series: SerieRealisee[],
+  noms: Map<string, string>,
+  muscles: Map<string, string[]> = new Map(),
+  equipements: Map<string, string[]> = new Map(),
+): { blocs: BlocVue[]; exercices: ExerciceVue[] } {
+  const parExercice = new Map<string, SerieVue[]>()
+  for (const s of series) {
+    const liste = parExercice.get(s.exerciceSeanceId) ?? []
+    liste.push({ id: s.id, numero: s.numeroSerie, reps: s.repsRealisees, chargeKg: s.chargeKg, rpe: s.rpe, updatedAt: s.updatedAt, valideeA: s.validatedAt ?? s.updatedAt, terminee: s.isCompleted, notes: s.notes })
+    parExercice.set(s.exerciceSeanceId, liste)
+  }
+  const typeDuBloc = new Map(blocs.map((b) => [b.id, b.type]))
+  const blocParId = new Map(blocs.map((b) => [b.id, b]))
+  // Dernier exercice de chaque bloc (position la plus haute) : celui qui ferme le round d'un superset
+  const dernierDuBloc = new Map<string, string>()
+  for (const e of [...exercices].sort(parPosition)) if (e.blocId) dernierDuBloc.set(e.blocId, e.id)
+  const reposAffiche = (e: ExerciceSeance): number => {
+    const b = e.blocId ? blocParId.get(e.blocId) : undefined
+    if (b && (b.type === 'SUPERSET' || b.type === 'CIRCUIT')) {
+      return dernierDuBloc.get(b.id) === e.id ? b.tempsReposFinRoundSec : b.tempsReposInterSec
+    }
+    return e.tempsReposSec
+  }
+  const versVue = (e: ExerciceSeance): ExerciceVue => ({
+    id: e.id,
+    exerciseId: e.exerciseId,
+    nom: noms.get(e.exerciseId) ?? 'Exercice inconnu',
+    repsType: e.repsType,
+    libelleReps: libelleReps(e.repsType),
+    repsCibles: e.repsCibles,
+    chargeCible: e.chargeCible,
+    nombreSeriesPrevues: e.nombreSeriesPrevues,
+    tempsReposSec: e.tempsReposSec,
+    blocId: e.blocId,
+    blocType: e.blocId === null ? null : (typeDuBloc.get(e.blocId) ?? null),
+    isBilateral: e.isBilateral,
+    progressionActivee: e.progressionActivee,
+    consigne: e.consigneCle,
+    blocReposInterSec: (e.blocId ? blocParId.get(e.blocId)?.tempsReposInterSec : undefined) ?? 0,
+    blocReposFinRoundSec: (e.blocId ? blocParId.get(e.blocId)?.tempsReposFinRoundSec : undefined) ?? 0,
+    reposAfficheSec: reposAffiche(e),
+    muscles: muscles.get(e.exerciseId) ?? [],
+    ligne: e,
+    equipement: equipements.get(e.exerciseId) ?? [],
+    position: e.position,
+    supersetGroupe: e.supersetGroupe,
+    libelleSuperset: e.supersetGroupe ? `Superset ${e.supersetGroupe}` : null,
+    enchaineAvec: null,
+    series: (parExercice.get(e.id) ?? []).sort((a, b) => a.numero - b.numero),
+  })
+
+  const idsBlocs = new Set(blocs.map((b) => b.id))
+  // Libres d'abord : le tri stable les place avant un bloc de même position
+  const elements: { position: number; bloc: BlocSeance | null; libre: ExerciceSeance | null }[] = [
+    ...exercices.filter((e) => e.blocId === null || !idsBlocs.has(e.blocId)).map((e) => ({ position: e.position, bloc: null, libre: e })),
+    ...blocs.map((b) => ({ position: b.position, bloc: b, libre: null })),
+  ].sort((x, y) => x.position - y.position)
+  const groupes: BlocVue[] = []
+  for (const el of elements) {
+    if (el.bloc) {
+      const b = el.bloc
+      const enfants = exercices.filter((e) => e.blocId === b.id).sort(parPosition).map(versVue)
+      // Un bloc vide n'apparaît pas et n'interrompt pas une suite d'exercices libres
+      if (enfants.length > 0) groupes.push({ cle: b.id, id: b.id, nom: b.nom, type: b.type, exercices: enfants })
+      continue
+    }
+    const dernier = groupes[groupes.length - 1]
+    if (dernier && dernier.id === null) dernier.exercices.push(versVue(el.libre!))
+    else groupes.push({ cle: 'libre-' + el.libre!.id, id: null, nom: 'Exercices', type: null, exercices: [versVue(el.libre!)] })
+  }
+  const tous = groupes.flatMap((g) => g.exercices)
+  for (const e of tous) e.enchaineAvec = suivantDuSuperset(tous, e)?.nom ?? null
+  return { blocs: groupes, exercices: tous }
+}
+
+// Exercices du même superset que `e` (même lettre ET même bloc), dans l'ordre d'affichage (position).
+// Un groupe d'un seul exercice n'est pas un superset : renvoie [] dans ce cas comme hors superset.
+function groupeSuperset(exercices: ExerciceVue[], e: ExerciceVue): ExerciceVue[] {
+  if (!e.supersetGroupe) return []
+  const groupe = exercices.filter((x) => x.supersetGroupe === e.supersetGroupe && x.blocId === e.blocId)
+  return groupe.length > 1 ? groupe : []
+}
+
+function suivantDuSuperset(exercices: ExerciceVue[], e: ExerciceVue): ExerciceVue | null {
+  const groupe = groupeSuperset(exercices, e)
+  const i = groupe.indexOf(e)
+  return i >= 0 && i < groupe.length - 1 ? groupe[i + 1] : null
+}
+
+// Validation des mesures (champs fournis seulement). Renvoie un message français ou null.
+export function verifierMesures(m: Partial<Mesures>, repsType: RepsType): string | null {
+  if (m.reps !== undefined && !(Number.isInteger(m.reps) && m.reps >= 0)) {
+    return repsType === 'DURATION' ? 'Saisissez une durée en secondes (nombre entier).' : 'Saisissez un nombre de répétitions entier.'
+  }
+  if (m.chargeKg !== undefined && m.chargeKg !== null && !(Number.isFinite(m.chargeKg) && m.chargeKg >= 0)) {
+    return 'La charge doit être un nombre positif (kg).'
+  }
+  if (m.rpe !== undefined && m.rpe !== null && !(Number.isFinite(m.rpe) && m.rpe >= 1 && m.rpe <= 10)) {
+    return 'Le RPE doit être compris entre 1 et 10.'
+  }
+  return null
+}
+
+// Repos restant (ms) : dernière série validée (validated_at le plus récent, repli updated_at) + durée du repos
+// qui en découle − maintenant, borné à 0. Durée et lancement viennent de la même règle que la navigation
+// (apresSerie, port de navigateToNext Android) : repos de l'exercice, ou repos inter-exercices / de fin de
+// tour du bloc en superset et circuit ; aucun (null) entre les côtés G et D, pour un repos de 0 s, ou après
+// la dernière série de la séance. null aussi sans série. Dérivé uniquement d'horodatages stockés.
+export function reposRestant(exercices: ExerciceVue[], nowMs: number): number | null {
+  const info = infoRepos(exercices)
+  return info === null ? null : Math.max(0, info.debutMs + info.dureeSec * 1000 - nowMs)
+}
+
+// Repos en cours : série validée la plus récente (clé « exercice#rang »), son instant de validation et la durée du
+// repos qui en découle. null sans série validée, pour un repos de 0 s, ou si aucun repos ne suit (voir reposRestant).
+export function infoRepos(exercices: ExerciceVue[]): InfoRepos | null {
+  let derniere: { ms: number; exercice: ExerciceVue; numero: number } | null = null
+  for (const e of exercices) {
+    for (const s of e.series.filter((x) => x.terminee)) {
+      const ms = parseTimestamp(s.valideeA)
+      // Égalité d'horodatage : la série affichée la plus loin (exercice suivant, numéro supérieur) l'emporte
+      if (ms !== null && (derniere === null || ms >= derniere.ms)) derniere = { ms, exercice: e, numero: s.numero }
+    }
+  }
+  if (derniere === null) return null
+  const { reposSec } = apresSerie(exercices, derniere.exercice.id)
+  if (reposSec <= 0) return null
+  return { cle: `${derniere.exercice.id}#${derniere.numero}`, debutMs: derniere.ms, dureeSec: reposSec }
+}
+
+// Durée affichée : mm:ss sous une heure, h:mm:ss au-delà.
+export function formaterDuree(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  const deux = (n: number) => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${deux(m)}:${deux(s)}` : `${deux(m)}:${deux(s)}`
+}
+
+// Libellé accessible, volontairement grossier (minute) pour ne pas être relu à chaque seconde.
+export function libelleDureeAccessible(ms: number): string {
+  const minutes = Math.floor(Math.max(0, ms) / 60_000)
+  if (minutes < 1) return 'Temps écoulé : moins d’une minute'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return h > 0 ? `Temps écoulé : ${h} h ${m} min` : `Temps écoulé : ${m} min`
+}
+
+// Cibles d'un exercice : « 3 séries × 8-10 · 60 kg · repos 90 s ».
+export function texteCibles(e: Pick<ExerciceVue, 'nombreSeriesPrevues' | 'repsCibles' | 'chargeCible' | 'tempsReposSec'>): string {
+  const n = e.nombreSeriesPrevues
+  const parties = [`${n} série${n > 1 ? 's' : ''}${e.repsCibles ? ` × ${e.repsCibles}` : ''}`]
+  if (e.chargeCible) parties.push(e.chargeCible)
+  parties.push(`repos ${e.tempsReposSec} s`)
+  return parties.join(' · ')
+}
+
+// Résumé lisible d'une série (lecture seule) ; DURATION => secondes.
+export function texteSerie(s: Pick<SerieVue, 'reps' | 'chargeKg' | 'rpe'>, repsType: RepsType): string {
+  const parties = [s.reps === null ? '—' : repsType === 'DURATION' ? `${s.reps} s` : `${s.reps} reps`]
+  if (s.chargeKg !== null) parties.push(`${String(s.chargeKg).replace('.', ',')} kg`)
+  if (s.rpe !== null) parties.push(`RPE ${String(s.rpe).replace('.', ',')}`)
+  return parties.join(' · ')
+}
