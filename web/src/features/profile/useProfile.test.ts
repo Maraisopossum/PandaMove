@@ -71,19 +71,19 @@ describe('useProfile', () => {
     expect((await getSettings(db, USER)).darkMode).toBeNull()
   })
 
-  it('OS sombre + ligne de réglages à dark_mode NULL : le thème reste sombre, puis un choix explicite gagne', async () => {
+  it('OS sombre + ligne de réglages à dark_mode NULL : le thème reste clair, puis un choix explicite gagne', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('dark') }))
     const db = createTestDb()
     await saveSettings(db, USER, { pandaVariant: 'female' })
     const { result } = await monter(db)
-    expect(result.current.dark).toBe(true)
-    expect(document.documentElement.dataset.theme).toBe('dark')
-    await act(() => result.current.setDark(false))
-    expect((await getSettings(db, USER)).darkMode).toBe(false)
-    const second = await monter(db)
-    expect(second.result.current.dark).toBe(false)
-    await act(() => second.result.current.setDark(true))
+    expect(result.current.dark).toBe(false)
+    expect(document.documentElement.dataset.theme).toBe('light')
+    await act(() => result.current.setDark(true))
     expect((await getSettings(db, USER)).darkMode).toBe(true)
+    const second = await monter(db)
+    expect(second.result.current.dark).toBe(true)
+    await act(() => second.result.current.setDark(false))
+    expect((await getSettings(db, USER)).darkMode).toBe(false)
   })
 
   it('changer la variante ne touche pas au mode sombre ni au matériel', async () => {

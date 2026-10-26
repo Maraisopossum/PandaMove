@@ -357,7 +357,7 @@ describe('ExecuteScreen : titre de l’onglet', () => {
     await instance('i-titre')
     const rendu = monter('i-titre')
     await screen.findByRole('heading', { level: 1, name: 'Haut du corps' })
-    expect(document.title).toBe('Haut du corps · PandaMove')
+    await waitFor(() => expect(document.title).toBe('Haut du corps · PandaMove'))
     fireEvent.click(screen.getByRole('button', { name: 'Démarrer' }))
     await waitFor(() => expect(document.title).toMatch(/^00:0\d · Haut du corps · PandaMove$/))
     fireEvent.click(within(carte('Développé couché')).getByRole('button', { name: 'Valider la série 1' }))

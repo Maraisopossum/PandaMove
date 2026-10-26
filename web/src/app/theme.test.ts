@@ -19,22 +19,22 @@ afterEach(() => {
 })
 
 describe('resoudreSombre', () => {
-  it("le choix mémorisé l'emporte sur la préférence système", () => {
-    expect(resoudreSombre('dark', false)).toBe(true)
-    expect(resoudreSombre('light', true)).toBe(false)
+  it('seul un choix explicite « dark » donne le mode sombre', () => {
+    expect(resoudreSombre('dark')).toBe(true)
+    expect(resoudreSombre('light')).toBe(false)
   })
-  it('sans choix mémorisé (ou valeur inconnue), suit la préférence système', () => {
-    expect(resoudreSombre(null, true)).toBe(true)
-    expect(resoudreSombre('valeur inconnue', false)).toBe(false)
+  it('sans choix mémorisé (ou valeur inconnue), le thème est clair, même si le système est sombre', () => {
+    expect(resoudreSombre(null)).toBe(false)
+    expect(resoudreSombre('valeur inconnue')).toBe(false)
   })
 })
 
 describe('useDarkMode', () => {
-  it('démarre sur la préférence système', () => {
+  it('démarre en thème clair même si le système préfère le sombre', () => {
     simulerPreference(true)
     const { result } = renderHook(() => useDarkMode())
-    expect(result.current.dark).toBe(true)
-    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(result.current.dark).toBe(false)
+    expect(document.documentElement.dataset.theme).toBe('light')
   })
 
   it("setDark change l'état, l'attribut du document et la mémoire locale", () => {
@@ -75,12 +75,12 @@ describe('useDarkMode', () => {
 })
 
 describe('useDarkMode avec utilisateur (user_settings)', () => {
-  it('sans ligne de réglages, garde le choix local / la préférence système', async () => {
+  it('sans ligne de réglages, garde le choix local (clair par défaut, même si le système est sombre)', async () => {
     simulerPreference(true)
     const db = createTestDb()
     const { result } = renderHook(() => useDarkMode({ db, userId: 'u1' }))
     await new Promise((r) => setTimeout(r, 20))
-    expect(result.current.dark).toBe(true)
+    expect(result.current.dark).toBe(false)
   })
 
   it('setDark écrit dark_mode en base', async () => {

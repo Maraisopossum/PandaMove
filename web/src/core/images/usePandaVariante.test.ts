@@ -49,7 +49,9 @@ describe('useImagePanda', () => {
   })
 
   it('image commune : disponible tout de suite', () => {
-    const { result } = renderHook(() => useImagePanda('onboarding_01', { db: createTestDb(), userId: USER }))
+    const { result, unmount } = renderHook(() => useImagePanda('onboarding_01', { db: createTestDb(), userId: USER }))
     expect(result.current?.src).toBe(pandaImage('onboarding_01', 'male').src)
+    // La lecture de la variante est encore en cours : on démonte pour qu'elle n'aboutisse pas après la fin du test.
+    unmount()
   })
 })
