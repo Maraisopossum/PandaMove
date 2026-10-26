@@ -23,6 +23,7 @@
     <string name="cycling_screen_fab_cd">Nouvelle séance</string>
     <string name="cycling_screen_fab_template">Séance type</string>
     <string name="cycling_screen_fab_direct">Séance directe</string>
+    <string name="cycling_screen_fab_planned">Planifier une séance</string>
     <string name="cycling_screen_section_templates">Séances types</string>
     <string name="cycling_screen_section_planned">Séances planifiées</string>
     <string name="cycling_screen_section_completed">Séances terminées</string>
@@ -68,16 +69,11 @@
     <string name="cycling_block_field_recovery">Récup. (min)</string>
 
     <!-- CyclingWorkoutExecuteScreen -->
-    <string name="cycling_execute_finish_dialog_title">Valider la séance ?</string>
-    <string name="cycling_execute_finish_dialog_text">Les résultats seront sauvegardés et la séance marquée comme terminée.</string>
-    <string name="cycling_execute_validate_button">Valider</string>
-    <string name="cycling_execute_validate_action">Valider</string>
     <string name="cycling_execute_back_cd">Retour</string>
     <string name="cycling_execute_title_fallback">Résultats</string>
     <string name="cycling_execute_section_results">RÉSULTATS</string>
     <string name="cycling_execute_section_notes">NOTE DE SÉANCE</string>
     <string name="cycling_execute_notes_placeholder">Commentaire global de la séance…</string>
-    <string name="cycling_execute_validate_seance_button">Valider la séance</string>
     <string name="cycling_execute_cell_auto">auto</string>
     <!-- Result cell labels -->
     <string name="cycling_execute_cell_distance">Distance (km)</string>
@@ -109,5 +105,20 @@
     <string name="cycling_report_cell_elevation">Dénivelé+</string>
     <string name="cycling_report_cell_calories">Calories</string>
     <string name="cycling_report_cell_rpe">RPE</string>
+
+    <!-- CyclingWorkoutReportScreen — Hero / analyse / graphique (style commun running) -->
+    <string name="cycling_report_completed_label">SORTIE TERMINÉE !</string>
+    <string name="cycling_report_total_duration_label">Durée totale</string>
+    <string name="cycling_report_distance_label">Distance</string>
+    <string name="cycling_report_avg_speed_label">Vitesse moyenne</string>
+    <string name="cycling_report_analysis_title">ANALYSE DE TA SORTIE</string>
+    <string name="cycling_report_route_label">PARCOURS</string>
+    <string name="cycling_report_metrics_title">MÉTRIQUES</string>
+    <string name="cycling_report_regularity_label">Régularité</string>
+    <string name="cycling_report_best_km_label">Meilleur split</string>
+    <string name="cycling_report_worst_km_label">Split le plus lent</string>
+    <string name="cycling_report_speed_legend">Vitesse (km/h)</string>
+    <string name="cycling_report_elevation_legend">Dénivelé (m)</string>
+    <string name="cycling_report_imported_tcx_suffix">Importée depuis un fichier</string>
 
 </resources>

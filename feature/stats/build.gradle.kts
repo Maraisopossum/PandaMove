@@ -34,4 +34,5 @@ dependencies {
     implementation(libs.bundles.coroutines)
     implementation(libs.bundles.vico)
     implementation(libs.datastore.preferences)
+    implementation(libs.play.services.location)
 }

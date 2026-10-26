@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.designsystem.components.PandaCard
-import com.pandafit.designsystem.theme.PandaGreen
+import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.breathing.R
 import com.pandafit.feature.breathing.engine.BreathingPhase
@@ -88,7 +88,7 @@ fun BreathingSessionScreen(
             cyclesCompleted = phaseState.currentCycle,
             durationSeconds = uiState.sessionSavedDurationSeconds,
             pandaMessage    = pandaMessage,
-            accentColor     = PandaGreen,
+            accentColor     = KalyptusGreen,
             onRestart       = { viewModel.startWithCountdown(methodId, cycles) },
             onClose         = { viewModel.stopSession(); onNavigateBack() },
         )
@@ -192,7 +192,7 @@ fun BreathingSessionScreen(
                         "$countdown",
                         style      = MaterialTheme.typography.displayLarge,
                         color      = Color.White,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                     )
                     phaseState.isActive -> {
                         val remainingSec = ((phaseState.phaseDurationMs - phaseState.phaseProgressMs + 999L) / 1_000L)
@@ -201,7 +201,7 @@ fun BreathingSessionScreen(
                             "$remainingSec",
                             style      = MaterialTheme.typography.headlineLarge,
                             color      = Color.White.copy(alpha = 0.85f),
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                         )
                     }
                 }
@@ -372,7 +372,7 @@ private fun BreathingCompletionScreen(
 @Composable
 private fun CompletionStat(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
         Text(label, style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
     }
 }

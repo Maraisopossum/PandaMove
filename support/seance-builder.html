@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PandaFit — Générateur de séances Renforcement</title>
+<style>
+  :root{
+    --ink:#1a1a2e; --muted:#6f6f82; --line:#e8e5f2;
+    --accent:#6c4dd6; --accent-soft:#f1edfb; --accent-mid:#cabdf2;
+    --orange:#ff7a45; --orange-soft:#fff1ea;
+    --green:#2e9e5b; --green-soft:#e7f6ee;
+    --red:#d64545; --red-soft:#fdecec;
+    --card:#ffffff; --bg:#f3f1f9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);line-height:1.5;padding:28px 18px 80px}
+  .wrap{max-width:980px;margin:0 auto}
+
+  header{background:linear-gradient(135deg,#6c4dd6,#8a6ee8);color:#fff;border-radius:18px;padding:30px 34px;margin-bottom:22px;box-shadow:0 10px 30px rgba(80,50,160,.18)}
+  header h1{margin:0;font-size:25px;font-weight:800;letter-spacing:-.3px}
+  header p{margin:8px 0 0;font-size:14px;opacity:.92;max-width:720px}
+  .steps{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .steps span{background:rgba(255,255,255,.16);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600}
+
+  .panel{background:var(--card);border-radius:16px;padding:22px 24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(40,30,80,.06),0 6px 18px rgba(40,30,80,.05);border-left:4px solid var(--accent)}
+  .panel.orange{border-left-color:var(--orange)}
+  .panel.green{border-left-color:var(--green)}
+  .panel h2{margin:0 0 4px;font-size:17px;font-weight:800}
+  .panel .sub{color:var(--muted);font-size:12.5px;margin-bottom:14px}
+
+  label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;margin-bottom:4px}
+  input[type=text],input[type=number],textarea,select{
+    width:100%;background:#f6f4fb;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13.5px;color:var(--ink);font-family:inherit
+  }
+  textarea{resize:vertical;min-height:56px}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--accent-mid);outline-offset:1px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .row > div{flex:1;min-width:130px}
+  .row.tight > div{min-width:90px}
+  .checks{display:flex;flex-wrap:wrap;gap:6px}
+  .chk{display:flex;align-items:center;gap:5px;background:#f6f4fb;border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer}
+  .chk input{width:auto}
+  .chk.on{background:var(--accent-soft);border-color:var(--accent-mid);color:var(--accent);font-weight:700}
+
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-weight:700;font-size:13px}
+  .btn{background:var(--accent);color:#fff;padding:9px 16px}
+  .btn.secondary{background:var(--accent-soft);color:var(--accent)}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .btn.danger{background:var(--red-soft);color:var(--red)}
+  .btn.small{padding:5px 10px;font-size:11.5px;border-radius:7px}
+  .btn.big{padding:14px 22px;font-size:15px;border-radius:12px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  .seance-card{border:1.5px solid var(--accent-mid);border-radius:14px;padding:16px 18px;margin-bottom:16px;background:#fdfcff}
+  .seance-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .seance-title{font-weight:800;font-size:15px;color:var(--accent)}
+  .bloc-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;background:#fff}
+  .bloc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .bloc-tag{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:20px;letter-spacing:.3px}
+  .tag-ECHAUFFEMENT{background:var(--orange-soft);color:#c9622f}
+  .tag-ACTIVATION{background:var(--accent-soft);color:var(--accent)}
+  .tag-SUPERSET{background:var(--orange-soft);color:var(--orange)}
+  .tag-CIRCUIT{background:#fdf3ee;color:#c9622f}
+  .tag-RECUPERATION{background:var(--green-soft);color:var(--green)}
+  .tag-LIBRE{background:#f0eef7;color:var(--muted)}
+
+  .ex-card{border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin:8px 0;background:#faf9fd}
+  .ex-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .ex-head .nm{font-weight:700;font-size:13.5px;flex:1}
+  .ex-head input[type=text]{font-weight:700}
+  .prog-box{margin-top:10px;padding-top:10px;border-top:1px dashed var(--accent-mid)}
+  .prog-hint{font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:6px 10px;margin-top:6px}
+  .charge-hint{font-size:11px;border-radius:7px;padding:6px 10px;margin-top:6px;background:#f0eef7;color:var(--muted)}
+  .charge-hint.ok{background:var(--green-soft);color:var(--green)}
+  .charge-hint.warn{background:var(--orange-soft);color:#c9622f;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .date-chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border:1px solid var(--accent-mid);color:var(--accent);border-radius:20px;padding:4px 6px 4px 12px;font-size:12px;font-weight:700}
+  .date-chip button{background:none;border:none;color:var(--accent);cursor:pointer;font-weight:800;padding:2px 6px;border-radius:50%}
+  .date-chip button:hover{background:var(--accent-mid)}
+  .foot-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+  .empty{color:var(--muted);font-size:12.5px;font-style:italic;padding:6px 0}
+
+  details{margin-top:10px}
+  summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent)}
+  pre{background:#1a1a2e;color:#c9c3ea;border-radius:10px;padding:14px;font-size:11.5px;overflow:auto;max-height:320px;line-height:1.5}
+  code{font-family:'Consolas','Courier New',monospace}
+
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--green-soft);color:var(--green)}
+  .badge.warn{background:var(--orange-soft);color:var(--orange)}
+  .status-line{font-size:12.5px;color:var(--muted);margin-top:6px}
+  .quickadd{border:1.5px dashed var(--accent-mid);border-radius:10px;padding:12px;margin-top:8px;background:var(--accent-soft)}
+  .summary-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .summary-grid .cell{flex:1;min-width:110px;background:#f6f4fb;border-radius:10px;padding:10px 12px;text-align:center}
+  .summary-grid .cell b{display:block;font-size:20px;color:var(--accent)}
+  .summary-grid .cell span{font-size:11px;color:var(--muted)}
+  textarea.jsonarea{min-height:160px;font-family:'Consolas','Courier New',monospace;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🐼 Générateur de séances Renforcement</h1>
+    <p>Construis une ou plusieurs séances (blocs, échauffement/montée en charge, surcharge progressive, planning multi-semaines) puis exporte un fichier JSON importable directement dans PandaFit via <b>Profil → Import</b>. Les charges proposées respectent ton matériel réel si tu le charges (panneau 2) ; les dates plantées restent modifiables ensuite dans l'app (icône 📅). Utilisable à la main ou en collant un JSON généré par une IA (voir panneau 4).</p>
+    <div class="steps">
+      <span>1. Charger le catalogue (optionnel)</span>
+      <span>2. Charger mon matériel (optionnel)</span>
+      <span>3. Construire les séances</span>
+      <span>4. Vérifier / coller du JSON</span>
+      <span>5. Télécharger l'export</span>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>1. Catalogue d'exercices</h2>
+    <div class="sub">Pour que les exercices se relient correctement au catalogue de l'app, exporte-le d'abord depuis <b>Profil → Exercices → Export JSON</b>, puis colle le contenu ci-dessous (ou charge le fichier). Sans catalogue chargé, tu peux quand même taper des noms d'exercice en texte libre — s'ils n'existent pas déjà dans ton catalogue app, l'import les ignorera (utilise plutôt "+ nouvel exercice custom" dans ce cas).</div>
+    <div class="row">
+      <div style="flex:2">
+        <label>Coller le JSON du catalogue exporté</label>
+        <textarea id="catalogPaste" class="jsonarea" placeholder='{"version":"1.0","exercises":[{"name":"Développé couché barre", ...}]}'></textarea>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:flex-end">
+        <input type="file" id="catalogFile" accept="application/json" style="font-size:12px">
+        <button class="btn secondary" onclick="app.loadCatalogFromPaste()">Charger depuis le texte collé</button>
+        <button class="btn ghost" onclick="app.clearCatalog()">Vider le catalogue chargé</button>
+      </div>
+    </div>
+    <div class="status-line" id="catalogStatus">Aucun catalogue chargé — 0 exercice disponible en autocomplete (hors exercices custom créés ici).</div>
+    <datalist id="exerciseNames"></datalist>
+  </div>
+
+  <div class="panel">
+    <h2>2. Mon matériel</h2>
+    <div class="sub">Pour que les charges cibles respectent <b>exclusivement</b> ton matériel réel (comme le fait la surcharge progressive dans l'app — snapping sur les charges réellement composables, bible §4.3), exporte-le depuis <b>Profil → Mon matériel → icône de partage</b>, puis colle le contenu ci-dessous. Sans matériel chargé, la charge cible reste un champ libre non vérifié.</div>
+    <div class="row">
+      <div style="flex:2">
+        <label>Coller le JSON de "Mon matériel" exporté (ou le gros export complet — seule la partie matériel est utilisée)</label>
+        <textarea id="equipmentPaste" class="jsonarea" placeholder='{"version":"1.0","config":{"selectedCategories":["HALTERES","BARRE"], ...}}'></textarea>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:flex-end">
+        <input type="file" id="equipmentFile" accept="application/json" style="font-size:12px">
+        <button class="btn secondary" onclick="app.loadEquipmentFromPaste()">Charger depuis le texte collé</button>
+        <button class="btn ghost" onclick="app.clearEquipment()">Vider le matériel chargé</button>
+      </div>
+    </div>
+    <div class="status-line" id="equipmentStatus">Aucun matériel chargé — les charges cibles resteront en texte libre, sans vérification de faisabilité.</div>
+  </div>
+
+  <div class="panel">
+    <h2>3. Séances</h2>
+    <div class="sub">Chaque séance produit un template STRENGTH (isolation template/instance gérée automatiquement à l'import). Les dates ci-dessous sont optionnelles et restent modifiables ensuite dans l'app via l'icône 📅.</div>
+    <div id="seancesRoot"></div>
+    <button class="btn" onclick="app.addSeance()">+ Nouvelle séance</button>
+  </div>
+
+  <div class="panel orange">
+    <h2>4. Mode JSON brut (pour une IA, ou sauvegarde/relecture)</h2>
+    <div class="sub">Une IA (ou toi) peut coller directement un document JSON au format simplifié ci-dessous, plutôt que de remplir les champs un par un. Le bouton "Copier l'état actuel" permet aussi d'extraire ce que tu as déjà construit dans le panneau 2 (utile pour relecture ou sauvegarde externe).</div>
+    <details>
+      <summary>Voir le schéma attendu + un exemple</summary>
+      <pre><code>{
+  "seances": [
+    {
+      "nom": "Push - Haut du corps",
+      "groupesMusculaires": ["PECTORAUX", "TRICEPS", "EPAULES"],
+      "dureeEstimeeMin": 60,
+      "notes": "Séance type semaine 1",
+      "dates": ["2026-09-01", "2026-09-08", "2026-09-15"],
+      "blocs": [
+        {
+          "nom": "Montée en charge épaules/pecs",
+          "type": "ECHAUFFEMENT",
+          "dureeMin": 8,
+          "description": "3 séries croissantes avant le premier exercice lourd",
+          "tempsReposInterSec": 20,
+          "tempsReposFinRoundSec": 60,
+          "exercices": [
+            {
+              "exercice": "Développé couché barre",
+              "nombreSeriesPrevues": 3,
+              "repsCibles": "10",
+              "chargeCible": "40 kg",
+              "tempo": "",
+              "repsType": "REPS",
+              "tempsReposSec": 30,
+              "consigneCle": "",
+              "equipement": "",
+              "avertissement": "",
+              "isBilateral": true,
+              "supersetGroupe": null,
+              "progression": { "activee": false }
+            }
+          ]
+        }
+      ],
+      "exercicesLibres": [
+        {
+          "exercice": "Développé couché barre",
+          "nombreSeriesPrevues": 4,
+          "repsCibles": "8-10",
+          "chargeCible": "70 kg",
+          "tempo": "3-1-1",
+          "repsType": "REPS",
+          "tempsReposSec": 120,
+          "consigneCle": "Coudes à 45°",
+          "equipement": "Barre, Banc plat, Rack",
+          "avertissement": "",
+          "isBilateral": true,
+          "supersetGroupe": null,
+          "progression": {
+            "activee": true,
+            "typeExercice": "COMPOSE_HAUT",
+            "systeme": "DOUBLE",
+            "repsMin": 8,
+            "repsMax": 12,
+            "incrementKg": null,
+            "incrementDureeSec": 5,
+            "seuilDeload": 3,
+            "incrementPct": null
+          }
+        }
+      ]
+    }
+  ],
+  "nouveauxExercices": [
+    {
+      "name": "Pompes lestées gilet",
+      "description": "",
+      "category": "CHEST",
+      "muscleGroups": ["PECTORAUX", "TRICEPS"],
+      "musclePrimary": "PECTORAUX",
+      "exerciseType": "Pluri",
+      "equipment": ["Poids de corps", "Gilet lesté"]
+    }
+  ]
+}
+</code></pre>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">
+        Valeurs valides — <b>type</b> de bloc : ECHAUFFEMENT, ACTIVATION, SUPERSET, CIRCUIT, RECUPERATION ·
+        <b>repsType</b> : REPS, DURATION ·
+        <b>typeExercice</b> (progression) : COMPOSE_BAS (5%), COMPOSE_HAUT (2.5%), ISOLATION (2%), MACHINE (0%), PDC (0%) ·
+        <b>systeme</b> : LINEAIRE, DOUBLE, TEMPORELLE ·
+        <b>groupesMusculaires / muscleGroups</b> : PECTORAUX, DOS, EPAULES, BICEPS, TRICEPS, QUADRICEPS, ISCHIO, FESSIERS, MOLLETS, ABDOMINAUX, TRAPEZES, LOMBAIRES, ADDUCTEURS, OBLIQUES, AUTRE, FULL_BODY ·
+        <b>dates</b> : optionnel, liste de dates ISO ("YYYY-MM-DD") — une IA planifiant un programme sur plusieurs semaines peut énumérer directement toutes les dates voulues (ex: tous les lundis pendant 6 semaines). Chaque date crée une séance planifiée vide (les blocs/exercices sont copiés depuis le template au premier lancement dans l'app) — les dates restent 100% modifiables ensuite via l'icône 📅.
+      </p>
+    </details>
+    <div class="row" style="margin-top:12px">
+      <div>
+        <label>Coller / éditer le JSON brut</label>
+        <textarea id="rawJson" class="jsonarea" placeholder="Colle ici le JSON produit par une IA, au format ci-dessus"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="app.importRawJson()">Charger ce JSON dans le formulaire</button>
+      <button class="btn secondary" onclick="app.exportRawJson()">Copier l'état actuel en JSON ici</button>
+    </div>
+    <div class="status-line" id="rawJsonStatus"></div>
+  </div>
+
+  <div class="panel green">
+    <h2>5. Export vers PandaFit</h2>
+    <div class="sub">Génère le fichier JSON (format PandaMoveExport) à importer depuis <b>Profil → Import</b> dans l'app. Le brouillon est sauvegardé automatiquement dans ce navigateur (localStorage) — tu peux fermer l'onglet et reprendre plus tard.</div>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn big" onclick="app.downloadExport()">⬇ Télécharger l'export JSON</button>
+      <button class="btn ghost" onclick="app.resetAll()">Réinitialiser tout</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Référentiels ──────────────────────────────────────────────────────────
+const MUSCLE_GROUPS = ["PECTORAUX","DOS","EPAULES","BICEPS","TRICEPS","QUADRICEPS","ISCHIO","FESSIERS","MOLLETS","ABDOMINAUX","TRAPEZES","LOMBAIRES","ADDUCTEURS","OBLIQUES","AUTRE","FULL_BODY"];
+const EXERCISE_CATEGORIES = [
+  ["CHEST","Pectoraux"],["BACK","Dos"],["SHOULDERS","Épaules"],["BICEPS","Biceps"],["TRICEPS","Triceps"],
+  ["LEGS","Jambes"],["GLUTES","Fessiers"],["CORE","Abdos/Core"],["CARDIO","Cardio"],["FULL_BODY","Full body"],["OTHER","Autre"],
+];
+const BLOC_TYPES = [["ECHAUFFEMENT","Échauffement / montée en charge"],["ACTIVATION","Activation"],["SUPERSET","Superset"],["CIRCUIT","Circuit"],["RECUPERATION","Récupération"]];
+const TYPE_EXERCICE = [["COMPOSE_BAS","Composé bas du corps (5%)"],["COMPOSE_HAUT","Composé haut du corps (2.5%)"],["ISOLATION","Isolation (2%)"],["MACHINE","Machine (0%, pas fixe)"],["PDC","Poids de corps (0%)"]];
+const SYSTEME_PROGRESSION = [["LINEAIRE","Linéaire"],["DOUBLE","Double progression (reps min→max)"],["TEMPORELLE","Temporelle (durée)"]];
+const TYPE_PCT = Object.fromEntries(TYPE_EXERCICE.map(([v]) => [v, {COMPOSE_BAS:5,COMPOSE_HAUT:2.5,ISOLATION:2,MACHINE:0,PDC:0}[v]]));
+
+const STORAGE_KEY = "pandafit_seance_builder_v1";
+
+// ── Équipement / matériel — port fidèle de core/database/catalog/EquipmentInventory.kt ─────
+// et de ProgressionEngine.calculerIncrementQualitatif() (bible §4.3/§4.5), pour que les charges
+// proposées ici respectent exactement le même calcul que dans l'app.
+const MAX_PAIRES_PAR_DENOMINATION = 30;
+const PLAFOND_SAUT_PCT = 0.10;
+
+function rawEquipmentToCategory(raw){
+  if (raw.startsWith("Machine") || raw === "Smith machine") return "MACHINE";
+  if (raw.startsWith("Câble") || raw === "Corde") return "CABLE";
+  if (raw === "Barre de traction" || raw === "Barres parallèles") return "BARRE_TRACTION";
+  if (raw.startsWith("Banc") || raw === "GHD / Banc à lombaires") return "BANC";
+  if (raw === "Kettlebell") return "KETTLEBELL";
+  if (raw.startsWith("Kettlebell") || raw.startsWith("Haltère")) return "HALTERES";
+  if (["Poids de corps / Haltère","Poids de corps / Barre","Poids de corps / Partenaire","Poids de corps / Tapis"].includes(raw)) return "POIDS_DE_CORPS";
+  if (raw === "Poids de corps") return "POIDS_DE_CORPS";
+  if (raw.startsWith("Barre") || raw === "Trap bar / Hex bar" || raw === "Landmine" || raw === "Disques de fonte") return "BARRE";
+  if (raw === "Rack" || raw === "Barre de tirage" || raw === "Plateforme") return "RACK";
+  if (raw === "Élastique") return "ELASTIQUE";
+  if (["Ab wheel","Wrist roller","Banc / appui","Banc / step"].includes(raw)) return "ACCESSOIRES";
+  return null;
+}
+
+/** Combinatoire des charges totales composables barre+disques (bible §4.3). */
+function disquesChargesAtteignables(cfg){
+  if (!cfg) return [];
+  let sommes = new Set([0]);
+  Object.entries(cfg.disques || {}).forEach(([poidsStr, quantite]) => {
+    const poidsUnitaire = parseFloat(poidsStr);
+    const maxPaires = Math.min(Math.max(Math.floor(quantite / 2), 0), MAX_PAIRES_PAR_DENOMINATION);
+    if (maxPaires <= 0) return;
+    const nouvelles = new Set();
+    sommes.forEach(somme => { for (let n = 0; n <= maxPaires; n++) nouvelles.add(somme + n * 2 * poidsUnitaire); });
+    sommes = nouvelles;
+  });
+  return [...sommes].map(s => (cfg.barreKg || 0) + s).sort((a,b) => a - b);
+}
+/** Séquence arithmétique min→max par pas — maxKg toujours inclus (kettlebell/câble modulables). */
+function plageChargesAtteignables(cfg){
+  if (!cfg) return [];
+  if (cfg.pasKg <= 0 || cfg.maxKg <= cfg.minKg) return [cfg.minKg];
+  const paliers = [];
+  for (let v = cfg.minKg; v < cfg.maxKg; v += cfg.pasKg) paliers.push(Math.round(v * 1000) / 1000);
+  paliers.push(cfg.maxKg);
+  return [...new Set(paliers)].sort((a,b) => a - b);
+}
+/** Union poids fixes + combinaisons chargeables (haltères). */
+function halteresChargesAtteignables(cfg){
+  if (!cfg) return [];
+  const fixes = cfg.poidsFixes || [];
+  const chargeable = cfg.chargeable ? disquesChargesAtteignables(cfg.chargeable) : [];
+  return [...new Set([...fixes, ...chargeable])].sort((a,b) => a - b);
+}
+function chargesAtteignablesPourCategorie(inventaire, category){
+  switch(category){
+    case "HALTERES": { const l = halteresChargesAtteignables(inventaire.halteres); return l.length ? l : null; }
+    case "BARRE": return inventaire.barre ? disquesChargesAtteignables(inventaire.barre) : null;
+    case "KETTLEBELL": return inventaire.kettlebell ? plageChargesAtteignables(inventaire.kettlebell) : null;
+    case "CABLE": return inventaire.cable ? plageChargesAtteignables(inventaire.cable) : null;
+    default: return null;
+  }
+}
+/** Union des charges réellement composables pour les catégories matchant l'équipement déclaré de l'exercice. */
+function chargesAtteignablesPourEquipement(inventaire, equipmentList){
+  const categories = [...new Set((equipmentList || []).map(rawEquipmentToCategory).filter(Boolean))];
+  const all = [];
+  categories.forEach(cat => { const l = chargesAtteignablesPourCategorie(inventaire, cat); if (l) all.push(...l); });
+  return [...new Set(all)].sort((a,b) => a - b);
+}
+
+/** Port de ProgressionEngine.calculerIncrementQualitatif — estimation indicative (l'app reste la
+ * seule source de vérité au moment de la séance réelle, notamment pour le deload/l'historique). */
+function calcIncrementQualitatif(chargeActuelle, pct, pasMateriel, chargesAtteignables, incrementKgManuel){
+  if (chargesAtteignables && chargesAtteignables.length){
+    const min = Math.min(...chargesAtteignables);
+    if (chargeActuelle < min) return incrementKgManuel ?? pasMateriel ?? 0;
+    const candidats = chargesAtteignables.filter(c => c > chargeActuelle).sort((a,b) => a - b);
+    const pasEstime = candidats.length ? (candidats[0] - chargeActuelle) : (incrementKgManuel ?? 0);
+    const brut = Math.max(pasEstime, chargeActuelle * pct / 100);
+    const plafondSaut = Math.max(chargeActuelle * PLAFOND_SAUT_PCT, pasEstime);
+    const cibleBrute = chargeActuelle + Math.min(brut, plafondSaut);
+    let nouvelleCharge = chargeActuelle, bestDiff = Infinity;
+    candidats.forEach(c => { const d = Math.abs(c - cibleBrute); if (d < bestDiff) { bestDiff = d; nouvelleCharge = c; } });
+    return nouvelleCharge - chargeActuelle;
+  }
+  const pasEffectif = pasMateriel ?? incrementKgManuel ?? 0;
+  const brut = Math.max(pasEffectif, chargeActuelle * pct / 100);
+  const plafondSaut = Math.max(chargeActuelle * PLAFOND_SAUT_PCT, pasEffectif);
+  return Math.min(brut, plafondSaut);
+}
+
+function parseChargeKg(str){
+  if (!str) return null;
+  const m = String(str).match(/(\d+(?:[.,]\d+)?)/);
+  if (!m) return null;
+  return parseFloat(m[1].replace(",", "."));
+}
+function fmtKg(n){ return (Math.round(n * 100) / 100).toString().replace(".", ","); }
+function resolveExerciceEquipment(ex){
+  if (ex.equipement && ex.equipement.trim()) return ex.equipement.split(",").map(s => s.trim()).filter(Boolean);
+  const name = (ex.exercice || "").trim().toLowerCase();
+  if (!name) return [];
+  const found = state.catalog.find(c => c.name.toLowerCase() === name) || state.customExercises.find(c => c.name.toLowerCase() === name);
+  return found ? (found.equipment || []) : [];
+}
+
+// ── État ──────────────────────────────────────────────────────────────────
+let state = {
+  catalog: [],          // exercices existants chargés (lecture seule, pour autocomplete)
+  customExercises: [],  // nouveaux exercices créés ici (inclus dans l'export)
+  equipment: null,       // { selectedCategories, pasParCategorie, halteres, barre, kettlebell, cable } ou null
+  seances: [],
+};
+
+function newExercice(){
+  return {
+    exercice: "", nombreSeriesPrevues: 3, repsCibles: "", chargeCible: "", tempo: "",
+    repsType: "REPS", tempsReposSec: 90, consigneCle: "", equipement: "", avertissement: "",
+    isBilateral: false, supersetGroupe: "",
+    progression: { activee: false, typeExercice: "ISOLATION", systeme: "LINEAIRE", repsMin: null, repsMax: null, incrementKg: null, incrementDureeSec: 5, seuilDeload: 3, incrementPct: null },
+  };
+}
+function newBloc(type){
+  return { nom: "", type: type || "ECHAUFFEMENT", dureeMin: null, description: "", tempsReposInterSec: 20, tempsReposFinRoundSec: 120, exercices: [] };
+}
+function newSeance(){
+  return { nom: "", groupesMusculaires: [], dureeEstimeeMin: 60, notes: "", blocs: [], exercicesLibres: [], dates: [] };
+}
+function normalizeExercice(e){
+  const d = newExercice();
+  const p = Object.assign({}, d.progression, e && e.progression);
+  return Object.assign({}, d, e || {}, { progression: p });
+}
+function normalizeBloc(b){
+  const d = newBloc();
+  return Object.assign({}, d, b || {}, { exercices: (b && Array.isArray(b.exercices) ? b.exercices : []).map(normalizeExercice) });
+}
+function normalizeSeance(s){
+  const d = newSeance();
+  return Object.assign({}, d, s || {}, {
+    groupesMusculaires: (s && s.groupesMusculaires) || [],
+    blocs: (s && Array.isArray(s.blocs) ? s.blocs : []).map(normalizeBloc),
+    exercicesLibres: (s && Array.isArray(s.exercicesLibres) ? s.exercicesLibres : []).map(normalizeExercice),
+    dates: (s && Array.isArray(s.dates) ? s.dates : []).slice().sort(),
+  });
+}
+
+// ── Persistance locale (brouillon) ──────────────────────────────────────────
+let saveTimer = null;
+function saveDraft(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  }, 250);
+}
+function loadDraft(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    state.catalog = parsed.catalog || [];
+    state.customExercises = parsed.customExercises || [];
+    state.equipment = parsed.equipment || null;
+    state.seances = (parsed.seances || []).map(normalizeSeance);
+  } catch(e) {}
+}
+
+// ── Rendu ────────────────────────────────────────────────────────────────
+function esc(s){ return String(s == null ? "" : s).replace(/"/g, "&quot;").replace(/</g,"&lt;"); }
+
+/** Hint de faisabilité de la charge cible selon le matériel chargé (panneau 2) — snapping fidèle
+ * à EquipmentInventory.kt/ProgressionEngine.kt, jamais une valeur devinée. */
+function chargeHintInner(si, blocIdx, ei, ex){
+  if (!state.equipment) return "";
+  const equipmentList = resolveExerciceEquipment(ex);
+  if (!equipmentList.length) return "";
+  const charges = chargesAtteignablesPourEquipement(state.equipment, equipmentList);
+  if (!charges.length) return "";
+  const chargeKg = parseChargeKg(ex.chargeCible);
+  if (chargeKg == null){
+    const preview = charges.slice(0, 8).map(fmtKg).join(", ") + (charges.length > 8 ? "…" : "");
+    return `<div class="charge-hint">Charges composables avec ce matériel : ${preview} kg</div>`;
+  }
+  const reachable = charges.some(c => Math.abs(c - chargeKg) < 0.01);
+  if (reachable) return `<div class="charge-hint ok">✓ ${fmtKg(chargeKg)} kg est composable avec ton matériel déclaré.</div>`;
+  let nearest = charges[0], best = Math.abs(charges[0] - chargeKg);
+  charges.forEach(c => { const d = Math.abs(c - chargeKg); if (d < best) { best = d; nearest = c; } });
+  return `<div class="charge-hint warn">⚠ ${fmtKg(chargeKg)} kg n'est pas composable avec ce matériel — le plus proche est <b>${fmtKg(nearest)} kg</b>.
+    <button class="btn small secondary" onclick="app.snapCharge(${si},${blocIdx},${ei},${nearest})">Utiliser ${fmtKg(nearest)} kg</button></div>`;
+}
+
+function renderExercice(si, blocIdx, ei){
+  const list = blocIdx === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[blocIdx].exercices;
+  const ex = list[ei];
+  const p = ex.progression;
+  const pct = p.incrementPct != null ? p.incrementPct : TYPE_PCT[p.typeExercice];
+  let nextChargeLine = "";
+  if (p.activee){
+    const equipmentList = resolveExerciceEquipment(ex);
+    const charges = state.equipment ? chargesAtteignablesPourEquipement(state.equipment, equipmentList) : [];
+    const chargeKg = parseChargeKg(ex.chargeCible);
+    if (chargeKg != null){
+      const inc = calcIncrementQualitatif(chargeKg, pct, null, charges.length ? charges : null, p.incrementKg);
+      if (inc > 0) nextChargeLine = `<div class="prog-hint">📈 Prochaine charge estimée${charges.length ? ' (selon ton matériel)' : ''} : <b>${fmtKg(chargeKg + inc)} kg</b> (+${fmtKg(inc)} kg) — estimation indicative, l'app reste la référence au moment de la séance.</div>`;
+    }
+  }
+  return `
+  <div class="ex-card">
+    <div class="ex-head">
+      <input type="text" list="exerciseNames" class="nm" placeholder="Nom de l'exercice"
+        value="${esc(ex.exercice)}" oninput="app.setExField(${si},${blocIdx},${ei},'exercice',this.value); app.updateChargeHint(${si},${blocIdx},${ei});">
+      <button class="btn small ghost" onclick="app.quickAddExercise(${si},${blocIdx},${ei})">+ nouvel exercice custom</button>
+      <button class="btn small danger" onclick="app.removeExercice(${si},${blocIdx},${ei})">✕</button>
+    </div>
+    <div class="row tight">
+      <div><label>Séries</label><input type="number" min="1" value="${ex.nombreSeriesPrevues}" oninput="app.setExField(${si},${blocIdx},${ei},'nombreSeriesPrevues',parseInt(this.value)||0)"></div>
+      <div><label>Reps/durée cible</label><input type="text" placeholder="8-12 ou 30s" value="${esc(ex.repsCibles)}" oninput="app.setExField(${si},${blocIdx},${ei},'repsCibles',this.value)"></div>
+      <div><label>Type</label>
+        <select onchange="app.setExField(${si},${blocIdx},${ei},'repsType',this.value); app.render();">
+          <option value="REPS" ${ex.repsType==='REPS'?'selected':''}>Répétitions</option>
+          <option value="DURATION" ${ex.repsType==='DURATION'?'selected':''}>Durée (s)</option>
+        </select>
+      </div>
+      <div><label>Charge cible</label><input type="text" placeholder="60 kg / PDC / Élastique" value="${esc(ex.chargeCible)}" oninput="app.setExField(${si},${blocIdx},${ei},'chargeCible',this.value); app.updateChargeHint(${si},${blocIdx},${ei});"></div>
+    </div>
+    <div id="chargeHint_${si}_${blocIdx}_${ei}">${chargeHintInner(si, blocIdx, ei, ex)}</div>
+    <div class="row tight">
+      <div><label>Tempo</label><input type="text" placeholder="3-1-1" value="${esc(ex.tempo)}" oninput="app.setExField(${si},${blocIdx},${ei},'tempo',this.value)"></div>
+      <div><label>Repos (s)</label><input type="number" min="0" value="${ex.tempsReposSec}" oninput="app.setExField(${si},${blocIdx},${ei},'tempsReposSec',parseInt(this.value)||0)"></div>
+      <div><label>Groupe superset</label><input type="text" placeholder="ex: A1" value="${esc(ex.supersetGroupe||'')}" oninput="app.setExField(${si},${blocIdx},${ei},'supersetGroupe',this.value)"></div>
+      <div style="display:flex;align-items:flex-end">
+        <label class="chk ${ex.isBilateral?'on':''}" style="margin-bottom:8px">
+          <input type="checkbox" ${ex.isBilateral?'checked':''} onchange="app.setExField(${si},${blocIdx},${ei},'isBilateral',this.checked); app.render();"> Bilatéral
+        </label>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Consigne clé</label><input type="text" value="${esc(ex.consigneCle)}" oninput="app.setExField(${si},${blocIdx},${ei},'consigneCle',this.value)"></div>
+      <div><label>Équipement</label><input type="text" placeholder="Barre, Banc plat, Rack..." value="${esc(ex.equipement)}" oninput="app.setExField(${si},${blocIdx},${ei},'equipement',this.value); app.updateChargeHint(${si},${blocIdx},${ei});"></div>
+      <div><label>Avertissement</label><input type="text" value="${esc(ex.avertissement)}" oninput="app.setExField(${si},${blocIdx},${ei},'avertissement',this.value)"></div>
+    </div>
+
+    <div class="prog-box">
+      <label class="chk ${p.activee?'on':''}">
+        <input type="checkbox" ${p.activee?'checked':''} onchange="app.setProgField(${si},${blocIdx},${ei},'activee',this.checked); app.render();"> Surcharge progressive activée
+      </label>
+      ${p.activee ? `
+      <div class="row tight" style="margin-top:8px">
+        <div><label>Type d'exercice</label>
+          <select onchange="app.setProgField(${si},${blocIdx},${ei},'typeExercice',this.value); app.render();">
+            ${TYPE_EXERCICE.map(([v,l]) => `<option value="${v}" ${p.typeExercice===v?'selected':''}>${l}</option>`).join("")}
+          </select>
+        </div>
+        <div><label>Système</label>
+          <select onchange="app.setProgField(${si},${blocIdx},${ei},'systeme',this.value); app.render();">
+            ${SYSTEME_PROGRESSION.map(([v,l]) => `<option value="${v}" ${p.systeme===v?'selected':''}>${l}</option>`).join("")}
+          </select>
+        </div>
+        <div><label>Reps min</label><input type="number" value="${p.repsMin ?? ''}" oninput="app.setProgField(${si},${blocIdx},${ei},'repsMin',this.value===''?null:parseInt(this.value))"></div>
+        <div><label>Reps max</label><input type="number" value="${p.repsMax ?? ''}" oninput="app.setProgField(${si},${blocIdx},${ei},'repsMax',this.value===''?null:parseInt(this.value))"></div>
+      </div>
+      <div class="row tight">
+        <div><label>Incrément kg manuel (override)</label><input type="number" step="0.5" value="${p.incrementKg ?? ''}" oninput="app.setProgField(${si},${blocIdx},${ei},'incrementKg',this.value===''?null:parseFloat(this.value))"></div>
+        <div><label>Incrément durée (s)</label><input type="number" value="${p.incrementDureeSec ?? 5}" oninput="app.setProgField(${si},${blocIdx},${ei},'incrementDureeSec',parseInt(this.value)||0)"></div>
+        <div><label>Seuil deload (échecs)</label><input type="number" value="${p.seuilDeload ?? 3}" oninput="app.setProgField(${si},${blocIdx},${ei},'seuilDeload',parseInt(this.value)||0)"></div>
+        <div><label>% cible override</label><input type="number" step="0.5" value="${p.incrementPct ?? ''}" oninput="app.setProgField(${si},${blocIdx},${ei},'incrementPct',this.value===''?null:parseFloat(this.value))"></div>
+      </div>
+      <div class="prog-hint">%cible appliqué : <b>${pct}%</b> de la charge actuelle (plafonné à +10%), ${p.systeme==='DOUBLE' ? 'montée déclenchée quand reps max atteint puis retour à reps min' : p.systeme==='TEMPORELLE' ? 'progression sur la durée tenue' : 'montée à chaque séance réussie'}.</div>
+      ${nextChargeLine}
+      ` : ''}
+    </div>
+  </div>`;
+}
+
+function renderBloc(si, bi){
+  const bloc = state.seances[si].blocs[bi];
+  return `
+  <div class="bloc-card">
+    <div class="bloc-head">
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <span class="bloc-tag tag-${bloc.type}">${BLOC_TYPES.find(t=>t[0]===bloc.type)[1]}</span>
+        <input type="text" placeholder="Nom du bloc" style="flex:1;font-weight:700" value="${esc(bloc.nom)}" oninput="app.setBlocField(${si},${bi},'nom',this.value)">
+      </div>
+      <button class="btn small danger" onclick="app.removeBloc(${si},${bi})">✕ bloc</button>
+    </div>
+    <div class="row tight">
+      <div><label>Type</label>
+        <select onchange="app.setBlocField(${si},${bi},'type',this.value); app.render();">
+          ${BLOC_TYPES.map(([v,l]) => `<option value="${v}" ${bloc.type===v?'selected':''}>${l}</option>`).join("")}
+        </select>
+      </div>
+      <div><label>Durée (min)</label><input type="number" min="0" value="${bloc.dureeMin ?? ''}" oninput="app.setBlocField(${si},${bi},'dureeMin',this.value===''?null:parseInt(this.value))"></div>
+      <div><label>Repos inter-exo (s)</label><input type="number" value="${bloc.tempsReposInterSec ?? 20}" oninput="app.setBlocField(${si},${bi},'tempsReposInterSec',parseInt(this.value)||0)"></div>
+      <div><label>Repos fin de round (s)</label><input type="number" value="${bloc.tempsReposFinRoundSec ?? 120}" oninput="app.setBlocField(${si},${bi},'tempsReposFinRoundSec',parseInt(this.value)||0)"></div>
+    </div>
+    <div><label>Description</label><textarea oninput="app.setBlocField(${si},${bi},'description',this.value)">${esc(bloc.description)}</textarea></div>
+    ${bloc.exercices.map((_, ei) => renderExercice(si, bi, ei)).join("") || '<div class="empty">Aucun exercice dans ce bloc.</div>'}
+    <button class="btn small secondary" onclick="app.addExercice(${si},${bi})">+ exercice dans ce bloc</button>
+  </div>`;
+}
+
+function renderDatesSection(si){
+  const s = state.seances[si];
+  return `
+    <h3 style="font-size:13px;margin:16px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Dates planifiées (optionnel)</h3>
+    <div class="checks" style="margin-bottom:8px">
+      ${s.dates.map((d,di) => `<span class="date-chip">📅 ${d}<button onclick="app.removeDate(${si},${di})">✕</button></span>`).join("") || `<span class="empty">Aucune date — la séance restera un template non planifié, affectable plus tard dans l'app.</span>`}
+    </div>
+    <div class="row tight">
+      <div><label>Ajouter une date</label><input type="date" id="dateAdd_${si}"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn small secondary" onclick="app.addDateFromInput(${si})">+ date</button></div>
+    </div>
+    <details>
+      <summary>Générateur de récurrence (plusieurs dates d'un coup)</summary>
+      <div class="row tight" style="margin-top:8px">
+        <div><label>Début</label><input type="date" id="genStart_${si}"></div>
+        <div><label>Intervalle (jours)</label><input type="number" id="genInterval_${si}" value="7"></div>
+        <div><label>Occurrences</label><input type="number" id="genCount_${si}" value="4"></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn small secondary" onclick="app.generateDatesFromInputs(${si})">Générer</button></div>
+      </div>
+    </details>`;
+}
+
+function renderSeance(si){
+  const s = state.seances[si];
+  return `
+  <div class="seance-card">
+    <div class="seance-head">
+      <input type="text" placeholder="Nom de la séance" class="seance-title" style="flex:1;font-size:15px" value="${esc(s.nom)}" oninput="app.setSeanceField(${si},'nom',this.value)">
+      <button class="btn small danger" onclick="app.removeSeance(${si})">✕ séance</button>
+    </div>
+    <div class="row tight">
+      <div><label>Durée estimée (min)</label><input type="number" min="0" value="${s.dureeEstimeeMin ?? 60}" oninput="app.setSeanceField(${si},'dureeEstimeeMin',parseInt(this.value)||0)"></div>
+      <div style="flex:2"><label>Groupes musculaires</label>
+        <div class="checks">${MUSCLE_GROUPS.map(mg => `
+          <label class="chk ${s.groupesMusculaires.includes(mg)?'on':''}">
+            <input type="checkbox" ${s.groupesMusculaires.includes(mg)?'checked':''} onchange="app.toggleMuscle(${si},'${mg}',this.checked); app.render();">${mg}
+          </label>`).join("")}
+        </div>
+      </div>
+    </div>
+    <div><label>Notes</label><textarea oninput="app.setSeanceField(${si},'notes',this.value)">${esc(s.notes)}</textarea></div>
+
+    <h3 style="font-size:13px;margin:14px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Blocs (échauffement, superset, circuit...)</h3>
+    ${s.blocs.map((_, bi) => renderBloc(si, bi)).join("")}
+    <button class="btn small secondary" onclick="app.addBloc(${si})">+ bloc</button>
+
+    <h3 style="font-size:13px;margin:16px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Exercices libres (hors bloc)</h3>
+    ${s.exercicesLibres.map((_, ei) => renderExercice(si, null, ei)).join("") || '<div class="empty">Aucun exercice libre.</div>'}
+    <button class="btn small secondary" onclick="app.addExercice(${si},null)">+ exercice libre</button>
+
+    ${renderDatesSection(si)}
+  </div>`;
+}
+
+function render(){
+  const root = document.getElementById("seancesRoot");
+  root.innerHTML = state.seances.length
+    ? state.seances.map((_, si) => renderSeance(si)).join("")
+    : '<div class="empty">Aucune séance. Clique sur "+ Nouvelle séance" pour commencer.</div>';
+  renderSummary();
+  saveDraft();
+}
+
+function renderSummary(){
+  const nSeances = state.seances.length;
+  const nBlocs = state.seances.reduce((a,s) => a + s.blocs.length, 0);
+  const nExercices = state.seances.reduce((a,s) => a + s.exercicesLibres.length + s.blocs.reduce((b,bl)=>b+bl.exercices.length,0), 0);
+  const nProg = state.seances.reduce((a,s) => a + s.exercicesLibres.filter(e=>e.progression.activee).length + s.blocs.reduce((b,bl)=>b+bl.exercices.filter(e=>e.progression.activee).length,0), 0);
+  const nDates = state.seances.reduce((a,s) => a + (s.dates ? s.dates.length : 0), 0);
+  document.getElementById("summaryGrid").innerHTML = `
+    <div class="cell"><b>${nSeances}</b><span>séance(s)</span></div>
+    <div class="cell"><b>${nBlocs}</b><span>bloc(s)</span></div>
+    <div class="cell"><b>${nExercices}</b><span>exercice(s)</span></div>
+    <div class="cell"><b>${nProg}</b><span>avec progression</span></div>
+    <div class="cell"><b>${nDates}</b><span>date(s) planifiée(s)</span></div>
+    <div class="cell"><b>${state.customExercises.length}</b><span>exercice(s) custom</span></div>
+  `;
+}
+
+function renderEquipmentStatus(){
+  const el = document.getElementById("equipmentStatus");
+  if (!state.equipment){
+    el.innerHTML = `<span class="badge warn">Aucun matériel chargé</span> les charges cibles resteront en texte libre, sans vérification de faisabilité.`;
+    return;
+  }
+  const cats = state.equipment.selectedCategories || [];
+  el.innerHTML = `<span class="badge">Matériel chargé</span> ${cats.length} catégorie(s) sélectionnée(s) — les charges cibles seront vérifiées/suggérées selon ce matériel.`;
+}
+
+function renderCatalogStatus(){
+  const total = state.catalog.length;
+  const custom = state.customExercises.length;
+  document.getElementById("catalogStatus").innerHTML = total
+    ? `<span class="badge">Catalogue chargé</span> ${total} exercice(s) existant(s) + ${custom} custom créé(s) ici — disponibles en autocomplete.`
+    : `<span class="badge warn">Aucun catalogue chargé</span> ${custom} exercice(s) custom créé(s) ici disponibles en autocomplete.`;
+  const dl = document.getElementById("exerciseNames");
+  const names = new Set([...state.catalog.map(c=>c.name), ...state.customExercises.map(c=>c.name)]);
+  dl.innerHTML = [...names].sort().map(n => `<option value="${esc(n)}">`).join("");
+}
+
+// ── API exposée aux attributs onclick/oninput ───────────────────────────────
+const app = {
+  addSeance(){ state.seances.push(newSeance()); render(); },
+  removeSeance(si){ if(!confirm("Supprimer cette séance ?")) return; state.seances.splice(si,1); render(); },
+  setSeanceField(si, field, val){ state.seances[si][field] = val; saveDraft(); },
+  toggleMuscle(si, mg, checked){
+    const arr = state.seances[si].groupesMusculaires;
+    const idx = arr.indexOf(mg);
+    if (checked && idx === -1) arr.push(mg);
+    if (!checked && idx !== -1) arr.splice(idx,1);
+  },
+
+  addBloc(si){ state.seances[si].blocs.push(newBloc()); render(); },
+  removeBloc(si,bi){ if(!confirm("Supprimer ce bloc et ses exercices ?")) return; state.seances[si].blocs.splice(bi,1); render(); },
+  setBlocField(si,bi,field,val){ state.seances[si].blocs[bi][field] = val; saveDraft(); },
+
+  addExercice(si, bi){
+    const target = bi === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[bi].exercices;
+    target.push(newExercice());
+    render();
+  },
+  removeExercice(si,bi,ei){
+    const target = bi === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[bi].exercices;
+    target.splice(ei,1); render();
+  },
+  setExField(si,bi,ei,field,val){
+    const target = bi === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[bi].exercices;
+    target[ei][field] = val; saveDraft();
+  },
+  setProgField(si,bi,ei,field,val){
+    const target = bi === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[bi].exercices;
+    target[ei].progression[field] = val; saveDraft();
+  },
+  updateChargeHint(si,bi,ei){
+    const target = bi === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[bi].exercices;
+    const el = document.getElementById(`chargeHint_${si}_${bi}_${ei}`);
+    if (el) el.innerHTML = chargeHintInner(si, bi, ei, target[ei]);
+  },
+  snapCharge(si,bi,ei,value){
+    const target = bi === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[bi].exercices;
+    target[ei].chargeCible = `${fmtKg(value)} kg`;
+    saveDraft(); render();
+  },
+
+  addDateFromInput(si){
+    const input = document.getElementById(`dateAdd_${si}`);
+    if (!input.value) return;
+    app.addDate(si, input.value);
+  },
+  addDate(si, dateStr){
+    const arr = state.seances[si].dates;
+    if (!arr.includes(dateStr)) arr.push(dateStr);
+    arr.sort();
+    render();
+  },
+  removeDate(si, di){ state.seances[si].dates.splice(di,1); render(); },
+  generateDatesFromInputs(si){
+    const start = document.getElementById(`genStart_${si}`).value;
+    const interval = parseInt(document.getElementById(`genInterval_${si}`).value) || 7;
+    const count = parseInt(document.getElementById(`genCount_${si}`).value) || 1;
+    if (!start) { alert("Choisis une date de début pour le générateur."); return; }
+    // Arithmétique en UTC pur (pas de new Date(str) suivi de toISOString qui convertit via le
+    // fuseau local et peut décaler la date d'un jour) — Date.UTC gère aussi le débordement de mois.
+    const [y, m, d] = start.split("-").map(Number);
+    const arr = state.seances[si].dates;
+    for (let i = 0; i < count; i++){
+      const dt = new Date(Date.UTC(y, m - 1, d + i * interval));
+      const iso = dt.toISOString().slice(0,10);
+      if (!arr.includes(iso)) arr.push(iso);
+    }
+    arr.sort();
+    render();
+  },
+
+  quickAddExercise(si,bi,ei){
+    const name = prompt("Nom du nouvel exercice custom :");
+    if (!name) return;
+    const catList = EXERCISE_CATEGORIES.map(([v,l]) => `${v} (${l})`).join(", ");
+    const category = prompt(`Catégorie (${catList}) :`, "OTHER") || "OTHER";
+    const musclesRaw = prompt(`Groupes musculaires, séparés par des virgules (${MUSCLE_GROUPS.join(", ")}) :`, "AUTRE") || "AUTRE";
+    const muscleGroups = musclesRaw.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean);
+    const musclePrimary = muscleGroups[0] || "AUTRE";
+    const exerciseType = prompt("Type (Pluri / Mono / libre) :", "Pluri") || "";
+    const equipRaw = prompt("Équipement, séparé par des virgules (ex: Haltères, Banc plat) :", "") || "";
+    const equipment = equipRaw.split(",").map(s=>s.trim()).filter(Boolean);
+    state.customExercises.push({ name, description:"", category: category.split(" ")[0], muscleGroups, musclePrimary, exerciseType, equipment });
+    const target = bi === null ? state.seances[si].exercicesLibres : state.seances[si].blocs[bi].exercices;
+    target[ei].exercice = name;
+    renderCatalogStatus();
+    render();
+  },
+
+  loadCatalogFromPaste(){
+    const raw = document.getElementById("catalogPaste").value.trim();
+    if (!raw) { alert("Colle d'abord le JSON du catalogue."); return; }
+    try {
+      const parsed = JSON.parse(raw);
+      const list = Array.isArray(parsed) ? parsed : (parsed.exercises || []);
+      if (!Array.isArray(list) || !list.length) throw new Error("format inattendu");
+      state.catalog = list.map(e => ({
+        name: e.name, category: e.category || "", muscleGroups: e.muscleGroups || [],
+        musclePrimary: e.musclePrimary || "", exerciseType: e.exerciseType || "", equipment: e.equipment || [],
+      }));
+      renderCatalogStatus(); saveDraft();
+    } catch(e) {
+      alert("JSON de catalogue invalide : " + e.message);
+    }
+  },
+  clearCatalog(){ state.catalog = []; renderCatalogStatus(); saveDraft(); },
+
+  loadEquipmentFromPaste(){
+    const raw = document.getElementById("equipmentPaste").value.trim();
+    if (!raw) { alert("Colle d'abord le JSON de Mon matériel."); return; }
+    try {
+      const parsed = JSON.parse(raw);
+      // Accepte le nouvel export dédié ({config:{...}}), le gros export complet ({equipmentConfig:{...}}),
+      // ou directement l'objet EquipmentConfigDto brut.
+      const config = parsed.config || parsed.equipmentConfig || parsed;
+      if (!config || typeof config !== "object") throw new Error("format inattendu");
+      state.equipment = {
+        selectedCategories: config.selectedCategories || [],
+        pasParCategorie: config.pasParCategorie || {},
+        halteres: config.halteres || { poidsFixes: [], chargeable: null },
+        barre: config.barre || null,
+        kettlebell: config.kettlebell || null,
+        cable: config.cable || null,
+      };
+      renderEquipmentStatus(); saveDraft(); render();
+    } catch(e) {
+      alert("JSON de matériel invalide : " + e.message);
+    }
+  },
+  clearEquipment(){ state.equipment = null; renderEquipmentStatus(); saveDraft(); render(); },
+
+  importRawJson(){
+    const raw = document.getElementById("rawJson").value.trim();
+    const statusEl = document.getElementById("rawJsonStatus");
+    if (!raw) { statusEl.textContent = "Rien à charger."; return; }
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.seances)) state.seances = parsed.seances.map(normalizeSeance);
+      if (Array.isArray(parsed.nouveauxExercices)) state.customExercises = parsed.nouveauxExercices;
+      render(); renderCatalogStatus();
+      statusEl.textContent = `Chargé : ${state.seances.length} séance(s), ${state.customExercises.length} exercice(s) custom.`;
+    } catch(e) {
+      statusEl.textContent = "Erreur JSON : " + e.message;
+    }
+  },
+  exportRawJson(){
+    const data = { seances: state.seances, nouveauxExercices: state.customExercises };
+    document.getElementById("rawJson").value = JSON.stringify(data, null, 2);
+    document.getElementById("rawJsonStatus").textContent = "État actuel copié dans la zone de texte ci-dessus.";
+  },
+
+  resetAll(){
+    if (!confirm("Tout réinitialiser (séances, exercices custom, catalogue et matériel chargés) ? Cette action est irréversible.")) return;
+    state = { catalog: [], customExercises: [], equipment: null, seances: [] };
+    document.getElementById("catalogPaste").value = "";
+    document.getElementById("equipmentPaste").value = "";
+    document.getElementById("rawJson").value = "";
+    document.getElementById("rawJsonStatus").textContent = "";
+    render(); renderCatalogStatus(); renderEquipmentStatus();
+  },
+
+  downloadExport(){
+    if (!state.seances.length) { alert("Ajoute au moins une séance avant d'exporter."); return; }
+    const now = new Date();
+    const iso = now.toISOString();
+    let counter = Date.now() * 100 + Math.floor(Math.random()*100);
+    const nextId = () => counter++;
+
+    function buildExerciceDto(ex, seanceId, blocId, position){
+      const p = ex.progression || {};
+      return {
+        id: nextId(), seanceId, exerciceId: 0, exerciceName: ex.exercice || "",
+        instanceSeanceId: null, blocId, supersetGroupe: ex.supersetGroupe || null,
+        position, nombreSeriesPrevues: ex.nombreSeriesPrevues ?? 3,
+        repsCibles: ex.repsCibles || "", chargeCible: ex.chargeCible || "", tempo: ex.tempo || "",
+        repsType: ex.repsType || "REPS", tempsReposSec: ex.tempsReposSec ?? 90,
+        consigneCle: ex.consigneCle || "", equipement: ex.equipement || "", avertissement: ex.avertissement || "",
+        isBilateral: !!ex.isBilateral,
+        progressionActivee: !!p.activee,
+        systemeProgression: p.activee ? (p.systeme || null) : null,
+        repsMin: p.activee ? (p.repsMin ?? null) : null,
+        repsMax: p.activee ? (p.repsMax ?? null) : null,
+        incrementKg: p.activee ? (p.incrementKg ?? null) : null,
+        incrementDureeSec: p.incrementDureeSec ?? 5,
+        seuilDeload: p.seuilDeload ?? 3,
+        typeExercice: p.activee ? (p.typeExercice || null) : null,
+        incrementPct: p.activee ? (p.incrementPct ?? null) : null,
+      };
+    }
+
+    const seanceIds = [];
+    const strengthTemplates = state.seances.map(seance => {
+      const seanceId = nextId();
+      seanceIds.push(seanceId);
+      const blocs = []; const exercices = []; let position = 0;
+      seance.blocs.forEach((bloc, bi) => {
+        const blocId = nextId();
+        blocs.push({
+          id: blocId, seanceId, nom: bloc.nom || "Bloc", type: bloc.type,
+          position: bi, dureeMin: bloc.dureeMin ?? null, description: bloc.description || "",
+          tempsReposInterSec: bloc.tempsReposInterSec ?? 20, tempsReposFinRoundSec: bloc.tempsReposFinRoundSec ?? 120,
+          instanceSeanceId: null,
+        });
+        bloc.exercices.forEach(ex => exercices.push(buildExerciceDto(ex, seanceId, blocId, position++)));
+      });
+      seance.exercicesLibres.forEach(ex => exercices.push(buildExerciceDto(ex, seanceId, null, position++)));
+      return {
+        seance: {
+          id: seanceId, nom: seance.nom || "Séance", groupesMusculaires: seance.groupesMusculaires || [],
+          dureeEstimeeMin: seance.dureeEstimeeMin || 60, notes: seance.notes || "",
+          seanceCategory: "STRENGTH", createdAt: iso, updatedAt: iso,
+        },
+        blocs, exercices,
+      };
+    });
+
+    // Dates planifiées → instances vides (blocs/exercices copiés depuis le template au premier
+    // lancement dans l'app, isolation template/instance v13 — voir STRENGTH_FLOW.md).
+    const planned = [];
+    state.seances.forEach((seance, idx) => {
+      const seanceId = seanceIds[idx];
+      (seance.dates || []).forEach(dateStr => {
+        planned.push({
+          instance: {
+            id: nextId(), seanceId, date: dateStr, notes: "",
+            isCompleted: false, completedAt: null, durationSeconds: 0, createdAt: iso,
+          },
+          series: [], blocs: [], exercices: [],
+        });
+      });
+    });
+
+    const customExercises = state.customExercises.map(c => ({
+      id: 0, name: c.name, description: c.description || "", category: c.category || "",
+      muscleGroups: c.muscleGroups || [], exerciseType: c.exerciseType || "",
+      equipment: c.equipment || [], musclePrimary: c.musclePrimary || "",
+    }));
+
+    const exportData = {
+      version: "3.2", exportDate: iso, strengthTemplates,
+      strengthSessions: { completed: [], planned },
+      customExercises,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const ts = iso.replace(/[:.]/g,"-").slice(0,16);
+    a.href = url; a.download = `pandafit-seances-${ts}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  render, renderSummary, renderCatalogStatus,
+};
+window.app = app;
+
+document.getElementById("catalogFile").addEventListener("change", (evt) => {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("catalogPaste").value = reader.result;
+    app.loadCatalogFromPaste();
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById("equipmentFile").addEventListener("change", (evt) => {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("equipmentPaste").value = reader.result;
+    app.loadEquipmentFromPaste();
+  };
+  reader.readAsText(file);
+});
+
+// ── Démarrage ────────────────────────────────────────────────────────────
+loadDraft();
+if (!state.seances.length) state.seances.push(newSeance());
+render();
+renderCatalogStatus();
+renderEquipmentStatus();
+</script>
+</body>
+</html>

@@ -1,8 +1,6 @@
 package com.pandafit.feature.cycling.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,7 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,7 +52,15 @@ fun CyclingScreen(
     viewModel: CyclingListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
+    // "Séance directe" : la sortie libre est créée en base puis on bascule directement sur l'exécution GPS.
+    LaunchedEffect(uiState.quickStartWorkoutId) {
+        uiState.quickStartWorkoutId?.let { id ->
+            onNavigateToExecute(id)
+            viewModel.onQuickStartHandled()
+        }
+    }
+
     val isEmpty = uiState.templates.isEmpty() && uiState.planned.isEmpty() && uiState.completed.isEmpty()
 
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
@@ -143,7 +149,6 @@ fun CyclingScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
@@ -159,7 +164,12 @@ fun CyclingScreen(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaBlue.copy(alpha = 0.08f)),
                 )
             } else {
-                PandaTopBar(title = stringResource(R.string.cycling_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(
+                    title = stringResource(R.string.cycling_screen_title),
+                    onOpenDrawer = onOpenDrawer,
+                    containerColor = PandaBlue,
+                    contentColor = Color.White,
+                )
             }
         },
         floatingActionButton = {
@@ -181,7 +191,7 @@ fun CyclingScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.cycling_screen_fab_direct)) },
                             leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = PandaBlue, modifier = Modifier.size(18.dp)) },
-                            onClick = { showFabMenu = false; onNavigateToCreatePlanned() },
+                            onClick = { showFabMenu = false; viewModel.quickStartDirectRide() },
                         )
                     }
                 }
@@ -247,6 +257,7 @@ fun CyclingScreen(
                                 alpha = 0.75f,
                                 isSelected = w.id in selectedIds,
                                 isSelectionMode = isSelectionMode,
+                                routeThumbnail = uiState.routeThumbnails[w.id],
                                 onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToReport(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
@@ -298,25 +309,22 @@ private fun CyclingWorkoutCard(
     onDuplicate: (() -> Unit)? = null,
     onAssign: (() -> Unit)? = null,
     onReschedule: (() -> Unit)? = null,
+    routeThumbnail: List<Pair<Double, Double>>? = null,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
-    val borderColor = if (isSelected) PandaBlue else PandaBlue.copy(alpha = 0f)
-    val bgColor = if (isSelected) PandaBlue.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
-
-    Card(
+    PandaSportCard(
+        accentColor = PandaBlue,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .alpha(alpha)
-            .border(if (isSelected) 2.dp else 0.dp, borderColor, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .alpha(alpha),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {
@@ -350,6 +358,24 @@ private fun CyclingWorkoutCard(
                         Text(workout.notes, style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                     }
                 }
+                val stats = buildList {
+                    workout.resultDistanceKm?.let { add("${"%.1f".format(it)} km") }
+                    workout.resultDurationSec?.let {
+                        val h = it / 3600; val m = (it % 3600) / 60
+                        add(if (h > 0) "${h}h${m.toString().padStart(2, '0')}" else "${m}min")
+                    }
+                    workout.resultElevationM?.let { add("↑ ${it}m") }
+                }.joinToString(" · ")
+                if (stats.isNotBlank()) {
+                    Text(stats, style = MaterialTheme.typography.labelMedium, color = PandaBlue, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            if (!routeThumbnail.isNullOrEmpty() && routeThumbnail.size >= 2) {
+                com.pandafit.designsystem.components.GpsRouteThumbnail(
+                    points = routeThumbnail,
+                    color = PandaBlue,
+                    modifier = Modifier.size(48.dp).padding(end = 4.dp),
+                )
             }
             if (!isSelectionMode) {
                 if (onDuplicate != null) {

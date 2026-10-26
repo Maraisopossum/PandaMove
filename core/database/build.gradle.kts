@@ -23,6 +23,18 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // Robolectric a besoin des ressources Android + des JSON de schéma Room exportés
+    // (schemas/) comme assets de test pour que MigrationTestHelper puisse rejouer les
+    // anciennes versions du schéma.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+    sourceSets {
+        getByName("test").assets.srcDirs("$projectDir/schemas")
+    }
 }
 
 room {
@@ -47,5 +59,10 @@ dependencies {
     ksp(libs.hilt.work.compiler)
     implementation(libs.documentfile)
 
+    implementation(libs.garmin.fit)
+
     testImplementation(libs.junit)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

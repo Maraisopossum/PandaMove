@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelfImprovement
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.outlined.DirectionsBike
 import androidx.compose.material.icons.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Timer
@@ -105,6 +107,13 @@ sealed class PandaFitDestination(
         selectedIcon = Icons.Filled.Landscape,
         unselectedIcon = Icons.Filled.Landscape,
     )
+
+    data object Heatmap : PandaFitDestination(
+        route = "heatmap",
+        label = "Heatmap",
+        selectedIcon = Icons.Filled.Map,
+        unselectedIcon = Icons.Outlined.Map,
+    )
 }
 
 val TOP_LEVEL_DESTINATIONS = listOf(
@@ -122,13 +131,15 @@ val TOP_LEVEL_DESTINATIONS = listOf(
 object RunningRoutes {
     const val LIST   = "running"
     const val CREATE = "running/create"
-    const val DETAIL = "running/{workoutId}"          // rapport lecture seule
+    const val DETAIL = "running/{workoutId}"          // résultat commun (Hero/Analyse/Parcours/Métriques)
+    const val RAW_DETAIL = "running/{workoutId}/full" // détail brut (étapes/intervalles/note)
     const val EDIT   = "running/{workoutId}/edit"     // formulaire modification
     const val EXECUTE = "running/{workoutId}/execute"
 
-    fun detail(id: Long)  = "running/$id"
-    fun edit(id: Long)    = "running/$id/edit"
-    fun execute(id: Long) = "running/$id/execute"
+    fun detail(id: Long)    = "running/$id"
+    fun rawDetail(id: Long) = "running/$id/full"
+    fun edit(id: Long)      = "running/$id/edit"
+    fun execute(id: Long)   = "running/$id/execute"
 }
 
 object StrengthRoutes {
@@ -184,17 +195,19 @@ object CyclingRoutes {
 
 object ProfileRoutes {
     const val STATS_CONFIG = "profile/stats-config"
-    const val TCX_IMPORT   = "profile/tcx-import"
+    const val ACTIVITY_IMPORT = "profile/activity-import"
 }
 
 object HikingRoutes {
-    const val LIST   = "hiking"
-    const val ENCODE = "hiking/encode"
-    const val REPORT = "hiking/{workoutId}"
-    const val EDIT   = "hiking/{workoutId}/edit"
+    const val LIST    = "hiking"
+    const val ENCODE  = "hiking/encode"
+    const val REPORT  = "hiking/{workoutId}"
+    const val EDIT    = "hiking/{workoutId}/edit"
+    const val EXECUTE = "hiking/{workoutId}/execute"
 
-    fun report(id: Long) = "hiking/$id"
-    fun edit(id: Long)   = "hiking/$id/edit"
+    fun report(id: Long)  = "hiking/$id"
+    fun edit(id: Long)    = "hiking/$id/edit"
+    fun execute(id: Long) = "hiking/$id/execute"
 }
 
 object BreathingRoutes {

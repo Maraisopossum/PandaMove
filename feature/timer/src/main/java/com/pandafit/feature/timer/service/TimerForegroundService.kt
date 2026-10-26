@@ -11,6 +11,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.pandafit.core.designsystem.R as DesignSystemR
 
 /**
  * Service de premier plan qui maintient le processus en vie pendant qu'un minuteur tourne.
@@ -73,7 +74,7 @@ class TimerForegroundService : Service() {
             return NotificationCompat.Builder(context, CHANNEL_ID)
                 .setContentTitle(time)
                 .setContentText(label)
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm) // TODO : remplacer par l'icône de l'app
+                .setSmallIcon(DesignSystemR.drawable.ic_notification_brand)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)

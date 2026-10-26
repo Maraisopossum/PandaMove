@@ -37,26 +37,20 @@ val MONUMENT_PRESETS = listOf(
     WeightPreset("🎡", "Grande Roue Paris", 800_000.0),
 )
 
+// Un seul équivalent configurable par discipline (distance/poids) + le sommet/monument associé,
+// pour limiter le bruit visuel des "fun cards" (au lieu de 2-3 équivalents par discipline avant).
 data class StatsConfig(
-    val runDist1Idx: Int = 0,    // défaut Lille→NY
-    val runDist2Idx: Int = 1,    // défaut Lille→Lune
-    val runSummitIdx: Int = 0,   // défaut Mont Blanc
-    val strWeight1Idx: Int = 0,  // défaut Panda
-    val strWeight2Idx: Int = 2,  // défaut Éléphant
-    val strWeight3Idx: Int = 4,  // défaut Voiture
+    val runDistIdx: Int = 0,    // défaut Lille→NY
+    val runSummitIdx: Int = 0,  // défaut Mont Blanc
+    val strWeightIdx: Int = 0,  // défaut Panda
     val strMonumentIdx: Int = 0, // défaut Tour Eiffel
-    val cycDist1Idx: Int = 2,    // défaut Paris→BXL (315 km)
-    val cycDist2Idx: Int = 5,    // défaut Tour du Monde (40075 km)
-    val cycSummitIdx: Int = 0,   // défaut Mont Blanc
+    val cycDistIdx: Int = 2,    // défaut Paris→BXL (315 km)
+    val cycSummitIdx: Int = 0,  // défaut Mont Blanc
 ) {
-    val runDist1 get() = DISTANCE_PRESETS[runDist1Idx.coerceIn(DISTANCE_PRESETS.indices)]
-    val runDist2 get() = DISTANCE_PRESETS[runDist2Idx.coerceIn(DISTANCE_PRESETS.indices)]
+    val runDist get() = DISTANCE_PRESETS[runDistIdx.coerceIn(DISTANCE_PRESETS.indices)]
     val runSummit get() = SUMMIT_PRESETS[runSummitIdx.coerceIn(SUMMIT_PRESETS.indices)]
-    val strWeight1 get() = WEIGHT_PRESETS[strWeight1Idx.coerceIn(WEIGHT_PRESETS.indices)]
-    val strWeight2 get() = WEIGHT_PRESETS[strWeight2Idx.coerceIn(WEIGHT_PRESETS.indices)]
-    val strWeight3 get() = WEIGHT_PRESETS[strWeight3Idx.coerceIn(WEIGHT_PRESETS.indices)]
+    val strWeight get() = WEIGHT_PRESETS[strWeightIdx.coerceIn(WEIGHT_PRESETS.indices)]
     val strMonument get() = MONUMENT_PRESETS[strMonumentIdx.coerceIn(MONUMENT_PRESETS.indices)]
-    val cycDist1 get() = DISTANCE_PRESETS[cycDist1Idx.coerceIn(DISTANCE_PRESETS.indices)]
-    val cycDist2 get() = DISTANCE_PRESETS[cycDist2Idx.coerceIn(DISTANCE_PRESETS.indices)]
+    val cycDist get() = DISTANCE_PRESETS[cycDistIdx.coerceIn(DISTANCE_PRESETS.indices)]
     val cycSummit get() = SUMMIT_PRESETS[cycSummitIdx.coerceIn(SUMMIT_PRESETS.indices)]
 }

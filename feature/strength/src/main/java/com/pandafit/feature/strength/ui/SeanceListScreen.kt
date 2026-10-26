@@ -1,7 +1,5 @@
 package com.pandafit.feature.strength.ui
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,8 +25,6 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,7 +38,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,7 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -72,6 +67,7 @@ import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
 import com.pandafit.designsystem.theme.PandaPurple
@@ -94,7 +90,6 @@ fun SeanceListScreen(
     viewModel: SeanceListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     // Navigation après création one-shot
     LaunchedEffect(Unit) {
@@ -274,7 +269,6 @@ fun SeanceListScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
@@ -299,7 +293,12 @@ fun SeanceListScreen(
                     ),
                 )
             } else {
-                PandaTopBar(title = stringResource(R.string.strength_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(
+                    title = stringResource(R.string.strength_screen_title),
+                    onOpenDrawer = onOpenDrawer,
+                    containerColor = PandaPurple,
+                    contentColor = Color.White,
+                )
             }
         },
         floatingActionButton = {
@@ -437,6 +436,34 @@ fun SeanceListScreen(
                             }
                         }
                     }
+
+                    // ===== SÉANCES ARCHIVÉES =====
+                    // Templates masqués par deleteSeances() car ils avaient des instances au moment de
+                    // la suppression. Sélectionner puis supprimer ici purge pour de bon (deleteSeances
+                    // traite un template déjà archivé comme une purge assumée, pas un ré-archivage).
+                    if (uiState.archivedSeances.isNotEmpty()) {
+                        item { SeanceSectionHeader(stringResource(R.string.seance_list_section_archived)) }
+                        item {
+                            Text(
+                                stringResource(R.string.seance_list_archived_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = PandaSubtext,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                            )
+                        }
+                        items(uiState.archivedSeances, key = { "sa_${it.id}" }) { seance ->
+                            val isSelected = seance.id in selectedSeanceIds
+                            androidx.compose.foundation.layout.Box(modifier = Modifier.alpha(0.6f)) {
+                                SelectableSeanceTypeCard(
+                                    seance = seance,
+                                    isSelected = isSelected,
+                                    isSelectionMode = isSelectionMode,
+                                    onClick = { toggleSeance(seance.id) },
+                                    onLongClick = { selectedSeanceIds = selectedSeanceIds + seance.id },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -464,21 +491,17 @@ private fun SelectableSeanceTypeCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val borderColor = if (isSelected) PandaPurple else PandaPurple.copy(alpha = 0f)
-    val bgColor = if (isSelected) PandaPurple.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
-
-    Card(
+    PandaSportCard(
+        accentColor = PandaPurple,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .border(if (isSelected) 2.dp else 0.dp, borderColor, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {
@@ -535,26 +558,21 @@ private fun SelectableInstanceCard(
     onLongClick: () -> Unit,
 ) {
     val isCompleted = instance.isCompleted
-    val bgColor = when {
-        isSelected -> PandaPurple.copy(alpha = 0.1f)
-        else -> MaterialTheme.colorScheme.surface
-    }
     val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale.FRENCH)
     val dayName = instance.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.FRENCH).replaceFirstChar { it.uppercase() }
 
-    Card(
+    PandaSportCard(
+        accentColor = PandaPurple,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .alpha(if (isCompleted && !isSelectionMode) 0.75f else 1f)
-            .border(if (isSelected) 2.dp else 0.dp, PandaPurple, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .alpha(if (isCompleted && !isSelectionMode) 0.75f else 1f),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {

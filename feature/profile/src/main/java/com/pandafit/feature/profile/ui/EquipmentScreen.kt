@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,12 +31,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,7 +49,6 @@ import com.pandafit.core.database.catalog.EquipmentCategory
 import com.pandafit.core.database.catalog.chargesAtteignablesPour
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.theme.PandaGreen
-import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.profile.R
 import com.pandafit.feature.profile.viewmodel.EquipmentViewModel
@@ -64,13 +66,28 @@ fun EquipmentScreen(
     onNavigateBack: () -> Unit,
     viewModel: EquipmentViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val selected by viewModel.selected.collectAsStateWithLifecycle()
     val pasParCategorie by viewModel.pasParCategorie.collectAsStateWithLifecycle()
     val inventaire by viewModel.inventaire.collectAsStateWithLifecycle()
     var dialogOuvert by remember { mutableStateOf<EquipmentCategory?>(null) }
 
+    LaunchedEffect(Unit) {
+        viewModel.shareIntent.collect { intent -> context.startActivity(intent) }
+    }
+
     Scaffold(
-        topBar = { PandaTopBar(title = stringResource(R.string.equipment_screen_title), onNavigateBack = onNavigateBack) },
+        topBar = {
+            PandaTopBar(
+                title = stringResource(R.string.equipment_screen_title),
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    IconButton(onClick = { viewModel.exportEquipment() }) {
+                        Icon(Icons.Default.Share, stringResource(R.string.equipment_export_cd))
+                    }
+                },
+            )
+        },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Column(
@@ -136,7 +153,7 @@ fun EquipmentScreen(
                                         color = PandaSubtext,
                                     )
                                     IconButton(onClick = { dialogOuvert = category }, modifier = Modifier.size(24.dp)) {
-                                        Icon(Icons.Default.Settings, stringResource(R.string.equipment_configure_cd), modifier = Modifier.size(14.dp), tint = PandaPurple)
+                                        Icon(Icons.Default.Settings, stringResource(R.string.equipment_configure_cd), modifier = Modifier.size(14.dp), tint = PandaGreen)
                                     }
                                 }
                             }
@@ -210,7 +227,7 @@ private fun PasStepperField(
                 onClick = { if (valeurKg - step >= min) onValueChange(valeurKg - step) },
                 modifier = Modifier.size(28.dp),
             ) {
-                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(12.dp), tint = PandaPurple)
+                Icon(Icons.Default.Remove, "-", modifier = Modifier.size(12.dp), tint = PandaGreen)
             }
             val display = if (valeurKg == valeurKg.toInt().toFloat()) "${valeurKg.toInt()} kg" else "$valeurKg kg"
             Text(
@@ -224,7 +241,7 @@ private fun PasStepperField(
                 onClick = { onValueChange(valeurKg + step) },
                 modifier = Modifier.size(28.dp),
             ) {
-                Icon(Icons.Default.Add, "+", modifier = Modifier.size(12.dp), tint = PandaPurple)
+                Icon(Icons.Default.Add, "+", modifier = Modifier.size(12.dp), tint = PandaGreen)
             }
         }
     }

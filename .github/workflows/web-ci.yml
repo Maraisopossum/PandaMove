@@ -1,0 +1,34 @@
+# CI de la WebApp PandaMove (distincte de ci.yml, qui couvre l'app Android)
+name: Web CI
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-ci.yml'
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      # Les e2e Playwright (web/e2e/*.spec.ts) ne tournent pas ici : ils exigent Supabase, PowerSync et
+      # des comptes de test (voir web/README.md). Ils se lancent en local avec E2E_REQUIRED=1.

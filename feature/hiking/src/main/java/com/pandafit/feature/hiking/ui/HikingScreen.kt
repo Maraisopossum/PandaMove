@@ -10,13 +10,16 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,6 +40,7 @@ import java.util.Locale
 fun HikingScreen(
     onNavigateToReport: (Long) -> Unit,
     onNavigateToEncode: () -> Unit,
+    onNavigateToExecute: (Long) -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     viewModel: HikingListViewModel = hiltViewModel(),
 ) {
@@ -46,6 +50,14 @@ fun HikingScreen(
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     val isSelectionMode = selectedIds.isNotEmpty()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showFabMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.quickStartWorkoutId) {
+        uiState.quickStartWorkoutId?.let { id ->
+            onNavigateToExecute(id)
+            viewModel.onQuickStartHandled()
+        }
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -84,12 +96,30 @@ fun HikingScreen(
         },
         floatingActionButton = {
             if (!isSelectionMode) {
-                FloatingActionButton(
-                    onClick = onNavigateToEncode,
-                    containerColor = PandaAmber,
-                    contentColor = Color.White,
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.hiking_fab_encode_cd))
+                Box {
+                    FloatingActionButton(
+                        onClick = { showFabMenu = true },
+                        containerColor = PandaAmber,
+                        contentColor = Color.White,
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.hiking_fab_encode_cd))
+                    }
+                    DropdownMenu(
+                        expanded = showFabMenu,
+                        onDismissRequest = { showFabMenu = false },
+                        offset = DpOffset(0.dp, (-8).dp),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.hiking_fab_encode_cd)) },
+                            leadingIcon = { Icon(Icons.Default.Landscape, null, tint = PandaAmber, modifier = Modifier.size(18.dp)) },
+                            onClick = { showFabMenu = false; onNavigateToEncode() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.hiking_fab_seance_directe)) },
+                            leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = PandaAmber, modifier = Modifier.size(18.dp)) },
+                            onClick = { showFabMenu = false; viewModel.quickStartFreeHike() },
+                        )
+                    }
                 }
             }
         },
@@ -128,6 +158,7 @@ fun HikingScreen(
             items(uiState.completed, key = { it.id }) { workout ->
                 HikingWorkoutCard(
                     workout = workout,
+                    routeThumbnail = uiState.routeThumbnails[workout.id],
                     isSelected = workout.id in selectedIds,
                     onClick = {
                         if (isSelectionMode) {
@@ -152,6 +183,7 @@ private fun HikingWorkoutCard(
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    routeThumbnail: List<Pair<Double, Double>>? = null,
 ) {
     val dateFmt = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.FRENCH)
     val dayName = workout.scheduledDate.dayOfWeek
@@ -168,7 +200,7 @@ private fun HikingWorkoutCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .width(4.dp)
@@ -176,7 +208,9 @@ private fun HikingWorkoutCard(
                     .background(PandaAmber)
             )
             Column(
-                modifier = Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 12.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 12.dp)
             ) {
                 Text(
                     workout.name,
@@ -205,6 +239,15 @@ private fun HikingWorkoutCard(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
+            }
+            if (!routeThumbnail.isNullOrEmpty() && routeThumbnail.size >= 2) {
+                com.pandafit.designsystem.components.GpsRouteThumbnail(
+                    points = routeThumbnail,
+                    color = PandaAmber,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(end = 12.dp),
+                )
             }
         }
     }

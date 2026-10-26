@@ -112,6 +112,9 @@ data class ExerciceDto(
     val seuilDeload: Int = 3,
     val typeExercice: String? = null,
     val incrementPct: Float? = null,
+    // Poids de corps — pilote l'ajout de série (plutôt qu'une hausse de charge inexistante) au
+    // plafond de reps en système DOUBLE (ProgressionEngine.proposerMontee, ajouté v3.3)
+    val isBodyweight: Boolean = false,
 )
 
 @Serializable
@@ -276,6 +279,15 @@ data class EquipmentConfigDto(
     val cable: PlageConfig? = null,
 )
 
+/** Export standalone de "Mon matériel" (indépendant du gros export v3.x) — réutilisé par ex. par
+ * support/seance-builder.html pour calculer les charges réellement composables hors de l'app. */
+@Serializable
+data class EquipmentConfigExportDto(
+    val version: String = "1.0",
+    val exportDate: String = "",
+    val config: EquipmentConfigDto = EquipmentConfigDto(),
+)
+
 // ── Exercices personnalisés ───────────────────────────────────────────────────
 
 @Serializable
@@ -288,4 +300,13 @@ data class CustomExerciseDto(
     val exerciseType: String = "",
     val equipment: List<String> = emptyList(),
     val musclePrimary: String = "",
+)
+
+// ── Export/import en masse du catalogue d'exercices (indépendant du gros export v3.x) ─
+
+@Serializable
+data class ExerciseCatalogExportDto(
+    val version: String = "1.0",
+    val exportDate: String = "",
+    val exercises: List<CustomExerciseDto> = emptyList(),
 )

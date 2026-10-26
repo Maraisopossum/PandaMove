@@ -2,9 +2,17 @@ package com.pandafit.core.database.catalog
 
 import com.pandafit.core.database.dao.GpsTrackPointDao
 import com.pandafit.core.database.entities.GpsTrackPointEntity
+import com.pandafit.core.database.util.evaluateElevationSample
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.atan2
@@ -27,6 +35,8 @@ data class LiveTrackState(
     /** Aligné sur [points] : true si le segment reliant points[i-1] à points[i] suit un trou de signal GPS */
     val weakSignalAt: List<Boolean> = emptyList(),
     val currentPosition: Pair<Double, Double>? = null,
+    /** Nombre de pas détectés par le capteur matériel (TYPE_STEP_DETECTOR) depuis le début du suivi. */
+    val stepCount: Int = 0,
 )
 
 @Singleton
@@ -46,6 +56,33 @@ class GpsTrackingRepository @Inject constructor(
     private var lowSpeedStreak: Int = 0
     @Volatile private var isAutoPaused: Boolean = false
     private var lastFixTimestampMs: Long = 0L
+    // Le 1er fix reçu après une reprise (manuelle ou auto) ne doit pas contribuer à la distance :
+    // aucun point n'est enregistré pendant la pause, donc le dernier point connu peut avoir dérivé
+    // (jitter GPS, léger déplacement pendant l'arrêt) — sans ce garde, ce fix crée un "saut" de
+    // distance instantané à la reprise (§KNOWN_BUGS.md).
+    @Volatile private var justResumed: Boolean = false
+
+    // Chronomètre affiché indépendant de la cadence des fix GPS (§KNOWN_BUGS.md) : sans ce
+    // ticker, durationSec n'avance qu'à l'arrivée d'un fix, ce qui fait "sauter" l'affichage
+    // par paquets de secondes quand le signal GPS est irrégulier (intérieur, canyon urbain...).
+    private val tickerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var tickerJob: Job? = null
+
+    private fun startTicker() {
+        tickerJob?.cancel()
+        tickerJob = tickerScope.launch {
+            while (isActive) {
+                delay(1_000L)
+                val current = _state.value
+                if (current.isTracking && !current.isPaused) {
+                    val elapsedSec = ((System.currentTimeMillis() - startTimeMs - totalPausedMs) / 1000L).toInt().coerceAtLeast(0)
+                    if (elapsedSec != current.durationSec) {
+                        _state.value = current.copy(durationSec = elapsedSec)
+                    }
+                }
+            }
+        }
+    }
 
     // ── Calibration ──────────────────────────────────────────────────────────
 
@@ -66,17 +103,27 @@ class GpsTrackingRepository @Inject constructor(
 
     // ── Tracking ─────────────────────────────────────────────────────────────
 
-    fun startTracking(wId: Long) {
+    /**
+     * @param startPaused démarre le suivi déjà en pause (utilisé pour le décompte de démarrage :
+     * le service foreground doit être lancé pendant que l'app est au premier plan, mais aucune
+     * distance/durée ne doit s'accumuler avant la fin du décompte visuel). Fixer la pause ici,
+     * dans le même appel qui (ré)initialise l'état, évite la course où un `pauseTracking()`
+     * appelé séparément par le ViewModel serait écrasé par cet état initial arrivant après lui
+     * (le service démarre de façon asynchrone via Intent).
+     */
+    fun startTracking(wId: Long, startPaused: Boolean = false) {
         workoutId = wId
         pointIndex = 0
         startTimeMs = System.currentTimeMillis()
         lastAltitudeM = null
-        pauseStartMs = 0L
+        pauseStartMs = if (startPaused) startTimeMs else 0L
         totalPausedMs = 0L
         lowSpeedStreak = 0
         isAutoPaused = false
         lastFixTimestampMs = 0L
-        _state.value = LiveTrackState(isTracking = true)
+        justResumed = false
+        _state.value = LiveTrackState(isTracking = true, isPaused = startPaused)
+        startTicker()
     }
 
     suspend fun addPoint(
@@ -102,6 +149,7 @@ class GpsTrackingRepository @Inject constructor(
                 pauseStartMs = 0L
                 isAutoPaused = false
                 lowSpeedStreak = 0
+                justResumed = true
                 _state.value = _state.value.copy(isPaused = false, currentPosition = currentPos)
             } else {
                 _state.value = _state.value.copy(currentPosition = currentPos)
@@ -122,15 +170,20 @@ class GpsTrackingRepository @Inject constructor(
 
         val prev = _state.value
 
-        val distIncrement = if (prev.points.isNotEmpty()) {
+        // 1er fix après reprise : ré-ancre la position sans ajouter de distance (voir justResumed).
+        val skipDistance = justResumed
+        justResumed = false
+
+        val distIncrement = if (prev.points.isNotEmpty() && !skipDistance) {
             val (prevLat, prevLng) = prev.points.last()
             haversineM(prevLat, prevLng, lat, lng)
         } else 0.0
 
-        val elevGain = if (altM != null && lastAltitudeM != null && altM > lastAltitudeM!!) {
-            prev.elevationGainM + (altM - lastAltitudeM!!).toInt()
+        val elevGain = if (altM != null) {
+            val step = evaluateElevationSample(lastAltitudeM, altM)
+            lastAltitudeM = step.newBaselineM
+            prev.elevationGainM + step.gainDeltaM
         } else prev.elevationGainM
-        lastAltitudeM = altM
 
         val totalDist = prev.distanceM + distIncrement
         val durationSec = ((timestampMs - startTimeMs - totalPausedMs) / 1000L).toInt().coerceAtLeast(0)
@@ -164,6 +217,12 @@ class GpsTrackingRepository @Inject constructor(
         )
     }
 
+    /** Un pas détecté par le capteur matériel — ignoré si le suivi est en pause (arrêt réel, pas du bruit). */
+    fun addStep() {
+        if (!_state.value.isTracking || _state.value.isPaused) return
+        _state.value = _state.value.copy(stepCount = _state.value.stepCount + 1)
+    }
+
     fun pauseTracking() {
         pauseStartMs = System.currentTimeMillis()
         isAutoPaused = false
@@ -178,14 +237,17 @@ class GpsTrackingRepository @Inject constructor(
         }
         isAutoPaused = false
         lowSpeedStreak = 0
+        justResumed = true
         _state.value = _state.value.copy(isPaused = false)
     }
 
     fun stopTracking() {
+        tickerJob?.cancel()
         _state.value = _state.value.copy(isTracking = false)
     }
 
     fun reset() {
+        tickerJob?.cancel()
         _state.value = LiveTrackState()
         workoutId = 0L
         pointIndex = 0
@@ -196,6 +258,7 @@ class GpsTrackingRepository @Inject constructor(
         lowSpeedStreak = 0
         isAutoPaused = false
         lastFixTimestampMs = 0L
+        justResumed = false
     }
 
     companion object {

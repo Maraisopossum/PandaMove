@@ -2,6 +2,7 @@ package com.pandafit.feature.calendar.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pandafit.core.database.catalog.UserPreferencesRepository
 import com.pandafit.core.database.dao.BreathingSessionDao
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.SeanceDao
@@ -12,6 +13,7 @@ import com.pandafit.core.database.entities.WorkoutEntity
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.feature.calendar.model.CalendarUiState
 import com.pandafit.feature.calendar.model.CalendarViewMode
+import com.pandafit.feature.calendar.model.UpcomingItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +31,7 @@ class CalendarViewModel @Inject constructor(
     private val instanceSeanceDao: InstanceSeanceDao,
     private val seanceDao: SeanceDao,
     private val breathingSessionDao: BreathingSessionDao,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalendarUiState())
@@ -36,6 +39,31 @@ class CalendarViewModel @Inject constructor(
 
     init {
         loadMonth(YearMonth.now())
+        viewModelScope.launch {
+            userPreferencesRepository.genderFlow.collect { gender ->
+                _uiState.value = _uiState.value.copy(gender = gender)
+            }
+        }
+        // Section "Prochaines séances" — fusion workouts (running/vélo/rando) + instances strength
+        viewModelScope.launch {
+            val today = LocalDate.now()
+            combine(
+                workoutDao.observeUpcoming(today, 10),
+                instanceSeanceDao.observeUpcoming(today, 10),
+            ) { workouts, instances -> workouts to instances }
+                .collect { (workouts, instances) ->
+                    val instanceItems = instances.mapNotNull { instance ->
+                        val seance = seanceDao.getById(instance.seanceId) ?: return@mapNotNull null
+                        if (seance.seanceCategory != SeanceCategory.STRENGTH) return@mapNotNull null
+                        UpcomingItem.Instance(instance, seance.nom)
+                    }
+                    val workoutItems = workouts.map { UpcomingItem.Workout(it) }
+                    val merged = (workoutItems + instanceItems)
+                        .sortedBy { it.date }
+                        .take(5)
+                    _uiState.value = _uiState.value.copy(upcomingItems = merged)
+                }
+        }
         // Charge uniquement les séances STRENGTH pour le picker (pas les WARMUP)
         viewModelScope.launch {
             seanceDao.observeByCategory(SeanceCategory.STRENGTH).collect { seances ->
@@ -123,6 +151,10 @@ class CalendarViewModel @Inject constructor(
         val current = _uiState.value.activeFilters.toMutableSet()
         if (type in current) current.remove(type) else current.add(type)
         _uiState.value = _uiState.value.copy(activeFilters = current)
+    }
+
+    fun selectAllFilters() {
+        _uiState.value = _uiState.value.copy(activeFilters = WorkoutType.entries.toSet())
     }
 
     fun deleteInstance(instance: InstanceSeanceEntity) {

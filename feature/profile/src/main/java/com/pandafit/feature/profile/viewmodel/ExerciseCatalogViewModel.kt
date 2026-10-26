@@ -1,5 +1,8 @@
 package com.pandafit.feature.profile.viewmodel
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pandafit.core.common.normalizeSearch
@@ -12,13 +15,23 @@ import com.pandafit.core.database.catalog.rawEquipmentToCategory
 import com.pandafit.core.database.dao.ExerciseDao
 import com.pandafit.core.database.entities.effectivePrimary
 import com.pandafit.core.database.entities.ExerciseEntity
+import com.pandafit.core.database.export.DataExportManager
+import com.pandafit.core.database.export.DataImportManager
+import com.pandafit.core.database.export.ImportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 // ===== État de la liste filtrée =====
@@ -38,6 +51,22 @@ data class CreateDialogState(
     val name: String = "",
     val muscles: List<MuscleGroup> = emptyList(),
     val equipment: Set<EquipmentCategory> = emptySet(),
+    val isBodyweight: Boolean = false,
+    /** Nom déjà utilisé par un autre exercice (name est unique en base depuis v27) — bloque la création. */
+    val nameError: Boolean = false,
+)
+
+// ===== État des menus / bottom sheets (top bar + réglages + import/export) =====
+
+enum class ExerciseExportImportStatus { IDLE, RUNNING, SUCCESS, ERROR }
+
+data class ExerciseMenuState(
+    val topBarMenuOpen: Boolean = false,
+    val settingsSheetOpen: Boolean = false,
+    val importExportSheetOpen: Boolean = false,
+    val status: ExerciseExportImportStatus = ExerciseExportImportStatus.IDLE,
+    val importResult: ImportResult? = null,
+    val errorMessage: String? = null,
 )
 
 // ===== État du dialogue d'édition =====
@@ -48,32 +77,37 @@ data class EditDialogState(
     val muscles: List<MuscleGroup> = emptyList(),
     val equipment: Set<EquipmentCategory> = emptySet(),
     val exerciseType: String = "",
+    val isBodyweight: Boolean = false,
 )
 
 @HiltViewModel
 class ExerciseCatalogViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val exerciseDao: ExerciseDao,
     private val equipmentRepository: EquipmentRepository,
+    private val exportManager: DataExportManager,
+    private val importManager: DataImportManager,
     @Suppress("UnusedPrivateMember") private val catalogRepository: CatalogRepository,
 ) : ViewModel() {
 
-    // ===== Filtres (dans le combine) =====
+    // ===== Filtres =====
     private val _query = MutableStateFlow("")
     private val _selectedGroup = MutableStateFlow<MuscleGroup?>(null)
     private val _onlyAvailable = MutableStateFlow(false)
 
-    // ===== Dialogue de création (combine séparé) =====
-    private val _showCreate = MutableStateFlow(false)
-    private val _newName = MutableStateFlow("")
-    private val _newMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
-    private val _newEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
+    // ===== Dialogues création / édition (état structuré, pas de combine) =====
+    private val _dialogState = MutableStateFlow(CreateDialogState())
+    val dialogState: StateFlow<CreateDialogState> = _dialogState.asStateFlow()
 
-    // ===== Dialogue d'édition =====
-    private val _showEdit = MutableStateFlow(false)
-    private val _editTarget = MutableStateFlow<ExerciseEntity?>(null)
-    private val _editMuscles = MutableStateFlow<List<MuscleGroup>>(emptyList())
-    private val _editEquipment = MutableStateFlow<Set<EquipmentCategory>>(emptySet())
-    private val _editExerciseType = MutableStateFlow("")
+    private val _editDialogState = MutableStateFlow(EditDialogState())
+    val editDialogState: StateFlow<EditDialogState> = _editDialogState.asStateFlow()
+
+    // ===== Menus top bar / réglages / import-export =====
+    private val _menuState = MutableStateFlow(ExerciseMenuState())
+    val menuState: StateFlow<ExerciseMenuState> = _menuState.asStateFlow()
+
+    private val _shareIntent = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
+    val shareIntent: SharedFlow<Intent> = _shareIntent.asSharedFlow()
 
     // StateFlow 1 : liste filtrée
     val listState: StateFlow<ExerciseListState> = combine(
@@ -116,73 +150,55 @@ class ExerciseCatalogViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ExerciseListState())
 
-    // StateFlow 2 : état du dialogue de création
-    val dialogState: StateFlow<CreateDialogState> = combine(
-        _showCreate,
-        _newName,
-        _newMuscles,
-        _newEquipment,
-    ) { show, name, muscles, equip ->
-        CreateDialogState(visible = show, name = name, muscles = muscles, equipment = equip)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CreateDialogState())
-
-    // StateFlow 3 : état du dialogue d'édition
-    val editDialogState: StateFlow<EditDialogState> = combine(
-        _showEdit,
-        _editTarget,
-        _editMuscles,
-        _editEquipment,
-        _editExerciseType,
-    ) { show, target, muscles, equip, type ->
-        EditDialogState(visible = show, exercise = target, muscles = muscles, equipment = equip, exerciseType = type)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EditDialogState())
-
     // ===== Filtres =====
     fun setQuery(q: String) { _query.value = q }
     fun setGroup(g: MuscleGroup?) { _selectedGroup.value = g }
     fun toggleOnlyAvailable() { _onlyAvailable.value = !_onlyAvailable.value }
 
     // ===== Dialogue création =====
-    fun openCreate() {
-        _newName.value = ""
-        _newMuscles.value = emptyList()
-        _newEquipment.value = emptySet()
-        _showCreate.value = true
-    }
-    fun closeCreate() { _showCreate.value = false }
-    fun setNewName(n: String) { _newName.value = n }
+    fun openCreate() { _dialogState.value = CreateDialogState(visible = true) }
+    fun closeCreate() { _dialogState.value = _dialogState.value.copy(visible = false) }
+    fun setNewName(n: String) { _dialogState.value = _dialogState.value.copy(name = n, nameError = false) }
     fun toggleNewMuscle(g: MuscleGroup) {
-        val current = _newMuscles.value.toMutableList()
+        val current = _dialogState.value.muscles.toMutableList()
         if (g in current) current.remove(g) else current.add(g)
-        _newMuscles.value = current
+        _dialogState.value = _dialogState.value.copy(muscles = current)
     }
     fun toggleNewEquipment(cat: EquipmentCategory) {
-        val current = _newEquipment.value.toMutableSet()
+        val current = _dialogState.value.equipment.toMutableSet()
         if (cat in current) current.remove(cat) else current.add(cat)
-        _newEquipment.value = current
+        _dialogState.value = _dialogState.value.copy(equipment = current)
+    }
+    fun toggleNewIsBodyweight() {
+        _dialogState.value = _dialogState.value.copy(isBodyweight = !_dialogState.value.isBodyweight)
     }
 
     fun createCustomExercise() {
-        val name = _newName.value.trim()
+        val state = _dialogState.value
+        val name = state.name.trim()
         if (name.isBlank()) return
-        val muscles = _newMuscles.value
+        val muscles = state.muscles
         val primaryGroup = muscles.firstOrNull()
-        val musclePrimary = primaryGroup?.label ?: ""
-        val muscleLabels = muscles.map { it.label }
-        val equipmentLabels = _newEquipment.value.map { it.label }
         viewModelScope.launch {
+            // name est unique en base (v27) — vérifié ici pour un message clair plutôt qu'un crash
+            // sur violation de contrainte.
+            if (exerciseDao.getByName(name) != null) {
+                _dialogState.value = _dialogState.value.copy(nameError = true)
+                return@launch
+            }
             exerciseDao.insertExercise(
                 ExerciseEntity(
                     name = name,
                     category = primaryGroup?.toExerciseCategory()
                         ?: com.pandafit.core.database.entities.ExerciseCategory.OTHER,
-                    musclePrimary = musclePrimary,
-                    muscleGroups = muscleLabels,
-                    equipment = equipmentLabels,
+                    musclePrimary = primaryGroup?.label ?: "",
+                    muscleGroups = muscles.map { it.label },
+                    equipment = state.equipment.map { it.label },
                     isCustom = true,
+                    isBodyweight = state.isBodyweight,
                 ),
             )
-            _showCreate.value = false
+            _dialogState.value = _dialogState.value.copy(visible = false)
         }
     }
 
@@ -193,38 +209,47 @@ class ExerciseCatalogViewModel @Inject constructor(
 
     // ===== Dialogue édition =====
     fun openEdit(exercise: ExerciseEntity) {
-        _editTarget.value = exercise
-        _editMuscles.value = exercise.muscleGroups.map { raw ->
-            MuscleGroup.entries.find { it.label.equals(raw, ignoreCase = true) }
-                ?: muscleToGroup(raw)
-        }.distinct()
-        _editEquipment.value = exercise.equipment.mapNotNull { raw ->
-            EquipmentCategory.entries.find { it.label.equals(raw, ignoreCase = true) }
-                ?: rawEquipmentToCategory(raw)
-        }.toSet()
-        _editExerciseType.value = exercise.exerciseType
-        _showEdit.value = true
+        _editDialogState.value = EditDialogState(
+            visible = true,
+            exercise = exercise,
+            muscles = exercise.muscleGroups.map { raw ->
+                MuscleGroup.entries.find { it.label.equals(raw, ignoreCase = true) }
+                    ?: muscleToGroup(raw)
+            }.distinct(),
+            equipment = exercise.equipment.mapNotNull { raw ->
+                EquipmentCategory.entries.find { it.label.equals(raw, ignoreCase = true) }
+                    ?: rawEquipmentToCategory(raw)
+            }.toSet(),
+            exerciseType = exercise.exerciseType,
+            isBodyweight = exercise.isBodyweight,
+        )
     }
 
-    fun closeEdit() { _showEdit.value = false }
+    fun closeEdit() { _editDialogState.value = _editDialogState.value.copy(visible = false) }
 
     fun toggleEditMuscle(g: MuscleGroup) {
-        val current = _editMuscles.value.toMutableList()
+        val current = _editDialogState.value.muscles.toMutableList()
         if (g in current) current.remove(g) else current.add(g)
-        _editMuscles.value = current
+        _editDialogState.value = _editDialogState.value.copy(muscles = current)
     }
 
     fun toggleEditEquipment(cat: EquipmentCategory) {
-        val current = _editEquipment.value.toMutableSet()
+        val current = _editDialogState.value.equipment.toMutableSet()
         if (cat in current) current.remove(cat) else current.add(cat)
-        _editEquipment.value = current
+        _editDialogState.value = _editDialogState.value.copy(equipment = current)
     }
 
-    fun setEditExerciseType(type: String) { _editExerciseType.value = type }
+    fun setEditExerciseType(type: String) {
+        _editDialogState.value = _editDialogState.value.copy(exerciseType = type)
+    }
+    fun toggleEditIsBodyweight() {
+        _editDialogState.value = _editDialogState.value.copy(isBodyweight = !_editDialogState.value.isBodyweight)
+    }
 
     fun saveEdit() {
-        val target = _editTarget.value ?: return
-        val muscles = _editMuscles.value
+        val state = _editDialogState.value
+        val target = state.exercise ?: return
+        val muscles = state.muscles
         val primaryGroup = muscles.firstOrNull()
         viewModelScope.launch {
             exerciseDao.updateExercise(
@@ -233,11 +258,92 @@ class ExerciseCatalogViewModel @Inject constructor(
                     musclePrimary = primaryGroup?.label ?: "",
                     category = primaryGroup?.toExerciseCategory()
                         ?: com.pandafit.core.database.entities.ExerciseCategory.OTHER,
-                    equipment = _editEquipment.value.map { it.label },
-                    exerciseType = _editExerciseType.value,
+                    equipment = state.equipment.map { it.label },
+                    exerciseType = state.exerciseType,
+                    isBodyweight = state.isBodyweight,
                 )
             )
-            _showEdit.value = false
+            _editDialogState.value = _editDialogState.value.copy(visible = false)
+        }
+    }
+
+    // ===== Menu top bar =====
+    fun openTopBarMenu() { _menuState.value = _menuState.value.copy(topBarMenuOpen = true) }
+    fun closeTopBarMenu() { _menuState.value = _menuState.value.copy(topBarMenuOpen = false) }
+
+    // ===== Réglages (filtre "Mon matériel") =====
+    fun openSettingsSheet() { _menuState.value = _menuState.value.copy(settingsSheetOpen = true) }
+    fun closeSettingsSheet() { _menuState.value = _menuState.value.copy(settingsSheetOpen = false) }
+
+    // ===== Import / export en masse =====
+    fun openImportExportSheet() {
+        _menuState.value = _menuState.value.copy(
+            importExportSheetOpen = true,
+            topBarMenuOpen = false,
+            status = ExerciseExportImportStatus.IDLE,
+        )
+    }
+    fun closeImportExportSheet() { _menuState.value = _menuState.value.copy(importExportSheetOpen = false) }
+
+    fun exportExercisesJson() {
+        viewModelScope.launch {
+            _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.RUNNING)
+            try {
+                val file = exportManager.exportExercisesToJson()
+                _shareIntent.tryEmit(exportManager.buildShareIntent(file))
+                _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.SUCCESS)
+            } catch (e: Exception) {
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.ERROR,
+                    errorMessage = e.message,
+                )
+            }
+        }
+    }
+
+    fun exportExercisesCsv() {
+        viewModelScope.launch {
+            _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.RUNNING)
+            try {
+                val file = exportManager.exportExercisesToCsv()
+                _shareIntent.tryEmit(exportManager.buildShareIntent(file, "text/csv"))
+                _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.SUCCESS)
+            } catch (e: Exception) {
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.ERROR,
+                    errorMessage = e.message,
+                )
+            }
+        }
+    }
+
+    /** Détecte le format (JSON vs CSV) au contenu — évite de faire choisir le format à l'utilisateur. */
+    fun importExercisesFromUri(uri: Uri) {
+        viewModelScope.launch {
+            _menuState.value = _menuState.value.copy(status = ExerciseExportImportStatus.RUNNING)
+            try {
+                val content = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.readText()
+                } ?: run {
+                    _menuState.value = _menuState.value.copy(
+                        status = ExerciseExportImportStatus.ERROR,
+                        errorMessage = "Impossible de lire le fichier",
+                    )
+                    return@launch
+                }
+                val result = if (content.trimStart().startsWith("{")) importManager.importExercisesFromJson(content)
+                else importManager.importExercisesFromCsv(content)
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.SUCCESS,
+                    importResult = result,
+                    errorMessage = result.parseError,
+                )
+            } catch (e: Exception) {
+                _menuState.value = _menuState.value.copy(
+                    status = ExerciseExportImportStatus.ERROR,
+                    errorMessage = e.message,
+                )
+            }
         }
     }
 }

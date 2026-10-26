@@ -11,12 +11,15 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -96,6 +99,8 @@ fun SeanceDetailScreen(
                 title = uiState.seance?.nom ?: stringResource(R.string.seance_detail_title_fallback),
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
+                containerColor = PandaPurple,
+                contentColor = Color.White,
                 actions = {
                     IconButton(onClick = { onNavigateToEdit(seanceId) }) {
                         Icon(Icons.Default.Edit, stringResource(R.string.common_edit_cd))
@@ -104,7 +109,12 @@ fun SeanceDetailScreen(
             )
         },
         bottomBar = {
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(16.dp),
+            ) {
                 Button(
                     onClick = viewModel::startNow,
                     modifier = Modifier.fillMaxWidth(),
@@ -239,7 +249,7 @@ private fun HeroStat(valeur: String, label: String, modifier: Modifier = Modifie
             .padding(vertical = 9.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(valeur, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(valeur, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
@@ -311,11 +321,13 @@ private fun ExerciceCard(
     val repsLabel = when {
         estDuree -> "${objectif?.dureeCibleSec ?: e.repsCibles.toIntOrNull() ?: 0}s"
         objectif?.repsCible != null -> objectif.repsCible.toString()
-        e.repsMin != null && e.repsMax != null -> "${e.repsMin}–${e.repsMax}"
+        enProgression && e.repsMin != null && e.repsMax != null -> "${e.repsMin}–${e.repsMax}"
         else -> formatRepsDisplay(e.repsCibles, e.repsType)
     }
-    val chargeLabel = objectif?.chargeCible?.let { "%.1f kg".format(it) }
-        ?: e.chargeCible.ifBlank { stringResource(R.string.common_empty_dash) }
+    val chargeLabel = when {
+        e.isBodyweight -> stringResource(R.string.seance_create_progression_type_pdc_short)
+        else -> objectif?.chargeCible?.let { "%.1f kg".format(it) } ?: e.chargeCible.ifBlank { null }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = if (dense) 0.dp else 16.dp, vertical = if (dense) 3.dp else 4.dp),
@@ -368,8 +380,10 @@ private fun ExerciceCard(
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Text("${e.nombreSeriesPrevues} × $repsLabel", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(8.dp))
-                Text("@ $chargeLabel", style = MaterialTheme.typography.bodyMedium, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
+                if (chargeLabel != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("@ $chargeLabel", style = MaterialTheme.typography.bodyMedium, color = PandaSubtext, fontWeight = FontWeight.SemiBold)
+                }
                 if (!hideExerciceRepos && e.tempsReposSec > 0) {
                     Spacer(Modifier.weight(1f))
                     Text(
@@ -391,7 +405,11 @@ private fun ExerciceCard(
                     e.systemeProgression?.let { systeme ->
                         ConfigPill(systeme.name.lowercase().replaceFirstChar { it.uppercase() })
                     }
-                    val incrementLabel = if (estDuree) "+${e.incrementDureeSec}s" else e.incrementKg?.let { "+${if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString()} kg" }
+                    val incrementLabel = when {
+                        e.isBodyweight -> stringResource(R.string.seance_detail_progression_increment_series)
+                        estDuree -> "+${e.incrementDureeSec}s"
+                        else -> e.incrementKg?.let { "+${if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString()} kg" }
+                    }
                     incrementLabel?.let { ConfigPill(it) }
                 }
             }

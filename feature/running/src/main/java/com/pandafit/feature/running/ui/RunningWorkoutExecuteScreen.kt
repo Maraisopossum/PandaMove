@@ -1,5 +1,6 @@
 package com.pandafit.feature.running.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +34,10 @@ import com.pandafit.core.database.entities.RunEndUnit
 import com.pandafit.core.database.entities.RunStepEntity
 import com.pandafit.core.database.entities.RunStepType
 import com.pandafit.core.database.entities.RunTargetType
+import com.pandafit.core.common.GpsSessionDefaults
+import com.pandafit.designsystem.components.CircleActionButton
+import com.pandafit.designsystem.components.CountdownCircle
+import com.pandafit.designsystem.components.HoldToConfirmCircleButton
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
@@ -39,12 +45,14 @@ import com.pandafit.feature.running.model.FreeStepExecution
 import com.pandafit.feature.running.model.FreeStepResult
 import com.pandafit.core.database.model.IntervalRepResult
 import com.pandafit.feature.running.model.RunRepeatExecution
+import com.pandafit.feature.running.model.runStepLabel
 import com.pandafit.feature.running.viewmodel.RunningExecuteViewModel
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.DashPathEffect
 import android.graphics.drawable.BitmapDrawable
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
@@ -94,6 +102,13 @@ private const val GPS_READY_ACCURACY_M = 20f
 
 private enum class GpsPhase { IDLE, CALIBRATING, RUNNING, PAUSED }
 
+private fun LiveTrackState.gpsPhase(): GpsPhase = when {
+    isTracking && isPaused -> GpsPhase.PAUSED
+    isTracking             -> GpsPhase.RUNNING
+    calibrationAccuracyM != null -> GpsPhase.CALIBRATING
+    else                    -> GpsPhase.IDLE
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RunningWorkoutExecuteScreen(
@@ -102,71 +117,67 @@ fun RunningWorkoutExecuteScreen(
     onNavigateToReport: (Long) -> Unit = { onNavigateBack() },
     viewModel: RunningExecuteViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.screenState.collectAsStateWithLifecycle()
     val liveTrackState by viewModel.liveTrackState.collectAsStateWithLifecycle()
-    var showFinishDialog by remember { mutableStateOf(false) }
+    var showExitDialog by remember { mutableStateOf(false) }
+    var showDetailsSheet by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     var locationPermissionGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
     }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        locationPermissionGranted = granted
+    // Capteur de pas pour la cadence live (Android 10+, dégrade silencieusement si refusée —
+    // le GPS continue de fonctionner sans cadence).
+    var activityRecognitionGranted by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+                ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    // ?.let : ne met à jour que les clés effectivement présentes dans le résultat — un lancement
+    // ne demandant qu'une des deux permissions ne doit pas écraser l'état de l'autre à false.
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+        granted[Manifest.permission.ACCESS_FINE_LOCATION]?.let { locationPermissionGranted = it }
+        granted[Manifest.permission.ACTIVITY_RECOGNITION]?.let { activityRecognitionGranted = it }
     }
 
     LaunchedEffect(uiState.isCompleted) {
-        if (uiState.isCompleted) onNavigateToReport(workoutId)
+        if (uiState.isCompleted) onNavigateToReport(uiState.workoutId ?: workoutId)
     }
 
     LaunchedEffect(locationPermissionGranted) {
         if (locationPermissionGranted) viewModel.startCalibration()
     }
 
-    val currentStepLabel: String? = run {
-        when {
-            uiState.freeSteps.isNotEmpty() -> {
-                val active = uiState.freeSteps.firstOrNull { !it.result.done }
-                active?.let { exec ->
-                    val s = exec.step
-                    val summary = when (s.endType) {
-                        RunEndType.DURATION -> {
-                            val m = s.endValue / 60; val secs = s.endValue % 60
-                            "$m:${secs.toString().padStart(2, '0')}"
-                        }
-                        RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
-                    }
-                    "${stepLabel(s.stepType)} — $summary"
-                }
-            }
-            uiState.repeatBlocks.isNotEmpty() -> {
-                val block = uiState.repeatBlocks.firstOrNull { b -> b.reps.any { !it.done } }
-                block?.let { b ->
-                    val activeRep = b.reps.first { !it.done }
-                    val dist = b.targetStep?.let { s ->
-                        when (s.endType) {
-                            RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
-                            RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
-                        }
-                    } ?: ""
-                    "Int. ${activeRep.repNumber}/${b.repeat.repeatCount}${if (dist.isNotBlank()) " · $dist" else ""}"
-                }
-            }
-            else -> null
+    // Demande groupée à l'ouverture de l'écran pour tout ce qui manque encore — évite que
+    // ACTIVITY_RECOGNITION reste jamais demandée quand la localisation est déjà accordée
+    // (le bouton GPS, seul autre déclencheur, ne s'affiche que si elle NE l'est PAS).
+    LaunchedEffect(Unit) {
+        val missing = buildList {
+            if (!locationPermissionGranted) add(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (!activityRecognitionGranted) add(Manifest.permission.ACTIVITY_RECOGNITION)
         }
+        if (missing.isNotEmpty()) permissionLauncher.launch(missing.toTypedArray())
     }
 
-    if (showFinishDialog) {
+    BackHandler(enabled = !uiState.isCompleted) { showExitDialog = true }
+
+    if (showExitDialog) {
         AlertDialog(
-            onDismissRequest = { showFinishDialog = false },
-            title = { Text(stringResource(R.string.running_execute_finish_dialog_title), fontWeight = FontWeight.Bold) },
-            text = { Text(stringResource(R.string.running_execute_finish_dialog_body)) },
+            onDismissRequest = { showExitDialog = false },
+            title = { Text(stringResource(R.string.running_execute_exit_dialog_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.running_execute_exit_dialog_body)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.finishWorkout(); showFinishDialog = false }) {
-                    Text(stringResource(R.string.running_execute_finish_button), color = RedColor, fontWeight = FontWeight.Bold)
+                TextButton(onClick = { viewModel.cancelWorkout(); showExitDialog = false; onNavigateBack() }) {
+                    Text(stringResource(R.string.running_execute_exit_cancel_seance), color = RedColor, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showFinishDialog = false }) { Text(stringResource(R.string.running_execute_cancel_button)) } },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false; onNavigateBack() }) {
+                    Text(stringResource(R.string.running_execute_exit_keep_running))
+                }
+            },
         )
     }
 
@@ -189,13 +200,8 @@ fun RunningWorkoutExecuteScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { if (uiState.isCompleted) onNavigateBack() else showExitDialog = true }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.running_execute_navigate_back_cd))
-                    }
-                },
-                actions = {
-                    TextButton(onClick = { showFinishDialog = true }) {
-                        Text(stringResource(R.string.running_execute_finish_button), color = RedColor, fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -214,19 +220,84 @@ fun RunningWorkoutExecuteScreen(
                 Spacer(Modifier.height(12.dp))
                 GpsTrackBlock(
                     state = liveTrackState,
-                    currentStepLabel = currentStepLabel,
                     permissionGranted = locationPermissionGranted,
-                    onStart = { viewModel.startGpsTracking() },
-                    onPause = { viewModel.pauseGpsTracking() },
-                    onResume = { viewModel.resumeGpsTracking() },
-                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                    onRequestPermission = {
+                        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) perms += Manifest.permission.ACTIVITY_RECOGNITION
+                        permissionLauncher.launch(perms.toTypedArray())
+                    },
                 )
                 Spacer(Modifier.height(16.dp))
+                if (locationPermissionGranted) {
+                    GpsControlsRow(
+                        state = liveTrackState,
+                        startCountdownSeconds = uiState.startCountdownSeconds,
+                        onStartRequested = viewModel::requestStartCountdown,
+                        onCancelCountdown = viewModel::cancelStartCountdown,
+                        onPause = viewModel::pauseGpsTracking,
+                        onResume = viewModel::resumeGpsTracking,
+                        onFinishConfirmed = viewModel::finishWorkout,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
+            // ── Cockpit live : phase active + timeline + accès au détail ──
+            // En "séance directe" : mascotte + chronomètre qui monte dès l'ouverture, sans cible ni timeline.
+            uiState.livePhase?.let { phase ->
+                item {
+                    LiveWorkoutPhaseCard(phase = phase, isFreeRun = uiState.isFreeRun)
+                    Spacer(Modifier.height(12.dp))
+                    if (!uiState.isFreeRun) WorkoutProgressTimeline(steps = uiState.timeline)
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+            item {
+                OutlinedButton(
+                    onClick = { showDetailsSheet = true },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, com.pandafit.designsystem.theme.PandaGreen),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = com.pandafit.designsystem.theme.PandaGreen),
+                ) {
+                    Text(stringResource(R.string.running_execute_view_details_button), fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Filled.ExpandMore, contentDescription = null)
+                }
+            }
+        }
+    }
+
+    if (showDetailsSheet) {
+        WorkoutDetailsBottomSheet(
+            uiState = uiState,
+            onUpdateOverallResult = viewModel::updateOverallResult,
+            onUpdateFreeStep = viewModel::updateFreeStep,
+            onUpdateIntervalRep = viewModel::updateIntervalRep,
+            onDismiss = { showDetailsSheet = false },
+        )
+    }
+}
+
+// ── Bottom sheet détail : résultats globaux, intervalles, note (retirés du flux live principal) ──
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkoutDetailsBottomSheet(
+    uiState: com.pandafit.feature.running.model.RunningExecuteUiState,
+    onUpdateOverallResult: (String, String) -> Unit,
+    onUpdateFreeStep: (Int, FreeStepResult) -> Unit,
+    onUpdateIntervalRep: (Int, Int, IntervalRepResult) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
+        ) {
             // ── Résultats globaux ──
             item {
-                Spacer(Modifier.height(12.dp))
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -241,46 +312,67 @@ fun RunningWorkoutExecuteScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell(stringResource(R.string.running_execute_cell_distance), uiState.resultDistanceKm, { viewModel.updateOverallResult("distanceKm", it) }, KeyboardType.Decimal, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_time), uiState.resultDurationStr, { viewModel.updateOverallResult("duration", it) }, KeyboardType.Text, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_distance), uiState.resultDistanceKm, { onUpdateOverallResult("distanceKm", it) }, KeyboardType.Decimal, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_time), uiState.resultDurationStr, { onUpdateOverallResult("duration", it) }, KeyboardType.Text, Modifier.weight(1f))
                         ReadOnlyCell(stringResource(R.string.running_execute_cell_pace), uiState.resultPaceStr, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_avg), uiState.resultHrAvg, { viewModel.updateOverallResult("hr", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_max), uiState.resultHrMax, { viewModel.updateOverallResult("hrMax", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_rpe), uiState.resultRpe, { viewModel.updateOverallResult("rpe", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_avg), uiState.resultHrAvg, { onUpdateOverallResult("hr", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_hr_max), uiState.resultHrMax, { onUpdateOverallResult("hrMax", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_rpe), uiState.resultRpe, { onUpdateOverallResult("rpe", it) }, KeyboardType.Number, Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultInputCell(stringResource(R.string.running_execute_cell_elevation), uiState.resultElevationM, { viewModel.updateOverallResult("elevation", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_calories), uiState.resultCalories, { viewModel.updateOverallResult("calories", it) }, KeyboardType.Number, Modifier.weight(1f))
-                        ResultInputCell(stringResource(R.string.running_execute_cell_cadence), uiState.resultCadenceAvgPpm, { viewModel.updateOverallResult("cadence", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_elevation), uiState.resultElevationM, { onUpdateOverallResult("elevation", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_calories), uiState.resultCalories, { onUpdateOverallResult("calories", it) }, KeyboardType.Number, Modifier.weight(1f))
+                        ResultInputCell(stringResource(R.string.running_execute_cell_cadence), uiState.resultCadenceAvgPpm, { onUpdateOverallResult("cadence", it) }, KeyboardType.Number, Modifier.weight(1f))
                     }
                 }
                 Spacer(Modifier.height(16.dp))
             }
 
-            // ── Étapes libres (séances sans répétition) ──
-            if (uiState.freeSteps.isNotEmpty()) {
-                items(uiState.freeSteps.indices.toList(), key = { "free_$it" }) { idx ->
+            // ── Étapes libres et blocs répétition, intercalés selon leur position ──
+            // (ex : échauffement avant les intervalles, récupération après)
+            // Masqué en "séance directe" : pas d'étapes/cibles à renseigner, juste les résultats globaux + note.
+            val firstRepeatPosition = uiState.repeatBlocks.minOfOrNull { it.repeat.position }
+            val stepsBeforeRepeats = if (uiState.isFreeRun) emptyList()
+            else if (firstRepeatPosition != null)
+                uiState.freeSteps.withIndex().filter { it.value.step.position < firstRepeatPosition }
+            else uiState.freeSteps.withIndex().toList()
+            val stepsAfterRepeats = if (uiState.isFreeRun) emptyList()
+            else if (firstRepeatPosition != null)
+                uiState.freeSteps.withIndex().filter { it.value.step.position >= firstRepeatPosition }
+            else emptyList()
+
+            if (stepsBeforeRepeats.isNotEmpty()) {
+                items(stepsBeforeRepeats, key = { "free_${it.index}" }) { (idx, execution) ->
                     FreeStepSection(
-                        execution = uiState.freeSteps[idx],
-                        onUpdate = { updated -> viewModel.updateFreeStep(idx, updated) },
+                        execution = execution,
+                        onUpdate = { updated -> onUpdateFreeStep(idx, updated) },
                     )
                     Spacer(Modifier.height(14.dp))
                 }
             }
 
-            // ── Blocs répétition (un tableau par repeat) ──
             if (uiState.repeatBlocks.isNotEmpty()) {
                 items(uiState.repeatBlocks, key = { it.repeat.id }) { execution ->
                     RepeatIntervalSection(
                         execution = execution,
                         onRepUpdate = { repIdx, updated ->
                             val blockIdx = uiState.repeatBlocks.indexOf(execution)
-                            viewModel.updateIntervalRep(blockIdx, repIdx, updated)
+                            onUpdateIntervalRep(blockIdx, repIdx, updated)
                         },
+                    )
+                    Spacer(Modifier.height(14.dp))
+                }
+            }
+
+            if (stepsAfterRepeats.isNotEmpty()) {
+                items(stepsAfterRepeats, key = { "free_${it.index}" }) { (idx, execution) ->
+                    FreeStepSection(
+                        execution = execution,
+                        onUpdate = { updated -> onUpdateFreeStep(idx, updated) },
                     )
                     Spacer(Modifier.height(14.dp))
                 }
@@ -297,25 +389,12 @@ fun RunningWorkoutExecuteScreen(
                 Spacer(Modifier.height(6.dp))
                 OutlinedTextField(
                     value = uiState.resultNotes,
-                    onValueChange = { viewModel.updateOverallResult("notes", it) },
+                    onValueChange = { onUpdateOverallResult("notes", it) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     placeholder = { Text(stringResource(R.string.running_execute_session_note_placeholder)) },
                     shape = RoundedCornerShape(12.dp),
                 )
-                Spacer(Modifier.height(16.dp))
-            }
-
-            // ── Bouton terminer ──
-            item {
-                Button(
-                    onClick = { showFinishDialog = true },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RedColor),
-                ) {
-                    Text(stringResource(R.string.running_execute_finish_seance_button), color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
-                }
             }
         }
     }
@@ -329,6 +408,7 @@ private fun RepeatIntervalSection(
     onRepUpdate: (Int, IntervalRepResult) -> Unit,
 ) {
     val target = execution.targetStep
+    val hasRecovery = execution.recoveryStep != null
     val intensityLabel = intensityColumnLabel(target)
     val hasIntensity = intensityLabel != null
     val intensityKeyboard = if (target?.targetType == RunTargetType.PACE) KeyboardType.Text else KeyboardType.Decimal
@@ -358,12 +438,27 @@ private fun RepeatIntervalSection(
         }
     }
 
+    val recoveryStr = execution.recoveryStep?.let { s ->
+        val amount = when (s.endType) {
+            RunEndType.DISTANCE -> "${s.endValue} ${if (s.endUnit == RunEndUnit.METERS) "m" else "km"}"
+            RunEndType.DURATION -> "${s.endValue / 60}:${(s.endValue % 60).toString().padStart(2, '0')}"
+        }
+        "${runStepLabel(s.stepType)} $amount"
+    }
+
     Text(
         stringResource(R.string.running_execute_interval_label, execution.repeat.repeatCount),
         style = MaterialTheme.typography.labelSmall,
         color = PandaSubtext,
         fontWeight = FontWeight.Bold,
     )
+    if (recoveryStr != null) {
+        Text(
+            recoveryStr,
+            style = MaterialTheme.typography.labelSmall,
+            color = PandaSubtext,
+        )
+    }
     Spacer(Modifier.height(8.dp))
     Column(
         modifier = Modifier
@@ -377,7 +472,12 @@ private fun RepeatIntervalSection(
             Text(stringResource(R.string.running_table_col_tps), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
             if (hasIntensity) Text(intensityLabel!!, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(52.dp), textAlign = TextAlign.Center)
             Text(stringResource(R.string.running_table_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(30.dp), textAlign = TextAlign.Center)
-            Text(stringResource(R.string.running_table_col_check), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+            if (hasRecovery) {
+                Text(stringResource(R.string.running_table_col_check_course), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+                Text(stringResource(R.string.running_table_col_check_recup), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+            } else {
+                Text(stringResource(R.string.running_table_col_check), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
+            }
         }
 
         execution.reps.forEachIndexed { idx, rep ->
@@ -406,12 +506,32 @@ private fun RepeatIntervalSection(
                     RepBasicField(rep.actualIntensity, Modifier.width(52.dp), keyboardType = intensityKeyboard) { onRepUpdate(idx, rep.copy(actualIntensity = it)) }
                 }
                 RepBasicField(rep.rpeStr, Modifier.width(30.dp), keyboardType = KeyboardType.Number) { onRepUpdate(idx, rep.copy(rpeStr = it)) }
-                Checkbox(
-                    checked = rep.done,
-                    onCheckedChange = { onRepUpdate(idx, rep.copy(done = it)) },
-                    modifier = Modifier.size(28.dp),
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
-                )
+                if (hasRecovery) {
+                    Checkbox(
+                        checked = rep.runningDone,
+                        onCheckedChange = { checked ->
+                            // Décocher la course décoche aussi la récup (elle ne peut pas être faite sans la course).
+                            onRepUpdate(idx, rep.copy(runningDone = checked, done = checked && rep.done))
+                        },
+                        modifier = Modifier.size(28.dp),
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
+                    )
+                    Checkbox(
+                        checked = rep.done,
+                        onCheckedChange = { checked ->
+                            onRepUpdate(idx, rep.copy(done = checked, runningDone = rep.runningDone || checked))
+                        },
+                        modifier = Modifier.size(28.dp),
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
+                    )
+                } else {
+                    Checkbox(
+                        checked = rep.done,
+                        onCheckedChange = { onRepUpdate(idx, rep.copy(done = it, runningDone = it)) },
+                        modifier = Modifier.size(28.dp),
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF7C5CBF), uncheckedColor = Color(0xFFE0E0E0)),
+                    )
+                }
             }
         }
     }
@@ -462,7 +582,7 @@ private fun FreeStepSection(
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             Text(
-                "${stepLabel(step.stepType)} — $stepSummary",
+                "${runStepLabel(step.stepType)} — $stepSummary",
                 style = MaterialTheme.typography.labelSmall,
                 color = PandaSubtext,
                 fontWeight = FontWeight.Bold,
@@ -491,15 +611,6 @@ private fun FreeStepSection(
             }
         }
     }
-}
-
-private fun stepLabel(type: RunStepType): String = when (type) {
-    RunStepType.WARMUP   -> "Échauffement"
-    RunStepType.RUNNING  -> "Course à pied"
-    RunStepType.WALKING  -> "Marche"
-    RunStepType.RECOVERY -> "Récupération"
-    RunStepType.REST     -> "Repos"
-    RunStepType.OTHER    -> "Autre"
 }
 
 private fun intensityColumnLabel(target: RunStepEntity?): String? = when {
@@ -564,17 +675,13 @@ private fun ReadOnlyCell(label: String, value: String, modifier: Modifier = Modi
 @Composable
 private fun GpsTrackBlock(
     state: LiveTrackState,
-    currentStepLabel: String?,
     permissionGranted: Boolean,
-    onStart: () -> Unit,
-    onPause: () -> Unit,
-    onResume: () -> Unit,
     onRequestPermission: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp)
+            .height(190.dp)
             .clip(RoundedCornerShape(14.dp)),
     ) {
         if (!permissionGranted) {
@@ -603,7 +710,7 @@ private fun GpsTrackBlock(
             }
         } else {
             val ctx = LocalContext.current
-            val pandaBitmap = remember(ctx) { createPandaBitmap() }
+            val pandaBitmap = remember(ctx) { loadPandaMarkerBitmap(ctx) }
             val mapView = remember(ctx) {
                 MapView(ctx).apply {
                     Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
@@ -640,7 +747,7 @@ private fun GpsTrackBlock(
                         val marker = Marker(mv).apply {
                             position = GeoPoint(markerPos.first, markerPos.second)
                             icon = BitmapDrawable(ctx.resources, pandaBitmap)
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             infoWindow = null
                         }
                         mv.overlays.add(marker)
@@ -651,12 +758,7 @@ private fun GpsTrackBlock(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            val phase = when {
-                state.isTracking && state.isPaused -> GpsPhase.PAUSED
-                state.isTracking                  -> GpsPhase.RUNNING
-                state.calibrationAccuracyM != null -> GpsPhase.CALIBRATING
-                else                              -> GpsPhase.IDLE
-            }
+            val phase = state.gpsPhase()
 
             // Pause overlay (centre de la carte)
             if (phase == GpsPhase.PAUSED) {
@@ -699,16 +801,6 @@ private fun GpsTrackBlock(
                         )
                     }
                     GpsPhase.RUNNING, GpsPhase.PAUSED -> {
-                        if (currentStepLabel != null && phase == GpsPhase.RUNNING) {
-                            Text(
-                                currentStepLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFBBBBBB),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                            )
-                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -723,66 +815,88 @@ private fun GpsTrackBlock(
                 }
             }
 
-            // Bouton d'action (coin haut-droit)
-            Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-                when (phase) {
-                    GpsPhase.IDLE, GpsPhase.CALIBRATING -> {
-                        val calibrationAccuracyM = state.calibrationAccuracyM
-                        val ready = calibrationAccuracyM != null &&
-                                calibrationAccuracyM <= GPS_READY_ACCURACY_M
-                        Button(
-                            onClick = onStart,
-                            enabled = ready,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PandaPurple,
-                                disabledContainerColor = Color(0xFF666666),
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text("▶ Démarrer", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                        }
-                    }
-                    GpsPhase.RUNNING -> {
-                        Button(
-                            onClick = onPause,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text("⏸ Pause", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                        }
-                    }
-                    GpsPhase.PAUSED -> {
-                        Button(
-                            onClick = onResume,
-                            colors = ButtonDefaults.buttonColors(containerColor = PandaPurple),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text("▶ Reprendre", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                        }
-                    }
+        }
+    }
+}
+
+/**
+ * Gros boutons ronds sous la carte GPS : Démarrer seul (avec décompte au tap), puis Pause/Reprendre
+ * + Fin de séance (hold-to-confirm) côte à côte une fois le suivi lancé.
+ */
+@Composable
+private fun GpsControlsRow(
+    state: LiveTrackState,
+    startCountdownSeconds: Int?,
+    onStartRequested: () -> Unit,
+    onCancelCountdown: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onFinishConfirmed: () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        if (startCountdownSeconds != null) {
+            CountdownCircle(
+                secondsLeft = startCountdownSeconds,
+                totalSeconds = GpsSessionDefaults.START_COUNTDOWN_SECONDS,
+                onClick = onCancelCountdown,
+            )
+        } else when (state.gpsPhase()) {
+            GpsPhase.IDLE, GpsPhase.CALIBRATING -> {
+                val calibrationAccuracyM = state.calibrationAccuracyM
+                val ready = calibrationAccuracyM != null && calibrationAccuracyM <= GPS_READY_ACCURACY_M
+                CircleActionButton(
+                    label = "▶ Démarrer",
+                    color = PandaPurple,
+                    enabled = ready,
+                    onClick = onStartRequested,
+                )
+            }
+            GpsPhase.RUNNING -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    CircleActionButton(label = "⏸ Pause", color = Color(0xFFFF9800), onClick = onPause)
+                    HoldToConfirmCircleButton(
+                        label = "Fin",
+                        holdDurationMs = GpsSessionDefaults.FINISH_HOLD_DURATION_MS,
+                        onConfirmed = onFinishConfirmed,
+                    )
+                }
+            }
+            GpsPhase.PAUSED -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    CircleActionButton(label = "▶ Reprendre", color = PandaPurple, onClick = onResume)
+                    HoldToConfirmCircleButton(
+                        label = "Fin",
+                        holdDurationMs = GpsSessionDefaults.FINISH_HOLD_DURATION_MS,
+                        onConfirmed = onFinishConfirmed,
+                    )
                 }
             }
         }
     }
 }
 
-private fun createPandaBitmap(): android.graphics.Bitmap {
-    val emoji = "🐼"
-    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { textSize = 56f }
-    val bounds = android.graphics.Rect()
-    paint.getTextBounds(emoji, 0, emoji.length, bounds)
-    val w = (bounds.width() + 8).coerceAtLeast(8)
-    val h = (bounds.height() + 8).coerceAtLeast(8)
-    val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
-    android.graphics.Canvas(bmp).drawText(emoji, 4f, h.toFloat() - 4f, paint)
-    return bmp
+/** Marqueur carte : le vrai personnage PandaMove (pas un emoji), redimensionné à taille lisible sur la carte. */
+private fun loadPandaMarkerBitmap(ctx: Context): android.graphics.Bitmap {
+    val source = androidx.core.content.res.ResourcesCompat.getDrawable(ctx.resources, R.drawable.panda_running_male, null)
+        ?.let { drawable ->
+            val bmp = android.graphics.Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            bmp
+        }
+        ?: return android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+    val density = ctx.resources.displayMetrics.density
+    val targetHeightPx = (56 * density).toInt().coerceAtLeast(1)
+    val targetWidthPx = (targetHeightPx * source.width / source.height).coerceAtLeast(1)
+    return android.graphics.Bitmap.createScaledBitmap(source, targetWidthPx, targetHeightPx, true)
 }
 
 @Composable
 private fun GpsStat(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color(0xFFBBBBBB))
-        Text(value, style = MaterialTheme.typography.labelMedium, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(value, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
     }
 }
 

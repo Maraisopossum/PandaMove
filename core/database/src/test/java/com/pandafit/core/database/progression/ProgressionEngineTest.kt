@@ -22,6 +22,8 @@ class ProgressionEngineTest {
         repsType: RepsType = RepsType.REPS,
         typeExercice: TypeExercice? = null,
         incrementPct: Float? = null,
+        isBodyweight: Boolean = false,
+        nombreSeriesPrevues: Int = 3,
     ) = ExerciceSeanceEntity(
         seanceId = 1,
         exerciceId = 1,
@@ -35,6 +37,8 @@ class ProgressionEngineTest {
         repsType = repsType,
         typeExercice = typeExercice,
         incrementPct = incrementPct,
+        isBodyweight = isBodyweight,
+        nombreSeriesPrevues = nombreSeriesPrevues,
     )
 
     private fun serie(numero: Int, reps: Int?, charge: Float? = null, rpe: Float? = null, cote: String = "") =
@@ -67,6 +71,24 @@ class ProgressionEngineTest {
         val series = listOf(serie(1, 12, 20f), serie(2, 12, 20f), serie(3, 12, 20f))
 
         val proposition = evaluerExercice(config(), cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false)
+
+        assertEquals(StatutExercice.SUCCES, proposition.statut)
+        assertEquals(22.5f, proposition.nouvelleChargeCible)
+        assertEquals(8, proposition.nouveauRepsCible)
+    }
+
+    @Test
+    fun `double progression - cas depassement saute directement au palier de charge meme si la cible affichee etait sous le plafond`() {
+        // Cible affichée avant la séance : 8 reps (sous repsMax=10). L'utilisateur logue 10 reps
+        // sur toutes les séries -> bible §2.2 "cas dépassement" : on saute directement à charge+incrément
+        // au lieu du simple +1 rep classique (8 -> 9) qui ignorerait la performance réelle.
+        val cible = CibleExercice(chargeKg = 20f, reps = 8, dureeSec = null)
+        val series = listOf(serie(1, 10, 20f), serie(2, 10, 20f), serie(3, 10, 20f))
+
+        val proposition = evaluerExercice(
+            config(repsMin = 8, repsMax = 10),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
 
         assertEquals(StatutExercice.SUCCES, proposition.statut)
         assertEquals(22.5f, proposition.nouvelleChargeCible)
@@ -131,6 +153,22 @@ class ProgressionEngineTest {
         assertEquals(0, proposition.nouveauCompteurEchec)
         assertEquals(90f, proposition.nouvelleChargeCible)
         assertEquals(18, proposition.nouveauRepsCible)
+    }
+
+    @Test
+    fun `deload isBodyweight - ne reduit pas la charge fixe, ne fait que retomber a repsMin`() {
+        val cible = CibleExercice(chargeKg = 10f, reps = 15, dureeSec = null)
+        val series = listOf(serie(1, 10, 10f), serie(2, 10, 10f), serie(3, 10, 10f))
+
+        val proposition = evaluerExercice(
+            config(repsMin = 10, repsMax = 15, isBodyweight = true),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(StatutExercice.ECHEC_MARQUE, proposition.statut)
+        assertTrue(proposition.deload)
+        assertEquals(10f, proposition.nouvelleChargeCible)
+        assertEquals(10, proposition.nouveauRepsCible)
     }
 
     @Test
@@ -297,5 +335,98 @@ class ProgressionEngineTest {
 
         assertEquals(StatutExercice.SUCCES, proposition.statut)
         assertEquals(24f, proposition.nouvelleChargeCible)
+    }
+
+    // ===== Poids de corps (PDC) — progression reps puis séries, jamais de charge =====
+
+    @Test
+    fun `pdc - succes sous le haut de plage incremente les reps sans toucher aux series`() {
+        val cible = CibleExercice(chargeKg = null, reps = 10, dureeSec = null)
+        val series = listOf(serie(1, 11), serie(2, 11), serie(3, 11))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = true, nombreSeriesPrevues = 3),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(StatutExercice.SUCCES, proposition.statut)
+        assertEquals(11, proposition.nouveauRepsCible)
+        assertEquals(null, proposition.nouvelleChargeCible)
+        assertEquals(null, proposition.nouveauNombreSeries)
+    }
+
+    @Test
+    fun `pdc - succes au plafond de reps propose une serie en plus au lieu d'une charge`() {
+        val cible = CibleExercice(chargeKg = null, reps = 12, dureeSec = null)
+        val series = listOf(serie(1, 12), serie(2, 12), serie(3, 12))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = true, nombreSeriesPrevues = 3),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(StatutExercice.SUCCES, proposition.statut)
+        assertEquals(8, proposition.nouveauRepsCible)
+        assertEquals(null, proposition.nouvelleChargeCible)
+        assertEquals(4, proposition.nouveauNombreSeries)
+    }
+
+    @Test
+    fun `pdc - ajout de serie respecte le nombre de series deja eleve du template`() {
+        val cible = CibleExercice(chargeKg = null, reps = 12, dureeSec = null)
+        val series = listOf(serie(1, 12), serie(2, 12), serie(3, 12), serie(4, 12))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = true, nombreSeriesPrevues = 4),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(5, proposition.nouveauNombreSeries)
+    }
+
+    @Test
+    fun `non pdc au plafond de reps garde le comportement charge existant`() {
+        val cible = CibleExercice(chargeKg = 20f, reps = 12, dureeSec = null)
+        val series = listOf(serie(1, 12, 20f), serie(2, 12, 20f), serie(3, 12, 20f))
+
+        val proposition = evaluerExercice(
+            config(isBodyweight = false, nombreSeriesPrevues = 3),
+            cible, compteurEchecActuel = 0, seriesRealisees = series, isBilateral = false,
+        )
+
+        assertEquals(22.5f, proposition.nouvelleChargeCible)
+        assertEquals(null, proposition.nouveauNombreSeries)
+    }
+
+    private fun proposition(statut: StatutExercice, deload: Boolean) = PropositionProgression(
+        statut = statut,
+        nouvelleChargeCible = null,
+        nouveauRepsCible = null,
+        nouvelleDureeCible = null,
+        nouveauCompteurEchec = 0,
+        deload = deload,
+    )
+
+    @Test
+    fun `requiresValidation - succes necessite toujours validation`() {
+        assertTrue(requiresValidation(proposition(StatutExercice.SUCCES, deload = false)))
+        assertTrue(requiresValidation(proposition(StatutExercice.SUCCES_SANS_MARGE, deload = false)))
+    }
+
+    @Test
+    fun `requiresValidation - non logge necessite validation`() {
+        assertTrue(requiresValidation(proposition(StatutExercice.NON_LOGGE, deload = false)))
+    }
+
+    @Test
+    fun `requiresValidation - deload necessite validation meme avec un statut d'echec`() {
+        assertTrue(requiresValidation(proposition(StatutExercice.ECHEC, deload = true)))
+        assertTrue(requiresValidation(proposition(StatutExercice.ECHEC_MARQUE, deload = true)))
+    }
+
+    @Test
+    fun `requiresValidation - echec sans deload est persiste silencieusement`() {
+        assertFalse(requiresValidation(proposition(StatutExercice.ECHEC, deload = false)))
+        assertFalse(requiresValidation(proposition(StatutExercice.ECHEC_MARQUE, deload = false)))
     }
 }

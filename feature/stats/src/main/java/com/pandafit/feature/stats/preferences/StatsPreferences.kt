@@ -35,15 +35,14 @@ object StatsPreferencesModule {
 }
 
 object StatsPreferencesKeys {
-    val RUN_DIST_1   = intPreferencesKey("run_dist_1")
-    val RUN_DIST_2   = intPreferencesKey("run_dist_2")
+    // Clés réutilisées depuis les anciens "preset 1" (3 presets réduits à 1) — préserve le choix
+    // déjà fait par l'utilisateur sans migration destructive. Les anciennes clés _2/_3 ne sont
+    // plus lues mais restent en base, sans effet.
+    val RUN_DIST     = intPreferencesKey("run_dist_1")
     val RUN_SUMMIT   = intPreferencesKey("run_summit")
-    val STR_WEIGHT_1 = intPreferencesKey("str_weight_1")
-    val STR_WEIGHT_2 = intPreferencesKey("str_weight_2")
-    val STR_WEIGHT_3 = intPreferencesKey("str_weight_3")
+    val STR_WEIGHT   = intPreferencesKey("str_weight_1")
     val STR_MONUMENT = intPreferencesKey("str_monument")
-    val CYC_DIST_1   = intPreferencesKey("cyc_dist_1")
-    val CYC_DIST_2   = intPreferencesKey("cyc_dist_2")
+    val CYC_DIST     = intPreferencesKey("cyc_dist_1")
     val CYC_SUMMIT   = intPreferencesKey("cyc_summit")
 }
 
@@ -53,15 +52,11 @@ class StatsPreferences @Inject constructor(
 ) {
     val configFlow: Flow<StatsConfig> = dataStore.data.map { prefs ->
         StatsConfig(
-            runDist1Idx    = prefs[StatsPreferencesKeys.RUN_DIST_1]   ?: 0,
-            runDist2Idx    = prefs[StatsPreferencesKeys.RUN_DIST_2]   ?: 1,
+            runDistIdx     = prefs[StatsPreferencesKeys.RUN_DIST]     ?: 0,
             runSummitIdx   = prefs[StatsPreferencesKeys.RUN_SUMMIT]   ?: 0,
-            strWeight1Idx  = prefs[StatsPreferencesKeys.STR_WEIGHT_1] ?: 0,
-            strWeight2Idx  = prefs[StatsPreferencesKeys.STR_WEIGHT_2] ?: 2,
-            strWeight3Idx  = prefs[StatsPreferencesKeys.STR_WEIGHT_3] ?: 4,
+            strWeightIdx   = prefs[StatsPreferencesKeys.STR_WEIGHT]   ?: 0,
             strMonumentIdx = prefs[StatsPreferencesKeys.STR_MONUMENT] ?: 0,
-            cycDist1Idx    = prefs[StatsPreferencesKeys.CYC_DIST_1]   ?: 2,
-            cycDist2Idx    = prefs[StatsPreferencesKeys.CYC_DIST_2]   ?: 5,
+            cycDistIdx     = prefs[StatsPreferencesKeys.CYC_DIST]     ?: 2,
             cycSummitIdx   = prefs[StatsPreferencesKeys.CYC_SUMMIT]   ?: 0,
         )
     }

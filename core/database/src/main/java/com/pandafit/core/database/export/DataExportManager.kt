@@ -102,6 +102,7 @@ class DataExportManager @Inject constructor(
                             incrementKg = e.incrementKg, incrementDureeSec = e.incrementDureeSec,
                             seuilDeload = e.seuilDeload,
                             typeExercice = e.typeExercice?.name, incrementPct = e.incrementPct,
+                            isBodyweight = e.isBodyweight,
                         )
                     },
                 )
@@ -169,6 +170,7 @@ class DataExportManager @Inject constructor(
                         incrementKg = e.incrementKg, incrementDureeSec = e.incrementDureeSec,
                         seuilDeload = e.seuilDeload,
                         typeExercice = e.typeExercice?.name, incrementPct = e.incrementPct,
+                        isBodyweight = e.isBodyweight,
                     )
                 },
             )
@@ -378,66 +380,56 @@ class DataExportManager @Inject constructor(
         return Intent.createChooser(send, "Partager l'export PandaMove")
     }
 
+    private fun String.escapeCsv(): String =
+        if (contains(';') || contains('"') || contains('\n')) "\"${replace("\"", "\"\"")}\"" else this
+
     /**
-     * Génère un fichier CSV dans le cacheDir pour le type demandé et le retourne.
-     * Séparateur de colonnes : ';' (standard French/Excel).
-     * Séparateur décimal : ',' (locale française).
+     * Export en masse du catalogue d'exercices (JSON) — indépendant du gros export v3.x,
+     * réutilisé par le menu ⋮ de l'écran Catalogue d'exercices.
      */
-    suspend fun exportToCsv(type: ExportType): File = withContext(Dispatchers.IO) {
-        // Nettoyage des anciens CSV du même type
-        val prefix = if (type == ExportType.RUNNING) "pandamove_running_" else "pandamove_strength_"
+    suspend fun exportExercisesToJson(): File = withContext(Dispatchers.IO) {
         context.cacheDir
-            .listFiles { f -> f.name.startsWith(prefix) && f.extension == "csv" }
+            .listFiles { f -> f.name.startsWith("pandamove_exercises_") && f.extension == "json" }
+            ?.forEach { it.delete() }
+
+        val dto = ExerciseCatalogExportDto(
+            exportDate = LocalDateTime.now().toString(),
+            exercises = exerciseDao.observeAll().first().map { e ->
+                CustomExerciseDto(
+                    id = e.id, name = e.name, description = e.description,
+                    category = e.category.name, muscleGroups = e.muscleGroups,
+                    exerciseType = e.exerciseType, equipment = e.equipment,
+                    musclePrimary = e.musclePrimary,
+                )
+            },
+        )
+        val fileName = "pandamove_exercises_${LocalDate.now()}.json"
+        val file = File(context.cacheDir, fileName)
+        try {
+            file.writeText(json.encodeToString(dto), Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+        file
+    }
+
+    /** Export en masse du catalogue d'exercices (CSV ';'). */
+    suspend fun exportExercisesToCsv(): File = withContext(Dispatchers.IO) {
+        context.cacheDir
+            .listFiles { f -> f.name.startsWith("pandamove_exercises_") && f.extension == "csv" }
             ?.forEach { it.delete() }
 
         val sb = StringBuilder()
-
-        when (type) {
-            ExportType.RUNNING -> {
-                sb.appendLine("date;distance_km;duration_min;pace_min_km;avg_heart_rate;calories;elevation_m")
-                val workouts = workoutDao.observeAll().first()
-                    .filter { it.workoutType == WorkoutType.RUNNING && !it.isTemplate && it.isCompleted }
-                    .sortedBy { it.completedAt?.toString() ?: it.scheduledDate.toString() }
-                for (w in workouts) {
-                    val date = w.completedAt?.toLocalDate()?.toString() ?: w.scheduledDate.toString()
-                    val distKm   = w.resultDistanceKm.toCsvDecimal(2)
-                    val durMin   = w.resultDurationSec?.let { "%.1f".format(it / 60.0).replace('.', ',') } ?: ""
-                    val pace     = w.resultPaceAvgMinPerKm.toCsvDecimal(2)
-                    val hr       = w.resultHrAvg?.toString() ?: ""
-                    val calories = w.resultCalories?.toString() ?: ""
-                    val elev     = w.resultElevationM?.toString() ?: ""
-                    sb.appendLine("$date;$distKm;$durMin;$pace;$hr;$calories;$elev")
-                }
-            }
-
-            ExportType.STRENGTH -> {
-                sb.appendLine("date;seance_name;exercice;sets_completed;max_load_kg;total_tonnage_kg;total_reps")
-                val instances = instanceSeanceDao.observeAll().first()
-                    .filter { it.isCompleted }
-                    .sortedBy { it.completedAt?.toString() ?: it.date.toString() }
-                for (inst in instances) {
-                    val date       = inst.completedAt?.toLocalDate()?.toString() ?: inst.date.toString()
-                    val seanceName = seanceDao.getById(inst.seanceId)?.nom ?: ""
-                    val withSeries = instanceSeanceDao.getWithSeries(inst.id) ?: continue
-                    val exercices  = seanceDao.getExercicesForInstance(inst.id)
-                    for (ex in exercices) {
-                        val exId = ex.exerciceSeance.id
-                        val completedSeries = withSeries.series
-                            .filter { it.exerciceSeanceId == exId && it.isCompleted }
-                        val setsCompleted  = completedSeries.size
-                        val maxLoad        = completedSeries.mapNotNull { it.chargeKg?.toDouble() }.maxOrNull().toCsvDecimal(1)
-                        val totalTonnage   = completedSeries
-                            .sumOf { (it.repsRealisees ?: 0).toDouble() * (it.chargeKg?.toDouble() ?: 0.0) }
-                            .let { t -> if (t == 0.0) "" else "%.1f".format(t).replace('.', ',') }
-                        val totalReps      = completedSeries.sumOf { it.repsRealisees ?: 0 }
-                        val exerciceName   = ex.exercise.name.escapeCsv()
-                        sb.appendLine("$date;${seanceName.escapeCsv()};$exerciceName;$setsCompleted;$maxLoad;$totalTonnage;$totalReps")
-                    }
-                }
-            }
+        sb.appendLine("name;category;muscleGroups;equipment;exerciseType;isBodyweight")
+        for (e in exerciseDao.observeAll().first()) {
+            sb.appendLine(
+                "${e.name.escapeCsv()};${e.category.name};${e.muscleGroups.joinToString(",").escapeCsv()};" +
+                    "${e.equipment.joinToString(",").escapeCsv()};${e.exerciseType};${e.isBodyweight}",
+            )
         }
 
-        val fileName = "${prefix}${LocalDate.now()}.csv"
+        val fileName = "pandamove_exercises_${LocalDate.now()}.csv"
         val file = File(context.cacheDir, fileName)
         try {
             file.writeText(sb.toString(), Charsets.UTF_8)
@@ -448,9 +440,38 @@ class DataExportManager @Inject constructor(
         file
     }
 
-    private fun Double?.toCsvDecimal(decimals: Int): String =
-        if (this == null) "" else "%.${decimals}f".format(this).replace('.', ',')
+    /**
+     * Export standalone de "Mon matériel" (JSON) — indépendant du gros export v3.x, réutilisé par
+     * le bouton d'export de EquipmentScreen. Alimente notamment support/seance-builder.html, qui a
+     * besoin de l'inventaire réel pour calculer les charges composables hors de l'app.
+     */
+    suspend fun exportEquipmentToJson(): File = withContext(Dispatchers.IO) {
+        context.cacheDir
+            .listFiles { f -> f.name.startsWith("pandamove_equipment_") && f.extension == "json" }
+            ?.forEach { it.delete() }
 
-    private fun String.escapeCsv(): String =
-        if (contains(';') || contains('"') || contains('\n')) "\"${replace("\"", "\"\"")}\"" else this
+        val selected = equipmentRepository.selectedEquipment.first()
+        val pas = equipmentRepository.pasParCategorie.first()
+        val inventaire = equipmentRepository.inventaire.first()
+        val dto = EquipmentConfigExportDto(
+            exportDate = LocalDateTime.now().toString(),
+            config = EquipmentConfigDto(
+                selectedCategories = selected.map { it.name },
+                pasParCategorie = pas.mapKeys { it.key.name },
+                halteres = inventaire.halteres,
+                barre = inventaire.barre,
+                kettlebell = inventaire.kettlebell,
+                cable = inventaire.cable,
+            ),
+        )
+        val fileName = "pandamove_equipment_${LocalDate.now()}.json"
+        val file = File(context.cacheDir, fileName)
+        try {
+            file.writeText(json.encodeToString(dto), Charsets.UTF_8)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+        file
+    }
 }

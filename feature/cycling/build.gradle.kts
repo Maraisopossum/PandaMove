@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
@@ -36,6 +37,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.bundles.lifecycle)
     implementation(libs.bundles.coroutines)
+    implementation(libs.kotlinx.serialization.json)
 
     // OSMDroid (carte GPS du tracé TCX)
     implementation(libs.osmdroid)

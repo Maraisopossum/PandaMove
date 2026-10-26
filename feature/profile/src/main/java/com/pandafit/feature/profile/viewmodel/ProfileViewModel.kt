@@ -11,15 +11,20 @@ import androidx.work.WorkManager
 import com.pandafit.core.database.catalog.BackupPreferencesRepository
 import com.pandafit.core.database.catalog.UserPreferencesRepository
 import com.pandafit.core.database.dao.ExerciseDao
+import com.pandafit.core.database.export.DataCategory
 import com.pandafit.core.database.export.DataExportManager
 import com.pandafit.core.database.export.DataImportManager
-import com.pandafit.core.database.export.ExportType
+import com.pandafit.core.database.export.ExportOptions
+import com.pandafit.core.database.export.ImportOptions
 import com.pandafit.core.database.export.ImportResult
+import com.pandafit.core.database.export.forCategories
 import com.pandafit.core.database.worker.DriveBackupWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -33,21 +38,28 @@ import javax.inject.Inject
 
 enum class UserGender { MALE, FEMALE }
 
+enum class DrawerSide { LEFT, RIGHT }
+
 enum class ExportImportStatus { IDLE, EXPORTING, IMPORTING, SUCCESS_EXPORT, SUCCESS_IMPORT, ERROR }
 
 data class ProfileUiState(
     val userName: String = "Sportif PandaMove",
     val gender: UserGender = UserGender.MALE,
     val soundOverrideSilent: Boolean = false,
+    val isDarkMode: Boolean = false,
+    val drawerSide: DrawerSide = DrawerSide.LEFT,
     val exerciseCount: Int = 0,
     val exportImportStatus: ExportImportStatus = ExportImportStatus.IDLE,
-    val csvRunningStatus: ExportImportStatus = ExportImportStatus.IDLE,
-    val csvStrengthStatus: ExportImportStatus = ExportImportStatus.IDLE,
     val backupStatus: ExportImportStatus = ExportImportStatus.IDLE,
     val backupFolderUri: String? = null,
     val lastBackupDate: String? = null,
     val importResult: ImportResult? = null,
     val errorMessage: String? = null,
+    val showExportOptionsDialog: Boolean = false,
+    val selectedExportCategories: Set<DataCategory> = DataCategory.entries.toSet(),
+    val showImportOptionsDialog: Boolean = false,
+    val availableImportCategories: Set<DataCategory> = emptySet(),
+    val selectedImportCategories: Set<DataCategory> = emptySet(),
 )
 
 @HiltViewModel
@@ -84,12 +96,14 @@ class ProfileViewModel @Inject constructor(
                 userPrefs.userNameFlow,
                 userPrefs.genderFlow,
                 userPrefs.soundOverrideSilentFlow,
+                userPrefs.isDarkModeFlow,
                 exerciseDao.observeAll().map { it.size },
-            ) { name, gender, soundOverride, count ->
+            ) { name, gender, soundOverride, isDarkMode, count ->
                 _uiState.value.copy(
                     userName = name.ifBlank { "Sportif PandaMove" },
                     gender = if (gender == "FEMALE") UserGender.FEMALE else UserGender.MALE,
                     soundOverrideSilent = soundOverride,
+                    isDarkMode = isDarkMode,
                     exerciseCount = count,
                 )
             }
@@ -97,6 +111,15 @@ class ProfileViewModel @Inject constructor(
                 .collect { state ->
                     _uiState.value = state
                     _isReady.value = true
+                }
+        }
+        viewModelScope.launch {
+            userPrefs.drawerSideFlow
+                .catch { /* ignore, use default */ }
+                .collect { side ->
+                    _uiState.value = _uiState.value.copy(
+                        drawerSide = if (side == "RIGHT") DrawerSide.RIGHT else DrawerSide.LEFT,
+                    )
                 }
         }
     }
@@ -113,11 +136,17 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch { userPrefs.setSoundOverrideSilent(enabled) }
     }
 
+    fun setDarkMode(enabled: Boolean) {
+        viewModelScope.launch { userPrefs.setDarkMode(enabled) }
+    }
+
+    fun setDrawerSide(side: DrawerSide) {
+        viewModelScope.launch { userPrefs.setDrawerSide(side.name) }
+    }
+
     fun clearStatus() {
         _uiState.value = _uiState.value.copy(
             exportImportStatus = ExportImportStatus.IDLE,
-            csvRunningStatus = ExportImportStatus.IDLE,
-            csvStrengthStatus = ExportImportStatus.IDLE,
             backupStatus = ExportImportStatus.IDLE,
             importResult = null,
             errorMessage = null,
@@ -166,11 +195,38 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun exportData() {
+    fun onExportClick() {
+        _uiState.value = _uiState.value.copy(
+            showExportOptionsDialog = true,
+            selectedExportCategories = DataCategory.entries.toSet(),
+        )
+    }
+
+    fun toggleExportCategory(category: DataCategory) {
+        val current = _uiState.value.selectedExportCategories
+        _uiState.value = _uiState.value.copy(
+            selectedExportCategories = if (category in current) current - category else current + category,
+        )
+    }
+
+    fun toggleAllExportCategories() {
+        val current = _uiState.value.selectedExportCategories
+        _uiState.value = _uiState.value.copy(
+            selectedExportCategories = if (current.size == DataCategory.entries.size) emptySet() else DataCategory.entries.toSet(),
+        )
+    }
+
+    fun dismissExportDialog() {
+        _uiState.value = _uiState.value.copy(showExportOptionsDialog = false)
+    }
+
+    fun confirmExport() {
+        val categories = _uiState.value.selectedExportCategories
+        _uiState.value = _uiState.value.copy(showExportOptionsDialog = false)
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.EXPORTING)
             try {
-                val file = exportManager.export()
+                val file = exportManager.export(ExportOptions.forCategories(categories))
                 _shareIntent.tryEmit(exportManager.buildShareIntent(file))
                 _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.SUCCESS_EXPORT)
             } catch (e: Exception) {
@@ -182,43 +238,75 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun exportCsvRunning() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(csvRunningStatus = ExportImportStatus.EXPORTING)
-            try {
-                val file = exportManager.exportToCsv(ExportType.RUNNING)
-                _shareIntent.tryEmit(exportManager.buildShareIntent(file, "text/csv"))
-                _uiState.value = _uiState.value.copy(csvRunningStatus = ExportImportStatus.SUCCESS_EXPORT)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    csvRunningStatus = ExportImportStatus.ERROR,
-                    errorMessage = e.message ?: "Erreur inconnue",
-                )
-            }
-        }
-    }
+    /** JSON déjà lu, en attente de confirmation des catégories choisies par l'utilisateur. */
+    private var pendingImportJson: String? = null
 
-    fun exportCsvStrength() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(csvStrengthStatus = ExportImportStatus.EXPORTING)
-            try {
-                val file = exportManager.exportToCsv(ExportType.STRENGTH)
-                _shareIntent.tryEmit(exportManager.buildShareIntent(file, "text/csv"))
-                _uiState.value = _uiState.value.copy(csvStrengthStatus = ExportImportStatus.SUCCESS_EXPORT)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    csvStrengthStatus = ExportImportStatus.ERROR,
-                    errorMessage = e.message ?: "Erreur inconnue",
-                )
-            }
-        }
-    }
-
-    fun importData(jsonContent: String) {
+    fun importDataFromUri(uri: Uri) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.IMPORTING)
             try {
-                val result = importManager.import(jsonContent)
+                val jsonContent = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.readText()
+                } ?: run {
+                    _uiState.value = _uiState.value.copy(
+                        exportImportStatus = ExportImportStatus.ERROR,
+                        errorMessage = "Impossible de lire le fichier",
+                    )
+                    return@launch
+                }
+                val available = importManager.detectAvailableCategories(jsonContent)
+                if (available.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        exportImportStatus = ExportImportStatus.ERROR,
+                        errorMessage = "Fichier JSON invalide ou vide",
+                    )
+                    return@launch
+                }
+                pendingImportJson = jsonContent
+                _uiState.value = _uiState.value.copy(
+                    exportImportStatus = ExportImportStatus.IDLE,
+                    showImportOptionsDialog = true,
+                    availableImportCategories = available,
+                    selectedImportCategories = available,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    exportImportStatus = ExportImportStatus.ERROR,
+                    errorMessage = e.message ?: "Erreur d'import",
+                )
+            }
+        }
+    }
+
+    fun toggleImportCategory(category: DataCategory) {
+        val current = _uiState.value.selectedImportCategories
+        _uiState.value = _uiState.value.copy(
+            selectedImportCategories = if (category in current) current - category else current + category,
+        )
+    }
+
+    fun toggleAllImportCategories() {
+        val state = _uiState.value
+        _uiState.value = state.copy(
+            selectedImportCategories = if (state.selectedImportCategories.size == state.availableImportCategories.size)
+                emptySet() else state.availableImportCategories,
+        )
+    }
+
+    fun dismissImportDialog() {
+        pendingImportJson = null
+        _uiState.value = _uiState.value.copy(showImportOptionsDialog = false)
+    }
+
+    fun confirmImport() {
+        val jsonContent = pendingImportJson ?: return
+        val categories = _uiState.value.selectedImportCategories
+        pendingImportJson = null
+        _uiState.value = _uiState.value.copy(showImportOptionsDialog = false)
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(exportImportStatus = ExportImportStatus.IMPORTING)
+            try {
+                val result = importManager.import(jsonContent, ImportOptions.forCategories(categories))
                 _uiState.value = _uiState.value.copy(
                     exportImportStatus = ExportImportStatus.SUCCESS_IMPORT,
                     importResult = result,

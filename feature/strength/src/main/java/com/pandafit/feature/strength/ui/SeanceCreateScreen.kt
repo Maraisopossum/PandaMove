@@ -90,7 +90,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pandafit.feature.strength.R
+import com.pandafit.core.database.catalog.EquipmentInventaire
 import com.pandafit.core.database.catalog.MuscleGroup
+import com.pandafit.core.database.catalog.chargesAtteignablesPourEquipement
 import com.pandafit.core.database.catalog.muscleToGroup
 import com.pandafit.core.database.entities.effectivePrimary
 import com.pandafit.core.database.entities.BlocType
@@ -109,6 +111,8 @@ import com.pandafit.feature.strength.model.BlocDraft
 import com.pandafit.feature.strength.model.ExerciceDraft
 import com.pandafit.feature.strength.model.SeanceItem
 import com.pandafit.feature.strength.model.formatRepsDisplay
+import com.pandafit.feature.strength.model.parseChargeKg
+import com.pandafit.feature.strength.model.parseChargeLabel
 import com.pandafit.feature.strength.viewmodel.SeanceCreateViewModel
 
 @Composable
@@ -167,6 +171,8 @@ fun SeanceCreateScreen(
                 },
                 onNavigateBack = onNavigateBack,
                 scrollBehavior = scrollBehavior,
+                containerColor = PandaPurple,
+                contentColor = Color.White,
             )
         },
         bottomBar = {
@@ -236,19 +242,18 @@ fun SeanceCreateScreen(
             }
 
             // Bouton d'ajout d'échauffement (template uniquement, pas en mode instance)
-            // TODO: masqué temporairement — à réactiver quand la section Échauffement sera prête
-//            if (!isInstanceEdit) {
-//                item {
-//                    TextButton(
-//                        onClick = { viewModel.showWarmupPicker() },
-//                        modifier = Modifier.fillMaxWidth(),
-//                    ) {
-//                        Icon(Icons.Default.SelfImprovement, null, modifier = Modifier.size(16.dp), tint = PandaOrange)
-//                        Spacer(Modifier.width(6.dp))
-//                        Text("Ajouter un échauffement", color = PandaOrange)
-//                    }
-//                }
-//            }
+            if (!isInstanceEdit) {
+                item {
+                    TextButton(
+                        onClick = { viewModel.showWarmupPicker() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.SelfImprovement, null, modifier = Modifier.size(16.dp), tint = PandaOrange)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.seance_create_add_warmup_button), color = PandaOrange)
+                    }
+                }
+            }
 
             // Liste unifiée d'items (exercices libres + blocs dans l'ordre)
             itemsIndexed(uiState.items, key = { i, item ->
@@ -262,6 +267,7 @@ fun SeanceCreateScreen(
                         exercice = item.exercice,
                         index = index,
                         totalItems = uiState.items.size,
+                        userInventaire = uiState.userInventaire,
                         onUpdate = { viewModel.updateFreeExercice(index, it) },
                         onDelete = { viewModel.removeItem(index) },
                         onDuplicate = { viewModel.duplicateFreeExercice(index) },
@@ -272,6 +278,7 @@ fun SeanceCreateScreen(
                         bloc = item.bloc,
                         index = index,
                         totalItems = uiState.items.size,
+                        userInventaire = uiState.userInventaire,
                         onUpdate = { viewModel.updateItem(index, SeanceItem.Bloc(it)) },
                         onDelete = { viewModel.removeItem(index) },
                         onMoveUp = { viewModel.moveItemUp(index) },
@@ -308,7 +315,7 @@ fun SeanceCreateScreen(
                 AddBlocRow(onAdd = { type -> viewModel.addBloc(type) }, modifier = Modifier.fillMaxWidth())
             }
 
-            item { Spacer(Modifier.height(80.dp)) }
+            item { Spacer(Modifier.height(88.dp)) }
         }
     }
 }
@@ -383,12 +390,16 @@ private fun BilateralBadge(modifier: Modifier = Modifier) {
 private fun exerciceSummaryLine(exercice: ExerciceDraft): String {
     val sep = stringResource(R.string.seance_create_summary_separator)
     val reps = when {
-        exercice.systemeProgression == SystemeProgression.DOUBLE && exercice.repsMin != null && exercice.repsMax != null ->
+        exercice.progressionActivee && exercice.systemeProgression == SystemeProgression.DOUBLE && exercice.repsMin != null && exercice.repsMax != null ->
             "${exercice.repsMin}–${exercice.repsMax}"
         else -> formatRepsDisplay(exercice.repsCibles, exercice.repsType)
     }
     val parts = mutableListOf("${exercice.nombreSeriesPrevues} × $reps")
-    if (exercice.chargeCible.isNotBlank()) parts.add(exercice.chargeCible)
+    if (exercice.isBodyweight) {
+        parts.add(stringResource(R.string.seance_create_progression_type_pdc_short))
+    } else if (exercice.chargeCible.isNotBlank()) {
+        parts.add(exercice.chargeCible)
+    }
     return parts.joinToString(" $sep ")
 }
 
@@ -399,6 +410,7 @@ private fun FreeExerciceCard(
     exercice: ExerciceDraft,
     index: Int,
     totalItems: Int,
+    userInventaire: EquipmentInventaire,
     onUpdate: (ExerciceDraft) -> Unit,
     onDelete: () -> Unit,
     onDuplicate: () -> Unit,
@@ -435,7 +447,7 @@ private fun FreeExerciceCard(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    ExerciceFields(exercice = exercice, onUpdate = onUpdate)
+                    ExerciceFields(exercice = exercice, onUpdate = onUpdate, userInventaire = userInventaire)
                     ExerciceCardFooter(
                         onDuplicate = onDuplicate,
                         canMoveUp = index > 0,
@@ -534,6 +546,7 @@ private fun BlocCard(
     bloc: BlocDraft,
     index: Int,
     totalItems: Int,
+    userInventaire: EquipmentInventaire,
     onUpdate: (BlocDraft) -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
@@ -628,6 +641,7 @@ private fun BlocCard(
                     ExerciceCard(
                         exercice = exercice,
                         blocType = bloc.type,
+                        userInventaire = userInventaire,
                         onUpdate = { onUpdateExercice(eIdx, it) },
                         onDelete = { onRemoveExercice(eIdx) },
                         onDuplicate = { onDuplicateExercice(eIdx) },
@@ -656,6 +670,7 @@ private fun BlocCard(
 private fun ExerciceCard(
     exercice: ExerciceDraft,
     blocType: BlocType?,
+    userInventaire: EquipmentInventaire,
     onUpdate: (ExerciceDraft) -> Unit,
     onDelete: () -> Unit,
     onDuplicate: () -> Unit = {},
@@ -702,7 +717,7 @@ private fun ExerciceCard(
                             )
                         }
                     }
-                    ExerciceFields(exercice = exercice, onUpdate = onUpdate, blocType = blocType)
+                    ExerciceFields(exercice = exercice, onUpdate = onUpdate, blocType = blocType, userInventaire = userInventaire)
                     ExerciceCardFooter(
                         onDuplicate = onDuplicate,
                         canMoveUp = canMoveUp,
@@ -724,6 +739,7 @@ private fun ExerciceFields(
     exercice: ExerciceDraft,
     onUpdate: (ExerciceDraft) -> Unit,
     blocType: BlocType? = null,
+    userInventaire: EquipmentInventaire = EquipmentInventaire(),
 ) {
     val labelStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Normal)
     val labelWidth = Modifier.width(112.dp)
@@ -832,6 +848,11 @@ private fun ExerciceFields(
             modifier = Modifier.weight(1f), singleLine = true, textStyle = MaterialTheme.typography.bodySmall,
         )
     }
+    ChargeComposabiliteHint(
+        chargeKg = parseChargeKg(parseChargeLabel(exercice.chargeCible)),
+        chargesAtteignables = userInventaire.chargesAtteignablesPourEquipement(exercice.exercise.equipment),
+        onArrondir = { onUpdate(exercice.copy(chargeCible = formatKgLabel(it))) },
+    )
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.seance_create_inline_comment_label), style = labelStyle, modifier = labelWidth)
         OutlinedTextField(
@@ -925,7 +946,7 @@ private fun ProgressionConfigSection(
                             incrementKg = exercice.incrementKg ?: 2.5f,
                         )
                     } else {
-                        exercice.copy(progressionActivee = false)
+                        exercice.copy(progressionActivee = false, repsMin = null, repsMax = null)
                     }
                 )
             },
@@ -942,6 +963,26 @@ private fun ProgressionConfigSection(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Checkbox(
+                    checked = exercice.isBodyweight,
+                    onCheckedChange = { checked ->
+                        onUpdate(
+                            exercice.copy(
+                                isBodyweight = checked,
+                                typeExercice = if (checked) TypeExercice.PDC else exercice.typeExercice,
+                            )
+                        )
+                    },
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    stringResource(R.string.seance_create_progression_bodyweight_label),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                )
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 FilterChip(
                     selected = exercice.systemeProgression == SystemeProgression.LINEAIRE,
@@ -986,7 +1027,13 @@ private fun ProgressionConfigSection(
                 }
             }
 
-            if (exercice.systemeProgression != SystemeProgression.TEMPORELLE) {
+            if (exercice.isBodyweight) {
+                Text(
+                    stringResource(R.string.seance_create_progression_type_pdc),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PandaSubtext,
+                )
+            } else if (exercice.systemeProgression != SystemeProgression.TEMPORELLE) {
                 Column {
                     Text(
                         stringResource(R.string.seance_create_progression_type_exercice_label),
@@ -1016,7 +1063,9 @@ private fun ProgressionConfigSection(
                 }
             }
 
-            if (exercice.systemeProgression == SystemeProgression.TEMPORELLE) {
+            if (exercice.isBodyweight) {
+                // Pas de charge pour un exercice au poids de corps — progression sur les reps puis les séries
+            } else if (exercice.systemeProgression == SystemeProgression.TEMPORELLE) {
                 NumberStepper(
                     label = stringResource(R.string.seance_create_progression_increment_duree),
                     value = exercice.incrementDureeSec,

@@ -1,0 +1,21 @@
+# Règles de synchro PowerSync au format Sync Streams (édition 3).
+# Même contenu que celui déployé dans le tableau de bord PowerSync Cloud (page Sync Streams).
+# Chaque utilisateur ne reçoit que les lignes dont user_id est égal à l'id de son JWT (auth.user_id()).
+# Les lignes soft-deleted (deleted_at renseigné) sont synchronisées volontairement : sans cela,
+# un appareil hors ligne ressusciterait une suppression. Les clients doivent filtrer deleted_at IS NULL.
+# Remplace l'ancien format bucket_definitions, non valide dans le tableau de bord.
+config:
+  edition: 3
+
+streams:
+  par_utilisateur:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM exercises WHERE user_id = auth.user_id()
+      - SELECT * FROM seances WHERE user_id = auth.user_id()
+      - SELECT * FROM blocs_seance WHERE user_id = auth.user_id()
+      - SELECT * FROM exercices_seance WHERE user_id = auth.user_id()
+      - SELECT * FROM instances_seance WHERE user_id = auth.user_id()
+      - SELECT * FROM series_realisees WHERE user_id = auth.user_id()
+      - SELECT * FROM objectifs_progression WHERE user_id = auth.user_id()
+      - SELECT * FROM user_settings WHERE user_id = auth.user_id()

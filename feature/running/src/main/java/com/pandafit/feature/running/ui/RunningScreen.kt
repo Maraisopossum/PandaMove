@@ -1,8 +1,6 @@
 package com.pandafit.feature.running.ui
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import com.pandafit.feature.running.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,10 +36,10 @@ import com.pandafit.designsystem.components.AssignSingleDatePickerDialog
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaErrorState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
 import com.pandafit.designsystem.components.SportIconBadge
 import com.pandafit.designsystem.theme.PandaGreen
-import com.pandafit.designsystem.theme.PandaPurple
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.running.viewmodel.RunningListViewModel
 import java.time.format.DateTimeFormatter
@@ -53,11 +51,13 @@ import java.util.Locale
 fun RunningScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToExecute: (Long) -> Unit,
+    onNavigateToEdit: (Long) -> Unit,
     onNavigateToCreate: () -> Unit,
     onOpenDrawer: () -> Unit = {},
     viewModel: RunningListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activeWorkoutId by viewModel.activeWorkoutId.collectAsStateWithLifecycle()
 
     // "Séance directe" : la séance libre est créée en base puis on bascule directement sur l'exécution GPS.
     LaunchedEffect(uiState.quickStartWorkoutId) {
@@ -66,7 +66,6 @@ fun RunningScreen(
             viewModel.onQuickStartHandled()
         }
     }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val isEmpty = uiState.templates.isEmpty() && uiState.planned.isEmpty() && uiState.completed.isEmpty()
 
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
@@ -171,7 +170,6 @@ fun RunningScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
@@ -191,10 +189,15 @@ fun RunningScreen(
                             Icon(Icons.Default.Delete, stringResource(R.string.running_screen_delete_selection_cd), tint = MaterialTheme.colorScheme.error)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaPurple.copy(alpha = 0.08f)),
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = PandaGreen.copy(alpha = 0.08f)),
                 )
             } else {
-                PandaTopBar(title = stringResource(R.string.running_screen_title), onOpenDrawer = onOpenDrawer, scrollBehavior = scrollBehavior)
+                PandaTopBar(
+                    title = stringResource(R.string.running_screen_title),
+                    onOpenDrawer = onOpenDrawer,
+                    containerColor = PandaGreen,
+                    contentColor = Color.White,
+                )
             }
         },
         floatingActionButton = {
@@ -252,7 +255,7 @@ fun RunningScreen(
                                 isSelectionMode = isSelectionMode,
                                 onDuplicate = if (!isSelectionMode) { { viewModel.duplicateWorkout(w.id) } } else null,
                                 onAssign = if (!isSelectionMode) { { assignTarget = w; showAssignMenu = true } } else null,
-                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToDetail(w.id) },
+                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToEdit(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
                         }
@@ -268,8 +271,8 @@ fun RunningScreen(
                                 onReschedule = if (!isSelectionMode) {
                                     { rescheduleTargetId = w.id; showReschedulePicker = true }
                                 } else null,
-                                onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToExecute(w.id) },
-                                onLongClick = { toggle(w.id) },
+                                onClick = { if (isSelectionMode) { if (w.id != activeWorkoutId) toggle(w.id) } else onNavigateToExecute(w.id) },
+                                onLongClick = { if (w.id != activeWorkoutId) toggle(w.id) },
                             )
                         }
                     }
@@ -282,6 +285,7 @@ fun RunningScreen(
                                 alpha = 0.75f,
                                 isSelected = w.id in selectedIds,
                                 isSelectionMode = isSelectionMode,
+                                routeThumbnail = uiState.routeThumbnails[w.id],
                                 onClick = { if (isSelectionMode) toggle(w.id) else onNavigateToDetail(w.id) },
                                 onLongClick = { toggle(w.id) },
                             )
@@ -300,7 +304,7 @@ private fun RunSectionHeader(label: String) {
     Text(
         label,
         style = MaterialTheme.typography.labelSmall,
-        color = PandaPurple,
+        color = PandaGreen,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp, end = 16.dp),
     )
@@ -317,32 +321,29 @@ private fun RunWorkoutCard(
     onDuplicate: (() -> Unit)? = null,
     onAssign: (() -> Unit)? = null,
     onReschedule: (() -> Unit)? = null,
+    routeThumbnail: List<Pair<Double, Double>>? = null,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
-    val borderColor = if (isSelected) PandaPurple else PandaPurple.copy(alpha = 0f)
-    val bgColor = if (isSelected) PandaPurple.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
-
-    Card(
+    PandaSportCard(
+        accentColor = PandaGreen,
+        isSelected = isSelected,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .alpha(alpha)
-            .border(if (isSelected) 2.dp else 0.dp, borderColor, MaterialTheme.shapes.medium)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            .alpha(alpha),
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelectionMode) {
                 Icon(
                     if (isSelected) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle,
                     contentDescription = null,
-                    tint = if (isSelected) PandaPurple else PandaSubtext,
+                    tint = if (isSelected) PandaGreen else PandaSubtext,
                     modifier = Modifier.size(22.dp),
                 )
                 Spacer(Modifier.width(10.dp))
@@ -369,6 +370,24 @@ private fun RunWorkoutCard(
                         Text(workout.notes, style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                     }
                 }
+                val stats = buildList {
+                    workout.resultDistanceKm?.let { add("${"%.1f".format(it)} km") }
+                    workout.resultDurationSec?.let {
+                        val h = it / 3600; val m = (it % 3600) / 60
+                        add(if (h > 0) "${h}h${m.toString().padStart(2, '0')}" else "${m}min")
+                    }
+                    workout.resultElevationM?.let { add("↑ ${it}m") }
+                }.joinToString(" · ")
+                if (stats.isNotBlank()) {
+                    Text(stats, style = MaterialTheme.typography.labelMedium, color = PandaGreen, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            if (!routeThumbnail.isNullOrEmpty() && routeThumbnail.size >= 2) {
+                com.pandafit.designsystem.components.GpsRouteThumbnail(
+                    points = routeThumbnail,
+                    color = PandaGreen,
+                    modifier = Modifier.size(48.dp).padding(end = 4.dp),
+                )
             }
             if (!isSelectionMode) {
                 if (onDuplicate != null) {

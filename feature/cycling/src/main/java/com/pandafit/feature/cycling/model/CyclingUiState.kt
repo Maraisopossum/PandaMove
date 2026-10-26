@@ -11,6 +11,9 @@ data class CyclingListUiState(
     val planned: List<WorkoutEntity> = emptyList(),
     val completed: List<WorkoutEntity> = emptyList(),
     val error: String? = null,
+    val quickStartWorkoutId: Long? = null,
+    /** Tracé GPS (lat, lon) par workoutId, pour la miniature de parcours des séances terminées — absent si pas de tracé. */
+    val routeThumbnails: Map<Long, List<Pair<Double, Double>>> = emptyMap(),
 )
 
 data class CyclingDetailUiState(

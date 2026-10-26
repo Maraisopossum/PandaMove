@@ -42,8 +42,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
+
+// Format produit par certains exports antérieurs à la normalisation ISO de DataExportManager
+// (LocalDateTime.toString()) — repli pour ne pas perdre createdAt/updatedAt/completedAt à l'import.
+private val LEGACY_DATETIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+
+private fun parseDateTimeFlexible(raw: String): LocalDateTime? =
+    runCatching { LocalDateTime.parse(raw) }.getOrNull()
+        ?: runCatching { LocalDateTime.parse(raw, LEGACY_DATETIME_FORMATTER) }.getOrNull()
 
 data class ImportResult(
     val imported: Int = 0,
@@ -121,6 +130,46 @@ class DataImportManager @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
+     * Décode un JSON d'export (v2.0 ou v3.0) vers la structure v3.0.
+     * Toujours essayer v3 en premier (couvre les exports sans champ "version"),
+     * puis v2 comme fallback si v3 échoue (ancien format avec strengthSessions en liste plate).
+     */
+    private fun decodeExport(jsonContent: String): Result<PandaMoveExport> =
+        runCatching { json.decodeFromString<PandaMoveExport>(jsonContent) }
+            .recoverCatching { json.decodeFromString<PandaMoveExportV2>(jsonContent).toV3() }
+
+    /**
+     * Décode [jsonContent] et retourne l'ensemble des [DataCategory] non-vides présentes —
+     * pilote l'UI de sélection des catégories à importer. Retourne un ensemble vide si le
+     * JSON est invalide.
+     */
+    suspend fun detectAvailableCategories(jsonContent: String): Set<DataCategory> = withContext(Dispatchers.IO) {
+        val export = decodeExport(jsonContent).getOrNull() ?: return@withContext emptySet()
+        buildSet {
+            if (export.strengthTemplates.isNotEmpty() ||
+                export.strengthSessions.completed.isNotEmpty() ||
+                export.strengthSessions.planned.isNotEmpty()
+            ) add(DataCategory.STRENGTH)
+            if (export.runTemplates.isNotEmpty() ||
+                export.runSessions.completed.isNotEmpty() ||
+                export.runSessions.planned.isNotEmpty()
+            ) add(DataCategory.RUNNING)
+            if (export.cyclingTemplates.isNotEmpty() ||
+                export.cyclingSessions.completed.isNotEmpty() ||
+                export.cyclingSessions.planned.isNotEmpty()
+            ) add(DataCategory.CYCLING)
+            if (export.hikingTemplates.isNotEmpty() ||
+                export.hikingSessions.completed.isNotEmpty() ||
+                export.hikingSessions.planned.isNotEmpty()
+            ) add(DataCategory.HIKING)
+            if (export.breathingSessions.isNotEmpty()) add(DataCategory.BREATHING)
+            if (export.customExercises.isNotEmpty()) add(DataCategory.CUSTOM_EXERCISES)
+            if (export.objectifsProgression.isNotEmpty()) add(DataCategory.PROGRESSION_OBJECTIVES)
+            if (export.equipmentConfig != null) add(DataCategory.EQUIPMENT)
+        }
+    }
+
+    /**
      * Importe un fichier JSON (v2.0 ou v3.0) dans la base Room.
      * [options] permet de n'importer qu'une partie des sections.
      * Par défaut, toutes les sections sont importées.
@@ -131,18 +180,8 @@ class DataImportManager @Inject constructor(
     ): ImportResult = withContext(Dispatchers.IO) {
         var imported = 0; var skipped = 0; var errors = 0
 
-        // Toujours essayer v3 en premier (couvre les exports sans champ "version"),
-        // puis v2 comme fallback si v3 échoue (ancien format avec strengthSessions en liste plate).
-        val export: PandaMoveExport = runCatching {
-            json.decodeFromString<PandaMoveExport>(jsonContent)
-        }.getOrNull() ?: run {
-            val v2Result = runCatching { json.decodeFromString<PandaMoveExportV2>(jsonContent) }
-            val legacy = v2Result.getOrNull()
-                ?: return@withContext ImportResult(
-                    errors = 1,
-                    parseError = v2Result.exceptionOrNull()?.message,
-                )
-            legacy.toV3()
+        val export: PandaMoveExport = decodeExport(jsonContent).getOrElse {
+            return@withContext ImportResult(errors = 1, parseError = it.message)
         }
 
         // ── 1. Exercices personnalisés (à importer en premier — les séances y réfèrent) ──
@@ -192,12 +231,8 @@ class DataImportManager @Inject constructor(
                             seanceCategory = runCatching {
                                 SeanceCategory.valueOf(template.seance.seanceCategory)
                             }.getOrDefault(SeanceCategory.STRENGTH),
-                            createdAt = runCatching {
-                                LocalDateTime.parse(template.seance.createdAt)
-                            }.getOrDefault(LocalDateTime.now()),
-                            updatedAt = runCatching {
-                                LocalDateTime.parse(template.seance.updatedAt)
-                            }.getOrDefault(LocalDateTime.now()),
+                            createdAt = parseDateTimeFlexible(template.seance.createdAt) ?: LocalDateTime.now(),
+                            updatedAt = parseDateTimeFlexible(template.seance.updatedAt) ?: LocalDateTime.now(),
                         )
                     )
                     if (seanceResult == -1L) { skipped++; continue }
@@ -258,6 +293,7 @@ class DataImportManager @Inject constructor(
                                     runCatching { TypeExercice.valueOf(it) }.getOrNull()
                                 },
                                 incrementPct = ex.incrementPct,
+                                isBodyweight = ex.isBodyweight,
                             )
                         )
                         if (r > 0) imported++ else skipped++
@@ -280,13 +316,9 @@ class DataImportManager @Inject constructor(
                                 .getOrDefault(LocalDate.now()),
                             notes = session.instance.notes,
                             isCompleted = session.instance.isCompleted,
-                            completedAt = session.instance.completedAt?.let {
-                                runCatching { LocalDateTime.parse(it) }.getOrNull()
-                            },
+                            completedAt = session.instance.completedAt?.let { parseDateTimeFlexible(it) },
                             durationSeconds = session.instance.durationSeconds,
-                            createdAt = runCatching {
-                                LocalDateTime.parse(session.instance.createdAt)
-                            }.getOrDefault(LocalDateTime.now()),
+                            createdAt = parseDateTimeFlexible(session.instance.createdAt) ?: LocalDateTime.now(),
                         )
                     )
                     if (instResult == -1L) { skipped++; continue }
@@ -348,6 +380,7 @@ class DataImportManager @Inject constructor(
                                     runCatching { TypeExercice.valueOf(it) }.getOrNull()
                                 },
                                 incrementPct = ex.incrementPct,
+                                isBodyweight = ex.isBodyweight,
                             )
                         )
                         if (r > 0) imported++ else skipped++
@@ -403,15 +436,11 @@ class DataImportManager @Inject constructor(
                         name = w.name, notes = w.notes, objective = w.objective,
                         scheduledDate = runCatching { LocalDate.parse(w.scheduledDate) }
                             .getOrDefault(LocalDate.now()),
-                        createdAt = runCatching { LocalDateTime.parse(w.createdAt) }
-                            .getOrDefault(LocalDateTime.now()),
-                        updatedAt = runCatching { LocalDateTime.parse(w.updatedAt) }
-                            .getOrDefault(LocalDateTime.now()),
+                        createdAt = parseDateTimeFlexible(w.createdAt) ?: LocalDateTime.now(),
+                        updatedAt = parseDateTimeFlexible(w.updatedAt) ?: LocalDateTime.now(),
                         // ?: false — corrige les null des exports v2.0
                         isCompleted = w.isCompleted ?: false,
-                        completedAt = w.completedAt?.let {
-                            runCatching { LocalDateTime.parse(it) }.getOrNull()
-                        },
+                        completedAt = w.completedAt?.let { parseDateTimeFlexible(it) },
                         durationMinutes = w.durationMinutes, tags = w.tags,
                         colorHex = w.colorHex,
                         isTemplate = w.isTemplate ?: false,
@@ -514,14 +543,10 @@ class DataImportManager @Inject constructor(
                         name = w.name, notes = w.notes, objective = w.objective,
                         scheduledDate = runCatching { LocalDate.parse(w.scheduledDate) }
                             .getOrDefault(LocalDate.now()),
-                        createdAt = runCatching { LocalDateTime.parse(w.createdAt) }
-                            .getOrDefault(LocalDateTime.now()),
-                        updatedAt = runCatching { LocalDateTime.parse(w.updatedAt) }
-                            .getOrDefault(LocalDateTime.now()),
+                        createdAt = parseDateTimeFlexible(w.createdAt) ?: LocalDateTime.now(),
+                        updatedAt = parseDateTimeFlexible(w.updatedAt) ?: LocalDateTime.now(),
                         isCompleted = w.isCompleted ?: false,
-                        completedAt = w.completedAt?.let {
-                            runCatching { LocalDateTime.parse(it) }.getOrNull()
-                        },
+                        completedAt = w.completedAt?.let { parseDateTimeFlexible(it) },
                         durationMinutes = w.durationMinutes, tags = w.tags,
                         colorHex = w.colorHex,
                         isTemplate = w.isTemplate ?: false,
@@ -638,5 +663,80 @@ class DataImportManager @Inject constructor(
         }
 
         ImportResult(imported = imported, skipped = skipped, errors = errors)
+    }
+
+    /**
+     * Import en masse du catalogue d'exercices (JSON produit par [DataExportManager.exportExercisesToJson]).
+     * Dédoublonnage simple par nom (insensible à la casse) — les doublons sont ignorés, jamais fusionnés.
+     */
+    suspend fun importExercisesFromJson(jsonContent: String): ImportResult = withContext(Dispatchers.IO) {
+        val dto = runCatching { json.decodeFromString<ExerciseCatalogExportDto>(jsonContent) }
+            .getOrElse { return@withContext ImportResult(errors = 1, parseError = it.message) }
+        importExerciseDtos(dto.exercises)
+    }
+
+    /**
+     * Import en masse du catalogue d'exercices (CSV produit par [DataExportManager.exportExercisesToCsv]).
+     * Colonnes attendues : name;category;muscleGroups;equipment;exerciseType;isBodyweight
+     */
+    suspend fun importExercisesFromCsv(csvContent: String): ImportResult = withContext(Dispatchers.IO) {
+        val lines = csvContent.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
+        if (lines.isEmpty()) return@withContext ImportResult()
+        val dtos = lines.drop(1).mapNotNull { line ->
+            val cols = parseCsvLine(line)
+            if (cols.size < 6 || cols[0].isBlank()) return@mapNotNull null
+            CustomExerciseDto(
+                id = 0, name = cols[0], category = cols[1],
+                muscleGroups = cols[2].split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                equipment = cols[3].split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                exerciseType = cols[4],
+                musclePrimary = cols[2].split(",").firstOrNull()?.trim() ?: "",
+            )
+        }
+        importExerciseDtos(dtos)
+    }
+
+    private suspend fun importExerciseDtos(dtos: List<CustomExerciseDto>): ImportResult {
+        var imported = 0; var skipped = 0; var errors = 0
+        val existingNames = exerciseDao.observeAll().first().map { it.name.lowercase() }.toHashSet()
+        for (ex in dtos) {
+            if (ex.name.isBlank() || ex.name.lowercase() in existingNames) { skipped++; continue }
+            try {
+                exerciseDao.insertExercise(
+                    ExerciseEntity(
+                        name = ex.name, description = ex.description,
+                        category = runCatching { ExerciseCategory.valueOf(ex.category) }
+                            .getOrDefault(ExerciseCategory.OTHER),
+                        muscleGroups = ex.muscleGroups,
+                        exerciseType = ex.exerciseType, equipment = ex.equipment,
+                        musclePrimary = ex.musclePrimary, isCustom = true,
+                    )
+                )
+                existingNames.add(ex.name.lowercase())
+                imported++
+            } catch (_: Exception) {
+                errors++
+            }
+        }
+        return ImportResult(imported = imported, skipped = skipped, errors = errors)
+    }
+
+    private fun parseCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        val sb = StringBuilder()
+        var inQuotes = false
+        var i = 0
+        while (i < line.length) {
+            val c = line[i]
+            when {
+                inQuotes && c == '"' && i + 1 < line.length && line[i + 1] == '"' -> { sb.append('"'); i++ }
+                c == '"' -> inQuotes = !inQuotes
+                c == ';' && !inQuotes -> { result.add(sb.toString()); sb.clear() }
+                else -> sb.append(c)
+            }
+            i++
+        }
+        result.add(sb.toString())
+        return result
     }
 }

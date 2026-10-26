@@ -16,6 +16,7 @@ import com.pandafit.R
 import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.navigation.CyclingRoutes
+import com.pandafit.navigation.HikingRoutes
 import com.pandafit.navigation.RunningRoutes
 import com.pandafit.navigation.StrengthRoutes
 import dagger.hilt.android.AndroidEntryPoint
@@ -146,6 +147,7 @@ class ActiveSessionService : Service() {
     private fun routeFor(type: WorkoutType?, id: Long) = when (type) {
         WorkoutType.RUNNING -> RunningRoutes.execute(id)
         WorkoutType.CYCLING -> CyclingRoutes.execute(id)
+        WorkoutType.HIKING  -> HikingRoutes.execute(id)
         else                -> "home"
     }
 

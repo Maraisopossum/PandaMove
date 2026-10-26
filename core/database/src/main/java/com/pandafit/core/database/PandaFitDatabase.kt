@@ -54,7 +54,7 @@ import com.pandafit.core.database.entities.WorkoutExerciseEntity
         CustomBreathingMethodEntity::class,
         ObjectifProgressionEntity::class,
     ],
-    version = 23,
+    version = 27,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ListConverters::class)
@@ -276,6 +276,15 @@ abstract class PandaFitDatabase : RoomDatabase() {
             }
         }
 
+        // v23 → v24 : progression "reps seulement" pour exercices au poids de corps
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE exercises ADD COLUMN is_bodyweight INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE exercices_seance ADD COLUMN is_bodyweight INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE objectifs_progression ADD COLUMN nombre_series_cible INTEGER")
+            }
+        }
+
         // v16 → v17 : ajout de la table custom_breathing_method
         val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -307,6 +316,36 @@ abstract class PandaFitDatabase : RoomDatabase() {
                         `session_date` TEXT NOT NULL
                     )"""
                 )
+            }
+        }
+
+        // v24 → v25 : provenance de la séance (native vs import TCX), pour l'écran de résultat commun
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE workouts ADD COLUMN source TEXT NOT NULL DEFAULT 'NATIVE'")
+            }
+        }
+
+        // v25 → v26 : distingue un bloc auto-lap montre (splits kilométriques importés TCX) d'un
+        // vrai bloc de fractionné construit dans l'app, pour ne pas afficher "INTERVALLE X/N" à
+        // l'exécution live d'une sortie continue réutilisée comme modèle.
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE run_repeats ADD COLUMN is_auto_lap INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v26 → v27 : unicité du nom d'exercice (fiabilise le dédoublonnage import/export du
+        // catalogue) — renomme d'abord les doublons existants (name + " (id)") pour ne jamais
+        // perdre de données, puis remplace l'index name par un index UNIQUE.
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """UPDATE exercises SET name = name || ' (' || id || ')'
+                        WHERE id NOT IN (SELECT MIN(id) FROM exercises GROUP BY name)"""
+                )
+                db.execSQL("DROP INDEX IF EXISTS index_exercises_name")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_exercises_name ON exercises(name)")
             }
         }
 

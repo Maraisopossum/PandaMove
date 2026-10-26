@@ -50,6 +50,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -96,10 +97,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.pandafit.core.database.catalog.DisquesConfig
+import com.pandafit.core.database.catalog.EquipmentInventaire
+import com.pandafit.core.database.catalog.HalteresConfig
+import com.pandafit.core.database.catalog.chargesAtteignables
 import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
 import com.pandafit.core.database.entities.RepsType
 import com.pandafit.core.database.entities.SerieRealiseeEntity
+import com.pandafit.core.database.progression.WarmupPalier
+import com.pandafit.core.database.progression.WarmupProtocole
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.designsystem.components.PandaLoadingIndicator
 import com.pandafit.designsystem.theme.PandaHighlight
@@ -149,6 +156,7 @@ fun InstanceExecuteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sessionSeconds by viewModel.sessionSeconds.collectAsStateWithLifecycle()
+    val isSessionActive by viewModel.isSessionActive.collectAsStateWithLifecycle()
     val restRemaining by viewModel.restRemaining.collectAsStateWithLifecycle()
     val exerciceRemaining by viewModel.exerciceRemaining.collectAsStateWithLifecycle()
     val lastManualTimerSeconds by viewModel.lastManualTimerSeconds.collectAsStateWithLifecycle()
@@ -458,6 +466,8 @@ fun InstanceExecuteScreen(
                 seanceName = uiState.seance?.nom ?: stringResource(R.string.instance_execute_seance_name_fallback),
                 cycleLabel = uiState.seance?.notes?.trim()?.takeIf { it.isNotBlank() },
                 sessionSeconds = sessionSeconds,
+                isSessionActive = isSessionActive,
+                onStartSession = viewModel::startSession,
                 restRemaining = restRemaining,
                 showPencilMenu = showPencilMenu,
                 showRestMenu = showRestMenu,
@@ -633,13 +643,30 @@ fun InstanceExecuteScreen(
                         }
                     }
 
+                    // ── Bouton montée en charge ──
+                    item {
+                        TextButton(
+                            onClick = { viewModel.openWarmupSheet(activeExerciceId!!) },
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp),
+                        ) {
+                            Text("⚡", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "Montée en charge",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = PandaPurple,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+
                     item {
                         Text(
                             stringResource(R.string.instance_execute_today_section_header),
                             style = MaterialTheme.typography.labelSmall,
                             color = PandaSubtext,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp),
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
                         )
                     }
                     item {
@@ -661,6 +688,7 @@ fun InstanceExecuteScreen(
                         }
                         SeriesTableHeader(
                             repsLabel = if (activeExercice?.exerciceSeance?.repsType == RepsType.DURATION) stringResource(R.string.instance_execute_col_temps) else stringResource(R.string.instance_execute_col_reps),
+                            showRpe = activeExercice?.let { rpeApplicable(it, activeBloc) } ?: true,
                         )
                     }
 
@@ -808,7 +836,21 @@ fun InstanceExecuteScreen(
     if (showPlateCalculator) {
         PlateCalculatorSheet(
             initialTargetKg = calculatorInitialKg,
+            equipmentInventaire = uiState.equipmentInventaire,
             onDismiss = { showPlateCalculator = false },
+        )
+    }
+
+    // ── Montée en charge (bottom sheet) ──────────────────────────────────────
+    val warmupId = uiState.warmupExerciceId
+    if (warmupId != null) {
+        WarmupSetsSheet(
+            protocole = uiState.warmupProtocoleParExercice[warmupId],
+            paliers = uiState.warmupPaliersParExercice[warmupId] ?: emptyList(),
+            chronoSec = uiState.warmupChronoSec,
+            onProtocoleChange = { viewModel.changeWarmupProtocole(warmupId, it) },
+            onPalierDone = { viewModel.markWarmupPalierDone(warmupId, it) },
+            onDismiss = { viewModel.closeWarmupSheet() },
         )
     }
 }
@@ -957,6 +999,8 @@ private fun InstanceExecuteTopBar(
     seanceName: String,
     cycleLabel: String?,
     sessionSeconds: Int,
+    isSessionActive: Boolean,
+    onStartSession: () -> Unit,
     restRemaining: Int,
     showPencilMenu: Boolean,
     showRestMenu: Boolean,
@@ -987,8 +1031,14 @@ private fun InstanceExecuteTopBar(
             IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_navigate_back_cd)) }
         },
         actions = {
-            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(end = 4.dp)) {
-                Text(sessionLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+            if (isSessionActive) {
+                Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.padding(end = 4.dp)) {
+                    Text(sessionLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                }
+            } else {
+                FilledTonalButton(onClick = onStartSession, modifier = Modifier.padding(end = 4.dp)) {
+                    Text(stringResource(R.string.instance_execute_start_session))
+                }
             }
             if (restRemaining > 0) {
                 val restLabel = "${restRemaining / 60}:${(restRemaining % 60).toString().padStart(2, '0')}"
@@ -1286,16 +1336,24 @@ private fun CommentaireSeanceSection(notes: String, onNotesChange: (String) -> U
 // ===== En-têtes tableau =====
 
 @Composable
-private fun SeriesTableHeader(repsLabel: String = "Reps") {
+private fun SeriesTableHeader(repsLabel: String = "Reps", showRpe: Boolean = true) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("#", style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.width(24.dp))
         Text(repsLabel, style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
         Text(stringResource(R.string.instance_execute_col_kg), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1.2f))
         Text(stringResource(R.string.instance_execute_col_rest), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(1f))
-        Text(stringResource(R.string.instance_execute_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(0.8f))
+        if (showRpe) {
+            Text(stringResource(R.string.instance_execute_col_rpe), style = MaterialTheme.typography.labelSmall, color = PandaSubtext, modifier = Modifier.weight(0.8f))
+        }
         Spacer(modifier = Modifier.width(32.dp))
     }
 }
+
+/** Blocs sans RPE pertinent (échauffement/activation/récupération) — cf. blocColor / isEchauffement. */
+private fun BlocType.estSansRpe(): Boolean = this == BlocType.ECHAUFFEMENT || this == BlocType.ACTIVATION || this == BlocType.RECUPERATION
+
+private fun rpeApplicable(exercice: ExerciceSeanceWithExercise, activeBloc: BlocSeanceEntity?): Boolean =
+    activeBloc?.type?.estSansRpe() != true && exercice.exerciceSeance.repsType != RepsType.DURATION
 
 // ===== Ligne de série =====
 
@@ -1317,6 +1375,7 @@ private fun SerieRow(
     val exerciceId = exercice.exerciceSeance.id
     val isCompleted = serie.isCompleted
     val isSuperset = activeBloc != null && (activeBloc.type == BlocType.SUPERSET || activeBloc.type == BlocType.CIRCUIT)
+    val rpeApplicable = rpeApplicable(exercice, activeBloc)
 
     fun cellContent(col: SerieColumn): Pair<String, Boolean> {
         val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell.serieNum == num && focusedCell.column == col
@@ -1372,7 +1431,8 @@ private fun SerieRow(
         ) {
             Text(serieLabel, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color.Red, modifier = Modifier.width(24.dp))
             val weights = mapOf(SerieColumn.REPS to 1f, SerieColumn.KG to 1.2f, SerieColumn.REPOS to 1f, SerieColumn.RPE to 0.8f)
-            SerieColumn.entries.forEach { col ->
+            val columns = if (rpeApplicable) SerieColumn.entries else SerieColumn.entries.filter { it != SerieColumn.RPE }
+            columns.forEach { col ->
                 val (value, isGrayed) = cellContent(col)
                 val isFocused = focusedCell?.exerciceId == exerciceId && focusedCell?.serieNum == num && focusedCell?.column == col
                 // RPE : lecture seule, saisi via le sélecteur de puces (RpeChipRow) ci-dessous, pas le clavier.
@@ -1386,7 +1446,7 @@ private fun SerieRow(
             }
         }
     }
-    if (isCurrentSerie && !isCompleted) {
+    if (isCurrentSerie && !isCompleted && rpeApplicable) {
         val selectedRpe = draft.rpe.ifBlank { null }
         RpeChipRow(selectedRpe = selectedRpe, onPick = onRpePick)
     }
@@ -1408,14 +1468,16 @@ private fun RpeChipRow(selectedRpe: String?, onPick: (Int) -> Unit) {
             color = PandaSubtext,
             modifier = Modifier.padding(end = 8.dp),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-            (7..10).forEach { value ->
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+        ) {
+            (1..10).forEach { value ->
                 val isSelected = selectedRpe == value.toString()
                 FilterChip(
                     selected = isSelected,
                     onClick = { onPick(value) },
                     label = { Text("$value", style = MaterialTheme.typography.labelMedium) },
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -1642,36 +1704,80 @@ private enum class PlateEquipment { BARRE, HALTERE }
 
 private val STANDARD_PLATE_VALUES = listOf(20f, 15f, 10f, 5f, 2.5f, 2f, 1.25f, 1f, 0.75f, 0.5f)
 
+private data class PlateCalculationResult(
+    val plates: List<Pair<Float, Int>>,
+    val actualKg: Float,
+    val isApproximate: Boolean,
+)
+
 /**
- * Calcule les disques à mettre de chaque côté pour atteindre [targetKg] avec une tige de [barKg].
- * Retourne null si le résultat est impossible, emptyList() si la tige seule suffit.
+ * Calcule les disques à mettre de chaque côté pour atteindre [targetKg] avec une barre de [barKg].
+ * [platesWithCounts] : liste (poids_disque, nb_max_par_côté) triée décroissante — si null, utilise les valeurs standard.
+ * [achievableCharges] : liste des charges réellement composables pour proposer la plus proche si exacte impossible.
+ * Retourne null si le résultat est totalement impossible (cible < barre, ou pas d'alternative proche).
  */
-private fun calculatePlatesPerSide(targetKg: Float, barKg: Float): List<Pair<Float, Int>>? {
+private fun calculatePlatesResult(
+    targetKg: Float,
+    barKg: Float,
+    platesWithCounts: List<Pair<Float, Int>>?,
+    achievableCharges: List<Float>?,
+): PlateCalculationResult? {
     val perSide = (targetKg - barKg) / 2f
-    if (perSide < -0.001f) return null // Cible inférieure à la tige
-    if (perSide < 0.001f) return emptyList()
-    var remaining = perSide
-    val result = mutableListOf<Pair<Float, Int>>()
-    for (plate in STANDARD_PLATE_VALUES) {
-        val count = kotlin.math.floor((remaining / plate + 0.001f).toDouble()).toInt()
-        if (count > 0) {
-            result.add(plate to count)
-            remaining -= plate * count
+    if (perSide < -0.001f) return null
+    if (perSide < 0.001f) return PlateCalculationResult(emptyList(), targetKg, false)
+
+    fun greedyFill(target: Float, plates: List<Pair<Float, Int>>): List<Pair<Float, Int>>? {
+        var remaining = target
+        val result = mutableListOf<Pair<Float, Int>>()
+        for ((plateKg, maxCount) in plates.sortedByDescending { it.first }) {
+            val count = minOf(
+                kotlin.math.floor((remaining / plateKg + 0.001f).toDouble()).toInt(),
+                maxCount,
+            )
+            if (count > 0) {
+                result.add(plateKg to count)
+                remaining -= plateKg * count
+            }
         }
+        return if (remaining > 0.05f) null else result
     }
-    return if (remaining > 0.05f) null else result
+
+    val effectivePlates = platesWithCounts
+        ?: STANDARD_PLATE_VALUES.map { it to Int.MAX_VALUE }
+
+    val exact = greedyFill(perSide, effectivePlates)
+    if (exact != null) return PlateCalculationResult(exact, targetKg, false)
+
+    // Exact impossible — chercher la charge composable la plus proche
+    val candidates = achievableCharges?.filter { it >= barKg }
+    val nearestKg = candidates?.minByOrNull { kotlin.math.abs(it - targetKg) } ?: return null
+    if (kotlin.math.abs(nearestKg - targetKg) < 0.01f) return null // même charge, déjà raté
+    val nearestPerSide = (nearestKg - barKg) / 2f
+    if (nearestPerSide < 0.001f) return PlateCalculationResult(emptyList(), nearestKg, true)
+    val approx = greedyFill(nearestPerSide, effectivePlates) ?: return null
+    return PlateCalculationResult(approx, nearestKg, true)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlateCalculatorSheet(
     initialTargetKg: Float?,
+    equipmentInventaire: EquipmentInventaire?,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var equipment by remember { mutableStateOf(PlateEquipment.BARRE) }
+
+    // Pré-remplissage barre depuis l'inventaire déclaré, sinon valeur par défaut
+    val defaultBarKgBarre = equipmentInventaire?.barre?.barreKg?.let {
+        if (it == it.toLong().toFloat()) it.toInt().toString() else it.toString()
+    } ?: "20"
+    val defaultBarKgHaltere = equipmentInventaire?.halteres?.chargeable?.barreKg?.let {
+        if (it == it.toLong().toFloat()) it.toInt().toString() else it.toString()
+    } ?: "2"
+
     var barInput by remember(equipment) {
-        mutableStateOf(if (equipment == PlateEquipment.BARRE) "20" else "2")
+        mutableStateOf(if (equipment == PlateEquipment.BARRE) defaultBarKgBarre else defaultBarKgHaltere)
     }
     var targetInput by remember(initialTargetKg) {
         mutableStateOf(initialTargetKg?.let { if (it == it.toLong().toFloat()) it.toInt().toString() else it.toString() } ?: "")
@@ -1679,7 +1785,26 @@ private fun PlateCalculatorSheet(
 
     val barKg = barInput.replace(",", ".").toFloatOrNull() ?: 0f
     val targetKg = targetInput.replace(",", ".").toFloatOrNull()
-    val plates = if (targetKg != null && barKg > 0f) calculatePlatesPerSide(targetKg, barKg) else null
+
+    // Résolution de l'inventaire selon le mode sélectionné
+    val platesWithCounts: List<Pair<Float, Int>>? = when (equipment) {
+        PlateEquipment.BARRE -> equipmentInventaire?.barre?.disques
+            ?.entries?.map { (kg, total) -> kg to (total / 2) }
+            ?.filter { it.second > 0 }
+            ?.takeIf { it.isNotEmpty() }
+        PlateEquipment.HALTERE -> equipmentInventaire?.halteres?.chargeable?.disques
+            ?.entries?.map { (kg, total) -> kg to (total / 2) }
+            ?.filter { it.second > 0 }
+            ?.takeIf { it.isNotEmpty() }
+    }
+    val achievableCharges: List<Float>? = when (equipment) {
+        PlateEquipment.BARRE -> equipmentInventaire?.barre?.chargesAtteignables()?.takeIf { it.isNotEmpty() }
+        PlateEquipment.HALTERE -> equipmentInventaire?.halteres?.chargeable?.chargesAtteignables()?.takeIf { it.isNotEmpty() }
+    }
+
+    val calcResult = if (targetKg != null && barKg > 0f)
+        calculatePlatesResult(targetKg, barKg, platesWithCounts, achievableCharges)
+    else null
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -1774,7 +1899,7 @@ private fun PlateCalculatorSheet(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                plates == null -> {
+                calcResult == null -> {
                     Text(
                         stringResource(R.string.instance_execute_calculator_impossible),
                         style = MaterialTheme.typography.bodyMedium,
@@ -1782,10 +1907,20 @@ private fun PlateCalculatorSheet(
                     )
                 }
                 else -> {
+                    if (calcResult.isApproximate) {
+                        val targetLabel = if (targetKg == targetKg.toLong().toFloat()) targetKg.toInt().toString() else targetKg.toString()
+                        val actualLabel = if (calcResult.actualKg == calcResult.actualKg.toLong().toFloat()) calcResult.actualKg.toInt().toString() else calcResult.actualKg.toString()
+                        Text(
+                            stringResource(R.string.instance_execute_calculator_approximate, targetLabel, actualLabel),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
                     PlateResultDisplay(
-                        plates = plates,
+                        plates = calcResult.plates,
                         barKg = barKg,
-                        targetKg = targetKg,
+                        targetKg = calcResult.actualKg,
                         isHaltere = equipment == PlateEquipment.HALTERE,
                     )
                 }
@@ -1926,6 +2061,136 @@ private fun NumericKeyboard(activeColumn: SerieColumn?, onKey: (KeyAction) -> Un
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// ── Montée en charge ──────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WarmupSetsSheet(
+    protocole: WarmupProtocole?,
+    paliers: List<WarmupPalier>,
+    chronoSec: Int,
+    onProtocoleChange: (WarmupProtocole) -> Unit,
+    onPalierDone: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+        ) {
+            Text(
+                "Montée en charge",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Paliers calculés depuis la charge cible",
+                style = MaterialTheme.typography.bodySmall,
+                color = PandaSubtext,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            // Sélecteur de protocole
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WarmupProtocole.entries.forEach { p ->
+                    FilterChip(
+                        selected = protocole == p,
+                        onClick = { onProtocoleChange(p) },
+                        label = {
+                            Text(
+                                when (p) {
+                                    WarmupProtocole.DEBUTANT  -> "Débutant"
+                                    WarmupProtocole.STANDARD  -> "Standard"
+                                    WarmupProtocole.LOURD     -> "Lourd"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Liste des paliers
+            paliers.forEachIndexed { index, palier ->
+                val isActive = !palier.isDone && paliers.take(index).all { it.isDone }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .alpha(if (palier.isDone) 0.4f else 1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            "${palier.chargeLabel} × ${palier.reps} reps",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                        )
+                        Text(
+                            "Repos : ${formatRestSec(palier.reposSec)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PandaSubtext,
+                        )
+                    }
+                    if (palier.isDone) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    } else {
+                        FilledTonalButton(
+                            onClick = { onPalierDone(index) },
+                            enabled = isActive,
+                            modifier = Modifier.height(36.dp),
+                        ) {
+                            Text("✓ Fait", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+                if (index < paliers.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                }
+            }
+
+            // Chrono de repos inter-paliers
+            if (chronoSec > 0) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        formatRestSec(chronoSec),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text("Je suis déjà chaud", color = PandaSubtext)
             }
         }
     }

@@ -4,13 +4,18 @@
 
 ```bash
 ./gradlew assembleDebug                        # APK debug
-./gradlew test                                 # Tests unitaires
+./gradlew test                                 # Tests unitaires (tous modules)
+./gradlew :core:database:test                  # Tests unitaires d'un module seul
+./gradlew :core:database:test --tests "*ProgressionEngineTest"   # Une classe de test seule
 ./gradlew installDebug                         # Déploiement device
-./gradlew :feature:strength:assembleDebug      # Module seul
+./gradlew :feature:strength:assembleDebug      # Build d'un module seul
+./gradlew lintDebug                            # Lint Android (exécuté par la CI)
 ```
+CI (`.github/workflows/ci.yml`, JDK 17) : `assembleDebug` → `test` → `lintDebug` sur chaque PR et push `main` / `sauvegarde-panda-stable`.
+Les tests unitaires existent surtout dans `core/database` (ProgressionEngine, EquipmentInventory, migrations, parsers FIT/GPX), plus `feature/calendar` et `feature/running`.
 
 ## Stack
-Kotlin 2.0 • Compose + Material3 • Hilt • Room (schema v23) • Navigation Compose • DataStore  
+Kotlin 2.0 • Compose + Material3 • Hilt • Room (schema v27) • Navigation Compose • DataStore  
 OSMDroid 6.1.20 • play-services-location 21.3.0  
 minSdk 31 / targetSdk 35
 
@@ -18,21 +23,31 @@ minSdk 31 / targetSdk 35
 ```
 app/
   service/       → ActiveSessionService, RunningTrackingService (ForegroundService GPS)
-  navigation/    → NavHost, destinations, routes
+  navigation/    → NavHost (PandaFitNavHost.kt), PandaFitDestination.kt, routes
 core/
-  database/      → Room (schema v23), DAOs, migrations 3→23, ActiveSessionManager
+  database/      → Room (schema v27), DAOs, migrations 3→27, ActiveSessionManager
                    catalog/ → GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
                    catalog/ → EquipmentRepository (@Singleton, inventaire matériel + pas), EquipmentInventory.kt
                    progression/ → ProgressionEngine (moteur pur, incrément qualitatif bible §4)
   designsystem/  → PandaCard, PandaTopBar, AssignSessionDialogs, thème
   common/        → utilitaires partagés (normalizeSearch)
 feature/
-  home | running | cycling | strength | warmup | calendar | stats | profile | timer
+  home | running | cycling | strength | warmup | calendar | stats | profile | timer | breathing | hiking
 ```
+`build-logic/convention` : plugins Gradle partagés (convention plugins appliqués par chaque module).
+Les modules sont déclarés dans `settings.gradle.kts` : tout nouveau module `feature:*` doit y être ajouté. Les dossiers racine `breathing/`, `Pandamove Studio/`, `support/`, `node_modules/` et les dumps (`*.hprof`, `dump*.xml`) ne sont pas des modules Gradle.
+`AGENTS.md` est une copie ancienne de ce fichier (schéma v20) : ne pas s'y fier.
 
 ## Pattern
 MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room  
-`collectAsStateWithLifecycle()` uniquement — jamais de logique dans les Composables
+`collectAsStateWithLifecycle()` uniquement — jamais de logique dans les Composables  
+Navigation : `NavHost → AppDrawerNav → Scaffold → composables` — args passés en `String` dans la route, lus via `SavedStateHandle` dans le ViewModel
+
+### Isolation template/instance (renforcement — critique)
+Une séance `strength` existe en deux formes dans les mêmes tables (`blocs_seance`, `exercices_seance`) :
+- **Template** : lignes où `instance_seance_id IS NULL`
+- **Instance** (séance jouée à une date) : au premier chargement, `InstanceExecuteViewModel` copie les blocs/exercices du template avec `instanceSeanceId = instanceId`
+- ⚠️ Toujours garder `filter { instanceSeanceId == null }` avant une copie — ne copier qu'une seule fois, sinon duplication silencieuse
 
 ## Règles
 - Commentaires en **français**
@@ -43,9 +58,13 @@ MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room
 - Dialogs custom : `Dialog(usePlatformDefaultWidth=false)` + `Surface(RoundedCornerShape(28.dp))`
 - GPS : `RunningTrackingService` dans `app/service/` — inject `GpsTrackingRepository` via Hilt
 - Permis GPS : `ACCESS_FINE_LOCATION` + `FOREGROUND_SERVICE_LOCATION` (Android 14)
-- Migration Room : toujours `addMigrations(...)` dans `DatabaseModule` + incrémenter `version =`
+- Migration Room : toujours `addMigrations(...)` dans `DatabaseModule` + incrémenter `version =` (dans `PandaFitDatabase.kt`) ; les schémas JSON exportés sont versionnés dans `core/database/schemas/` (à committer) et `PandaFitDatabaseMigrationTest` les utilise
 - MuscleGroup : 16 groupes (PECTORAUX, DOS, EPAULES, BICEPS, TRICEPS, QUADRICEPS, ISCHIO, FESSIERS, MOLLETS, ABDOMINAUX, TRAPEZES, LOMBAIRES, ADDUCTEURS, OBLIQUES + autres)
 - Dark mode : persisté via `ProfileViewModel.isDarkMode` → DataStore → `MainActivity`
+- Room `@Relation` ne garantit **pas** l'ordre des enfants → toujours `.sortedBy { position }` après récupération
+- Stats : les requêtes filtrent sur `scheduled_date`, pas `completed_at`
+- `RepsType.DURATION` : `repsRealisees` contient des secondes, pas des répétitions — à exclure des calculs de tonnage/reps
+- Affectation calendrier (icône 📅) : uniquement depuis les écrans **liste** (SeanceListScreen/RunningScreen/CyclingScreen), jamais Detail/Report
 
 ## Fichiers sensibles (ne jamais modifier)
 - `google-services.json`
@@ -63,7 +82,7 @@ Lire `DESIGN.md` avant tout travail visuel. Direction : **Clean & Bold** (fond n
 - `docs/ai/PROMPT_TEMPLATES.md` — templates de prompts par tâche (économise ~30% tokens)
 - `docs/ai/ARCHITECTURE.md` — patterns MVVM, Hilt, Room, Navigation (détail)
 - `docs/ai/AI_INDEX.md` — index fichiers par feature
-- `docs/ai/ROOM_SCHEMA_MIN.md` — schéma Room complet (v23)
+- `docs/ai/ROOM_SCHEMA_MIN.md` — schéma Room condensé (en retard : indique v26, la base est en v27 — se fier à `PandaFitDatabase.kt` et `core/database/schemas/`)
 - `docs/ai/RUNNING_FLOW.md` — flux running + GPS tracking
 - `docs/ai/STRENGTH_FLOW.md` — flux renforcement + isolation template/instance
 - `docs/ai/UI_CONVENTIONS.md` — conventions Compose
@@ -87,7 +106,7 @@ Deload (-10% après échecs répétés) : **proposé** via `ProgressionRecapDial
 ## État
 ✅ Fonctionne : home, running (+GPS live), cycling, strength, warmup, calendar, stats, profile, timer  
 ✅ GPS live tracking running — RunningTrackingService + GpsTrackingRepository + OSMDroid map  
-✅ Export JSON v3.0 — DataExportManager / DataImportManager  
+✅ Export JSON v3.2 — DataExportManager / DataImportManager  
 ✅ Catalogue exercices — 16 groupes musculaires, édition custom, encodeur HTML standalone  
 ✅ Surcharge progressive — incrément qualitatif par inventaire matériel réel, deload proposé (pas imposé)  
 🔄 En cours : —  

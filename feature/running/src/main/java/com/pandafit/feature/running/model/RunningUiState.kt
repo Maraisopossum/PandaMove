@@ -21,6 +21,8 @@ data class RunningListUiState(
     val error: String? = null,
     /** Workout libre créé par "Séance directe" : déclenche la navigation vers l'exécution puis se réinitialise. */
     val quickStartWorkoutId: Long? = null,
+    /** Tracé GPS (lat, lon) par workoutId, pour la miniature de parcours des séances terminées — absent si pas de tracé. */
+    val routeThumbnails: Map<Long, List<Pair<Double, Double>>> = emptyMap(),
 )
 
 // ── Detail (create/edit) ──────────────────────────────────────────────────────
@@ -69,9 +71,13 @@ sealed class RunItemDraft {
 data class RunningExecuteUiState(
     val isLoading: Boolean = true,
     val workout: WorkoutEntity? = null,
+    /** Id réel une fois la séance créée en base (créée seulement au tap "Démarrer" pour une séance directe). */
+    val workoutId: Long? = null,
     val freeSteps: List<FreeStepExecution> = emptyList(),
     val repeatBlocks: List<RunRepeatExecution> = emptyList(),
     val isCompleted: Boolean = false,
+    /** "Séance directe" (chronomètre libre, sans étapes/cibles) : l'UI d'exécution s'affiche en mode simplifié. */
+    val isFreeRun: Boolean = false,
     val resultDistanceKm: String = "",
     val resultDurationStr: String = "",
     val resultPaceStr: String = "",
@@ -82,6 +88,52 @@ data class RunningExecuteUiState(
     val resultCalories: String = "",
     val resultCadenceAvgPpm: String = "",
     val resultNotes: String = "",
+    val livePhase: LivePhaseUiState? = null,
+    val timeline: List<TimelineStepUiState> = emptyList(),
+    /** Secondes restantes du décompte avant démarrage réel du GPS ; null = pas de décompte en cours. */
+    val startCountdownSeconds: Int? = null,
+    /** Prévus pour un futur capteur FC/cadence — non alimentés aujourd'hui, jamais affichés tant que null. */
+    val liveHrBpm: Int? = null,
+    val liveCadencePpm: Int? = null,
+)
+
+/**
+ * Libellé d'un type d'étape running — partagé entre la programmation (création) et l'exécution
+ * pour qu'un type donné s'affiche toujours de la même façon (ex : "Course à pied" et non "Retour
+ * au calme" pour une étape RUNNING placée en dernière position).
+ */
+fun runStepLabel(type: RunStepType): String = when (type) {
+    RunStepType.WARMUP   -> "Échauffement"
+    RunStepType.RUNNING  -> "Course à pied"
+    RunStepType.WALKING  -> "Marche"
+    RunStepType.RECOVERY -> "Récupération"
+    RunStepType.REST     -> "Repos"
+    RunStepType.OTHER    -> "Autre"
+}
+
+/** Carte "MAINTENANT" du cockpit live : phase active, progression bornée, prochaine étape. */
+data class LivePhaseUiState(
+    /** Type réel de l'étape en cours (détermine libellé et couleur, cohérents avec la programmation). */
+    val stepType: RunStepType,
+    val label: String,
+    val isDistanceBased: Boolean,
+    val currentValueLabel: String,
+    val targetValueLabel: String,
+    val progress: Float,
+    val remainingLabel: String,
+    val targetHint: String? = null,
+    val nextLabel: String? = null,
+    val isLastStep: Boolean = false,
+)
+
+enum class TimelineStatus { COMPLETED, ACTIVE, UPCOMING }
+
+data class TimelineStepUiState(
+    val label: String,
+    val sublabel: String? = null,
+    /** Type réel de l'étape (détermine la couleur, cohérente avec la programmation). */
+    val stepType: RunStepType,
+    val status: TimelineStatus,
 )
 
 data class FreeStepExecution(
@@ -100,6 +152,7 @@ data class FreeStepResult(
 data class RunRepeatExecution(
     val repeat: RunRepeatEntity,
     val targetStep: RunStepEntity?,
+    val recoveryStep: RunStepEntity?,
     val reps: List<IntervalRepResult>,
 )
 

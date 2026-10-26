@@ -1,0 +1,281 @@
+{
+  "version": "3.2",
+  "exportDate": "2026-02-15T10:00:00.123456",
+  "strengthTemplates": [
+    {
+      "seance": {
+        "id": 101,
+        "nom": "Haut du corps A",
+        "groupesMusculaires": ["PECTORAUX", "DOS"],
+        "dureeEstimeeMin": 50,
+        "notes": "Séance synthétique de test",
+        "seanceCategory": "STRENGTH",
+        "createdAt": "2026-01-10T09:00:00",
+        "updatedAt": "2026-01-12T18:30:00"
+      },
+      "blocs": [
+        {
+          "id": 201,
+          "seanceId": 101,
+          "nom": "Échauffement",
+          "type": "ECHAUFFEMENT",
+          "position": 0,
+          "dureeMin": 5,
+          "description": "Mobilité épaules",
+          "tempsReposInterSec": 20,
+          "tempsReposFinRoundSec": 60
+        },
+        {
+          "id": 202,
+          "seanceId": 101,
+          "nom": "Bloc principal",
+          "type": "SUPERSET",
+          "position": 1,
+          "dureeMin": null,
+          "description": "",
+          "tempsReposInterSec": 30,
+          "tempsReposFinRoundSec": 120
+        }
+      ],
+      "exercices": [
+        {
+          "id": 301,
+          "seanceId": 101,
+          "exerciceId": 9001,
+          "exerciceName": "Développé couché",
+          "blocId": 202,
+          "supersetGroupe": "A",
+          "position": 0,
+          "nombreSeriesPrevues": 4,
+          "repsCibles": "8-12",
+          "chargeCible": "60 kg",
+          "tempo": "3010",
+          "repsType": "REPS",
+          "tempsReposSec": 120,
+          "consigneCle": "Omoplates serrées",
+          "equipement": "Barre",
+          "avertissement": "",
+          "isBilateral": false,
+          "progressionActivee": true,
+          "systemeProgression": "DOUBLE",
+          "repsMin": 8,
+          "repsMax": 12,
+          "incrementKg": 2.5,
+          "incrementDureeSec": 5,
+          "seuilDeload": 3,
+          "typeExercice": "COMPOSE_HAUT",
+          "incrementPct": null,
+          "isBodyweight": false
+        },
+        {
+          "id": 302,
+          "seanceId": 101,
+          "exerciceId": 9002,
+          "exerciceName": "Tractions",
+          "blocId": 202,
+          "supersetGroupe": "A",
+          "position": 1,
+          "nombreSeriesPrevues": 4,
+          "repsCibles": "6-10",
+          "chargeCible": "PDC",
+          "tempo": "",
+          "repsType": "REPS",
+          "tempsReposSec": 120,
+          "consigneCle": "",
+          "equipement": "Barre de traction",
+          "avertissement": "",
+          "isBilateral": false,
+          "progressionActivee": true,
+          "systemeProgression": "DOUBLE",
+          "repsMin": 6,
+          "repsMax": 10,
+          "incrementKg": null,
+          "incrementDureeSec": 5,
+          "seuilDeload": 3,
+          "typeExercice": "PDC",
+          "incrementPct": null,
+          "isBodyweight": true
+        },
+        {
+          "id": 303,
+          "seanceId": 101,
+          "exerciceId": 9100,
+          "exerciceName": "Curl haltère",
+          "blocId": 201,
+          "position": 0,
+          "nombreSeriesPrevues": 2,
+          "repsCibles": "12/côté",
+          "chargeCible": "8 kg",
+          "tempo": "",
+          "repsType": "REPS",
+          "tempsReposSec": 60,
+          "consigneCle": "",
+          "equipement": "Haltères",
+          "avertissement": "",
+          "isBilateral": true,
+          "progressionActivee": false,
+          "systemeProgression": null,
+          "repsMin": null,
+          "repsMax": null,
+          "incrementKg": null,
+          "incrementDureeSec": 5,
+          "seuilDeload": 3,
+          "typeExercice": "ISOLATION",
+          "incrementPct": 0.02,
+          "isBodyweight": false
+        }
+      ]
+    },
+    {
+      "seance": {
+        "id": 102,
+        "nom": "Gainage",
+        "groupesMusculaires": ["ABDOMINAUX"],
+        "dureeEstimeeMin": 20,
+        "notes": "",
+        "seanceCategory": "STRENGTH",
+        "createdAt": "2026-01-11T09:00:00",
+        "updatedAt": "2026-01-11T09:00:00"
+      },
+      "blocs": [],
+      "exercices": [
+        {
+          "id": 304,
+          "seanceId": 102,
+          "exerciceId": 9003,
+          "exerciceName": "Planche",
+          "position": 0,
+          "nombreSeriesPrevues": 3,
+          "repsCibles": "45",
+          "repsType": "DURATION",
+          "tempsReposSec": 45,
+          "progressionActivee": true,
+          "systemeProgression": "TEMPORELLE",
+          "incrementDureeSec": 10,
+          "seuilDeload": 3,
+          "typeExercice": "PDC",
+          "isBodyweight": true
+        },
+        {
+          "id": 305,
+          "seanceId": 102,
+          "exerciceId": 9004,
+          "exerciceName": "Mouvement Inconnu XYZ",
+          "position": 1,
+          "nombreSeriesPrevues": 3,
+          "repsCibles": "10"
+        },
+        {
+          "id": 306,
+          "seanceId": 102,
+          "exerciceId": 9001,
+          "exerciceName": "  developpe   COUCHE ",
+          "position": 2,
+          "nombreSeriesPrevues": 2,
+          "repsCibles": "15"
+        }
+      ]
+    }
+  ],
+  "strengthSessions": {
+    "completed": [
+      {
+        "instance": {
+          "id": 401,
+          "seanceId": 101,
+          "date": "2026-02-03",
+          "notes": "Bonne séance",
+          "isCompleted": true,
+          "completedAt": "2026-02-03T19:05:00",
+          "durationSeconds": 3300,
+          "createdAt": "2026-02-01T08:00:00"
+        },
+        "series": [
+          { "id": 501, "instanceSeanceId": 401, "exerciceSeanceId": 311, "numeroSerie": 1, "repsRealisees": 10, "chargeKg": 60.0, "chargeLabel": null, "rpe": 7.5, "notes": "", "isCompleted": true },
+          { "id": 502, "instanceSeanceId": 401, "exerciceSeanceId": 311, "numeroSerie": 2, "repsRealisees": 9, "chargeKg": 60.0, "rpe": 8.0, "isCompleted": true },
+          { "id": 503, "instanceSeanceId": 401, "exerciceSeanceId": 312, "numeroSerie": 1, "repsRealisees": 8, "chargeKg": null, "chargeLabel": "PDC", "isCompleted": true }
+        ],
+        "blocs": [
+          { "id": 211, "seanceId": 101, "nom": "Échauffement", "type": "ECHAUFFEMENT", "position": 0, "dureeMin": 5, "description": "Mobilité épaules", "tempsReposInterSec": 20, "tempsReposFinRoundSec": 60, "instanceSeanceId": 401 },
+          { "id": 212, "seanceId": 101, "nom": "Bloc principal", "type": "SUPERSET", "position": 1, "dureeMin": null, "description": "", "tempsReposInterSec": 30, "tempsReposFinRoundSec": 120, "instanceSeanceId": 401 }
+        ],
+        "exercices": [
+          {
+            "id": 311, "seanceId": 101, "exerciceId": 9001, "exerciceName": "Développé couché", "instanceSeanceId": 401,
+            "blocId": 212, "supersetGroupe": "A", "position": 0, "nombreSeriesPrevues": 4, "repsCibles": "8-12",
+            "chargeCible": "60 kg", "repsType": "REPS", "tempsReposSec": 120, "progressionActivee": true,
+            "systemeProgression": "DOUBLE", "repsMin": 8, "repsMax": 12, "incrementKg": 2.5, "typeExercice": "COMPOSE_HAUT"
+          },
+          {
+            "id": 312, "seanceId": 101, "exerciceId": 9002, "exerciceName": "Tractions", "instanceSeanceId": 401,
+            "blocId": 212, "supersetGroupe": "A", "position": 1, "nombreSeriesPrevues": 4, "repsCibles": "6-10",
+            "progressionActivee": true, "systemeProgression": "DOUBLE", "typeExercice": "PDC", "isBodyweight": true
+          },
+          {
+            "id": 313, "seanceId": 101, "exerciceId": 9100, "exerciceName": "Curl haltère", "instanceSeanceId": 401,
+            "blocId": 211, "position": 0, "nombreSeriesPrevues": 2, "repsCibles": "12/côté", "isBilateral": true
+          }
+        ]
+      }
+    ],
+    "planned": [
+      {
+        "instance": {
+          "id": 402,
+          "seanceId": 102,
+          "date": "2026-02-10",
+          "notes": "",
+          "isCompleted": false,
+          "completedAt": null,
+          "durationSeconds": 0,
+          "createdAt": "2026-02-04T12:00:00"
+        }
+      }
+    ]
+  },
+  "runTemplates": [{ "workout": { "id": 1, "workoutType": "RUNNING", "name": "Footing", "scheduledDate": "2026-02-01" } }],
+  "runSessions": { "completed": [], "planned": [] },
+  "breathingSessions": [
+    { "id": 1, "methodId": "coherence", "methodName": "Cohérence", "cyclesCompleted": 30, "durationSeconds": 300, "sessionDate": "2026-02-02" }
+  ],
+  "customExercises": [
+    {
+      "id": 9001,
+      "name": "Développé couché",
+      "description": "Exercice synthétique",
+      "category": "CHEST",
+      "muscleGroups": ["PECTORAUX", "TRICEPS"],
+      "exerciseType": "Pluri",
+      "equipment": ["Barre", "Banc plat"],
+      "musclePrimary": "PECTORAUX"
+    },
+    {
+      "id": 9100,
+      "name": "Curl haltère",
+      "category": "PAS_UNE_CATEGORIE",
+      "muscleGroups": ["BICEPS"],
+      "equipment": ["Haltères"]
+    }
+  ],
+  "objectifsProgression": [
+    {
+      "id": 601,
+      "seanceId": 101,
+      "exerciceId": 9001,
+      "exerciceName": "Développé couché",
+      "chargeCible": 62.5,
+      "repsCible": 8,
+      "dureeCibleSec": null,
+      "compteurEchec": 0,
+      "derniereMaj": "2026-02-03"
+    }
+  ],
+  "equipmentConfig": {
+    "selectedCategories": ["HALTERES", "BARRE", "MACHINE", "CABLE"],
+    "pasParCategorie": { "MACHINE": 5.0 },
+    "halteres": null,
+    "barre": { "barreKg": 20.0, "disques": { "20.0": 2, "10.0": 4, "1.25": 4 } },
+    "kettlebell": null,
+    "cable": { "minKg": 2.5, "maxKg": 50.0, "pasKg": 2.5 }
+  }
+}

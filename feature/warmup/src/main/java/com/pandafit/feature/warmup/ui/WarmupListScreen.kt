@@ -14,8 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -39,8 +37,9 @@ import com.pandafit.core.database.entities.SeanceEntity
 import com.pandafit.designsystem.components.AppButton
 import com.pandafit.designsystem.components.PandaEmptyState
 import com.pandafit.designsystem.components.PandaLoadingIndicator
+import com.pandafit.designsystem.components.PandaSportCard
 import com.pandafit.designsystem.components.PandaTopBar
-import com.pandafit.designsystem.theme.PandaOrange
+import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.warmup.R
 import com.pandafit.feature.warmup.viewmodel.WarmupListViewModel
@@ -62,11 +61,18 @@ fun WarmupListScreen(
     val currentWarmups = uiState.warmupsByCategory[uiState.selectedCategory] ?: emptyList()
 
     Scaffold(
-        topBar = { PandaTopBar(title = stringResource(R.string.warmup_screen_title), onOpenDrawer = onOpenDrawer) },
+        topBar = {
+            PandaTopBar(
+                title = stringResource(R.string.warmup_screen_title),
+                onOpenDrawer = onOpenDrawer,
+                containerColor = KalyptusGreen,
+                contentColor = Color.White,
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNavigateToCreate(uiState.selectedCategory.name) },
-                containerColor = PandaOrange,
+                containerColor = KalyptusGreen,
             ) {
                 Icon(Icons.Default.Add, stringResource(R.string.warmup_fab_new_cd), tint = Color.White)
             }
@@ -77,7 +83,7 @@ fun WarmupListScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 80.dp),
+            contentPadding = PaddingValues(bottom = 88.dp),
         ) {
             // Category tabs
             item {
@@ -91,8 +97,8 @@ fun WarmupListScreen(
                             onClick = { viewModel.selectCategory(cat) },
                             label = { Text(label) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PandaOrange.copy(alpha = 0.15f),
-                                selectedLabelColor = PandaOrange,
+                                selectedContainerColor = KalyptusGreen.copy(alpha = 0.15f),
+                                selectedLabelColor = KalyptusGreen,
                             ),
                         )
                     }
@@ -109,7 +115,7 @@ fun WarmupListScreen(
                             AppButton(
                                 label = stringResource(R.string.warmup_create_button),
                                 onClick = { onNavigateToCreate(uiState.selectedCategory.name) },
-                                color = PandaOrange,
+                                color = KalyptusGreen,
                             )
                         },
                     )
@@ -125,21 +131,20 @@ fun WarmupListScreen(
 
 @Composable
 private fun WarmupCard(warmup: SeanceEntity, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
+    PandaSportCard(
+        accentColor = KalyptusGreen,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(1.dp),
+        onClick = onClick,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier.size(40.dp).padding(end = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.SelfImprovement, null, tint = PandaOrange, modifier = Modifier.size(28.dp))
+                Icon(Icons.Default.SelfImprovement, null, tint = KalyptusGreen, modifier = Modifier.size(28.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(warmup.nom, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)

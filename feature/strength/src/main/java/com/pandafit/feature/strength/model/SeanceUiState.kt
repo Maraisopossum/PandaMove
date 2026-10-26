@@ -1,5 +1,6 @@
 package com.pandafit.feature.strength.model
 
+import com.pandafit.core.database.catalog.EquipmentInventaire
 import com.pandafit.core.database.catalog.MuscleGroup
 import com.pandafit.core.database.entities.BlocSeanceEntity
 import com.pandafit.core.database.entities.BlocType
@@ -14,6 +15,8 @@ import com.pandafit.core.database.entities.SystemeProgression
 import com.pandafit.core.database.entities.TypeExercice
 import com.pandafit.core.database.progression.CibleExercice
 import com.pandafit.core.database.progression.PropositionProgression
+import com.pandafit.core.database.progression.WarmupPalier
+import com.pandafit.core.database.progression.WarmupProtocole
 import com.pandafit.core.database.progression.serieReussie
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import java.time.LocalDate
@@ -42,6 +45,7 @@ fun parseChargeLabel(chargeCible: String): String {
 data class SeanceListUiState(
     val isLoading: Boolean = true,
     val seances: List<SeanceEntity> = emptyList(),
+    val archivedSeances: List<SeanceEntity> = emptyList(),
     val instances: List<InstanceSeanceEntity> = emptyList(),
     val seancesById: Map<Long, SeanceEntity> = emptyMap(),
     val error: String? = null,
@@ -75,6 +79,7 @@ data class SeanceCreateUiState(
     val pickerGroupFilter: MuscleGroup? = null,
     val pickerOnlyAvailable: Boolean = false,
     val userEquipment: Set<com.pandafit.core.database.catalog.EquipmentCategory> = emptySet(),
+    val userInventaire: com.pandafit.core.database.catalog.EquipmentInventaire = com.pandafit.core.database.catalog.EquipmentInventaire(),
     val seanceCategory: SeanceCategory = SeanceCategory.STRENGTH,
     val availableWarmups: List<SeanceEntity> = emptyList(),
     val showWarmupPicker: Boolean = false,
@@ -128,6 +133,8 @@ data class ExerciceDraft(
     val incrementDureeSec: Int = 5,
     val seuilDeload: Int = 3,
     val typeExercice: TypeExercice? = null,
+    // Hérité une fois de exercise.isBodyweight à l'ajout en séance, puis indépendant
+    val isBodyweight: Boolean = false,
 )
 
 // ===== Détail (lecture seule) =====
@@ -193,7 +200,13 @@ data class InstanceExecuteUiState(
     // Preview "si succès complet" par exercice en progression_activee — calculé une fois au chargement
     // (nécessite l'inventaire matériel, cf. InstanceExecuteViewModel.calculerProgressionPreview).
     val progressionPreview: Map<Long, PropositionProgression> = emptyMap(),
+    val equipmentInventaire: EquipmentInventaire? = null,
     val error: String? = null,
+    // ── Montées en charge (éphémères, non persistées) ──
+    val warmupExerciceId: Long? = null,
+    val warmupProtocoleParExercice: Map<Long, WarmupProtocole> = emptyMap(),
+    val warmupPaliersParExercice: Map<Long, List<WarmupPalier>> = emptyMap(),
+    val warmupChronoSec: Int = 0,
 ) {
     fun seriesForExercice(exerciceId: Long): List<SerieRealiseeState> =
         seriesParExercice[exerciceId] ?: emptyList()
@@ -206,10 +219,13 @@ data class InstanceExecuteUiState(
         val es = exercices.find { it.exerciceSeance.id == exerciceId }?.exerciceSeance ?: return null
         if (!es.progressionActivee) return null
         val preview = progressionPreview[exerciceId] ?: return null
+        // repsCibles est un texte libre ("10", "15-20", "10/jambe") : on prend la borne basse si ce n'est pas un entier pur
+        val repsCiblesInt = es.repsCibles.toIntOrNull()
+            ?: es.repsCibles.split("-").firstOrNull()?.trim()?.toIntOrNull()
         val cible = CibleExercice(
             chargeKg = parseChargeKg(parseChargeLabel(es.chargeCible)),
-            reps = es.repsCibles.toIntOrNull(),
-            dureeSec = es.repsCibles.toIntOrNull().takeIf { es.repsType == RepsType.DURATION },
+            reps = repsCiblesInt,
+            dureeSec = repsCiblesInt.takeIf { es.repsType == RepsType.DURATION },
         )
         val series = seriesForExercice(exerciceId)
         val reussies = series.count { it.isCompleted && serieReussie(es, cible, it.toEntity()) }
@@ -264,6 +280,7 @@ data class PropositionAffichee(
     val exerciceId: Long,
     val exerciceName: String,
     val proposition: PropositionProgression,
+    val chargesAtteignables: List<Float> = emptyList(),
 )
 
 data class SerieRealiseeState(

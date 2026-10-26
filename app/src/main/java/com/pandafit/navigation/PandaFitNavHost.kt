@@ -48,6 +48,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pandafit.core.database.entities.WorkoutType
 import com.pandafit.designsystem.components.AppDrawerNav
+import com.pandafit.designsystem.components.DrawerSide as UiDrawerSide
+import com.pandafit.feature.profile.viewmodel.DrawerSide as ProfileDrawerSide
 import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.feature.profile.viewmodel.ProfileViewModel
 import kotlinx.coroutines.flow.filterNotNull
@@ -61,11 +63,13 @@ import com.pandafit.feature.home.ui.HomeScreen
 import com.pandafit.feature.profile.ui.EquipmentScreen
 import com.pandafit.feature.profile.ui.ExerciseCatalogScreen
 import com.pandafit.feature.profile.ui.ProfileScreen
-import com.pandafit.feature.profile.ui.TcxImportScreen
+import com.pandafit.feature.profile.ui.ActivityImportScreen
 import com.pandafit.feature.running.ui.RunningScreen
 import com.pandafit.feature.running.ui.RunningWorkoutDetailScreen
 import com.pandafit.feature.running.ui.RunningWorkoutExecuteScreen
 import com.pandafit.feature.running.ui.RunningWorkoutReportScreen
+import com.pandafit.feature.running.ui.WorkoutResultScreen
+import com.pandafit.feature.stats.ui.HeatmapScreen
 import com.pandafit.feature.stats.ui.StatsConfigScreen
 import com.pandafit.feature.stats.ui.StatsScreen
 import com.pandafit.feature.strength.ui.InstanceExecuteScreen
@@ -78,6 +82,7 @@ import com.pandafit.feature.strength.ui.SeanceListScreen
 import com.pandafit.feature.breathing.ui.BreathingMethodCreateScreen
 import com.pandafit.feature.hiking.ui.HikingScreen
 import com.pandafit.feature.hiking.ui.HikingWorkoutDetailScreen
+import com.pandafit.feature.hiking.ui.HikingWorkoutExecuteScreen
 import com.pandafit.feature.hiking.ui.HikingWorkoutReportScreen
 import com.pandafit.feature.breathing.ui.BreathingMethodSelectionScreen
 import com.pandafit.feature.breathing.ui.BreathingSessionScreen
@@ -174,6 +179,7 @@ fun PandaFitNavHost() {
         userName = profileState.userName,
         activeSessionBanner = if (showBanner) bannerContent else null,
         activeSessionDrawerBanner = bannerContent,
+        drawerSide = if (profileState.drawerSide == ProfileDrawerSide.RIGHT) UiDrawerSide.RIGHT else UiDrawerSide.LEFT,
     ) {
         Scaffold(
             contentWindowInsets = WindowInsets(0.dp),
@@ -249,6 +255,7 @@ fun PandaFitNavHost() {
                 RunningScreen(
                     onNavigateToDetail        = { id -> navController.navigate(RunningRoutes.detail(id)) },
                     onNavigateToExecute       = { id -> navController.navigate(RunningRoutes.execute(id)) },
+                    onNavigateToEdit          = { id -> navController.navigate(RunningRoutes.edit(id)) },
                     onNavigateToCreate        = { navController.navigate(RunningRoutes.CREATE) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                 )
@@ -261,6 +268,15 @@ fun PandaFitNavHost() {
                 )
             }
             composable(RunningRoutes.DETAIL) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                WorkoutResultScreen(
+                    workoutId               = id,
+                    onNavigateBack          = { navController.popBackStack() },
+                    onNavigateToEdit        = { wId -> navController.navigate(RunningRoutes.edit(wId)) },
+                    onNavigateToFullDetails = { wId -> navController.navigate(RunningRoutes.rawDetail(wId)) },
+                )
+            }
+            composable(RunningRoutes.RAW_DETAIL) { backStack ->
                 val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
                 RunningWorkoutReportScreen(
                     workoutId         = id,
@@ -483,12 +499,15 @@ fun PandaFitNavHost() {
             composable(PandaFitDestination.Stats.route) {
                 StatsScreen(onOpenDrawer = { scope.launch { drawerState.open() } })
             }
+            composable(PandaFitDestination.Heatmap.route) {
+                HeatmapScreen(onOpenDrawer = { scope.launch { drawerState.open() } })
+            }
             composable(PandaFitDestination.Profile.route) {
                 ProfileScreen(
                     onNavigateToEquipment = { navController.navigate("profile/equipment") },
                     onNavigateToExerciseCatalog = { navController.navigate("profile/exercises") },
                     onNavigateToStatsConfig = { navController.navigate(ProfileRoutes.STATS_CONFIG) },
-                    onNavigateToTcxImport = { navController.navigate(ProfileRoutes.TCX_IMPORT) },
+                    onNavigateToActivityImport = { navController.navigate(ProfileRoutes.ACTIVITY_IMPORT) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                 )
             }
@@ -501,8 +520,8 @@ fun PandaFitNavHost() {
             composable(ProfileRoutes.STATS_CONFIG) {
                 StatsConfigScreen(onNavigateBack = { navController.popBackStack() })
             }
-            composable(ProfileRoutes.TCX_IMPORT) {
-                TcxImportScreen(
+            composable(ProfileRoutes.ACTIVITY_IMPORT) {
+                ActivityImportScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToWorkout = { id, type ->
                         navController.popBackStack()
@@ -510,7 +529,7 @@ fun PandaFitNavHost() {
                             WorkoutType.RUNNING  -> navController.navigate(RunningRoutes.detail(id))
                             WorkoutType.CYCLING  -> navController.navigate(CyclingRoutes.report(id))
                             WorkoutType.HIKING   -> navController.navigate(HikingRoutes.report(id))
-                            else                 -> { /* STRENGTH: pas de rapport TCX */ }
+                            else                 -> { /* STRENGTH: pas de rapport d'import */ }
                         }
                     },
                 )
@@ -521,7 +540,20 @@ fun PandaFitNavHost() {
                 HikingScreen(
                     onNavigateToReport = { id -> navController.navigate(HikingRoutes.report(id)) },
                     onNavigateToEncode = { navController.navigate(HikingRoutes.ENCODE) },
+                    onNavigateToExecute = { id -> navController.navigate(HikingRoutes.execute(id)) },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
+                )
+            }
+            composable(HikingRoutes.EXECUTE) { backStack ->
+                val id = backStack.arguments?.getString("workoutId")?.toLongOrNull() ?: return@composable
+                HikingWorkoutExecuteScreen(
+                    workoutId = id,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToReport = { wId ->
+                        navController.navigate(HikingRoutes.report(wId)) {
+                            popUpTo(HikingRoutes.EXECUTE) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable(HikingRoutes.ENCODE) {

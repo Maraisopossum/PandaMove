@@ -36,4 +36,9 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.bundles.lifecycle)
     implementation(libs.bundles.coroutines)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 }

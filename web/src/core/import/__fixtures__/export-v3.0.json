@@ -1,0 +1,60 @@
+{
+  "version": "3.0",
+  "exportDate": "2025-06-01T08:00:00",
+  "strengthTemplates": [
+    {
+      "seance": {
+        "id": 11,
+        "nom": "Jambes",
+        "groupesMusculaires": ["QUADRICEPS", "FESSIERS"],
+        "createdAt": "01/05/2025 10:00:00",
+        "updatedAt": ""
+      },
+      "blocs": [
+        { "id": 21, "seanceId": 11, "nom": "Force", "type": "CIRCUIT", "position": 0 }
+      ],
+      "exercices": [
+        {
+          "id": 31,
+          "seanceId": 11,
+          "exerciceId": 7,
+          "exerciceName": "Squat barre",
+          "blocId": 21,
+          "position": 0,
+          "nombreSeriesPrevues": 5,
+          "repsCibles": "5",
+          "chargeCible": "80 kg",
+          "tempo": "",
+          "repsType": "REPS",
+          "tempsReposSec": 180,
+          "consigneCle": "",
+          "equipement": "Barre",
+          "avertissement": "",
+          "isBilateral": false
+        }
+      ]
+    }
+  ],
+  "strengthSessions": {
+    "completed": [
+      {
+        "instance": { "id": 41, "seanceId": 11, "date": "2025-05-20", "isCompleted": true, "completedAt": "2025-05-20T18:00:00", "durationSeconds": 2400, "createdAt": "2025-05-19T09:00:00" },
+        "series": [
+          { "id": 51, "instanceSeanceId": 41, "exerciceSeanceId": 32, "numeroSerie": 1, "repsRealisees": 5, "chargeKg": 80.0, "isCompleted": true }
+        ],
+        "blocs": [
+          { "id": 22, "seanceId": 11, "nom": "Force", "type": "CIRCUIT", "position": 0, "instanceSeanceId": 41 }
+        ],
+        "exercices": [
+          { "id": 32, "seanceId": 11, "exerciceId": 7, "exerciceName": "Squat barre", "instanceSeanceId": 41, "blocId": 22, "position": 0, "nombreSeriesPrevues": 5, "repsCibles": "5" }
+        ]
+      }
+    ],
+    "planned": []
+  },
+  "runTemplates": [],
+  "runSessions": { "completed": [], "planned": [] },
+  "cyclingTemplates": [],
+  "cyclingSessions": { "completed": [], "planned": [] },
+  "customExercises": []
+}

@@ -35,6 +35,12 @@ interface SeanceDao {
     @Query("SELECT * FROM seances WHERE seance_category = :category AND is_archived = 0 ORDER BY updated_at DESC")
     fun observeByCategory(category: SeanceCategory): Flow<List<SeanceEntity>>
 
+    // Séances archivées (cf. SeanceListViewModel.deleteSeances) — invisibles par défaut mais
+    // récupérables ici pour purge définitive (KNOWN_BUGS.md : sans ça, un template archivé était
+    // un mort-vivant en base, ni supprimable ni ré-importable).
+    @Query("SELECT * FROM seances WHERE seance_category = :category AND is_archived = 1 ORDER BY updated_at DESC")
+    fun observeArchivedByCategory(category: SeanceCategory): Flow<List<SeanceEntity>>
+
     @Query("SELECT * FROM seances WHERE seance_category != 'STRENGTH' AND is_archived = 0 ORDER BY updated_at DESC")
     fun observeAllWarmups(): Flow<List<SeanceEntity>>
 

@@ -59,6 +59,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -813,7 +814,7 @@ private fun StopwatchActiveContent(
             Text(
                 formatElapsedMs(uiState.elapsedMs),
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
-                fontWeight = FontWeight.Thin,
+                fontWeight = FontWeight.ExtraBold,
                 color = StopwatchColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -885,8 +886,8 @@ private fun CountdownActiveContent(
     val rawProgress = if (uiState.targetMs > 0L) remainingMs.toFloat() / uiState.targetMs.toFloat() else 1f
     val animProgress by animateFloatAsState(rawProgress.coerceIn(0f, 1f), animationSpec = tween(150), label = "cd_progress")
 
-    // Box : le bouton retour flotte en overlay — le contenu occupe tout l'écran
-    // et est centré verticalement par rapport à la pleine hauteur, pas sous la barre.
+    // Le thème (clair/sombre) est désormais un choix global utilisateur (Profil > Affichage) —
+    // cet écran suit MaterialTheme.colorScheme comme le reste de l'app, pas de fond forcé ici.
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -900,7 +901,7 @@ private fun CountdownActiveContent(
                         Text(stringResource(R.string.timer_finished), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CountdownColor)
                     } else {
                         val totalSec = remainingMs / 1000
-                        Text("${(totalSec / 60).toString().padStart(2, '0')}:${(totalSec % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.displayMedium.copy(fontSize = 60.sp), fontWeight = FontWeight.Bold, color = CountdownColor)
+                        Text("${(totalSec / 60).toString().padStart(2, '0')}:${(totalSec % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.displayMedium.copy(fontSize = 60.sp), fontWeight = FontWeight.ExtraBold, color = CountdownColor)
                         Text(if (uiState.isRunning) "en cours" else "en pause", style = MaterialTheme.typography.bodySmall, color = CountdownColor.copy(alpha = 0.6f))
                     }
                 }
@@ -947,7 +948,7 @@ private fun HiitActiveContent(uiState: TimerUiState, onPause: () -> Unit, onResu
     }.coerceAtLeast(1)
     val progress by animateFloatAsState(uiState.secondsLeft.toFloat() / totalPhaseSeconds.toFloat(), animationSpec = tween(800), label = "hiit_progress")
 
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 80.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item {
             Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Text(phaseLabel(phase), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = phaseColor)
@@ -988,10 +989,10 @@ private fun ControlButton(size: Dp, bgColor: Color, onClick: () -> Unit, content
 
 /** Barre de navigation : flèche retour simple, tap = retour uniquement. */
 @Composable
-private fun TimerActiveTopBar(onBack: () -> Unit, modifier: Modifier = Modifier) {
+private fun TimerActiveTopBar(onBack: () -> Unit, modifier: Modifier = Modifier, iconTint: Color = LocalContentColor.current) {
     Row(modifier = modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.timer_back_cd))
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.timer_back_cd), tint = iconTint)
         }
     }
 }

@@ -16,7 +16,25 @@ data class PropositionProgression(
     val nouvelleDureeCible: Int?,
     val nouveauCompteurEchec: Int,
     val deload: Boolean,
+    // Proposition "ajout de série" (exercices au poids de corps au plafond de reps, bible §4.5 PDC)
+    val nouveauNombreSeries: Int? = null,
 )
+
+/**
+ * true si la proposition doit être présentée à l'utilisateur pour validation (récap Oui/Non/Ajuster)
+ * plutôt que persistée silencieusement — c'est le cas de tout succès (l'utilisateur peut vouloir
+ * ajuster) et de toute proposition de deload, **quel que soit le statut associé**.
+ *
+ * ⚠ Piège documenté (KNOWN_BUGS.md) : un deload peut accompagner un statut d'échec (ECHEC/ECHEC_MARQUE).
+ * Un futur refactor qui court-circuiterait cette fonction (ex. `statut != ECHEC` seul) réintroduirait
+ * un deload imposé silencieusement — d'où son isolement en fonction pure directement testable, plutôt
+ * que la logique inline dans `InstanceExecuteViewModel.prepareFinish()`.
+ */
+fun requiresValidation(proposition: PropositionProgression): Boolean =
+    proposition.statut == StatutExercice.SUCCES ||
+        proposition.statut == StatutExercice.SUCCES_SANS_MARGE ||
+        proposition.statut == StatutExercice.NON_LOGGE ||
+        proposition.deload
 
 /** Cible courante, indépendante de sa source (objectif persisté ou valeur initiale du template). */
 data class CibleExercice(
@@ -72,7 +90,10 @@ fun evaluerExercice(
     return appliquerCompteurEtDeload(config, cible, resultat, compteurEchecActuel, pasMateriel, chargesAtteignables)
 }
 
-private data class ResultatBrut(val statut: StatutExercice, val rpeMoyen: Float?)
+// valeurAtteinte : plus petite valeur (reps ou durée) réellement loguée parmi les séries évaluées —
+// permet de détecter un dépassement du haut de plage dès cette séance (bible §2.2), même si la cible
+// affichée n'était pas encore au plafond.
+private data class ResultatBrut(val statut: StatutExercice, val rpeMoyen: Float?, val valeurAtteinte: Int? = null)
 
 private fun piorerResultat(a: ResultatBrut, b: ResultatBrut): ResultatBrut {
     fun rang(s: StatutExercice) = when (s) {
@@ -122,6 +143,8 @@ private fun evaluerSeries(
 
     val reussies = series.count { serieReussie(it) }
     val rpeMoyen = series.mapNotNull { it.rpe }.takeIf { it.isNotEmpty() }?.average()?.toFloat()
+    // Pire valeur réalisée parmi les séries de travail : garantit que TOUTES dépassent le seuil détecté.
+    val valeurAtteinte = series.minOfOrNull { it.repsRealisees ?: 0 }
 
     val statut = when {
         reussies == total -> {
@@ -135,7 +158,7 @@ private fun evaluerSeries(
             if (ecartMax >= SEUIL_ECART_FLAG) StatutExercice.ECHEC_MARQUE else StatutExercice.ECHEC
         }
     }
-    return ResultatBrut(statut, rpeMoyen)
+    return ResultatBrut(statut, rpeMoyen, valeurAtteinte)
 }
 
 private fun appliquerCompteurEtDeload(
@@ -156,7 +179,10 @@ private fun appliquerCompteurEtDeload(
             deload = false,
         )
 
-        StatutExercice.SUCCES -> proposerMontee(config, cible, compteurEchecActuel = 0, pasMateriel = pasMateriel, chargesAtteignables = chargesAtteignables)
+        StatutExercice.SUCCES -> proposerMontee(
+            config, cible, compteurEchecActuel = 0, pasMateriel = pasMateriel, chargesAtteignables = chargesAtteignables,
+            repsReellementAtteintes = resultat.valeurAtteinte,
+        )
 
         StatutExercice.SUCCES_SANS_MARGE -> PropositionProgression(
             statut = StatutExercice.SUCCES_SANS_MARGE,
@@ -195,6 +221,10 @@ fun proposerMontee(
     compteurEchecActuel: Int,
     pasMateriel: Float? = null,
     chargesAtteignables: List<Float>? = null,
+    // Plus petite valeur (reps) réellement loguée cette séance, si connue (cf. evaluerExercice).
+    // Absente pour le bandeau de progression live (preview "et si tout réussit") qui n'a pas encore
+    // de séries réalisées à évaluer : on retombe alors sur la cible affichée.
+    repsReellementAtteintes: Int? = null,
 ): PropositionProgression {
     fun nouvelleCharge(): Float {
         val charge = cible.chargeKg ?: 0f
@@ -225,15 +255,31 @@ fun proposerMontee(
         SystemeProgression.DOUBLE, null -> {
             val repsMax = config.repsMax
             val repsMin = config.repsMin
-            if (repsMax != null && repsMin != null && (cible.reps ?: repsMax) >= repsMax) {
-                PropositionProgression(
-                    statut = StatutExercice.SUCCES,
-                    nouvelleChargeCible = nouvelleCharge(),
-                    nouveauRepsCible = repsMin,
-                    nouvelleDureeCible = cible.dureeSec,
-                    nouveauCompteurEchec = compteurEchecActuel,
-                    deload = false,
-                )
+            // Cas dépassement (bible §2.2) : si les reps réellement loguées atteignent déjà le haut de
+            // plage cette séance, on saute directement au palier de charge — même si la cible affichée
+            // avant la séance (cible.reps) n'était pas encore au plafond.
+            val repsReference = repsReellementAtteintes ?: cible.reps
+            if (repsMax != null && repsMin != null && (repsReference ?: repsMax) >= repsMax) {
+                if (config.isBodyweight) {
+                    PropositionProgression(
+                        statut = StatutExercice.SUCCES,
+                        nouvelleChargeCible = cible.chargeKg,
+                        nouveauRepsCible = repsMin,
+                        nouvelleDureeCible = cible.dureeSec,
+                        nouveauCompteurEchec = compteurEchecActuel,
+                        deload = false,
+                        nouveauNombreSeries = config.nombreSeriesPrevues + 1,
+                    )
+                } else {
+                    PropositionProgression(
+                        statut = StatutExercice.SUCCES,
+                        nouvelleChargeCible = nouvelleCharge(),
+                        nouveauRepsCible = repsMin,
+                        nouvelleDureeCible = cible.dureeSec,
+                        nouveauCompteurEchec = compteurEchecActuel,
+                        deload = false,
+                    )
+                }
             } else {
                 PropositionProgression(
                     statut = StatutExercice.SUCCES,
@@ -296,7 +342,13 @@ fun calculerIncrementQualitatif(
 }
 
 private fun proposerDeload(config: ExerciceSeanceEntity, cible: CibleExercice): PropositionProgression {
-    val nouvelleCharge = cible.chargeKg?.let { arrondirIncrement(it * (1 - POURCENTAGE_DELOAD), config.incrementKg) }
+    // Poids de corps / charge externe fixe (isBodyweight) : pas de -10% sur la charge, qui n'a pas de
+    // sens sur un équipement non modulable (ex. sac lesté fixe) — le retour à repsMin suffit comme deload.
+    val nouvelleCharge = if (config.isBodyweight) {
+        cible.chargeKg
+    } else {
+        cible.chargeKg?.let { arrondirIncrement(it * (1 - POURCENTAGE_DELOAD), config.incrementKg) }
+    }
     return PropositionProgression(
         statut = StatutExercice.ECHEC_MARQUE,
         nouvelleChargeCible = nouvelleCharge ?: cible.chargeKg,

@@ -1,0 +1,143 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getDb } from '../../core/db/client'
+import type { Db } from '../../core/db/Db'
+import type { MuscleGroup } from '../../core/db/types'
+import { usePandaVariante } from '../../core/images/usePandaVariante'
+import { imageHeatmap, type VueHeatmap } from './heatmapZones'
+import { bornesPeriode, ecrirePeriode, lirePeriode, type PeriodeId } from './periode'
+import { construireGraphique, groupesVue } from './presentation'
+import {
+  exercicesAvecHistorique, historiqueExercice, resumePeriode, volumeParMuscle, volumeVide,
+  type ExerciceHistorique, type PointHistorique, type ResumePeriode,
+} from './statsQueries'
+
+export interface DepsStats {
+  /** Base à utiliser (défaut : base de l'application, résolue à l'usage). */
+  db?: Db
+  /** Horloge injectable pour « aujourd'hui ». */
+  nowFn?: () => Date
+  /** Utilisateur connecté : sert à lire la variante du panda (défaut : male). */
+  userId?: string
+}
+
+interface DonneesPeriode {
+  resume: ResumePeriode
+  volume: Record<MuscleGroup, number>
+}
+
+const ECHEC_HISTORIQUE = "Le chargement de l'historique a échoué."
+const AUCUN_POINT: PointHistorique[] = []
+const RESUME_VIDE: ResumePeriode = { tonnageKg: 0, seancesTerminees: 0, seriesTotal: 0, repsTotal: 0 }
+
+// Statistiques renforcement : période retenue dans localStorage, résumé, volume par muscle (heatmap
+// face / dos), historique d'un exercice choisi. Lecture à l'ouverture et à chaque changement.
+export function useStats({ db, nowFn, userId }: DepsStats = {}) {
+  const [periode, setPeriode] = useState<PeriodeId>(lirePeriode)
+  const [vue, setVue] = useState<VueHeatmap>('face')
+  // Variante du panda (lecture partagée avec les autres écrans) ; male pendant la lecture
+  const variante = usePandaVariante({ db, userId }) ?? 'male'
+  const [donnees, setDonnees] = useState<DonneesPeriode>({ resume: RESUME_VIDE, volume: volumeVide() })
+  const [cleChargee, setCleChargee] = useState<string | null>(null)
+  // Erreur rattachée à la plage qui l'a produite : un nouveau chargement (autre plage) la masque d'office,
+  // et un chargement réussi l'efface
+  const [erreurPeriode, setErreurPeriode] = useState<{ cle: string; message: string } | null>(null)
+  const [erreurHistorique, setErreurHistorique] = useState<string | null>(null)
+  const [exercices, setExercices] = useState<ExerciceHistorique[]>([])
+  const [exerciceChoisi, setExerciceChoisi] = useState<string | null>(null)
+  // Historique avec l'exercice auquel il appartient : jamais celui d'un exercice précédent
+  const [historique, setHistorique] = useState<{ id: string; points: PointHistorique[] } | null>(null)
+  const sequence = useRef(0)
+
+  const { from, to } = bornesPeriode(periode, (nowFn ?? (() => new Date()))())
+  const cle = `${from}|${to}`
+  const chargement = cleChargee !== cle
+
+  // Résumé et volume de la période ; seule la dernière demande est appliquée (changements rapides)
+  useEffect(() => {
+    let annule = false
+    const numero = ++sequence.current
+    const base = db ?? getDb()
+    Promise.all([resumePeriode(base, from, to), volumeParMuscle(base, from, to)])
+      .then(([resume, volume]) => {
+        if (annule || numero !== sequence.current) return
+        setDonnees({ resume, volume })
+        setErreurPeriode(null)
+      })
+      .catch((e: unknown) => {
+        console.error('Chargement des statistiques impossible', e)
+        if (!annule && numero === sequence.current) {
+          setErreurPeriode({ cle: `${from}|${to}`, message: 'Le chargement des statistiques a échoué.' })
+        }
+      })
+      .finally(() => {
+        if (!annule) setCleChargee(`${from}|${to}`)
+      })
+    return () => {
+      annule = true
+    }
+  }, [db, from, to])
+
+  // Exercices disponibles pour l'historique (toutes dates)
+  useEffect(() => {
+    let annule = false
+    const base = db ?? getDb()
+    exercicesAvecHistorique(base)
+      .then((liste) => {
+        if (!annule) setExercices(liste)
+      })
+      .catch((e: unknown) => {
+        console.error('Chargement des exercices impossible', e)
+        if (!annule) setErreurHistorique(ECHEC_HISTORIQUE)
+      })
+    return () => {
+      annule = true
+    }
+  }, [db])
+
+  // Sans choix explicite (ou choix disparu), le premier exercice de la liste
+  const exerciceId =
+    exerciceChoisi && exercices.some((e) => e.id === exerciceChoisi) ? exerciceChoisi : (exercices[0]?.id ?? null)
+
+  useEffect(() => {
+    if (!exerciceId) return
+    let annule = false
+    historiqueExercice(db ?? getDb(), exerciceId)
+      .then((h) => {
+        if (annule) return
+        setHistorique({ id: exerciceId, points: h })
+        setErreurHistorique(null)
+      })
+      .catch((e: unknown) => {
+        console.error("Chargement de l'historique impossible", e)
+        if (!annule) setErreurHistorique(ECHEC_HISTORIQUE)
+      })
+    return () => {
+      annule = true
+    }
+  }, [db, exerciceId])
+
+  const choisirPeriode = useCallback((p: PeriodeId) => {
+    ecrirePeriode(p)
+    setPeriode(p)
+  }, [])
+
+  const groupes = useMemo(() => groupesVue(donnees.volume, variante), [donnees.volume, variante])
+  const historiqueAffiche = historique && historique.id === exerciceId ? historique.points : AUCUN_POINT
+  const graphique = useMemo(() => construireGraphique(historiqueAffiche), [historiqueAffiche])
+
+  const erreur = erreurPeriode && erreurPeriode.cle === cle ? erreurPeriode.message : null
+
+  return {
+    periode, choisirPeriode, chargement, erreur, erreurHistorique,
+    // Vrai dès la première lecture terminée : ensuite les chiffres restent affichés pendant un rechargement
+    pret: cleChargee !== null,
+    resume: donnees.resume,
+    // Jamais « vide » sur une erreur : le résumé à 0 n'est alors pas une donnée lue
+    vide: !chargement && erreur === null && donnees.resume.seancesTerminees === 0,
+    groupes,
+    zonesVue: groupes.filter((g) => g.vue === vue),
+    vue, setVue, variante, image: imageHeatmap(variante, vue),
+    exercices, exerciceId, choisirExercice: setExerciceChoisi,
+    historique: historiqueAffiche, graphique,
+  }
+}

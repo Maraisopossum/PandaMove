@@ -17,9 +17,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pandafit.core.database.entities.CustomBreathingMethodEntity
+import androidx.compose.ui.graphics.Color
 import com.pandafit.designsystem.components.PandaTopBar
-import com.pandafit.designsystem.theme.PandaBlue
-import com.pandafit.designsystem.theme.PandaGreen
+import com.pandafit.designsystem.theme.KalyptusGreen
 import com.pandafit.designsystem.theme.PandaSubtext
 import com.pandafit.feature.breathing.R
 import com.pandafit.feature.breathing.viewmodel.BreathingViewModel
@@ -89,6 +89,8 @@ fun BreathingMethodCreateScreen(
             PandaTopBar(
                 title          = if (isEditing) stringResource(R.string.breathing_create_title_edit) else stringResource(R.string.breathing_create_title_new),
                 onNavigateBack = onNavigateBack,
+                containerColor = KalyptusGreen,
+                contentColor   = Color.White,
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -177,7 +179,7 @@ fun BreathingMethodCreateScreen(
                         "$defaultCycles",
                         style      = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color      = PandaBlue,
+                        color      = KalyptusGreen,
                     )
                     Text(stringResource(R.string.breathing_create_cycles_unit), style = MaterialTheme.typography.labelSmall, color = PandaSubtext)
                 }
@@ -191,7 +193,7 @@ fun BreathingMethodCreateScreen(
 
             // ── Aperçu description ───────────────────────────────────────────
             Card(
-                colors = CardDefaults.cardColors(containerColor = PandaGreen.copy(alpha = 0.08f)),
+                colors = CardDefaults.cardColors(containerColor = KalyptusGreen.copy(alpha = 0.08f)),
                 elevation = CardDefaults.cardElevation(0.dp),
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -229,7 +231,7 @@ fun BreathingMethodCreateScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled  = canSave,
-                colors   = ButtonDefaults.buttonColors(containerColor = PandaGreen),
+                colors   = ButtonDefaults.buttonColors(containerColor = KalyptusGreen),
             ) {
                 Text(
                     if (isEditing) stringResource(R.string.breathing_create_save_edit) else stringResource(R.string.breathing_create_save_new),
@@ -292,7 +294,7 @@ private fun PhaseRow(
                 style      = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier   = Modifier.width(40.dp),
-                color      = if (enabled) PandaBlue else PandaSubtext.copy(alpha = 0.5f),
+                color      = if (enabled) KalyptusGreen else PandaSubtext.copy(alpha = 0.5f),
             )
 
             FilledIconButton(

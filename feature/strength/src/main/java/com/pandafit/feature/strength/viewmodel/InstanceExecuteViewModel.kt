@@ -7,7 +7,7 @@ import com.pandafit.core.database.ActiveSessionManager
 import com.pandafit.core.database.catalog.EquipmentCategory
 import com.pandafit.core.database.catalog.EquipmentInventaire
 import com.pandafit.core.database.catalog.EquipmentRepository
-import com.pandafit.core.database.catalog.chargesAtteignablesPour
+import com.pandafit.core.database.catalog.chargesAtteignablesPourEquipement
 import com.pandafit.core.database.catalog.rawEquipmentToCategory
 import com.pandafit.core.database.dao.InstanceSeanceDao
 import com.pandafit.core.database.dao.ObjectifProgressionDao
@@ -21,8 +21,11 @@ import com.pandafit.core.database.entities.SerieRealiseeEntity
 import com.pandafit.core.database.progression.CibleExercice
 import com.pandafit.core.database.progression.PropositionProgression
 import com.pandafit.core.database.progression.StatutExercice
+import com.pandafit.core.database.progression.WarmupPalier
+import com.pandafit.core.database.progression.WarmupProtocole
 import com.pandafit.core.database.progression.evaluerExercice
 import com.pandafit.core.database.progression.proposerMontee
+import com.pandafit.core.database.progression.requiresValidation
 import com.pandafit.core.database.relations.ExerciceSeanceWithExercise
 import com.pandafit.core.database.relations.SeanceFull
 import com.pandafit.feature.strength.model.ChoixValidation
@@ -41,7 +44,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -63,6 +69,9 @@ class InstanceExecuteViewModel @Inject constructor(
 
     // Le chrono et le timer de repos sont gérés par ActiveSessionManager (survivent à la navigation)
     val sessionSeconds: StateFlow<Int> = activeSessionManager.sessionSeconds
+    val isSessionActive: StateFlow<Boolean> = activeSessionManager.activeInstanceId
+        .map { it == instanceId }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), activeSessionManager.activeInstanceId.value == instanceId)
     val restRemaining: StateFlow<Int> = activeSessionManager.restRemaining
     val restFinishedEvent: SharedFlow<Unit> = activeSessionManager.restFinishedEvent
     val restCountdownBeep: SharedFlow<Int> = activeSessionManager.restCountdownBeep
@@ -129,6 +138,7 @@ class InstanceExecuteViewModel @Inject constructor(
                 exercices = buildOrderedExercicesFromLists(seanceDao.getExercicesForInstance(instanceId), blocs),
             )
             val progressionPreview = calculerProgressionPreview(instance.seanceId, exercices)
+            val equipmentInventaire = equipmentRepository.inventaire.first()
 
             // Historique cross-séance par exercise_id (pas seance_id ni exercice_seance_id)
             val historiqueComplet = mutableMapOf<Long, MutableList<Pair<LocalDate, List<SerieRealiseeEntity>>>>()
@@ -229,17 +239,31 @@ class InstanceExecuteViewModel @Inject constructor(
                 historiqueComplet = historiqueComplet,
                 isCompleted = instance.isCompleted,
                 progressionPreview = progressionPreview,
+                equipmentInventaire = equipmentInventaire,
             )
 
+            // Le chrono ne démarre que sur action explicite (bouton "Démarrer" ou 1ère série
+            // validée, cf. updateSerie) — sauf s'il était déjà actif, ou si des séries existent
+            // déjà (reprise d'une séance commencée sur un autre écran/appareil).
             val alreadyActive = activeSessionManager.activeInstanceId.value == instanceId
-            if (!instance.isCompleted) {
+            val hasSeriesDeja = seriesParExercice.values.any { series -> series.any { it.isCompleted } }
+            if (!instance.isCompleted && !alreadyActive && hasSeriesDeja) {
                 activeSessionManager.resumeSession(
                     instanceId = instanceId,
                     seanceName = seance?.nom ?: "",
-                    currentSeconds = if (alreadyActive) activeSessionManager.sessionSeconds.value else 0,
+                    currentSeconds = 0,
                 )
             }
         }
+    }
+
+    fun startSession() {
+        if (_uiState.value.isCompleted) return
+        activeSessionManager.resumeSession(
+            instanceId = instanceId,
+            seanceName = _uiState.value.seance?.nom ?: "",
+            currentSeconds = 0,
+        )
     }
 
     // Synchronise chargeCible/repsCibles de la copie d'instance avec l'objectif courant (table objectifs_progression)
@@ -255,7 +279,7 @@ class InstanceExecuteViewModel @Inject constructor(
             val es = exWithEx.exerciceSeance
             if (!es.progressionActivee) return@map exWithEx
             val objectif = objectifProgressionDao.getBySeanceAndExercice(seanceId, exWithEx.exercise.id) ?: return@map exWithEx
-            val nouvelleChargeCible = formatChargeCibleFraiche(objectif.chargeCible) ?: es.chargeCible
+            val nouvelleChargeCible = formatChargeCibleFraiche(objectif.chargeCible, es.isBodyweight) ?: es.chargeCible
             val nouveauxRepsCibles = when (es.repsType) {
                 RepsType.DURATION -> objectif.dureeCibleSec?.toString() ?: es.repsCibles
                 RepsType.REPS -> objectif.repsCible?.toString() ?: es.repsCibles
@@ -267,8 +291,11 @@ class InstanceExecuteViewModel @Inject constructor(
         }
     }
 
-    private fun formatChargeCibleFraiche(chargeKg: Float?): String? {
+    private fun formatChargeCibleFraiche(chargeKg: Float?, isBodyweight: Boolean): String? {
         if (chargeKg == null) return null
+        // Poids de corps sans charge additionnelle (ProgressionEngine ne fait qu'y stocker 0f faute de
+        // charge réelle) — ne pas écraser le libellé "PDC" du template par "0 kg".
+        if (isBodyweight && chargeKg == 0f) return null
         return if (chargeKg == chargeKg.toInt().toFloat()) "${chargeKg.toInt()} kg" else "$chargeKg kg"
     }
 
@@ -350,7 +377,18 @@ class InstanceExecuteViewModel @Inject constructor(
             .filter { it.exerciceSeance.blocId == blocId }
             .sortedBy { it.exerciceSeance.position }
         val idxInBloc = exInBloc.indexOfFirst { it.exerciceSeance.id == exerciceId }
-        val isLastInBloc = idxInBloc == exInBloc.size - 1
+
+        // Un exercice du bloc peut avoir un nombre de séries différent des autres (ex. progression
+        // "+1 série" sur un exercice PDC en superset) — on ignore les exercices déjà à leur quota
+        // pour ne pas leur imposer un round supplémentaire non voulu.
+        fun estCompletDansBloc(ex: ExerciceSeanceWithExercise): Boolean {
+            val s = state.seriesParExercice[ex.exerciceSeance.id] ?: emptyList()
+            val mult = if (ex.exerciceSeance.isBilateral) 2 else 1
+            return s.size >= ex.exerciceSeance.nombreSeriesPrevues * mult && s.all { it.isCompleted }
+        }
+
+        val prochainNonComplet = exInBloc.drop(idxInBloc + 1).firstOrNull { !estCompletDansBloc(it) }
+        val isLastInBloc = prochainNonComplet == null
 
         // SUPERSET/CIRCUIT : alternance → naviguer après chaque série
         // Autres blocs (ECHAUFFEMENT, RECUPERATION) : naviguer seulement quand l'exercice est terminé
@@ -373,8 +411,8 @@ class InstanceExecuteViewModel @Inject constructor(
         }
 
         if (!isLastInBloc) {
-            // Exercice suivant dans le même bloc
-            val nextEx = exInBloc[idxInBloc + 1]
+            // Exercice suivant non complet dans le même bloc (saute ceux déjà à leur quota de séries)
+            val nextEx = prochainNonComplet!!
             val nextGlobalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == nextEx.exerciceSeance.id }
             if (nextGlobalIdx >= 0) _uiState.value = state.copy(activeExerciceIndex = nextGlobalIdx)
             val reposSec = reposOverrideSec ?: if (isAlternating) bloc.tempsReposInterSec else exercice.exerciceSeance.tempsReposSec
@@ -383,11 +421,7 @@ class InstanceExecuteViewModel @Inject constructor(
         }
 
         // ── Dernier exercice du bloc ──────────────────────────────────────────
-        val allBlocSeriesDone = exInBloc.all { ex ->
-            val s = state.seriesParExercice[ex.exerciceSeance.id] ?: emptyList()
-            val mult = if (ex.exerciceSeance.isBilateral) 2 else 1
-            s.size >= ex.exerciceSeance.nombreSeriesPrevues * mult && s.all { it.isCompleted }
-        }
+        val allBlocSeriesDone = exInBloc.all(::estCompletDansBloc)
 
         val lastBlocGlobalIdx = state.exercices.indexOfLast { it.exerciceSeance.blocId == blocId }
         val nextGroupIdx = lastBlocGlobalIdx + 1
@@ -402,8 +436,9 @@ class InstanceExecuteViewModel @Inject constructor(
                 if (reposSec > 0) startRestTimer(reposSec)
             }
         } else {
-            // Rounds restants (SUPERSET/CIRCUIT uniquement) → retour au premier du bloc
-            val firstEx = exInBloc.first()
+            // Rounds restants (SUPERSET/CIRCUIT uniquement) → retour au premier exercice du bloc
+            // pas encore à son quota de séries (saute ceux déjà terminés, ex. exercice PDC en avance)
+            val firstEx = exInBloc.firstOrNull { !estCompletDansBloc(it) } ?: exInBloc.first()
             val firstGlobalIdx = state.exercices.indexOfFirst { it.exerciceSeance.id == firstEx.exerciceSeance.id }
             if (firstGlobalIdx >= 0) _uiState.value = state.copy(activeExerciceIndex = firstGlobalIdx)
             val reposSec = reposOverrideSec ?: bloc.tempsReposFinRoundSec
@@ -956,11 +991,8 @@ class InstanceExecuteViewModel @Inject constructor(
     }
 
     /** Union des charges réellement composables avec l'inventaire déclaré pour cet exercice (bible §4.3). */
-    private fun resolveChargesAtteignables(equipment: List<String>, inventaire: EquipmentInventaire): List<Float>? {
-        val categories = equipment.mapNotNull { rawEquipmentToCategory(it) }
-        val charges = categories.flatMap { inventaire.chargesAtteignablesPour(it) ?: emptyList() }
-        return charges.distinct().sorted().ifEmpty { null }
-    }
+    private fun resolveChargesAtteignables(equipment: List<String>, inventaire: EquipmentInventaire): List<Float>? =
+        inventaire.chargesAtteignablesPourEquipement(equipment).ifEmpty { null }
 
     // ===== Surcharge progressive — clôture =====
 
@@ -983,14 +1015,10 @@ class InstanceExecuteViewModel @Inject constructor(
                 val pasMateriel = resolvePasMateriel(exWithEx.exercise.equipment, pasParCategorie)
                 val chargesAtteignables = resolveChargesAtteignables(exWithEx.exercise.equipment, inventaire)
                 val proposition = evaluerExercice(es, cible, objectifExistant?.compteurEchec ?: 0, series, es.isBilateral, pasMateriel, chargesAtteignables)
-                when {
-                    proposition.statut == StatutExercice.SUCCES ||
-                        proposition.statut == StatutExercice.SUCCES_SANS_MARGE ||
-                        proposition.statut == StatutExercice.NON_LOGGE ||
-                        proposition.deload ->
-                        rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition))
-                    else ->
-                        persisterObjectif(instance.seanceId, exWithEx.exercise.id, objectifExistant, proposition)
+                if (requiresValidation(proposition)) {
+                    rows.add(PropositionAffichee(es.id, exWithEx.exercise.id, exWithEx.exercise.name, proposition, chargesAtteignables ?: emptyList()))
+                } else {
+                    persisterObjectif(instance.seanceId, exWithEx.exercise.id, objectifExistant, proposition)
                 }
             }
             if (rows.isEmpty()) {
@@ -1016,19 +1044,26 @@ class InstanceExecuteViewModel @Inject constructor(
                 if (row.proposition.statut == StatutExercice.NON_LOGGE) return@forEach
                 val existant = objectifProgressionDao.getBySeanceAndExercice(instance.seanceId, row.exerciceId)
                 when (decisions[row.exerciceSeanceId] ?: ChoixValidation.OUI) {
-                    ChoixValidation.OUI -> persisterObjectif(instance.seanceId, row.exerciceId, existant, row.proposition)
+                    ChoixValidation.OUI -> {
+                        persisterObjectif(instance.seanceId, row.exerciceId, existant, row.proposition)
+                        appliquerNouveauNombreSeries(row.exerciceSeanceId, row.proposition.nouveauNombreSeries)
+                    }
                     ChoixValidation.NON -> persisterObjectif(
                         instance.seanceId, row.exerciceId, existant,
                         row.proposition.copy(
                             nouvelleChargeCible = existant?.chargeCible,
                             nouveauRepsCible = existant?.repsCible,
                             nouvelleDureeCible = existant?.dureeCibleSec,
+                            nouveauNombreSeries = null,
                         ),
                     )
-                    ChoixValidation.AJUSTER -> persisterObjectif(
-                        instance.seanceId, row.exerciceId, existant,
-                        row.proposition.copy(nouvelleChargeCible = ajustementsChargeKg[row.exerciceSeanceId] ?: row.proposition.nouvelleChargeCible),
-                    )
+                    ChoixValidation.AJUSTER -> {
+                        persisterObjectif(
+                            instance.seanceId, row.exerciceId, existant,
+                            row.proposition.copy(nouvelleChargeCible = ajustementsChargeKg[row.exerciceSeanceId] ?: row.proposition.nouvelleChargeCible),
+                        )
+                        appliquerNouveauNombreSeries(row.exerciceSeanceId, row.proposition.nouveauNombreSeries)
+                    }
                 }
             }
             _uiState.value = _uiState.value.copy(propositionsProgression = emptyList())
@@ -1052,8 +1087,18 @@ class InstanceExecuteViewModel @Inject constructor(
                 dureeCibleSec = proposition.nouvelleDureeCible,
                 compteurEchec = proposition.nouveauCompteurEchec,
                 derniereMaj = LocalDate.now(),
+                nombreSeriesCible = proposition.nouveauNombreSeries,
             )
         )
+    }
+
+    /** Applique la proposition "ajout de série" (PDC au plafond de reps) sur le template de la séance. */
+    private suspend fun appliquerNouveauNombreSeries(exerciceSeanceId: Long, nouveauNombreSeries: Int?) {
+        if (nouveauNombreSeries == null) return
+        val exerciceSeance = _uiState.value.exercices
+            .find { it.exerciceSeance.id == exerciceSeanceId }
+            ?.exerciceSeance ?: return
+        seanceDao.updateExerciceSeance(exerciceSeance.copy(nombreSeriesPrevues = nouveauNombreSeries))
     }
 
     private fun cibleDepuis(objectif: ObjectifProgressionEntity?, es: ExerciceSeanceEntity): CibleExercice {
@@ -1077,6 +1122,76 @@ class InstanceExecuteViewModel @Inject constructor(
                 isCompleted = true,
             )
         } ?: emptyList()
+
+    // ===== Montées en charge =====
+
+    private var warmupChronoJob: Job? = null
+
+    fun openWarmupSheet(exerciceSeanceId: Long) {
+        val state = _uiState.value
+        val exWithEx = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId } ?: return
+        val bloc = exWithEx.exerciceSeance.blocId?.let { bid -> state.blocs.find { it.id == bid } }
+        if (bloc != null && bloc.type in listOf(BlocType.ECHAUFFEMENT, BlocType.ACTIVATION, BlocType.RECUPERATION)) return
+        val chargeObjectifKg = parseChargeKg(parseChargeLabel(exWithEx.exerciceSeance.chargeCible))
+            ?.takeIf { it > 0f } ?: return
+        val chargesAtteignables = state.equipmentInventaire
+            ?.let { resolveChargesAtteignables(exWithEx.exercise.equipment, it) }
+            ?: emptyList()
+        val protocole = state.warmupProtocoleParExercice[exerciceSeanceId]
+            ?: com.pandafit.core.database.progression.protocoleDefaut(exWithEx.exerciceSeance.typeExercice)
+            ?: WarmupProtocole.STANDARD
+        val paliers = com.pandafit.core.database.progression.calculerPaliers(chargeObjectifKg, protocole, chargesAtteignables)
+        _uiState.value = state.copy(
+            warmupExerciceId = exerciceSeanceId,
+            warmupProtocoleParExercice = state.warmupProtocoleParExercice + (exerciceSeanceId to protocole),
+            warmupPaliersParExercice = state.warmupPaliersParExercice + (exerciceSeanceId to paliers),
+            warmupChronoSec = 0,
+        )
+    }
+
+    fun closeWarmupSheet() {
+        warmupChronoJob?.cancel()
+        warmupChronoJob = null
+        _uiState.value = _uiState.value.copy(warmupExerciceId = null, warmupChronoSec = 0)
+    }
+
+    fun changeWarmupProtocole(exerciceSeanceId: Long, protocole: WarmupProtocole) {
+        val state = _uiState.value
+        val exWithEx = state.exercices.find { it.exerciceSeance.id == exerciceSeanceId } ?: return
+        val chargeObjectifKg = parseChargeKg(parseChargeLabel(exWithEx.exerciceSeance.chargeCible)) ?: return
+        val chargesAtteignables = state.equipmentInventaire
+            ?.let { resolveChargesAtteignables(exWithEx.exercise.equipment, it) }
+            ?: emptyList()
+        val paliers = com.pandafit.core.database.progression.calculerPaliers(chargeObjectifKg, protocole, chargesAtteignables)
+        _uiState.value = state.copy(
+            warmupProtocoleParExercice = state.warmupProtocoleParExercice + (exerciceSeanceId to protocole),
+            warmupPaliersParExercice = state.warmupPaliersParExercice + (exerciceSeanceId to paliers),
+            warmupChronoSec = 0,
+        )
+        warmupChronoJob?.cancel()
+        warmupChronoJob = null
+    }
+
+    fun markWarmupPalierDone(exerciceSeanceId: Long, index: Int) {
+        val state = _uiState.value
+        val paliers = state.warmupPaliersParExercice[exerciceSeanceId]?.toMutableList() ?: return
+        if (index >= paliers.size) return
+        val palier = paliers[index]
+        paliers[index] = palier.copy(isDone = true)
+        warmupChronoJob?.cancel()
+        warmupChronoJob = viewModelScope.launch {
+            var remaining = palier.reposSec
+            while (remaining > 0) {
+                _uiState.value = _uiState.value.copy(warmupChronoSec = remaining)
+                delay(1000L)
+                remaining--
+            }
+            _uiState.value = _uiState.value.copy(warmupChronoSec = 0)
+        }
+        _uiState.value = state.copy(
+            warmupPaliersParExercice = state.warmupPaliersParExercice + (exerciceSeanceId to paliers),
+        )
+    }
 
     fun finishInstance() {
         countdownJob?.cancel()

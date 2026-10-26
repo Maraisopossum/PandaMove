@@ -1,0 +1,185 @@
+import type { Db, DbLecture, DbTx } from '../Db'
+import { deterministicId, newId } from '../ids'
+import { upsertRow } from '../upsert'
+import type { InstanceSeance } from '../types'
+import { mapInstance, type Ligne } from './mappers'
+
+// Planifie une séance à une date (date au format ISO yyyy-MM-dd). Renvoie l'id créé.
+export async function createInstance(db: Db | DbTx, seanceId: string, date: string): Promise<string> {
+  const id = newId()
+  const maintenant = new Date().toISOString()
+  await db.execute(
+    `INSERT INTO instances_seance
+       (id, seance_id, date, notes, is_completed, completed_at, duration_seconds, created_at, updated_at)
+     VALUES (?, ?, ?, '', 0, NULL, 0, ?, ?)`,
+    [id, seanceId, date, maintenant, maintenant],
+  )
+  return id
+}
+
+export async function getInstance(db: DbLecture, id: string): Promise<InstanceSeance | null> {
+  const ligne = await db.getOptional<Ligne>('SELECT * FROM instances_seance WHERE id = ? AND deleted_at IS NULL', [id])
+  return ligne ? mapInstance(ligne) : null
+}
+
+export async function listInstances(db: Db): Promise<InstanceSeance[]> {
+  const lignes = await db.getAll<Ligne>('SELECT * FROM instances_seance WHERE deleted_at IS NULL ORDER BY date, id')
+  return lignes.map(mapInstance)
+}
+
+// Démarre l'exécution : started_at n'est écrit qu'une fois (un second appel garde la première valeur).
+export async function demarrerInstance(db: Db | DbTx, id: string, startedAtIso: string): Promise<void> {
+  await db.execute(
+    'UPDATE instances_seance SET started_at = ?, updated_at = ? WHERE id = ? AND started_at IS NULL AND deleted_at IS NULL',
+    [startedAtIso, startedAtIso, id],
+  )
+}
+
+// Remplace la liste des pauses (JSON sérialisé par sessionClock) d'une instance non terminée.
+export async function enregistrerPauses(db: Db, id: string, pausedJson: string, maintenantIso: string): Promise<void> {
+  await db.execute(
+    'UPDATE instances_seance SET paused_json = ?, updated_at = ? WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL',
+    [pausedJson, maintenantIso, id],
+  )
+}
+
+// Termine l'instance. Idempotent : une instance déjà terminée n'est plus modifiée.
+export async function terminerInstance(
+  db: DbTx,
+  id: string,
+  fin: { completedAt: string; durationSeconds: number; pausedJson: string },
+): Promise<void> {
+  await db.execute(
+    `UPDATE instances_seance SET is_completed = 1, completed_at = ?, duration_seconds = ?, paused_json = ?, updated_at = ?
+     WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL`,
+    [fin.completedAt, fin.durationSeconds, fin.pausedJson, fin.completedAt, id],
+  )
+}
+
+// « Quitter sans enregistrer » (Android : cancelInstance + endSession sans série) : une séance démarrée dont AUCUNE série
+// n'est validée redevient planifiée (horloge effacée), pour ne plus apparaître comme séance en cours. Renvoie true si
+// elle a été remise à zéro ; false (rien d'écrit) si une série est validée, si elle est terminée ou introuvable.
+export async function abandonnerDemarrage(db: Db, id: string, maintenantIso: string): Promise<boolean> {
+  return db.writeTransaction(async (tx) => {
+    const serie = await tx.getOptional<{ one: number }>(
+      'SELECT 1 AS one FROM series_realisees WHERE instance_seance_id = ? AND is_completed = 1 AND deleted_at IS NULL',
+      [id],
+    )
+    if (serie) return false
+    const vivante = await tx.getOptional<{ id: string }>(
+      'SELECT id FROM instances_seance WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL AND started_at IS NOT NULL',
+      [id],
+    )
+    if (!vivante) return false
+    await tx.execute('UPDATE instances_seance SET started_at = NULL, paused_json = NULL, updated_at = ? WHERE id = ?', [maintenantIso, id])
+    return true
+  })
+}
+
+// Remplace le marqueur de progression (JSON sérialisé par core/progression/marqueur.ts).
+export async function enregistrerProgression(db: DbTx, id: string, progressionJson: string, maintenantIso: string): Promise<void> {
+  await db.execute(
+    'UPDATE instances_seance SET progression_json = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+    [progressionJson, maintenantIso, id],
+  )
+}
+
+export class ErreurInstance extends Error {}
+
+export const NOM_INSTANCE_MAX = 100
+
+// Renomme LA SÉANCE JOUÉE (instances_seance.nom), jamais le modèle (isolation template/instance). Nom vide = retour au
+// nom du modèle (colonne remise à NULL). Une instance inconnue ou supprimée est refusée, rien n'est écrit.
+export async function renommerInstance(db: Db | DbTx, id: string, nom: string, maintenantIso: string): Promise<void> {
+  const propre = nom.trim()
+  if (propre.length > NOM_INSTANCE_MAX) throw new ErreurInstance(`Le nom de la séance est limité à ${NOM_INSTANCE_MAX} caractères.`)
+  const existe = await db.getOptional<{ id: string }>('SELECT id FROM instances_seance WHERE id = ? AND deleted_at IS NULL', [id])
+  if (!existe) throw new ErreurInstance('Séance introuvable.')
+  await db.execute('UPDATE instances_seance SET nom = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL', [
+    propre === '' ? null : propre, maintenantIso, id,
+  ])
+}
+
+// Note libre sur un exercice DE L'INSTANCE (jamais une ligne du modèle). Vide = note effacée (NULL).
+export async function majNoteExercice(db: Db | DbTx, instanceId: string, exerciceId: string, note: string, maintenantIso: string): Promise<void> {
+  const ligne = await db.getOptional<{ id: string }>(
+    'SELECT id FROM exercices_seance WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
+    [exerciceId, instanceId],
+  )
+  if (!ligne) throw new ErreurInstance('Exercice introuvable dans cette séance.')
+  const propre = note.trim()
+  await db.execute('UPDATE exercices_seance SET notes = ?, updated_at = ? WHERE id = ? AND instance_seance_id = ? AND deleted_at IS NULL', [
+    propre === '' ? null : propre, maintenantIso, exerciceId, instanceId,
+  ])
+}
+
+// Copie les blocs et exercices du modèle de la séance vers l'instance (équivalent web de la
+// copie « lazy » d'InstanceExecuteViewModel). Une seule transaction ; idempotente :
+// - garde : si l'instance possède déjà des lignes (copie précédente ou import), on ne fait rien ;
+// - ids déterministes (instanceId + id source) : deux appareils hors ligne produisent les mêmes
+//   clés primaires, donc aucun doublon après synchro.
+// Seules les lignes du modèle (instance_seance_id IS NULL, non supprimées) sont lues et jamais modifiées.
+// Les séries réalisées et objectifs de progression ne sont pas copiés.
+export async function copyTemplateToInstance(db: Db, instanceId: string): Promise<void> {
+  await db.writeTransaction(async (tx) => {
+    const instance = await tx.getOptional<{ seance_id: string }>(
+      'SELECT seance_id FROM instances_seance WHERE id = ? AND deleted_at IS NULL',
+      [instanceId],
+    )
+    if (!instance) throw new ErreurInstance('Instance introuvable')
+    const seance = await tx.getOptional<{ id: string }>('SELECT id FROM seances WHERE id = ? AND deleted_at IS NULL', [
+      instance.seance_id,
+    ])
+    if (!seance) throw new ErreurInstance("La séance de cette instance est introuvable ou supprimée")
+
+    const dejaCopie = await tx.getOptional<{ one: number }>(
+      `SELECT 1 AS one FROM blocs_seance WHERE instance_seance_id = ? AND deleted_at IS NULL
+       UNION ALL
+       SELECT 1 AS one FROM exercices_seance WHERE instance_seance_id = ? AND deleted_at IS NULL`,
+      [instanceId, instanceId],
+    )
+    if (dejaCopie) return
+
+    const blocs = await tx.getAll<Ligne>(
+      'SELECT * FROM blocs_seance WHERE seance_id = ? AND instance_seance_id IS NULL AND deleted_at IS NULL ORDER BY position, id',
+      [instance.seance_id],
+    )
+    const exercices = await tx.getAll<Ligne>(
+      'SELECT * FROM exercices_seance WHERE seance_id = ? AND instance_seance_id IS NULL AND deleted_at IS NULL ORDER BY position, id',
+      [instance.seance_id],
+    )
+    const maintenant = new Date().toISOString()
+
+    // Blocs d'abord : les exercices référencent l'id du bloc copié.
+    const idBlocCopie = new Map<string, string>()
+    for (const bloc of blocs) {
+      const idSource = String(bloc.id)
+      const id = deterministicId(instanceId, idSource)
+      idBlocCopie.set(idSource, id)
+      await upsertRow(tx, 'blocs_seance', {
+        ...bloc, id, instance_seance_id: instanceId, bloc_source_id: idSource, updated_at: maintenant,
+      })
+    }
+    for (const exercice of exercices) {
+      const idSource = String(exercice.id)
+      const blocSource = exercice.bloc_id == null ? null : String(exercice.bloc_id)
+      await upsertRow(tx, 'exercices_seance', {
+        ...exercice,
+        id: deterministicId(instanceId, idSource),
+        bloc_id: blocSource === null ? null : (idBlocCopie.get(blocSource) ?? null),
+        instance_seance_id: instanceId,
+        exercice_source_id: idSource,
+        // La note d'exercice appartient à la séance jouée : jamais héritée du modèle
+        notes: null,
+        updated_at: maintenant,
+      })
+    }
+  })
+}
+
+// Commentaire de séance (texte libre) d'une instance non terminée.
+export async function majNotesInstance(db: Db | DbTx, id: string, notes: string, maintenantIso: string): Promise<void> {
+  await db.execute('UPDATE instances_seance SET notes = ?, updated_at = ? WHERE id = ? AND is_completed = 0 AND deleted_at IS NULL', [
+    notes, maintenantIso, id,
+  ])
+}

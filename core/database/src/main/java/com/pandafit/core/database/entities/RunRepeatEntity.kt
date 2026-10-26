@@ -33,4 +33,13 @@ data class RunRepeatEntity(
     // JSON sérialisé de List<IntervalRepResult> — résultats de validation
     @ColumnInfo(name = "results_json")
     val resultsJson: String = "",
+
+    /**
+     * true si ce bloc vient d'un auto-lap montre (splits kilométriques automatiques importés en
+     * TCX) plutôt que d'un vrai entraînement fractionné construit dans l'app. Une sortie continue
+     * avec auto-lap 1 km n'est pas un fractionné — l'écran d'exécution live ne doit pas l'afficher
+     * comme "INTERVALLE X/N" si ce bloc est un jour réutilisé comme modèle de séance.
+     */
+    @ColumnInfo(name = "is_auto_lap", defaultValue = "0")
+    val isAutoLap: Boolean = false,
 )

@@ -35,6 +35,7 @@ import com.pandafit.core.database.entities.RunStepType
 import com.pandafit.core.database.entities.RunTargetType
 import com.pandafit.designsystem.theme.*
 import com.pandafit.feature.running.model.RunItemDraft
+import com.pandafit.feature.running.model.runStepLabel
 import com.pandafit.feature.running.viewmodel.RunningDetailViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -94,7 +95,7 @@ fun RunningWorkoutDetailScreen(
                         modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     )
                     TextButton(onClick = { viewModel.save() }, enabled = !uiState.isSaving) {
-                        Text(stringResource(R.string.running_detail_save_button), color = PandaPurple, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.running_detail_save_button), color = PandaGreen, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -134,7 +135,7 @@ fun RunningWorkoutDetailScreen(
                         Checkbox(
                             checked = uiState.withStroller,
                             onCheckedChange = viewModel::updateWithStroller,
-                            colors = CheckboxDefaults.colors(checkedColor = PandaPurple),
+                            colors = CheckboxDefaults.colors(checkedColor = PandaGreen),
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.running_detail_with_stroller), style = MaterialTheme.typography.bodyMedium)
@@ -148,7 +149,7 @@ fun RunningWorkoutDetailScreen(
                 Text(
                     stringResource(R.string.running_detail_section_steps),
                     style = MaterialTheme.typography.labelSmall,
-                    color = PandaPurple,
+                    color = PandaGreen,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
@@ -206,7 +207,7 @@ fun RunningWorkoutDetailScreen(
                     OutlinedButton(
                         onClick = { viewModel.addStep() },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PandaPurple),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PandaGreen),
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
@@ -243,7 +244,7 @@ private fun RunStepCard(
     elevation: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val stripeColor = stepColor(step.stepType)
+    val stripeColor = runStepColor(step.stepType)
 
     Surface(
         modifier = Modifier
@@ -273,7 +274,7 @@ private fun RunStepCard(
                         .background(stripeColor, RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp)),
                 )
                 Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    Text(stepLabel(step.stepType), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = stripeColor)
+                    Text(runStepLabel(step.stepType), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = stripeColor)
                     Text(endSummary(step), style = MaterialTheme.typography.bodySmall, color = PandaSubtext)
                 }
                 if (showUpDown) {
@@ -304,7 +305,7 @@ private fun RunStepCard(
                     // Type d'étape
                     StepDropdown(
                         label = stringResource(R.string.running_detail_step_type_label),
-                        options = RunStepType.entries.map { it to stepLabel(it) },
+                        options = RunStepType.entries.map { it to runStepLabel(it) },
                         selected = step.stepType,
                         onSelect = { onUpdate(step.copy(stepType = it)) },
                     )
@@ -754,24 +755,6 @@ private fun MmSsSplitField(
 }
 
 // ── Helpers locaux ────────────────────────────────────────────────────────────
-
-private fun stepLabel(type: RunStepType) = when (type) {
-    RunStepType.WARMUP   -> "Échauffement"
-    RunStepType.RUNNING  -> "Course à pied"
-    RunStepType.WALKING  -> "Marche"
-    RunStepType.RECOVERY -> "Récupération"
-    RunStepType.REST     -> "Repos"
-    RunStepType.OTHER    -> "Autre"
-}
-
-private fun stepColor(type: RunStepType): Color = when (type) {
-    RunStepType.WARMUP   -> PandaRed
-    RunStepType.RUNNING  -> PandaBlue
-    RunStepType.WALKING  -> PandaSubtext
-    RunStepType.RECOVERY -> PandaGreen
-    RunStepType.REST     -> PandaSubtextLight
-    RunStepType.OTHER    -> PandaPurple
-}
 
 private fun endSummary(step: RunItemDraft.Step): String {
     if (step.endValue.isBlank()) return "—"

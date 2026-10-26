@@ -1,0 +1,24 @@
+# Configuration du service PowerSync auto-hébergé (développement local, NON VALIDÉE).
+# Les valeurs sensibles viennent de variables d'environnement (voir docker-compose.powersync.yml).
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_DATA_SOURCE_URI
+      sslmode: disable
+
+storage:
+  type: mongodb
+  uri: !env PS_MONGO_URI
+
+port: !env PS_PORT
+
+# Pointe vers le même fichier que la version Cloud (web/powersync/sync-rules.yaml, Sync Streams édition 3).
+# À vérifier : le nom de la clé de configuration des règles de synchro pour l'auto-hébergement
+# (ici sync_rules, ancien format) doit être confronté à la documentation PowerSync self-host.
+sync_rules:
+  path: /config/sync-rules.yaml
+
+client_auth:
+  # Jetons émis par Supabase Auth (HS256 en local)
+  supabase: true
+  supabase_jwt_secret: !env PS_SUPABASE_JWT_SECRET
