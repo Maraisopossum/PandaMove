@@ -3,7 +3,7 @@ import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { DateDialog } from '../calendar/DateDialog'
 import { SupprimerInstanceDialog } from '../calendar/SupprimerInstanceDialog'
 import { BarreSelection } from './BarreSelection'
-import { CarteSelectionnable } from './CarteSelectionnable'
+import { CarteInstance } from './CarteInstance'
 import { SupprimerSelectionDialog } from './SupprimerSelectionDialog'
 import { useEcranListeInstances } from './useEcranListeInstances'
 import type { TypeListeInstances } from './useListeInstances'
@@ -68,36 +68,7 @@ export default function ListeInstancesScreen({ type }: { type: TypeListeInstance
             )}
             <ul className="seances__liste">
               {e.lignes.map((l) => (
-                <CarteSelectionnable
-                  key={l.id}
-                  lien={l.lien}
-                  designation={l.designation}
-                  mode={sel.mode}
-                  choisie={sel.estSelectionne(l.id)}
-                  onBasculer={() => sel.basculer(l.id)}
-                  onAppuiLong={() => sel.entrer(l.id)}
-                  actions={
-                    <>
-                      {l.peutChangerDate && (
-                        <button type="button" className="bouton" aria-label={`Changer la date de ${l.designation}`} onClick={() => e.demanderDeplacement(l)}>
-                          Changer la date
-                        </button>
-                      )}
-                      <button type="button" className="bouton" aria-label={`Supprimer ${l.designation}`} onClick={() => e.demanderSuppression(l)}>
-                        Supprimer
-                      </button>
-                    </>
-                  }
-                >
-                  <span className="seance__nom">
-                    {l.nom}
-                    {l.enCours && <span className="instances__badge">En cours</span>}
-                  </span>
-                  <span className="seance__details">
-                    {l.date}
-                    {l.details && <> · {l.details}</>}
-                  </span>
-                </CarteSelectionnable>
+                <CarteInstance key={l.id} ligne={l} selection={sel} onChangerDate={e.demanderDeplacement} onSupprimer={e.demanderSuppression} />
               ))}
             </ul>
           </>

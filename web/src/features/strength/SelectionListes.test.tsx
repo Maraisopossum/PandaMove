@@ -61,7 +61,7 @@ function monterInstances(type: 'programmees' | 'terminees') {
 describe('séances types : sélection multiple', () => {
   it('« Sélectionner » ouvre le mode : cases à cocher, boutons de carte masqués, création masquée', async () => {
     monterTypes()
-    await screen.findByText('Pull', undefined, LARGE)
+    await typeDe('Pull')
     expect(screen.queryByRole('region', { name: 'Sélection' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }))
     expect(screen.getByRole('region', { name: 'Sélection' })).toBeTruthy()
@@ -75,7 +75,7 @@ describe('séances types : sélection multiple', () => {
 
   it('compte les éléments choisis ; « Annuler la sélection » quitte le mode', async () => {
     monterTypes()
-    await screen.findByText('Pull', undefined, LARGE)
+    await typeDe('Pull')
     fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Pull' }))
     expect(screen.getByText('1 sélectionné')).toBeTruthy()
@@ -88,9 +88,9 @@ describe('séances types : sélection multiple', () => {
 
   it('appui long sur une carte : ouvre le mode avec cette carte choisie', async () => {
     monterTypes()
-    await screen.findByText('Pull', undefined, LARGE)
+    const carte = await typeDe('Pull')
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-    fireEvent.pointerDown(screen.getByText('Pull'), { clientX: 3, clientY: 3 })
+    fireEvent.pointerDown(carte, { clientX: 3, clientY: 3 })
     act(() => void vi.advanceTimersByTime(600))
     vi.useRealTimers()
     expect(screen.getByText('1 sélectionné')).toBeTruthy()
@@ -99,7 +99,7 @@ describe('séances types : sélection multiple', () => {
 
   it('suppression groupée : la règle de l’Android (archive si historique, supprime sinon, purge une archivée)', async () => {
     monterTypes()
-    await screen.findByText('Pull', undefined, LARGE)
+    await typeDe('Pull')
     fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Push' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Ancienne (archivée)' }))
@@ -119,7 +119,7 @@ describe('séances types : sélection multiple', () => {
 
   it('« Annuler » dans la confirmation ne supprime rien et garde la sélection', async () => {
     monterTypes()
-    await screen.findByText('Pull', undefined, LARGE)
+    await typeDe('Pull')
     fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Pull' }))
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
@@ -150,7 +150,7 @@ describe('séances programmées et terminées : sélection multiple', () => {
 
   it('terminées : le texte parle de séances terminées', async () => {
     monterInstances('terminees')
-    await screen.findByText('Push', undefined, LARGE)
+    await typeDe('Push')
     fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }))
     fireEvent.click(screen.getByRole('checkbox', { name: /Sélectionner Push/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))
@@ -163,3 +163,6 @@ describe('séances programmées et terminées : sélection multiple', () => {
     expect(screen.getAllByRole('link').length).toBeGreaterThan(0)
   })
 })
+
+// Le nom d un modèle figure aussi dans les cartes des séances jouées : on attend la carte du modèle (1re de la page)
+const typeDe = async (nom: string) => (await screen.findAllByText(nom, { selector: ".seance__nom" }, { timeout: 4000 }))[0]

@@ -63,7 +63,7 @@ function monter(chemin: string) {
 describe('SeanceListScreen', () => {
   it("affiche les cartes (nom, muscles, durée, nb d'exercices), un lien vers le détail, Lancer et 📅 sur chacune", async () => {
     monter('/strength')
-    expect(await screen.findByText('Pull')).toBeTruthy()
+    expect(await typeDe('Pull')).toBeTruthy()
     expect(screen.getByText('Dos, Biceps · 45 min · 1 exercice')).toBeTruthy()
     expect(screen.getByText('Pectoraux · 30 min · 0 exercice')).toBeTruthy()
     expect(screen.getByLabelText(assigner('Pull'))).toBeTruthy()
@@ -77,7 +77,7 @@ describe('SeanceListScreen', () => {
 
   it("dialogue d'affectation : rôle dialog, focus piégé, Échap ferme et rend le focus", async () => {
     monter('/strength')
-    await screen.findByText('Pull')
+    await typeDe('Pull')
     const declencheur = screen.getByLabelText(assigner('Pull'))
     declencheur.focus()
     fireEvent.click(declencheur)
@@ -104,7 +104,7 @@ describe('SeanceListScreen', () => {
 
   it("affecte à une date ; une erreur (séance disparue) s'affiche dans le dialogue", async () => {
     monter('/strength')
-    await screen.findByText('Push')
+    await typeDe('Push')
     fireEvent.click(screen.getByLabelText(assigner('Push')))
     const date = await screen.findByLabelText('Date de la séance')
     fireEvent.change(date, { target: { value: '2026-11-03' } })
@@ -127,7 +127,7 @@ describe('SeanceListScreen', () => {
 
   it("archive (réversible) : la carte passe dans « Séances archivées », le message l'annonce", async () => {
     monter('/strength')
-    await screen.findByText('Push')
+    await typeDe('Push')
     await action('Push', 'Archiver')
     expect((await screen.findByRole('status')).textContent).toContain('« Push » est archivée')
     const archivees = await screen.findByRole('region', { name: 'Séances archivées' })
@@ -152,7 +152,7 @@ describe('SeanceListScreen', () => {
       id: 'dup-ie', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 's1', exercise_id: 'x', position: 0, instance_seance_id: 'dup-i',
     })
     monter('/strength')
-    await screen.findByText('Pull')
+    await typeDe('Pull')
     await action('Pull', 'Dupliquer')
     expect((await screen.findByRole('status')).textContent).toContain('« Pull (copie) » a été créée.')
     expect(await screen.findByText('Pull (copie)')).toBeTruthy()
@@ -166,7 +166,7 @@ describe('SeanceListScreen', () => {
 
   it("« Modifier » du menu ouvre l'édition", async () => {
     monter('/strength')
-    await screen.findByText('Pull')
+    await typeDe('Pull')
     await action('Pull', 'Modifier')
     expect(await screen.findByText('Écran édition')).toBeTruthy()
   })
@@ -175,7 +175,7 @@ describe('SeanceListScreen', () => {
 describe("Menu d'actions (clavier)", () => {
   it('ouvre au clic avec focus sur la première entrée, flèches circulaires, Début / Fin, Échap rend le focus au bouton', async () => {
     monter('/strength')
-    await screen.findByText('Pull')
+    await typeDe('Pull')
     const bouton = boutonMenu('Pull')
     expect(bouton.getAttribute('aria-haspopup')).toBe('menu')
     expect(bouton.getAttribute('aria-expanded')).toBe('false')
@@ -205,7 +205,7 @@ describe("Menu d'actions (clavier)", () => {
 
   it('flèche haut sur le bouton ouvre le menu sur la dernière entrée ; Tab et clic ailleurs le ferment', async () => {
     monter('/strength')
-    await screen.findByText('Pull')
+    await typeDe('Pull')
     const bouton = boutonMenu('Pull')
     bouton.focus()
     fireEvent.keyDown(bouton, { key: 'ArrowUp' })
@@ -222,7 +222,7 @@ describe("Menu d'actions (clavier)", () => {
 
   it("choisir une action rend le focus au bouton avant d'ouvrir le dialogue (le focus y revient à la fermeture)", async () => {
     monter('/strength')
-    await screen.findByText('Pull')
+    await typeDe('Pull')
     const bouton = boutonMenu('Pull')
     bouton.focus()
     await action('Pull', 'Supprimer…')
@@ -240,7 +240,7 @@ describe('Suppression depuis la liste', () => {
 
   it('chaque carte propose Lancer, 📅 et un menu (Modifier, Dupliquer, Archiver, Supprimer)', async () => {
     monter('/strength')
-    const carte = (await screen.findByText('Pull')).closest('li') as HTMLElement
+    const carte = (await typeDe('Pull')).closest('li') as HTMLElement
     expect(carte.querySelector('[aria-label="Lancer Pull maintenant"]')).not.toBeNull()
     expect(carte.querySelector('[aria-label="Affecter Pull au calendrier"]')).not.toBeNull()
     expect(carte.querySelector('[aria-label="Plus d\'actions pour Pull"]')).not.toBeNull()
@@ -253,7 +253,7 @@ describe('Suppression depuis la liste', () => {
     await instance('s3-ic1', 's3', 1)
     await instance('s3-ic2', 's3', 1)
     monter('/strength')
-    await screen.findByText('Squat')
+    await typeDe('Squat')
     const declencheur = boutonMenu('Squat')
     declencheur.focus()
     await action('Squat', 'Supprimer…')
@@ -317,7 +317,8 @@ describe('Suppression depuis la liste', () => {
     await action('Squat', 'Supprimer…')
     await screen.findByRole('dialog')
     fireEvent.click(screen.getByRole('button', { name: "Garder l'historique" }))
-    await waitFor(() => expect(screen.queryByText('Squat')).toBeNull())
+    // Le modèle disparaît de « Séances types » ; ses séances jouées restent visibles sous leur nom
+    await waitFor(() => expect(screen.queryByRole('button', { name: "Plus d'actions pour Squat" })).toBeNull())
     expect(screen.queryByRole('dialog')).toBeNull()
     const rows = await base.getAll<{ id: string; deleted_at: string | null }>(
       "SELECT id, deleted_at FROM instances_seance WHERE seance_id = 's3' ORDER BY id",
@@ -426,3 +427,6 @@ describe('Lancer une séance type maintenant', () => {
     expect(await instancesDe('l4')).toEqual([])
   })
 })
+
+// Le nom d un modèle figure aussi dans les cartes des séances jouées : on attend la carte du modèle (1re de la page)
+const typeDe = async (nom: string) => (await screen.findAllByText(nom, { selector: ".seance__nom" }, { timeout: 4000 }))[0]

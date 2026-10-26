@@ -37,7 +37,12 @@ const TEXTES = {
 // Orchestration des écrans « Séances programmées » et « Séances terminées » : lignes prêtes à afficher
 // (une séance programmée ouvre l'exécution, une terminée ouvre son bilan), panda de l'état vide, changement de date
 // (séances non terminées) et suppression après confirmation.
-export function useEcranListeInstances(type: TypeListeInstances, deps: DepsListeInstances = {}) {
+export function useEcranListeInstances(
+  type: TypeListeInstances,
+  deps: DepsListeInstances = {},
+  // Sélection partagée avec l'écran Séances (une seule sélection sur toutes les sections)
+  selectionPartagee?: ReturnType<typeof useSelection>,
+) {
   const liste = useListeInstances(type, deps)
   const { session } = useAuth()
   const pandaVide = useImagePanda('pose_sitting', { db: deps.db, userId: session?.user.id, taille: 'sm' })
@@ -98,7 +103,8 @@ export function useEcranListeInstances(type: TypeListeInstances, deps: DepsListe
   }, [aSupprimer, agir, base, enCours])
 
   // Sélection multiple (appui long ou bouton « Sélectionner ») : suppression groupée comme l'Android
-  const selection = useSelection()
+  const selectionPropre = useSelection()
+  const selection = selectionPartagee ?? selectionPropre
   const executerSelection = useCallback(
     async (ids: string[]) => {
       try {

@@ -1,12 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { getDb } from '../../core/db/client'
 import { useImagePanda } from '../../core/images/usePandaVariante'
 import type { Seance } from '../../core/db/types'
 import { lireGroupes } from './catalog/filtreCatalogue'
 import { libelleMuscle } from './catalog/libelles'
 import type { ActionMenu } from './MenuActions'
 import { filtrerSeances, SEUIL_RECHERCHE } from './rechercheSeances'
+import { supprimerInstancesSelection } from './suppressionSelection'
+import { useEcranListeInstances } from './useEcranListeInstances'
 import { useAffectation, type SuccesAffectation } from './useAffectation'
 import { useLancement } from './useLancement'
 import { useSeanceDirecte } from './useSeanceDirecte'
@@ -28,6 +31,9 @@ export interface CarteSeance {
   notes: string
   actions: ActionMenu[]
 }
+
+/** Séances terminées visibles avant « Voir les N autres » (MAX_COMPLETED_VISIBLE Android). */
+export const TERMINEES_VISIBLES = 5
 
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
@@ -51,25 +57,64 @@ export function useListeSeancesEcran() {
         : { vers: '/strength/planned', libelle: 'Voir les séances programmées' },
     })
   }, [])
-  const affectation = useAffectation(liste.affecter, surSuccesAffectation)
-
-  const ouvrirInstance = useCallback((id: string) => navigate(`/strength/instance/${id}`), [navigate])
-  const lancement = useLancement(liste.lancer, ouvrirInstance)
-  const suppression = useSuppression(liste.compterHistorique, liste.supprimer)
-  const directe = useSeanceDirecte(liste.creerDirecte, ouvrirInstance)
   // Sélection multiple (appui long ou bouton « Sélectionner ») : suppression groupée comme l'Android
   const selection = useSelection()
-  const suppressionSelection = useSuppressionSelection(liste.supprimerSelection, selection.quitter)
+  // Séances jouées de l'écran à sections : mêmes lignes et mêmes actions que les vues complètes, sélection partagée
+  const programmees = useEcranListeInstances('programmees', {}, selection)
+  const terminees = useEcranListeInstances('terminees', {}, selection)
+  const [toutesTerminees, setToutesTerminees] = useState(false)
+  const { recharger: rechargerProgrammees } = programmees
+  const { recharger: rechargerTerminees } = terminees
+  // Toute écriture sur les modèles qui crée, supprime ou rend visibles des séances jouées relit aussi les sections
+  const puisRecharger = useCallback(
+    <A extends unknown[], R>(ecrire: (...args: A) => Promise<R>) =>
+      async (...args: A): Promise<R> => {
+        try {
+          return await ecrire(...args)
+        } finally {
+          await Promise.all([rechargerProgrammees(), rechargerTerminees()])
+        }
+      },
+    [rechargerProgrammees, rechargerTerminees],
+  )
+  const affecter = useMemo(() => puisRecharger(liste.affecter), [puisRecharger, liste.affecter])
+  const supprimerModele = useMemo(() => puisRecharger(liste.supprimer), [puisRecharger, liste.supprimer])
+  const creerDirecte = useMemo(() => puisRecharger(liste.creerDirecte), [puisRecharger, liste.creerDirecte])
+  const lancer = useMemo(() => puisRecharger(liste.lancer), [puisRecharger, liste.lancer])
+
+  const affectation = useAffectation(affecter, surSuccesAffectation)
+
+  const ouvrirInstance = useCallback((id: string) => navigate(`/strength/instance/${id}`), [navigate])
+  const lancement = useLancement(lancer, ouvrirInstance)
+  const suppression = useSuppression(liste.compterHistorique, supprimerModele)
+  const directe = useSeanceDirecte(creerDirecte, ouvrirInstance)
+  const { supprimerSelection } = liste
+  // Suppression groupée (Android : deleteSeances + deleteInstances) : d'abord les séances jouées, puis les types
+  // (un type dont toutes les séances jouées viennent d'être supprimées n'a plus d'historique à conserver).
+  const executerSelection = useCallback(
+    async (ids: string[]) => {
+      const types = new Set([...liste.seances, ...liste.archivees].map((s) => s.id))
+      try {
+        const jouees = ids.filter((id) => !types.has(id))
+        if (jouees.length > 0) await supprimerInstancesSelection(getDb(), jouees)
+        const modeles = ids.filter((id) => types.has(id))
+        if (modeles.length > 0) await supprimerSelection(modeles)
+      } finally {
+        await Promise.all([rechargerProgrammees(), rechargerTerminees()])
+      }
+    },
+    [liste.seances, liste.archivees, supprimerSelection, rechargerProgrammees, rechargerTerminees],
+  )
+  const suppressionSelection = useSuppressionSelection(executerSelection, selection.quitter)
   const compteSelection = useMemo(() => {
     const types = new Set(liste.seances.map((s) => s.id))
     const archivees = new Set(liste.archivees.map((s) => s.id))
-    return {
-      types: selection.identifiants.filter((id) => types.has(id)).length,
-      archivees: selection.identifiants.filter((id) => archivees.has(id)).length,
-      planifiees: 0,
-      terminees: 0,
-    }
-  }, [liste.seances, liste.archivees, selection.identifiants])
+    const planifiees = new Set(programmees.lignes.map((l) => l.id))
+    const finies = new Set(terminees.lignes.map((l) => l.id))
+    const nb = (ensemble: Set<string>) => selection.identifiants.filter((id) => ensemble.has(id)).length
+    return { types: nb(types), archivees: nb(archivees), planifiees: nb(planifiees), terminees: nb(finies) }
+  }, [liste.seances, liste.archivees, programmees.lignes, terminees.lignes, selection.identifiants])
+  const termineesVisibles = toutesTerminees ? terminees.lignes : terminees.lignes.slice(0, TERMINEES_VISIBLES)
 
   const demanderDuplication = useCallback(
     async (s: Seance) => {
@@ -140,10 +185,21 @@ export function useListeSeancesEcran() {
     notice,
     cartes,
     archivees,
-    // Aucun modèle du tout (ni visible ni archivé) : état vide avec aide
-    vide: liste.charge && liste.seances.length === 0 && liste.archivees.length === 0,
+    // Rien du tout (ni modèle, visible ou archivé, ni séance jouée) : état vide avec aide
+    vide:
+      liste.charge && liste.seances.length === 0 && liste.archivees.length === 0 &&
+      !programmees.chargement && !terminees.chargement && programmees.lignes.length === 0 && terminees.lignes.length === 0,
+    programmees,
+    terminees,
+    termineesVisibles,
+    nbTermineesCachees: terminees.lignes.length - termineesVisibles.length,
+    toutesTerminees,
+    basculerTerminees: () => setToutesTerminees((t) => !t),
+    erreurInstances: programmees.erreur ?? terminees.erreur ?? programmees.erreurAction ?? terminees.erreurAction,
     // Seuls des modèles archivés subsistent
     aucuneActive: liste.charge && liste.seances.length === 0 && liste.archivees.length > 0,
+    // Aucun type actif mais des séances jouées ou archivées : la section des types n'est pas affichée
+    aTypes: liste.seances.length > 0,
     rechercheVisible: liste.seances.length >= SEUIL_RECHERCHE,
     requete,
     setRequete,

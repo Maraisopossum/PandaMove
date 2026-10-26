@@ -71,7 +71,8 @@ export function textesSuppressionSelection(c: CompteSelection): TextesSuppressio
     c.planifiees > 0 ? seances(c.planifiees, 'programmée', 's') : null,
     c.terminees > 0 ? seances(c.terminees, 'terminée', 's') : null,
   ].filter((p): p is string => p !== null)
-  const detail = `${parties.join(' et ')} ${total > 1 ? 'seront supprimées' : 'sera supprimée'}.`
+  const liste = parties.length > 1 ? `${parties.slice(0, -1).join(', ')} et ${parties[parties.length - 1]}` : parties[0]
+  const detail = `${liste} ${total > 1 ? 'seront supprimées' : 'sera supprimée'}.`
   const lignes = [detail]
   if (c.types > 0) lignes.push('Une séance type qui a déjà des séances jouées est archivée : son historique est conservé.')
   if (c.archivees > 0) lignes.push('Une séance archivée est supprimée définitivement, avec ses séances jouées.')

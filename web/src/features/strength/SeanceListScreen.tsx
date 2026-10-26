@@ -1,8 +1,10 @@
 import { Link } from 'react-router'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { DateDialog } from '../calendar/DateDialog'
+import { SupprimerInstanceDialog } from '../calendar/SupprimerInstanceDialog'
 import { AssignDialog } from './AssignDialog'
 import { BarreSelection } from './BarreSelection'
-import { CarteDemarrage } from '../demarrage/CarteDemarrage'
+import { CarteInstance } from './CarteInstance'
 import { CarteSelectionnable } from './CarteSelectionnable'
 import { MenuActions } from './MenuActions'
 import { SeanceDirecteDialog } from './SeanceDirecteDialog'
@@ -10,9 +12,11 @@ import { SupprimerDialog } from './SupprimerDialog'
 import { SupprimerSelectionDialog } from './SupprimerSelectionDialog'
 import { useListeSeancesEcran } from './useListeSeancesEcran'
 
-// Liste des séances types (modèles). Seul écran de renforcement à porter le bouton d'affectation au calendrier :
-// jamais sur l'édition, le détail ni le bilan (règle CLAUDE.md). Aucune logique ici : cartes, textes et états
-// viennent de useListeSeancesEcran.
+// Écran « Renforcement » à sections, comme l'Android : séances types, séances programmées, séances terminées
+// (5 + « Voir les N autres »), séances archivées. Une seule sélection (appui long / « Sélectionner ») porte sur toutes
+// les sections. Les entrées « Séances programmées » et « Séances terminées » du menu ouvrent les vues complètes de
+// ces deux sections. Seules les séances types portent le bouton d'affectation au calendrier : jamais l'édition, le
+// détail ni le bilan (règle CLAUDE.md). Aucune logique ici : cartes, textes et états viennent de useListeSeancesEcran.
 export default function SeanceListScreen() {
   const l = useListeSeancesEcran()
   const a = l.affectation
@@ -21,19 +25,24 @@ export default function SeanceListScreen() {
   const sd = l.directe
   const sel = l.selection
   const ds = l.suppressionSelection
+  const prog = l.programmees
+  const fin = l.terminees
+  const aDeplacer = prog.aDeplacer ?? fin.aDeplacer
+  const erreur = l.erreur ?? m.erreur ?? l.erreurInstances
 
   return (
     <>
-      <h1>Séances types</h1>
+      <h1>Renforcement</h1>
       <p className="ecran__aide">
-        Vos séances types, des modèles réutilisables : lancez-en une maintenant, planifiez-la au calendrier avec 📅, ou ouvrez-la pour voir son détail.
+        Vos séances types (des modèles réutilisables : « Lancer », 📅 pour les planifier), puis vos séances programmées et terminées.
       </p>
-      <CarteDemarrage />
       {!sel.mode && (
         <div className="formulaire__ligne">
-          <Link to="/strength/new" className="bouton bouton--principal lien-bouton">
-            <span aria-hidden="true">＋ </span>Nouvelle séance
-          </Link>
+          {!l.vide && (
+            <Link to="/strength/new" className="bouton bouton--principal lien-bouton">
+              <span aria-hidden="true">＋ </span>Nouvelle séance
+            </Link>
+          )}
           <button type="button" className="bouton" onClick={sd.ouvrir}>
             Séance directe
           </button>
@@ -49,9 +58,9 @@ export default function SeanceListScreen() {
       )}
       {sel.mode && <BarreSelection nombre={sel.nombre} onSupprimer={ds.demander} onQuitter={sel.quitter} />}
 
-      {(l.erreur ?? m.erreur) && (
+      {erreur && (
         <p role="alert" className="import__erreur">
-          {l.erreur ?? m.erreur}
+          {erreur}
         </p>
       )}
       {l.notice && (
@@ -62,19 +71,6 @@ export default function SeanceListScreen() {
               {l.notice.lien.libelle}
             </Link>
           )}
-        </div>
-      )}
-
-      {l.rechercheVisible && (
-        <div className="formulaire__champ">
-          <label htmlFor="recherche-seances">Rechercher une séance</label>
-          <input
-            id="recherche-seances"
-            type="search"
-            value={l.requete}
-            placeholder="Nom, muscle, note…"
-            onChange={(e) => l.setRequete(e.target.value)}
-          />
         </div>
       )}
 
@@ -96,39 +92,87 @@ export default function SeanceListScreen() {
             </Link>
           </div>
         </div>
-      ) : l.aucunResultat ? (
-        <p>Aucune séance ne correspond à « {l.requete.trim()} ».</p>
       ) : (
         <>
-          {l.aucuneActive && <p>Aucune séance type active : créez-en une, ou restaurez une séance archivée ci-dessous.</p>}
-          <ul className="seances__liste">
-            {l.cartes.map(({ seance: s, details, notes, actions }) => (
-              <CarteSelectionnable
-                key={s.id}
-                lien={`/strength/${s.id}`}
-                designation={s.nom}
-                mode={sel.mode}
-                choisie={sel.estSelectionne(s.id)}
-                onBasculer={() => sel.basculer(s.id)}
-                onAppuiLong={() => sel.entrer(s.id)}
-                actions={
-                  <>
-                    <button type="button" className="bouton bouton--principal" aria-label={`Lancer ${s.nom} maintenant`} disabled={m.enCours} onClick={() => void m.lancer(s)}>
-                      Lancer
-                    </button>
-                    <button type="button" className="bouton" aria-label={`Affecter ${s.nom} au calendrier`} onClick={() => a.ouvrir(s)}>
-                      <span aria-hidden="true">📅</span>
-                    </button>
-                    <MenuActions libelle={`Plus d'actions pour ${s.nom}`} actions={actions} />
-                  </>
-                }
-              >
-                <span className="seance__nom">{s.nom}</span>
-                <span className="seance__details">{details}</span>
-                {notes && <span className="seance__notes">{notes}</span>}
-              </CarteSelectionnable>
-            ))}
-          </ul>
+          {(l.aTypes || l.aucuneActive) && (
+            <section aria-labelledby="titre-types">
+              <h2 id="titre-types">Séances types</h2>
+              {l.rechercheVisible && (
+                <div className="formulaire__champ">
+                  <label htmlFor="recherche-seances">Rechercher une séance</label>
+                  <input
+                    id="recherche-seances"
+                    type="search"
+                    value={l.requete}
+                    placeholder="Nom, muscle, note…"
+                    onChange={(e) => l.setRequete(e.target.value)}
+                  />
+                </div>
+              )}
+              {l.aucunResultat ? (
+                <p>Aucune séance ne correspond à « {l.requete.trim()} ».</p>
+              ) : (
+                <>
+                  {l.aucuneActive && <p>Aucune séance type active : créez-en une, ou restaurez une séance archivée ci-dessous.</p>}
+                  <ul className="seances__liste">
+                    {l.cartes.map(({ seance: s, details, notes, actions }) => (
+                      <CarteSelectionnable
+                        key={s.id}
+                        lien={`/strength/${s.id}`}
+                        designation={s.nom}
+                        mode={sel.mode}
+                        choisie={sel.estSelectionne(s.id)}
+                        onBasculer={() => sel.basculer(s.id)}
+                        onAppuiLong={() => sel.entrer(s.id)}
+                        actions={
+                          <>
+                            <button type="button" className="bouton bouton--principal" aria-label={`Lancer ${s.nom} maintenant`} disabled={m.enCours} onClick={() => void m.lancer(s)}>
+                              Lancer
+                            </button>
+                            <button type="button" className="bouton" aria-label={`Affecter ${s.nom} au calendrier`} onClick={() => a.ouvrir(s)}>
+                              <span aria-hidden="true">📅</span>
+                            </button>
+                            <MenuActions libelle={`Plus d'actions pour ${s.nom}`} actions={actions} />
+                          </>
+                        }
+                      >
+                        <span className="seance__nom">{s.nom}</span>
+                        <span className="seance__details">{details}</span>
+                        {notes && <span className="seance__notes">{notes}</span>}
+                      </CarteSelectionnable>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          )}
+
+          {prog.lignes.length > 0 && (
+            <section aria-labelledby="titre-programmees">
+              <h2 id="titre-programmees">Séances programmées</h2>
+              <ul className="seances__liste">
+                {prog.lignes.map((x) => (
+                  <CarteInstance key={x.id} ligne={x} selection={sel} onChangerDate={prog.demanderDeplacement} onSupprimer={prog.demanderSuppression} />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {fin.lignes.length > 0 && (
+            <section aria-labelledby="titre-terminees">
+              <h2 id="titre-terminees">Séances terminées</h2>
+              <ul className="seances__liste">
+                {l.termineesVisibles.map((x) => (
+                  <CarteInstance key={x.id} ligne={x} selection={sel} onChangerDate={fin.demanderDeplacement} onSupprimer={fin.demanderSuppression} />
+                ))}
+              </ul>
+              {(l.nbTermineesCachees > 0 || l.toutesTerminees) && (
+                <button type="button" className="bouton" aria-expanded={l.toutesTerminees} onClick={l.basculerTerminees}>
+                  {l.toutesTerminees ? 'Réduire' : `Voir les ${l.nbTermineesCachees} autres`}
+                </button>
+              )}
+            </section>
+          )}
         </>
       )}
 
@@ -195,6 +239,33 @@ export default function SeanceListScreen() {
           erreur={ds.erreur}
           onConfirmer={() => void ds.confirmer(sel.identifiants)}
           onFermer={ds.fermer}
+        />
+      )}
+
+      {aDeplacer && (
+        <DateDialog
+          nomSeance={aDeplacer.ligne.designation}
+          date={aDeplacer.date}
+          enCours={prog.enCours}
+          onDate={prog.aDeplacer ? prog.choisirDate : fin.choisirDate}
+          onConfirmer={() => void (prog.aDeplacer ? prog.confirmerDeplacement() : fin.confirmerDeplacement())}
+          onFermer={prog.aDeplacer ? prog.fermerDeplacement : fin.fermerDeplacement}
+        />
+      )}
+      {prog.aSupprimer && (
+        <SupprimerInstanceDialog
+          nomSeance={prog.aSupprimer.designation}
+          enCours={prog.enCours}
+          onConfirmer={() => void prog.confirmerSuppression()}
+          onFermer={prog.fermerSuppression}
+        />
+      )}
+      {fin.aSupprimer && (
+        <SupprimerInstanceDialog
+          nomSeance={fin.aSupprimer.designation}
+          enCours={fin.enCours}
+          onConfirmer={() => void fin.confirmerSuppression()}
+          onFermer={fin.fermerSuppression}
         />
       )}
 
