@@ -138,6 +138,17 @@ spacing:
   space-xl: 2rem
 ---
 
+> **Écarts d'implémentation** (valeurs ajustées pour l'accessibilité AA ; le reste du fichier est inchangé).
+> - Barre du calendrier `#D24700` au lieu de `#E65100` (texte blanc : 4,5:1 au lieu de 3,8:1) ; `#E65100` reste l'accent non textuel (bordure du jour choisi, liseré).
+> - Texte orange du calendrier `#B43C00` (clair) et `#FB923C` (sombre) ; bouton « Ouvrir » `#C2410C` ; pastilles « programmée » `#B45309` au lieu d'ambre 500.
+> - Statistiques : pilule de période active `#C2410C` (conforme), bandes et texte `#FB923C` en thème sombre.
+> - Violet et vert éclaircis en thème sombre (`#C9B6F2`, `#B8A1F0`, `#34D399`) ; icône Calendrier de l'accueil `#92400E`.
+> - Barre du haut de 52 px (spec) au lieu de 56 px ; cellules tactiles de 44 px (jour du calendrier, boutons de carte, champs de série), contrôles de 48 px.
+> - Profil : accent sauge `#A6BB90` en thème sombre ; fond de page conservé (`--fond`) au lieu de `#F4F5F1`.
+> - Les jetons et couleurs vérifiés sont testés dans `src/app/contraste*.test.ts`.
+
+---
+
 # DESIGN SYSTEM — PANDAMOVE
 
 > Système de conception unifié pour l'application mobile et web **PandaMove** : entraînement au renforcement musculaire, planification calendaire, statistiques d'efforts & heatmap musculaire, et suivi de nutrition au quotidien.
