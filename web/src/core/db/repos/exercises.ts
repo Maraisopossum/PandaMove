@@ -1,6 +1,6 @@
 import { groupesCorriges } from '../../catalogue/groupesCorriges'
 import { normalizeSearch } from '../../common/normalizeSearch'
-import type { Db, DbLecture } from '../Db'
+import type { Db, DbLecture, DbTx } from '../Db'
 import { deterministicId } from '../ids'
 import { upsertRow } from '../upsert'
 import type { Exercise } from '../types'
@@ -71,18 +71,24 @@ export async function creerExercice(db: Db, userId: string, e: NewExercise): Pro
     )
     // Une ligne vivante portant déjà cet id (exercice renommé depuis) ne doit jamais être écrasée
     if (existante && existante.deleted_at === null) throw new ErreurExercice(MESSAGE_DOUBLON)
-    await upsertRow(tx, 'exercises', {
-      id,
-      user_id: userId,
-      updated_at: maintenant,
-      deleted_at: null,
-      ...champs(e),
-      is_custom: 1,
-      is_favorite: 0,
-      image_url: null,
-    })
+    await ecrireExercicePersonnalise(tx, userId, id, e, maintenant)
   })
   return id
+}
+
+// Écrit la ligne d'un exercice personnalisé (is_custom = 1) dans la transaction fournie, sans contrôle de nom :
+// l'appelant a déjà vérifié l'absence de doublon (creerExercice, import de séances d'une IA).
+export async function ecrireExercicePersonnalise(tx: DbTx, userId: string, id: string, e: NewExercise, maintenant: string): Promise<void> {
+  await upsertRow(tx, 'exercises', {
+    id,
+    user_id: userId,
+    updated_at: maintenant,
+    deleted_at: null,
+    ...champs(e),
+    is_custom: 1,
+    is_favorite: 0,
+    image_url: null,
+  })
 }
 
 // Modifie un exercice existant (l'id ne change pas, même si le nom change).
