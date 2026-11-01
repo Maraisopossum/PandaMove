@@ -79,6 +79,12 @@ export const imageHeatmap = (variante: PandaVariant, vue: VueHeatmap) =>
 export const COULEURS_NIVEAU: readonly (string | null)[] = [null, '#ffcc80', '#ff9800', '#e65100', '#8f2600']
 export const LIBELLES_NIVEAU = ['Aucun', 'Faible', 'Moyen', 'Élevé', 'Maximal'] as const
 
+// Barre de légende : dégradé continu entre les couleurs réelles des niveaux 1 à 4 (celles de la figure).
+export function degradeEchelle(): string {
+  const couleurs = COULEURS_NIVEAU.filter((c): c is string => c !== null)
+  return `linear-gradient(90deg, ${couleurs.join(', ')})`
+}
+
 // Ratio volume / volume maximal -> niveau 0..4. Total (NaN, négatif, > 1) et monotone.
 export function niveauVolume(ratio: number): number {
   if (!(ratio > 0)) return 0

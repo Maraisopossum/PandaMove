@@ -1,5 +1,5 @@
 import { useAuth } from '../../core/auth/AuthProvider'
-import { COULEURS_NIVEAU, LIBELLES_NIVEAU } from './heatmapZones'
+import { degradeEchelle } from './heatmapZones'
 import { MuscleHeatmap } from './MuscleHeatmap'
 import { PERIODES } from './periode'
 import { formaterDate, formaterNombre, formaterTonnage, formaterValeur, libelleSeries } from './presentation'
@@ -79,14 +79,15 @@ export default function StatsScreen() {
               </div>
             </div>
             <MuscleHeatmap image={s.image} vue={s.vue} zones={s.zonesVue} />
-            <ul className="heatmap__niveaux" aria-label="Légende des couleurs">
-              {LIBELLES_NIVEAU.map((libelle, i) => (
-                <li key={libelle}>
-                  <span className="heatmap__pastille" style={{ background: COULEURS_NIVEAU[i] ?? 'transparent' }} aria-hidden="true" />
-                  {libelle}
-                </li>
-              ))}
-            </ul>
+            <div
+              className="heatmap__echelle"
+              role="img"
+              aria-label="Échelle d'intensité des muscles : de faible à intense, selon le nombre de séries sur la période"
+            >
+              <span className="heatmap__echelle-borne">Faible</span>
+              <span className="heatmap__echelle-barre" style={{ background: degradeEchelle() }} aria-hidden="true" />
+              <span className="heatmap__echelle-borne heatmap__echelle-borne--fin">Intense</span>
+            </div>
             <ul className="stats__barres" aria-label="Séries par groupe musculaire">
               {s.groupes.map((m) => (
                 <li key={m.groupe} className="stats__barre">

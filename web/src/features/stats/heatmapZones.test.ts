@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MUSCLE_GROUPS } from '../../core/db/types'
-import { COULEURS_NIVEAU, HEATMAP_VIEWBOX, HEATMAP_ZONES, niveauVolume } from './heatmapZones'
+import { COULEURS_NIVEAU, degradeEchelle, HEATMAP_VIEWBOX, HEATMAP_ZONES, niveauVolume } from './heatmapZones'
 
 const VARIANTES = ['male', 'female'] as const
 
@@ -62,5 +62,19 @@ describe('niveauVolume', () => {
   it('niveau 0 = aucune couleur, puis une couleur par niveau', () => {
     expect(COULEURS_NIVEAU[0]).toBeNull()
     expect(COULEURS_NIVEAU.slice(1).every((c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c))).toBe(true)
+  })
+})
+
+describe('degradeEchelle', () => {
+  it("reprend les couleurs des niveaux 1 à 4, du plus faible au plus intense", () => {
+    const degrade = degradeEchelle()
+    expect(degrade.startsWith('linear-gradient(90deg')).toBe(true)
+    const couleurs = COULEURS_NIVEAU.slice(1) as string[]
+    let position = -1
+    for (const c of couleurs) {
+      const i = degrade.indexOf(c)
+      expect(i).toBeGreaterThan(position)
+      position = i
+    }
   })
 })
