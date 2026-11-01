@@ -148,6 +148,26 @@ La source de vérité visuelle est `web/DESIGN.md` (design system « PandaMove S
 - **Thème** : clair par défaut, sombre par choix explicite (Profil ou menu) ; contrastes AA vérifiés dans les deux thèmes (`src/app/contraste*.test.ts`).
 - **Écarts assumés (accessibilité AA)** : barre du calendrier `#D24700` (au lieu de `#E65100`), vert et violet éclaircis en thème sombre, texte orange du calendrier `#B43C00`, barre du haut de 52 px, cellules tactiles de 44 px. Liste complète en tête de `DESIGN.md`.
 
+## Importer des séances créées par une IA
+
+Profil → « Importer des données » → onglet **Séances créées par une IA**. Ce flux n'a rien à voir avec l'import de l'export Android (onglet « Export Android », inchangé) : il ne crée que des **séances types** de renforcement (modèles), jamais de séances jouées.
+
+1. **Télécharger la consigne** : « Télécharger la consigne pour l'IA (.md) » (ou « Copier la consigne »). Elle est générée sur l'appareil et contient le rôle de l'IA, la règle de sortie (« réponds uniquement par un bloc JSON »), le schéma complet (champs, valeurs autorisées, bornes, défauts), des règles de bon sens, un exemple de 2 séances (avec un superset et un circuit) et la liste des exercices disponibles (catalogue de base et vos exercices personnalisés, regroupés par muscle). « Télécharger l'exemple (.json) » et « Télécharger le schéma (.json) » existent pour les IA qui acceptent des pièces jointes.
+2. **La donner à l'IA** (ChatGPT, Claude, Gemini…), avec votre demande à la fin (« Ma demande : … »).
+3. **Enregistrer ou coller la réponse** : le fichier `.json`, ou le texte collé tel quel. Si l'IA répond avec du texte autour d'un bloc ```` ```json ````, le premier bloc JSON est extrait. Les guillemets typographiques (« “ ” ») et les virgules finales sont corrigés, et l'aperçu le signale ; toute autre erreur de syntaxe est refusée avec la ligne fautive.
+4. **Vérifier l'aperçu** : pour chaque séance, nombre de blocs, d'exercices et de séries, durée estimée, exercices reconnus au catalogue ou « à créer », avertissements. Les erreurs bloquantes sont listées avec leur chemin (par exemple `seances[1].blocs[0].exercices[2].series : doit être un entier entre 1 et 20`) ; tant qu'il en reste, le bouton « Importer N séances » n'existe pas. Rien n'est écrit avant la confirmation.
+5. **Importer** : « 3 séances importées, 2 exercices créés » et un lien vers « Séances types ». Tout le fichier est écrit en une seule transaction (tout ou rien).
+
+**Format « PandaMove – séances IA » v1** : `{ format: "pandamove-seances-ia", version: 1, seances: [{ nom, notes?, blocs: [{ nom?, type, reposInterExercicesSec?, reposFinTourSec?, tours?, exercices: [{ exercice, series, reps?, dureeSec?, chargeKg? | charge: "PDC", reposSec?, tempo?, consigne?, bilateral?, typeExercice?, muscles?: { principal, secondaires? }, progression?: { activee, systeme?, repsMin?, repsMax?, incrementKg?, seuilDeload? } }] }] }] }`. De 1 à 20 séances par fichier. `type` vaut `LIBRE` (exercices hors bloc), `ECHAUFFEMENT`, `ACTIVATION`, `SUPERSET`, `CIRCUIT` ou `RECUPERATION`. Les valeurs omises prennent les défauts de l'éditeur (repos 90 s, +2,5 kg, double progression 8–12, circuit de 3 tours…). Les champs inconnus ne cassent pas l'import : ils sont ignorés et signalés. Le code de référence est `src/core/import-ia/format.ts` ; la consigne et le schéma en sont dérivés, donc toujours conformes.
+
+**Exercices** : le nom est comparé sans tenir compte des accents ni de la casse, avec quelques alias (pluriels, parenthèses). Un exercice introuvable est **créé** comme exercice personnalisé (muscles fournis par l'IA, sinon déduits du nom, sinon « Autre ») et listé dans l'aperçu. Si son nom est très proche d'un exercice du catalogue (deux fautes de frappe au plus), l'aperçu propose le nom du catalogue, **sans jamais le substituer** : corrigez le fichier si c'est une faute.
+
+**Sans doublon** : l'identifiant d'une séance dérive de son contenu (casse et accents ignorés) et de votre compte. Réimporter le même fichier ne crée rien (« Déjà présente : ignorée »). Une séance de même nom mais de contenu différent est ajoutée avec le suffixe « (2) », « (3)… » (signalé dans l'aperçu). Une séance importée puis supprimée est restaurée par un nouvel import.
+
+**Limites** : fichier de 2 Mo au plus ; 20 séances, 20 blocs par séance, 30 exercices par bloc ; renforcement seulement (pas de course ni de vélo) ; l'application ne vérifie pas la pertinence sportive du programme, relisez l'aperçu ; les durées estimées suivent les hypothèses de l'éditeur.
+
+**Sécurité et données personnelles** : le fichier modèle est produit localement et ne contient que des noms d'exercices (le catalogue de base et vos exercices personnalisés) : aucune donnée de profil, d'historique ni de santé. L'application n'envoie rien à une IA ; c'est vous qui collez la consigne dans l'outil de votre choix. N'ajoutez pas de données personnelles (poids, blessures, identité) à votre demande si vous ne voulez pas que l'IA les reçoive, et vérifiez les conditions d'utilisation de l'outil. Le contenu importé est traité comme des données (jamais exécuté) et validé champ par champ avant toute écriture.
+
 ## Sauvegarde
 
 Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne pas dépendre seulement de ces services, faire régulièrement une sauvegarde locale.
