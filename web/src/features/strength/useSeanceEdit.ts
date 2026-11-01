@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
 import { newId } from '../../core/db/ids'
@@ -7,12 +7,13 @@ import { getInstance } from '../../core/db/repos/instances'
 import { getSettings } from '../../core/db/repos/settings'
 import type { Exercise } from '../../core/db/types'
 import { lireEquipementStocke, type EquipmentStocke } from '../../core/import/equipment'
+import { detailDuree, dureeEstimeeMin as calculerDuree } from './edition/dureeEstimee'
 import { lireListeEquipement } from './progression/cible'
 import {
   ajouterBloc as ajouterBlocDraft, ajouterExercice as ajouterExerciceDraft, appliquerSeriesCircuit,
   blocsDe, brouillonVide, exercicesDe, changerTypeBloc as changerTypeBlocDraft, deplacerRelatif, dupliquerExercice,
   modifierBloc as modifierBlocDraft, modifierExercice as modifierExerciceDraft, nouveauBloc, nouvelExercice,
-  insererBlocAuDebut, renumeroter, supprimerBloc as supprimerBlocDraft, supprimerExercice as supprimerExerciceDraft,
+  renumeroter, supprimerBloc as supprimerBlocDraft, supprimerExercice as supprimerExerciceDraft,
   transformerExercice as transformerExerciceDraft, validerBrouillon,
   type BlocDraft, type ExerciceDraft, type SeanceDraft, type TypeBloc,
 } from './draft'
@@ -100,6 +101,10 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
     }
   }, [db, seanceId, userId, instanceId])
 
+  // Durée estimée : toujours calculée d'après le contenu, en direct (pas un champ de saisie)
+  const detailEstimation = useMemo(() => detailDuree(draft), [draft])
+  const dureeEstimeeMin = Math.ceil(detailEstimation.totalSec / 60)
+
   // Séance neuve : référence = brouillon vide d'origine, posée au premier rendu chargé
   const [origineNeuve] = useState(() => empreinte(draft))
   const modifie = charge && empreinte(draft) !== (reference ?? origineNeuve)
@@ -109,7 +114,6 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
 
   const setNom = useCallback((nom: string) => setDraft((d) => ({ ...d, nom })), [])
   const setNotes = useCallback((notes: string) => setDraft((d) => ({ ...d, notes })), [])
-  const setDuree = useCallback((dureeEstimeeMin: number) => setDraft((d) => ({ ...d, dureeEstimeeMin })), [])
 
   const ajouterBloc = useCallback((type: TypeBloc) => setDraft((d) => ajouterBlocDraft(d, nouveauBloc(newId(), type))), [])
   const supprimerBloc = useCallback((blocId: string) => setDraft((d) => supprimerBlocDraft(d, blocId)), [])
@@ -145,7 +149,6 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
     (id: string, transformer: (e: ExerciceDraft) => ExerciceDraft) => setDraft((d) => transformerExerciceDraft(d, id, transformer)),
     [],
   )
-  const insererEchauffement = useCallback((bloc: BlocDraft) => setDraft((d) => insererBlocAuDebut(d, bloc)), [])
   const dupliquer = useCallback((id: string) => setDraft((d) => dupliquerExercice(d, id, newId())), [])
   // Monte (-1) ou descend (+1) un bloc, un exercice libre ou un exercice dans son bloc
   const deplacer = useCallback((id: string, sens: -1 | 1) => setDraft((d) => deplacerRelatif(d, id, sens)), [])
@@ -181,7 +184,7 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
       }
       setPertes(null)
       const id = await enregistrerBrouillon(base, draft, enInstance ? instanceId : null)
-      const enregistre = { ...renumeroter(appliquerSeriesCircuit(draft)), existante: true }
+      const enregistre = { ...renumeroter(appliquerSeriesCircuit(draft)), existante: true, dureeEstimeeMin: calculerDuree(draft) }
       // Plus rien à perdre : le garde de sortie doit laisser partir tout de suite
       modifieRef.current = false
       setDraft(enregistre)
@@ -202,9 +205,10 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
   return {
     draft, charge, erreur, enregistrement, modifie, modifieRef, catalogueComplet, materiel, enInstance,
     pertes, annulerPertes: () => setPertes(null),
-    setNom, setNotes, setDuree,
+    dureeEstimeeMin, detailDuree: detailEstimation,
+    setNom, setNotes,
     ajouterBloc, supprimerBloc, modifierBloc, changerTypeBloc,
-    ajouterExercices, supprimerExercice, modifierExercice, transformerExercice, insererEchauffement, dupliquer, deplacer,
+    ajouterExercices, supprimerExercice, modifierExercice, transformerExercice, dupliquer, deplacer,
     enregistrer,
   }
 }

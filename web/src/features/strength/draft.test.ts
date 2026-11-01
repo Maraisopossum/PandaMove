@@ -26,7 +26,7 @@ const ordre = (d: SeanceDraft) =>
 describe('draft : construction', () => {
   it('défauts alignés sur Android', () => {
     const d = brouillonVide('s1')
-    expect(d).toMatchObject({ id: 's1', nom: '', dureeEstimeeMin: 60, seanceCategory: 'STRENGTH', existante: false, items: [] })
+    expect(d).toMatchObject({ id: 's1', nom: '', dureeEstimeeMin: 0, seanceCategory: 'STRENGTH', existante: false, items: [] })
     const e = nouvelExercice('e', CAT('x'), 'ECHAUFFEMENT')
     expect(e).toMatchObject({
       nombreSeriesPrevues: 3, tempsReposSec: 90, repsType: 'REPS', incrementDureeSec: 5, seuilDeload: 3,
@@ -229,11 +229,9 @@ describe('draft : validation', () => {
     expect(validerBrouillon({ ...valide(), nom: '   ' })).toContain('Le nom de la séance est obligatoire.')
   })
 
-  it('borne la durée estimée', () => {
-    expect(validerBrouillon({ ...valide(), dureeEstimeeMin: 0 })[0]).toMatch(/durée estimée/i)
-    expect(validerBrouillon({ ...valide(), dureeEstimeeMin: 601 })[0]).toMatch(/durée estimée/i)
-    expect(validerBrouillon({ ...valide(), dureeEstimeeMin: 12.5 })[0]).toMatch(/durée estimée/i)
-    expect(validerBrouillon({ ...valide(), dureeEstimeeMin: Number.NaN })[0]).toMatch(/durée estimée/i)
+  it('ne valide plus la durée estimée : elle est calculée, jamais saisie', () => {
+    expect(validerBrouillon({ ...valide(), dureeEstimeeMin: 0 })).toEqual([])
+    expect(validerBrouillon({ ...valide(), dureeEstimeeMin: Number.NaN })).toEqual([])
   })
 
   it("borne les champs numériques des exercices (libres ou en bloc) et nomme l'exercice", () => {

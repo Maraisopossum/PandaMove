@@ -70,6 +70,7 @@ export interface SeanceDraft {
   existante: boolean
   nom: string
   notes: string
+  // Valeur enregistrée au dernier chargement ; la durée affichée et écrite est CALCULÉE (edition/dureeEstimee.ts)
   dureeEstimeeMin: number
   seanceCategory: string
   createdAt: string | null
@@ -92,7 +93,7 @@ export const exercicesDe = (d: SeanceDraft): ExerciceDraft[] =>
   d.items.flatMap((i) => (i.kind === 'libre' ? [i.exercice] : i.bloc.exercices))
 
 export function brouillonVide(id: string): SeanceDraft {
-  return { id, existante: false, nom: '', notes: '', dureeEstimeeMin: 60, seanceCategory: 'STRENGTH', createdAt: null, items: [] }
+  return { id, existante: false, nom: '', notes: '', dureeEstimeeMin: 0, seanceCategory: 'STRENGTH', createdAt: null, items: [] }
 }
 
 export function nouveauBloc(id: string, type: TypeBloc): BlocDraft {
@@ -133,11 +134,6 @@ export function renumeroter(d: SeanceDraft): SeanceDraft {
 
 export function ajouterBloc(d: SeanceDraft, bloc: BlocDraft): SeanceDraft {
   return renumeroter({ ...d, items: [...d.items, { kind: 'bloc', bloc }] })
-}
-
-// Insère un bloc en tête de liste (ajout d'un modèle d'échauffement, comme Android addWarmupToSeance).
-export function insererBlocAuDebut(d: SeanceDraft, bloc: BlocDraft): SeanceDraft {
-  return renumeroter({ ...d, items: [{ kind: 'bloc', bloc }, ...d.items] })
 }
 
 // `blocId` null : exercice libre, ajouté à la fin de la liste.
@@ -330,7 +326,6 @@ export function validerBrouillon(d: SeanceDraft): string[] {
   const erreurs: string[] = []
   if (d.nom.trim() === '') erreurs.push('Le nom de la séance est obligatoire.')
   else if (d.nom.trim().length > 100) erreurs.push('Le nom de la séance est limité à 100 caractères.')
-  if (!entierDans(d.dureeEstimeeMin, 1, 600)) erreurs.push('La durée estimée doit être un nombre entier de minutes entre 1 et 600.')
 
   for (const item of d.items) {
     if (item.kind === 'libre') {

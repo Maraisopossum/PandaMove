@@ -6,13 +6,12 @@ import { blocsDe, groupesMusculaires, peutDeplacer, type BlocDraft } from './dra
 import type { ActionsBloc } from './edition/BlocCarte'
 import type { ActionsExercice } from './edition/ExerciceCarte'
 import { useAvertissementFermeture } from './edition/useAvertissementFermeture'
-import { useEchauffement } from './edition/useEchauffement'
 import { useSelecteurExercices } from './edition/useSelecteurExercices'
 import { useSuppressionBloc } from './edition/useSuppressionBloc'
 import { useSeanceEdit } from './useSeanceEdit'
 
 // Orchestration de l'écran d'édition : séance (id de la route, absent = création), sélecteur d'exercices,
-// échauffements, suppression de bloc confirmée, garde de sortie et retour à la liste après enregistrement.
+// suppression de bloc confirmée, garde de sortie et retour à la liste après enregistrement.
 // `enInstance` : la route porte l'id d'une séance EN COURS (modifier ses exercices) et non celui d'un modèle.
 export function useEcranEdition(enInstance = false) {
   const { id } = useParams()
@@ -21,14 +20,13 @@ export function useEcranEdition(enInstance = false) {
   const edition = useSeanceEdit(enInstance ? null : (id ?? null), { userId: session?.user.id, instanceId: enInstance ? (id ?? '') : undefined })
   // Retour : à la séance en cours pour une modification d'instance, à la liste sinon
   const retour = enInstance ? `/strength/instance/${id ?? ''}` : '/strength'
-  const { draft, catalogueComplet, materiel, ajouterExercices, supprimerBloc, insererEchauffement, enregistrer } = edition
+  const { draft, catalogueComplet, materiel, ajouterExercices, supprimerBloc, enregistrer } = edition
 
   const selecteur = useSelecteurExercices({
     catalogue: catalogueComplet,
     categoriesPossedees: materiel.selectedCategories,
     ajouter: ajouterExercices,
   })
-  const echauffement = useEchauffement({ catalogue: catalogueComplet, inserer: insererEchauffement })
   const suppressionBloc = useSuppressionBloc(supprimerBloc)
   useAvertissementFermeture(edition.modifie)
 
@@ -80,7 +78,7 @@ export function useEcranEdition(enInstance = false) {
   )
 
   return {
-    ...edition, enCreation: !enInstance && id === undefined, confirmerPertes, groupesAffiches, selecteur, titreSelecteur, echauffement, suppressionBloc,
+    ...edition, enCreation: !enInstance && id === undefined, confirmerPertes, groupesAffiches, selecteur, titreSelecteur, suppressionBloc,
     peutDeplacer: peutDeplacerId, actionsBloc, actionsExercice, soumettre, annuler,
   }
 }

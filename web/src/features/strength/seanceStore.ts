@@ -1,9 +1,10 @@
-import type { Db, DbLecture } from '../../core/db/Db'
+import type { Db, DbLecture, DbTx } from '../../core/db/Db'
 import { getSeanceTree } from '../../core/db/repos/seances'
 import { mapSeance, type Ligne } from '../../core/db/repos/mappers'
 import { upsertRow } from '../../core/db/upsert'
 import type { Exercise } from '../../core/db/types'
 import { lireGroupes } from './catalog/filtreCatalogue'
+import { dureeEstimeeMin } from './edition/dureeEstimee'
 import { lireListeEquipement } from './progression/cible'
 import {
   appliquerSeriesCircuit, blocsDe, exercicesDe, groupesMusculaires, renumeroter, TYPES_BLOC, type BlocDraft,
@@ -109,95 +110,100 @@ export async function compterSeriesPerdues(
 // supprimées logiquement (leurs séries aussi quand l'exercice est retiré). La ligne `seances` et le modèle ne sont
 // JAMAIS touchés, et un id déjà pris par une ligne du modèle ou d'une autre instance est refusé.
 export async function enregistrerBrouillon(db: Db, brouillon: SeanceDraft, instanceId: string | null = null): Promise<string> {
+  return db.writeTransaction((tx) => ecrireBrouillon(tx, brouillon, instanceId))
+}
+
+// Corps de l'enregistrement, DANS la transaction fournie : l'import de séances d'une IA enchaîne plusieurs
+// séances dans une seule transaction en réutilisant exactement les mêmes invariants que l'éditeur.
+export async function ecrireBrouillon(tx: DbTx, brouillon: SeanceDraft, instanceId: string | null = null): Promise<string> {
   const d = renumeroter(appliquerSeriesCircuit(brouillon))
   const maintenant = new Date().toISOString()
-  await db.writeTransaction(async (tx) => {
-    if (instanceId !== null) {
-      const instance = await tx.getOptional<{ is_completed: number; seance_id: string }>(
-        'SELECT is_completed, seance_id FROM instances_seance WHERE id = ? AND deleted_at IS NULL',
-        [instanceId],
+  if (instanceId !== null) {
+    const instance = await tx.getOptional<{ is_completed: number; seance_id: string }>(
+      'SELECT is_completed, seance_id FROM instances_seance WHERE id = ? AND deleted_at IS NULL',
+      [instanceId],
+    )
+    if (!instance) throw new ErreurEditionInstance('Séance introuvable.')
+    if (instance.is_completed) throw new ErreurEditionInstance("Cette séance est terminée : elle n'est plus modifiable.")
+    if (instance.seance_id !== d.id) throw new ErreurEditionInstance('Cette séance ne correspond pas à son modèle.')
+    // Un id repris d'une ligne du modèle (ou d'une autre instance) écraserait cette ligne : refus avant toute écriture
+    const ids = [...blocsDe(d).map((b) => ({ table: 'blocs_seance', id: b.id })), ...exercicesDe(d).map((e) => ({ table: 'exercices_seance', id: e.id }))]
+    for (const { table, id } of ids) {
+      const autre = await tx.getOptional<{ one: number }>(
+        `SELECT 1 AS one FROM ${table} WHERE id = ? AND (instance_seance_id IS NULL OR instance_seance_id <> ?)`,
+        [id, instanceId],
       )
-      if (!instance) throw new ErreurEditionInstance('Séance introuvable.')
-      if (instance.is_completed) throw new ErreurEditionInstance("Cette séance est terminée : elle n'est plus modifiable.")
-      if (instance.seance_id !== d.id) throw new ErreurEditionInstance('Cette séance ne correspond pas à son modèle.')
-      // Un id repris d'une ligne du modèle (ou d'une autre instance) écraserait cette ligne : refus avant toute écriture
-      const ids = [...blocsDe(d).map((b) => ({ table: 'blocs_seance', id: b.id })), ...exercicesDe(d).map((e) => ({ table: 'exercices_seance', id: e.id }))]
-      for (const { table, id } of ids) {
-        const autre = await tx.getOptional<{ one: number }>(
-          `SELECT 1 AS one FROM ${table} WHERE id = ? AND (instance_seance_id IS NULL OR instance_seance_id <> ?)`,
-          [id, instanceId],
+      if (autre) throw new ErreurEditionInstance('Une ligne de cette séance appartient à un autre modèle : enregistrement refusé.')
+    }
+  } else await upsertRow(tx, 'seances', {
+    id: d.id,
+    updated_at: maintenant,
+    deleted_at: null,
+    nom: d.nom.trim(),
+    groupes_musculaires: JSON.stringify(groupesMusculaires(d)),
+    // Calculée d'après le contenu (séries, répétitions, repos), jamais saisie
+    duree_estimee_min: dureeEstimeeMin(d),
+    notes: d.notes.trim(),
+    seance_category: d.seanceCategory,
+    // created_at et is_archived ne sont posés qu'à la création
+    ...(d.existante ? {} : { created_at: maintenant, is_archived: 0 }),
+  })
+
+  const garder = { blocs: new Set(blocsDe(d).map((b) => b.id)), exercices: new Set(exercicesDe(d).map((e) => e.id)) }
+  // Lignes vivantes (du modèle, ou de l'instance éditée) absentes du brouillon : suppression logique
+  const filtreInstance = instanceId === null ? 'instance_seance_id IS NULL' : 'instance_seance_id = ?'
+  const paramsInstance = instanceId === null ? [] : [instanceId]
+  for (const table of TABLES_LIGNES) {
+    const ids = table === 'blocs_seance' ? garder.blocs : garder.exercices
+    const existantes = await tx.getAll<{ id: string }>(
+      `SELECT id FROM ${table} WHERE seance_id = ? AND ${filtreInstance} AND deleted_at IS NULL`,
+      [d.id, ...paramsInstance],
+    )
+    for (const { id } of existantes) {
+      if (ids.has(id)) continue
+      await tx.execute(
+        `UPDATE ${table} SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${filtreInstance}`,
+        [maintenant, maintenant, id, ...paramsInstance],
+      )
+      // Exercice retiré d'une séance en cours : ses séries réalisées disparaissent avec lui
+      if (instanceId !== null && table === 'exercices_seance') {
+        await tx.execute(
+          'UPDATE series_realisees SET deleted_at = ?, updated_at = ? WHERE exercice_seance_id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
+          [maintenant, maintenant, id, instanceId],
         )
-        if (autre) throw new ErreurEditionInstance('Une ligne de cette séance appartient à un autre modèle : enregistrement refusé.')
       }
-    } else await upsertRow(tx, 'seances', {
-      id: d.id,
-      updated_at: maintenant,
-      deleted_at: null,
-      nom: d.nom.trim(),
-      groupes_musculaires: JSON.stringify(groupesMusculaires(d)),
-      duree_estimee_min: d.dureeEstimeeMin,
-      notes: d.notes.trim(),
-      seance_category: d.seanceCategory,
-      // created_at et is_archived ne sont posés qu'à la création
-      ...(d.existante ? {} : { created_at: maintenant, is_archived: 0 }),
+    }
+  }
+
+  const ecrireExercice = (e: ExerciceDraft, blocId: string | null) =>
+    upsertRow(tx, 'exercices_seance', {
+      id: e.id, updated_at: maintenant, deleted_at: null, seance_id: d.id, exercise_id: e.exerciseId,
+      bloc_id: blocId, superset_groupe: e.supersetGroupe, position: e.position,
+      nombre_series_prevues: e.nombreSeriesPrevues, reps_cibles: e.repsCibles, charge_cible: e.chargeCible,
+      tempo: e.tempo, reps_type: e.repsType, temps_repos_sec: e.tempsReposSec, consigne_cle: e.consigneCle,
+      equipement: e.equipement, avertissement: e.avertissement, instance_seance_id: instanceId,
+      // Le lien de copie d'une ligne existante est conservé (non réécrit) ; une ligne neuve n'en a pas
+      ...(instanceId === null ? { exercice_source_id: null } : {}),
+      is_bilateral: e.isBilateral ? 1 : 0, progression_activee: e.progressionActivee ? 1 : 0,
+      systeme_progression: e.systemeProgression, reps_min: e.repsMin, reps_max: e.repsMax,
+      increment_kg: e.incrementKg, increment_duree_sec: e.incrementDureeSec, seuil_deload: e.seuilDeload,
+      type_exercice: e.typeExercice, increment_pct: e.incrementPct, is_bodyweight: e.isBodyweight ? 1 : 0,
     })
 
-    const garder = { blocs: new Set(blocsDe(d).map((b) => b.id)), exercices: new Set(exercicesDe(d).map((e) => e.id)) }
-    // Lignes vivantes (du modèle, ou de l'instance éditée) absentes du brouillon : suppression logique
-    const filtreInstance = instanceId === null ? 'instance_seance_id IS NULL' : 'instance_seance_id = ?'
-    const paramsInstance = instanceId === null ? [] : [instanceId]
-    for (const table of TABLES_LIGNES) {
-      const ids = table === 'blocs_seance' ? garder.blocs : garder.exercices
-      const existantes = await tx.getAll<{ id: string }>(
-        `SELECT id FROM ${table} WHERE seance_id = ? AND ${filtreInstance} AND deleted_at IS NULL`,
-        [d.id, ...paramsInstance],
-      )
-      for (const { id } of existantes) {
-        if (ids.has(id)) continue
-        await tx.execute(
-          `UPDATE ${table} SET deleted_at = ?, updated_at = ? WHERE id = ? AND ${filtreInstance}`,
-          [maintenant, maintenant, id, ...paramsInstance],
-        )
-        // Exercice retiré d'une séance en cours : ses séries réalisées disparaissent avec lui
-        if (instanceId !== null && table === 'exercices_seance') {
-          await tx.execute(
-            'UPDATE series_realisees SET deleted_at = ?, updated_at = ? WHERE exercice_seance_id = ? AND instance_seance_id = ? AND deleted_at IS NULL',
-            [maintenant, maintenant, id, instanceId],
-          )
-        }
-      }
+  for (const item of d.items) {
+    if (item.kind === 'libre') {
+      await ecrireExercice(item.exercice, null)
+      continue
     }
-
-    const ecrireExercice = (e: ExerciceDraft, blocId: string | null) =>
-      upsertRow(tx, 'exercices_seance', {
-        id: e.id, updated_at: maintenant, deleted_at: null, seance_id: d.id, exercise_id: e.exerciseId,
-        bloc_id: blocId, superset_groupe: e.supersetGroupe, position: e.position,
-        nombre_series_prevues: e.nombreSeriesPrevues, reps_cibles: e.repsCibles, charge_cible: e.chargeCible,
-        tempo: e.tempo, reps_type: e.repsType, temps_repos_sec: e.tempsReposSec, consigne_cle: e.consigneCle,
-        equipement: e.equipement, avertissement: e.avertissement, instance_seance_id: instanceId,
-        // Le lien de copie d'une ligne existante est conservé (non réécrit) ; une ligne neuve n'en a pas
-        ...(instanceId === null ? { exercice_source_id: null } : {}),
-        is_bilateral: e.isBilateral ? 1 : 0, progression_activee: e.progressionActivee ? 1 : 0,
-        systeme_progression: e.systemeProgression, reps_min: e.repsMin, reps_max: e.repsMax,
-        increment_kg: e.incrementKg, increment_duree_sec: e.incrementDureeSec, seuil_deload: e.seuilDeload,
-        type_exercice: e.typeExercice, increment_pct: e.incrementPct, is_bodyweight: e.isBodyweight ? 1 : 0,
-      })
-
-    for (const item of d.items) {
-      if (item.kind === 'libre') {
-        await ecrireExercice(item.exercice, null)
-        continue
-      }
-      const b = item.bloc
-      await upsertRow(tx, 'blocs_seance', {
-        id: b.id, updated_at: maintenant, deleted_at: null, seance_id: d.id, nom: b.nom, type: b.type,
-        position: b.position, duree_min: b.dureeMin, description: b.description,
-        temps_repos_inter_sec: b.tempsReposInterSec, temps_repos_fin_round_sec: b.tempsReposFinRoundSec,
-        instance_seance_id: instanceId,
-        ...(instanceId === null ? { bloc_source_id: null } : {}),
-      })
-      for (const e of b.exercices) await ecrireExercice(e, b.id)
-    }
-  })
+    const b = item.bloc
+    await upsertRow(tx, 'blocs_seance', {
+      id: b.id, updated_at: maintenant, deleted_at: null, seance_id: d.id, nom: b.nom, type: b.type,
+      position: b.position, duree_min: b.dureeMin, description: b.description,
+      temps_repos_inter_sec: b.tempsReposInterSec, temps_repos_fin_round_sec: b.tempsReposFinRoundSec,
+      instance_seance_id: instanceId,
+      ...(instanceId === null ? { bloc_source_id: null } : {}),
+    })
+    for (const e of b.exercices) await ecrireExercice(e, b.id)
+  }
   return d.id
 }

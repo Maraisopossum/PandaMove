@@ -1,9 +1,9 @@
 import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
-import { ChampNombre, ChampTexte, ChampZoneTexte } from './champs'
+import { ChampTexte, ChampZoneTexte } from './champs'
 import { LIBELLES_BLOC } from './draft'
 import { BlocCarte } from './edition/BlocCarte'
 import { DialogueConfirmation } from './edition/DialogueConfirmation'
-import { EchauffementDialog } from './edition/EchauffementDialog'
+import { AffichageDuree } from './edition/AffichageDuree'
 import { ExerciceCarte } from './edition/ExerciceCarte'
 import { GardeSortie } from './edition/GardeSortie'
 import { MenuAjoutBloc } from './edition/MenuAjoutBloc'
@@ -39,7 +39,7 @@ export default function SeanceEditScreen({ instance = false }: { instance?: bool
           <section className="edition__infos" aria-label="Informations de la séance">
             <ChampTexte libelle="Nom de la séance" valeur={d.nom} onChange={s.setNom} />
             <ChampZoneTexte libelle="Notes" valeur={d.notes} onChange={s.setNotes} />
-            <ChampNombre libelle="Durée estimée (min)" valeur={d.dureeEstimeeMin} onChange={s.setDuree} />
+            <AffichageDuree minutes={s.dureeEstimeeMin} detail={s.detailDuree} />
             <p className="aide">
               {s.groupesAffiches.length > 0
                 ? `Muscles travaillés : ${s.groupesAffiches.join(', ')}.`
@@ -53,11 +53,6 @@ export default function SeanceEditScreen({ instance = false }: { instance?: bool
           <span className="edition__ajout-texte">Rechercher ou ajouter un exercice…</span>
           <span className="badge badge--progression">Bibliothèque</span>
         </button>
-        <div className="edition__outils">
-          <button type="button" className="bouton" onClick={s.echauffement.ouvrir}>
-            Ajouter un échauffement
-          </button>
-        </div>
 
         {d.items.length === 0 && (
           <p className="aide edition__vide">
@@ -116,9 +111,6 @@ export default function SeanceEditScreen({ instance = false }: { instance?: bool
       </form>
 
       {s.selecteur.ouvert && <SelecteurDialog selecteur={s.selecteur} titreCible={s.titreSelecteur} />}
-      {s.echauffement.ouvert && (
-        <EchauffementDialog modeles={s.echauffement.modeles} erreur={s.echauffement.erreur} onChoisir={(id) => void s.echauffement.choisir(id)} onFermer={s.echauffement.fermer} />
-      )}
       {s.suppressionBloc.enAttente && (
         <DialogueConfirmation
           titre="Supprimer ce bloc ?"

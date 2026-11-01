@@ -82,6 +82,10 @@ describe('SeanceEditScreen : parcours rapide', () => {
     expect(screen.getAllByRole('button', { name: /^(Tractions|Curl haltères|Développé couché)/ }).map((b) => b.textContent)).toEqual([
       expect.stringContaining('Tractions'), expect.stringContaining('Curl haltères'), expect.stringContaining('Développé couché'),
     ])
+    // Durée estimée calculée en direct (3 exercices × 3 séries × (30 s + 90 s) + 2 transitions de 30 s = 19 min), pas un champ
+    expect(screen.queryByLabelText('Durée estimée (min)')).toBeNull()
+    expect(screen.getByText('≈ 19 min')).toBeTruthy()
+    expect(screen.getByText(/Calculée d’après les séries, répétitions et repos/)).toBeTruthy()
     cliquer('Enregistrer')
     expect(await screen.findByText('Liste des séances')).toBeTruthy()
 
@@ -96,7 +100,7 @@ describe('SeanceEditScreen : parcours rapide', () => {
     ])
     expect((await base.get<{ n: number }>('SELECT COUNT(*) AS n FROM blocs_seance')).n).toBe(0)
     const s = await base.get<{ groupes_musculaires: string; duree_estimee_min: number }>("SELECT * FROM seances WHERE nom = 'Pectoraux du jeudi'")
-    expect(s).toMatchObject({ groupes_musculaires: '["DOS","BICEPS","PECTORAUX"]', duree_estimee_min: 60 })
+    expect(s).toMatchObject({ groupes_musculaires: '["DOS","BICEPS","PECTORAUX"]', duree_estimee_min: 19 })
   })
 
   it('affiche les erreurs de validation en français sans quitter la page', async () => {
@@ -413,29 +417,13 @@ describe('SeanceEditScreen : surcharge progressive', () => {
   })
 })
 
-describe('SeanceEditScreen : échauffement modèle', () => {
-  it('propose les modèles d’échauffement et les recopie en tête de séance', async () => {
-    await inserer(base, 'seances', {
-      id: 'w1', user_id: 'u1', updated_at: 'u', deleted_at: null, nom: 'Mobilité épaules', groupes_musculaires: '[]', duree_estimee_min: 5,
-      notes: '', seance_category: 'WARMUP_MOBILITY', created_at: 'c', is_archived: 0,
-    })
-    await inserer(base, 'exercices_seance', {
-      id: 'wx', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 'w1', exercise_id: 'face', bloc_id: null, position: 0,
-      nombre_series_prevues: 2, reps_cibles: '15', instance_seance_id: null,
-    })
+describe('SeanceEditScreen : pas de bouton « Ajouter un échauffement »', () => {
+  it('ne propose plus d’échauffement modèle, mais garde le bloc Échauffement du menu « Ajouter un bloc »', async () => {
     await ajouterExoSeed('l', 'dc', null, 0)
     monter('/strength/s1/edit')
-    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter un échauffement' }))
-    const dialogue = await screen.findByRole('dialog', { name: 'Choisir un échauffement' })
-    fireEvent.click(await within(dialogue).findByRole('button', { name: /Mobilité épaules/ }))
-    expect(await screen.findByRole('region', { name: 'Bloc Mobilité épaules' })).toBeTruthy()
-    cliquer('Enregistrer')
-    await screen.findByText('Liste des séances')
-    const ordre = await base.getAll<{ nom: string; position: number }>(
-      "SELECT nom, position FROM blocs_seance WHERE seance_id = 's1' AND deleted_at IS NULL",
-    )
-    expect(ordre).toEqual([{ nom: 'Mobilité épaules', position: 0 }])
-    expect((await base.get<{ position: number }>("SELECT position FROM exercices_seance WHERE id = 'l'")).position).toBe(1)
+    await screen.findByRole('button', { name: /Rechercher ou ajouter un exercice/ })
+    expect(screen.queryByRole('button', { name: 'Ajouter un échauffement' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Choisir un échauffement' })).toBeNull()
   })
 })
 
@@ -523,6 +511,7 @@ describe('SeanceEditScreen : modifier les exercices d’une séance en cours', (
     expect(screen.getByText(/seule cette séance est modifiée, la séance type reste inchangée/)).toBeTruthy()
     expect(screen.queryByLabelText('Nom de la séance')).toBeNull()
     expect(screen.queryByLabelText('Durée estimée (min)')).toBeNull()
+    expect(screen.queryByText(/≈/)).toBeNull()
     cliquer(/Rechercher ou ajouter un exercice/)
     await choisirExercices('Curl haltères')
     cliquer('Enregistrer')

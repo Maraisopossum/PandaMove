@@ -75,9 +75,9 @@ const ordreItems = (d: ReturnType<typeof useSeanceEdit>['draft']) =>
   d.items.map((i) => (i.kind === 'libre' ? i.exercice.id : i.bloc.id))
 
 describe('useSeanceEdit : création', () => {
-  it('démarre avec les défauts (STRENGTH, 60 min) et un brouillon vide', async () => {
+  it('démarre avec les défauts (STRENGTH, durée estimée 0) et un brouillon vide', async () => {
     const { result } = await monter(await catalogue(), null)
-    expect(result.current.draft).toMatchObject({ nom: '', dureeEstimeeMin: 60, seanceCategory: 'STRENGTH', existante: false, items: [] })
+    expect(result.current.draft).toMatchObject({ nom: '', dureeEstimeeMin: 0, seanceCategory: 'STRENGTH', existante: false, items: [] })
   })
 
   it("enregistrer renumérote 0..n-1 d'après l'ordre unifié (libres et blocs entrelacés) malgré des positions périmées", async () => {
@@ -122,10 +122,39 @@ describe('useSeanceEdit : création', () => {
     expect((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM blocs_seance')).n).toBe(2)
     const s = await db.get<Record<string, unknown>>('SELECT * FROM seances WHERE id = ?', [id])
     expect(s).toMatchObject({
-      nom: 'Full body', seance_category: 'STRENGTH', duree_estimee_min: 60, is_archived: 0, deleted_at: null,
+      nom: 'Full body', seance_category: 'STRENGTH', duree_estimee_min: 27, is_archived: 0, deleted_at: null,
       groupes_musculaires: '["DOS","BICEPS","PECTORAUX","TRICEPS"]',
     })
     expect(typeof s.created_at).toBe('string')
+  })
+
+  it("la durée estimée est calculée en direct et se met à jour quand on modifie un exercice", async () => {
+    const { result } = await monter(await catalogue(), null)
+    expect(result.current.dureeEstimeeMin).toBe(0)
+    act(() => result.current.ajouterExercices(null, ['dc']))
+    // 3 séries × (10 répétitions × 3 s + 90 s de repos) = 360 s
+    expect(result.current.dureeEstimeeMin).toBe(6)
+    const id = exercicesDe(result.current.draft)[0].id
+    act(() => result.current.modifierExercice(id, { tempsReposSec: 150 }))
+    expect(result.current.dureeEstimeeMin).toBe(9)
+    act(() => result.current.modifierExercice(id, { nombreSeriesPrevues: 4, repsCibles: '8-12' }))
+    expect(result.current.dureeEstimeeMin).toBe(12)
+    act(() => result.current.supprimerExercice(id))
+    expect(result.current.dureeEstimeeMin).toBe(0)
+  })
+
+  it("enregistre la durée calculée, et un modèle existant la garde jusqu'à sa prochaine édition", async () => {
+    const db = await avecSeance()
+    const { result } = await monter(db, 's1')
+    // Rien n'a bougé : la valeur stockée (50) est conservée tant qu'on n'enregistre pas
+    expect((await db.get<{ d: number }>("SELECT duree_estimee_min AS d FROM seances WHERE id = 's1'")).d).toBe(50)
+    act(() => result.current.modifierExercice('x1', { tempsReposSec: 0 }))
+    await act(async () => {
+      await result.current.enregistrer()
+    })
+    const attendu = result.current.dureeEstimeeMin
+    expect(attendu).toBeGreaterThan(0)
+    expect((await db.get<{ d: number }>("SELECT duree_estimee_min AS d FROM seances WHERE id = 's1'")).d).toBe(attendu)
   })
 
   it("ajoute plusieurs exercices dans l'ordre de sélection, pas dans l'ordre alphabétique", async () => {
