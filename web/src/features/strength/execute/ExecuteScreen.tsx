@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
+import { BarreActionsFlottante } from '../../../app/BarreActionsFlottante'
 import { MenuActions } from '../MenuActions'
 import { DialogueConfirmation } from '../edition/DialogueConfirmation'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
@@ -118,24 +119,11 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
       )}
 
       {e.trouvee && (
-        <div className="execution__actions">
-          {e.terminee ? (
-            correction ? (
-              <Link to={e.lienBilan} className="bouton lien-bouton bouton--principal" onClick={e.sortieCorrection.contourner}>
-                Retour au rapport
-              </Link>
-            ) : (
-              <Link to={e.lienBilan} className="bouton lien-bouton bouton--principal">
-                Voir le bilan
-              </Link>
-            )
-          ) : !e.demarre ? (
-            <button type="button" className="bouton bouton--principal" onClick={() => void e.demarrer()}>
-              Démarrer
-            </button>
-          ) : (
-            <>
-              {e.enPause ? (
+        <BarreActionsFlottante
+          libelle="Actions de la séance"
+          secondaire={
+            e.demarre && !e.terminee ? (
+              e.enPause ? (
                 <button type="button" className="bouton" onClick={() => void e.reprendre()}>
                   Reprendre
                 </button>
@@ -143,13 +131,31 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
                 <button type="button" className="bouton" onClick={() => void e.pause()}>
                   Pause
                 </button>
-              )}
+              )
+            ) : undefined
+          }
+          principal={
+            e.terminee ? (
+              correction ? (
+                <Link to={e.lienBilan} className="bouton lien-bouton bouton--principal" onClick={e.sortieCorrection.contourner}>
+                  Retour au rapport
+                </Link>
+              ) : (
+                <Link to={e.lienBilan} className="bouton lien-bouton bouton--principal">
+                  Voir le bilan
+                </Link>
+              )
+            ) : !e.demarre ? (
+              <button type="button" className="bouton bouton--principal" onClick={() => void e.demarrer()}>
+                Démarrer
+              </button>
+            ) : (
               <button type="button" className="bouton bouton--principal" onClick={e.fin.demander}>
                 Terminer la séance
               </button>
-            </>
-          )}
-        </div>
+            )
+          }
+        />
       )}
       {e.fin.ouverte && (
         <DialogueConfirmation
