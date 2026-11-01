@@ -771,6 +771,241 @@ time,
   cursor: not-allowed;
 }
 
+/* Onglets de l'écran d'import : deux boutons de 48 px, l'actif porte le bleu du module (texte et soulignement) */
+.import__onglets {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+  padding: 0.25rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--fond-discret);
+}
+
+.import__onglet {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--hauteur-controle);
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  border-radius: var(--radius-bouton);
+  background: transparent;
+  color: var(--texte-secondaire);
+  font: inherit;
+  font-size: var(--taille-petit);
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.import__onglet[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--import-texte);
+  box-shadow: var(--ombre-carte), inset 0 -3px 0 var(--import-accent);
+}
+
+.import__onglet:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Onglet « Séances créées par une IA » */
+.import__carte + .import__carte {
+  margin-top: 1rem;
+}
+
+.import-ia__titre {
+  margin: 0 0 0.5rem;
+  font-size: var(--taille-corps);
+  font-weight: 700;
+}
+
+.import-ia__aide {
+  margin: 0 0 0.75rem;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+  line-height: 1.5;
+}
+
+.import-ia__actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.import-ia__actions .bouton,
+.import-ia__carte-import .bouton {
+  width: 100%;
+  min-width: 0;
+  padding-block: 0.5rem;
+  font-size: var(--taille-petit);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.import-ia__lien {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0 !important;
+  text-align: center;
+  text-decoration: none;
+}
+
+.import-ia__info {
+  min-height: 1.25rem;
+  margin: 0.75rem 0 0;
+  color: var(--import-texte);
+  font-size: var(--taille-petit);
+  font-weight: 600;
+}
+
+.import-ia__collage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.import-ia__collage label {
+  font-size: var(--taille-petit);
+  font-weight: 600;
+}
+
+/* 16 px minimum : iOS ne zoome pas la page au focus du champ */
+.import-ia__zone {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 8rem;
+  padding: 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-bouton);
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.import-ia__zone:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.import-ia__liste {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  font-size: var(--taille-petit);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.import-ia__liste li + li {
+  margin-top: 0.25rem;
+}
+
+.import-ia__erreur-titre {
+  margin: 0;
+}
+
+.import-ia__notes {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+}
+
+.import-ia__synthese {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+}
+
+.import-ia__succes {
+  margin: 0 0 0.75rem;
+  color: var(--couleur-succes-texte);
+  font-weight: 700;
+}
+
+.import-ia__seances {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.import__carte section ul.import-ia__seances {
+  padding-left: 0;
+}
+
+.import-ia__seance {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bord);
+  border-left: 4px solid var(--import-accent);
+  border-radius: var(--radius-carte);
+  background: var(--import-fond);
+  overflow-wrap: anywhere;
+}
+
+.import-ia__seance--ignoree {
+  border-left-color: var(--bord);
+  background: var(--fond-discret);
+}
+
+.import-ia__seance-nom {
+  margin: 0;
+  font-size: var(--taille-corps);
+  font-weight: 800;
+}
+
+.import-ia__detail {
+  margin: 0.25rem 0;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+}
+
+.import-ia__exercices {
+  margin: 0.25rem 0;
+  font-size: var(--taille-petit);
+  line-height: 1.5;
+}
+
+.import-ia__exercices--creer {
+  color: var(--texte);
+}
+
+.import-ia__badge {
+  display: inline-block;
+  margin: 0.25rem 0.25rem 0 0;
+  padding: 0.125rem 0.625rem;
+  border: 1px solid var(--import-accent);
+  border-radius: var(--radius-pilule);
+  color: var(--import-texte);
+  font-size: var(--taille-micro);
+  font-weight: 700;
+}
+
+.import-ia__badge--attention {
+  border-color: #e65100;
+  color: var(--texte);
+}
+
+.import-ia__liste--attention {
+  padding: 0.5rem 0.75rem 0.5rem 1.75rem;
+  border-left: 4px solid #e65100;
+  border-radius: var(--radius-bouton);
+  background: color-mix(in srgb, #e65100 12%, var(--surface));
+}
+
+@media (min-width: 30rem) {
+  .import-ia__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* Encart d'information */
 .import__info {
   display: flex;
@@ -5430,4 +5665,8 @@ time,
 
 .exo {
   box-shadow: var(--ombre-carte);
+}
+
+.import-ia__actions .bouton--import {
+  margin-top: 0;
 }
