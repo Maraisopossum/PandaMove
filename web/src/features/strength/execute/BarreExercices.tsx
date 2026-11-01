@@ -1,5 +1,5 @@
 import type { CSSProperties, RefObject } from 'react'
-import type { GroupeNav } from './navExercices'
+import { progressionNav, type GroupeNav } from './navExercices'
 
 interface Props {
   groupes: GroupeNav[]
@@ -7,11 +7,21 @@ interface Props {
   onChoisir: (exerciceId: string) => void
 }
 
-// Barre horizontale défilante des exercices, regroupés par bloc (design de l'écran Android). Présentation
-// seule : groupes, état actif et défilement viennent de useNavExercices.
+// Barre horizontale défilante des exercices, regroupés par bloc (maquette Stitch : en-tête « Progression des
+// exercices », groupes encadrés étiquetés « Bloc n », badge actif avec son statut). Présentation seule :
+// groupes, état actif et défilement viennent de useNavExercices.
 export function BarreExercices({ groupes, piste, onChoisir }: Props) {
+  const { rang, total } = progressionNav(groupes)
   return (
     <nav className="navex" aria-label="Exercices de la séance">
+      <div className="navex__entete">
+        <span className="navex__titre">Progression des exercices</span>
+        {rang > 0 && (
+          <span className="navex__compteur">
+            {rang} sur {total}
+          </span>
+        )}
+      </div>
       <ul className="navex__piste" ref={piste}>
         {groupes.map((g) => (
           <li
@@ -20,6 +30,12 @@ export function BarreExercices({ groupes, piste, onChoisir }: Props) {
             data-groupe-encadre={g.encadre}
             style={{ '--bloc-clair': g.couleurs.clair, '--bloc-sombre': g.couleurs.sombre } as CSSProperties}
           >
+            {g.encadre && (
+              <p className="navex__etiquette">
+                <span className="navex__rang">Bloc {g.rang}</span>
+                <span className="navex__bloc">{g.nom}</span>
+              </p>
+            )}
             <ul className="navex__badges">
               {g.badges.map((b) => (
                 <li key={b.id}>
@@ -35,10 +51,10 @@ export function BarreExercices({ groupes, piste, onChoisir }: Props) {
                       {b.libelle}
                       {b.termine && <span className="navex__coche">✓</span>}
                     </span>
-                    <span className="navex__nom" aria-hidden="true">
-                      {b.nom}
+                    <span className="navex__texte" aria-hidden="true">
+                      <span className="navex__nom">{b.nom}</span>
+                      <span className="navex__statut">{b.statut}</span>
                     </span>
-                    <span className="navex__trait" aria-hidden="true" />
                   </button>
                 </li>
               ))}

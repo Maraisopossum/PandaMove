@@ -73,10 +73,15 @@ export interface BadgeNav {
   etat: string
   // Nom accessible complet : exercice, bloc, état
   nomAccessible: string
+  // Statut court affiché sous le nom (maquette) : l'exercice affiché est « En cours »
+  statut: 'En cours' | 'Terminé' | 'À venir'
 }
 
 export interface GroupeNav {
   cle: string
+  // Rang du bloc dans la séance (à partir de 1) et son nom : étiquette « BLOC 1 » du groupe encadré
+  rang: number
+  nom: string
   encadre: boolean
   couleurs: CouleursBloc
   badges: BadgeNav[]
@@ -91,8 +96,10 @@ function etatExercice(e: ExerciceVue): string {
 
 // Un groupe par bloc ou par suite d'exercices libres (ordre unifié de construireVue).
 export function construireNav(blocs: BlocVue[], idActif: string | null): GroupeNav[] {
-  return blocs.map((b) => ({
+  return blocs.map((b, i) => ({
     cle: b.cle,
+    rang: i + 1,
+    nom: b.nom,
     encadre: estGroupeEncadre(b.type, b.exercices.length),
     couleurs: couleursBloc(b.type),
     badges: b.exercices.map((e) => {
@@ -105,9 +112,16 @@ export function construireNav(blocs: BlocVue[], idActif: string | null): GroupeN
         termine: exerciceTermine(e),
         etat,
         nomAccessible: `${e.nom}, ${b.nom}, ${etat}`,
+        statut: e.id === idActif ? 'En cours' : exerciceTermine(e) ? 'Terminé' : 'À venir',
       }
     }),
   }))
+}
+
+// « 2 sur 5 » : rang de l'exercice actif parmi tous les exercices de la barre (0 si aucun n'est actif).
+export function progressionNav(groupes: GroupeNav[]): { rang: number; total: number } {
+  const badges = groupes.flatMap((g) => g.badges)
+  return { rang: badges.findIndex((b) => b.actif) + 1, total: badges.length }
 }
 
 export const MARGE_GROUPE_PX = 16

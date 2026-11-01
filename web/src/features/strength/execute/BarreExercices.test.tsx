@@ -89,6 +89,19 @@ describe('Barre d’exercices de l’exécution', () => {
     expect((groupes[0] as HTMLElement).style.getPropertyValue('--bloc-clair')).toBe('#9A5700')
   })
 
+  it('en-tête « n sur N », étiquette « Bloc n » des groupes encadrés, statut sous le nom', async () => {
+    await monterSeance('b2b', [['a', 'ECHAUFFEMENT'], ['b', 'AUTRE']], [
+      { id: 'e1', exo: 'x1', bloc: 'a' }, { id: 'e2', exo: 'x2', bloc: 'b' },
+    ])
+    expect(barre().querySelector('.navex__compteur')!.textContent).toBe('1 sur 2')
+    // Seul le groupe encadré porte l'étiquette de bloc
+    expect(Array.from(barre().querySelectorAll('.navex__rang')).map((e) => e.textContent)).toEqual(['Bloc 1'])
+    expect(boutons().map((b) => b.querySelector('.navex__statut')!.textContent)).toEqual(['En cours', 'À venir'])
+    choisir('Gainage planche')
+    expect(barre().querySelector('.navex__compteur')!.textContent).toBe('2 sur 2')
+    expect(boutons().map((b) => b.querySelector('.navex__statut')!.textContent)).toEqual(['À venir', 'En cours'])
+  })
+
   it("après la dernière série d'un exercice simple, passe au suivant ; l'exercice terminé est marqué", async () => {
     await monterSeance('b3', [['a', 'AUTRE']], [{ id: 'e1', exo: 'x1', bloc: 'a' }, { id: 'e2', exo: 'x2', bloc: 'a' }])
     valider('Développé couché', '8')
@@ -96,6 +109,7 @@ describe('Barre d’exercices de l’exécution', () => {
     expect(carte('Gainage planche')).toBeTruthy()
     expect(boutons()[0].getAttribute('aria-label')).toBe('Développé couché, Bloc a, terminé')
     expect(boutons()[0].querySelector('.navex__coche')).not.toBeNull()
+    expect(boutons()[0].querySelector('.navex__statut')!.textContent).toBe('Terminé')
   })
 
   it('superset : après chaque série on passe à l’exercice suivant du tour, puis retour au premier ; choix manuel toujours possible', async () => {

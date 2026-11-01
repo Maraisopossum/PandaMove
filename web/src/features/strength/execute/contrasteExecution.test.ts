@@ -55,3 +55,26 @@ describe('contrastes du tableau de séries à steppers', () => {
     expect(ratioContraste(premier, second)).toBeGreaterThanOrEqual(3)
   })
 })
+
+// Barre d'exercices (app.css) : compteur « n sur N », statut des badges à venir, coche verte des exercices terminés.
+describe('contrastes de la barre d’exercices', () => {
+  it.each([
+    ['compteur « n sur N », clair', '#5b3d9e', sur('#5b3d9e', 0.1, '#ffffff')],
+    ['compteur « n sur N », sombre', '#c9b6f2', sur('#c9b6f2', 0.1, '#1e1e22')],
+    ['statut d’un badge à venir, clair', '#5c5c66', sur('#1e1e22', 0.04, '#ffffff')],
+    ['statut d’un badge à venir, sombre', '#a8a8b3', sur('#f2f2f5', 0.04, '#1e1e22')],
+    ['nom d’un badge à venir, clair', '#1e1e22', sur('#1e1e22', 0.04, '#ffffff')],
+    ['nom d’un badge à venir, sombre', '#f2f2f5', sur('#f2f2f5', 0.04, '#1e1e22')],
+    ['étiquette de bloc, clair', '#5c5c66', '#ffffff'],
+    ['étiquette de bloc, sombre', '#a8a8b3', '#1e1e22'],
+  ])('texte : %s', (_nom, texte, fond) => {
+    expect(ratioContraste(texte, fond)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it.each([
+    ['coche blanche sur vert, clair', '#ffffff', '#059669'],
+    ['coche sombre sur vert, sombre', '#0f2a22', '#34d399'],
+  ])('graphique : %s', (_nom, a, b) => {
+    expect(ratioContraste(a, b)).toBeGreaterThanOrEqual(3)
+  })
+})
