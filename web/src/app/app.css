@@ -1463,6 +1463,56 @@ time,
   color: #0f2a22;
 }
 
+/* Petits écrans (< 400 px, ex. 360) : on gagne de la largeur pour les champs (reps 3 chiffres, kg « 112,5 », repos « 120 »)
+   en resserrant boutons −/+ (20 px de large), écarts et colonnes ; la hauteur de 44 px est conservée et la zone cliquable
+   des boutons déborde de 4 px sur le champ (::after) pour rester confortable. */
+@media (max-width: 24.99rem) {
+  .tableau-series-zone {
+    margin-inline: -0.625rem;
+  }
+
+  .tableau-series {
+    --colonnes: 1rem minmax(0, 0.92fr) minmax(0, 1.08fr) minmax(0, 1fr) 2.25rem;
+    --stepper-btn-largeur: 20px;
+  }
+
+  .tableau-series__ligne {
+    gap: 2px;
+    padding: 4px 2px;
+  }
+
+  .tableau-series__ligne--courante {
+    padding-left: 0;
+  }
+
+  .tableau-series__numero {
+    font-size: var(--taille-micro);
+  }
+
+  .tableau-series__pas {
+    position: relative;
+  }
+
+  .tableau-series__pas::after {
+    content: '';
+    position: absolute;
+    inset: 0 -4px;
+  }
+
+  .tableau-series__pas--texte {
+    font-size: 0.6875rem;
+    letter-spacing: -0.04em;
+  }
+
+  .tableau-series__fait {
+    width: 36px;
+  }
+
+  .tableau-series__fait::before {
+    inset: 6px 2px;
+  }
+}
+
 .tableau-series__rpe-contenu {
   display: flex;
   align-items: center;
