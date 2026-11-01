@@ -413,29 +413,13 @@ describe('SeanceEditScreen : surcharge progressive', () => {
   })
 })
 
-describe('SeanceEditScreen : échauffement modèle', () => {
-  it('propose les modèles d’échauffement et les recopie en tête de séance', async () => {
-    await inserer(base, 'seances', {
-      id: 'w1', user_id: 'u1', updated_at: 'u', deleted_at: null, nom: 'Mobilité épaules', groupes_musculaires: '[]', duree_estimee_min: 5,
-      notes: '', seance_category: 'WARMUP_MOBILITY', created_at: 'c', is_archived: 0,
-    })
-    await inserer(base, 'exercices_seance', {
-      id: 'wx', user_id: 'u1', updated_at: 'u', deleted_at: null, seance_id: 'w1', exercise_id: 'face', bloc_id: null, position: 0,
-      nombre_series_prevues: 2, reps_cibles: '15', instance_seance_id: null,
-    })
+describe('SeanceEditScreen : pas de bouton « Ajouter un échauffement »', () => {
+  it('ne propose plus d’échauffement modèle, mais garde le bloc Échauffement du menu « Ajouter un bloc »', async () => {
     await ajouterExoSeed('l', 'dc', null, 0)
     monter('/strength/s1/edit')
-    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter un échauffement' }))
-    const dialogue = await screen.findByRole('dialog', { name: 'Choisir un échauffement' })
-    fireEvent.click(await within(dialogue).findByRole('button', { name: /Mobilité épaules/ }))
-    expect(await screen.findByRole('region', { name: 'Bloc Mobilité épaules' })).toBeTruthy()
-    cliquer('Enregistrer')
-    await screen.findByText('Liste des séances')
-    const ordre = await base.getAll<{ nom: string; position: number }>(
-      "SELECT nom, position FROM blocs_seance WHERE seance_id = 's1' AND deleted_at IS NULL",
-    )
-    expect(ordre).toEqual([{ nom: 'Mobilité épaules', position: 0 }])
-    expect((await base.get<{ position: number }>("SELECT position FROM exercices_seance WHERE id = 'l'")).position).toBe(1)
+    await screen.findByRole('button', { name: /Rechercher ou ajouter un exercice/ })
+    expect(screen.queryByRole('button', { name: 'Ajouter un échauffement' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Choisir un échauffement' })).toBeNull()
   })
 })
 

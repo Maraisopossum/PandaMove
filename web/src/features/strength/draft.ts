@@ -135,11 +135,6 @@ export function ajouterBloc(d: SeanceDraft, bloc: BlocDraft): SeanceDraft {
   return renumeroter({ ...d, items: [...d.items, { kind: 'bloc', bloc }] })
 }
 
-// Insère un bloc en tête de liste (ajout d'un modèle d'échauffement, comme Android addWarmupToSeance).
-export function insererBlocAuDebut(d: SeanceDraft, bloc: BlocDraft): SeanceDraft {
-  return renumeroter({ ...d, items: [{ kind: 'bloc', bloc }, ...d.items] })
-}
-
 // `blocId` null : exercice libre, ajouté à la fin de la liste.
 export function ajouterExercice(d: SeanceDraft, blocId: string | null, ex: ExerciceDraft): SeanceDraft {
   if (blocId === null) return renumeroter({ ...d, items: [...d.items, { kind: 'libre', exercice: ex }] })

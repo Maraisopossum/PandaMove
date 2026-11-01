@@ -3377,11 +3377,6 @@ time,
   flex: 1;
 }
 
-.edition__outils {
-  display: flex;
-  justify-content: flex-start;
-}
-
 .edition__vide {
   margin: 0;
 }

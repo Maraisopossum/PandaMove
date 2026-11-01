@@ -12,7 +12,7 @@ import {
   ajouterBloc as ajouterBlocDraft, ajouterExercice as ajouterExerciceDraft, appliquerSeriesCircuit,
   blocsDe, brouillonVide, exercicesDe, changerTypeBloc as changerTypeBlocDraft, deplacerRelatif, dupliquerExercice,
   modifierBloc as modifierBlocDraft, modifierExercice as modifierExerciceDraft, nouveauBloc, nouvelExercice,
-  insererBlocAuDebut, renumeroter, supprimerBloc as supprimerBlocDraft, supprimerExercice as supprimerExerciceDraft,
+  renumeroter, supprimerBloc as supprimerBlocDraft, supprimerExercice as supprimerExerciceDraft,
   transformerExercice as transformerExerciceDraft, validerBrouillon,
   type BlocDraft, type ExerciceDraft, type SeanceDraft, type TypeBloc,
 } from './draft'
@@ -145,7 +145,6 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
     (id: string, transformer: (e: ExerciceDraft) => ExerciceDraft) => setDraft((d) => transformerExerciceDraft(d, id, transformer)),
     [],
   )
-  const insererEchauffement = useCallback((bloc: BlocDraft) => setDraft((d) => insererBlocAuDebut(d, bloc)), [])
   const dupliquer = useCallback((id: string) => setDraft((d) => dupliquerExercice(d, id, newId())), [])
   // Monte (-1) ou descend (+1) un bloc, un exercice libre ou un exercice dans son bloc
   const deplacer = useCallback((id: string, sens: -1 | 1) => setDraft((d) => deplacerRelatif(d, id, sens)), [])
@@ -204,7 +203,7 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
     pertes, annulerPertes: () => setPertes(null),
     setNom, setNotes, setDuree,
     ajouterBloc, supprimerBloc, modifierBloc, changerTypeBloc,
-    ajouterExercices, supprimerExercice, modifierExercice, transformerExercice, insererEchauffement, dupliquer, deplacer,
+    ajouterExercices, supprimerExercice, modifierExercice, transformerExercice, dupliquer, deplacer,
     enregistrer,
   }
 }
