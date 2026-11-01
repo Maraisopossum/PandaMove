@@ -82,6 +82,10 @@ describe('SeanceEditScreen : parcours rapide', () => {
     expect(screen.getAllByRole('button', { name: /^(Tractions|Curl haltères|Développé couché)/ }).map((b) => b.textContent)).toEqual([
       expect.stringContaining('Tractions'), expect.stringContaining('Curl haltères'), expect.stringContaining('Développé couché'),
     ])
+    // Durée estimée calculée en direct (3 exercices × 3 séries × (30 s + 90 s) + 2 transitions de 30 s = 19 min), pas un champ
+    expect(screen.queryByLabelText('Durée estimée (min)')).toBeNull()
+    expect(screen.getByText('≈ 19 min')).toBeTruthy()
+    expect(screen.getByText(/Calculée d’après les séries, répétitions et repos/)).toBeTruthy()
     cliquer('Enregistrer')
     expect(await screen.findByText('Liste des séances')).toBeTruthy()
 
@@ -96,7 +100,7 @@ describe('SeanceEditScreen : parcours rapide', () => {
     ])
     expect((await base.get<{ n: number }>('SELECT COUNT(*) AS n FROM blocs_seance')).n).toBe(0)
     const s = await base.get<{ groupes_musculaires: string; duree_estimee_min: number }>("SELECT * FROM seances WHERE nom = 'Pectoraux du jeudi'")
-    expect(s).toMatchObject({ groupes_musculaires: '["DOS","BICEPS","PECTORAUX"]', duree_estimee_min: 60 })
+    expect(s).toMatchObject({ groupes_musculaires: '["DOS","BICEPS","PECTORAUX"]', duree_estimee_min: 19 })
   })
 
   it('affiche les erreurs de validation en français sans quitter la page', async () => {
@@ -507,6 +511,7 @@ describe('SeanceEditScreen : modifier les exercices d’une séance en cours', (
     expect(screen.getByText(/seule cette séance est modifiée, la séance type reste inchangée/)).toBeTruthy()
     expect(screen.queryByLabelText('Nom de la séance')).toBeNull()
     expect(screen.queryByLabelText('Durée estimée (min)')).toBeNull()
+    expect(screen.queryByText(/≈/)).toBeNull()
     cliquer(/Rechercher ou ajouter un exercice/)
     await choisirExercices('Curl haltères')
     cliquer('Enregistrer')

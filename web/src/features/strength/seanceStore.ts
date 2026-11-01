@@ -4,6 +4,7 @@ import { mapSeance, type Ligne } from '../../core/db/repos/mappers'
 import { upsertRow } from '../../core/db/upsert'
 import type { Exercise } from '../../core/db/types'
 import { lireGroupes } from './catalog/filtreCatalogue'
+import { dureeEstimeeMin } from './edition/dureeEstimee'
 import { lireListeEquipement } from './progression/cible'
 import {
   appliquerSeriesCircuit, blocsDe, exercicesDe, groupesMusculaires, renumeroter, TYPES_BLOC, type BlocDraft,
@@ -135,7 +136,8 @@ export async function enregistrerBrouillon(db: Db, brouillon: SeanceDraft, insta
       deleted_at: null,
       nom: d.nom.trim(),
       groupes_musculaires: JSON.stringify(groupesMusculaires(d)),
-      duree_estimee_min: d.dureeEstimeeMin,
+      // Calculée d'après le contenu (séries, répétitions, repos), jamais saisie
+      duree_estimee_min: dureeEstimeeMin(d),
       notes: d.notes.trim(),
       seance_category: d.seanceCategory,
       // created_at et is_archived ne sont posés qu'à la création

@@ -3400,6 +3400,40 @@ time,
   margin: 0;
 }
 
+/* Durée estimée calculée (lecture seule) */
+.duree-estimee {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.duree-estimee__ligne {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.duree-estimee__valeur {
+  font-size: var(--taille-titre-2, 1.25rem);
+  font-weight: 800;
+}
+
+.duree-estimee__detail {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: var(--taille-petit);
+}
+
+.duree-estimee__detail li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .edition__items {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

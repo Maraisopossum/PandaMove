@@ -1,8 +1,9 @@
 import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
-import { ChampNombre, ChampTexte, ChampZoneTexte } from './champs'
+import { ChampTexte, ChampZoneTexte } from './champs'
 import { LIBELLES_BLOC } from './draft'
 import { BlocCarte } from './edition/BlocCarte'
 import { DialogueConfirmation } from './edition/DialogueConfirmation'
+import { AffichageDuree } from './edition/AffichageDuree'
 import { ExerciceCarte } from './edition/ExerciceCarte'
 import { GardeSortie } from './edition/GardeSortie'
 import { MenuAjoutBloc } from './edition/MenuAjoutBloc'
@@ -38,7 +39,7 @@ export default function SeanceEditScreen({ instance = false }: { instance?: bool
           <section className="edition__infos" aria-label="Informations de la séance">
             <ChampTexte libelle="Nom de la séance" valeur={d.nom} onChange={s.setNom} />
             <ChampZoneTexte libelle="Notes" valeur={d.notes} onChange={s.setNotes} />
-            <ChampNombre libelle="Durée estimée (min)" valeur={d.dureeEstimeeMin} onChange={s.setDuree} />
+            <AffichageDuree minutes={s.dureeEstimeeMin} detail={s.detailDuree} />
             <p className="aide">
               {s.groupesAffiches.length > 0
                 ? `Muscles travaillés : ${s.groupesAffiches.join(', ')}.`
