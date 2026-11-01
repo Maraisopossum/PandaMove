@@ -28,7 +28,33 @@
   --hauteur-barre: 52px;
   --radius-carte: 16px;
   --radius-bouton: 12px;
+  --radius-grande: 24px;
   --radius-pilule: 999px;
+
+  /* Fond discret des commandes (gris ardoise léger des maquettes) */
+  --fond-discret: color-mix(in srgb, var(--texte) 5%, var(--surface));
+
+  /* Calendrier : orange du module en texte (AA sur blanc et sur les fonds orangés), fonds, bord, bouton, pastilles de statut */
+  --calendrier-texte: #b43c00;
+  --calendrier-fond: #fff7ed;
+  --calendrier-fond-fort: #ffedd5;
+  --calendrier-bord: #fed7aa;
+  --calendrier-bouton: #c2410c;
+  --point-programmee: #b45309;
+  --point-terminee: #059669;
+  --point-en-cours: #1565c0;
+
+  /* Statistiques : orange brûlé du module (bandes, pilule de période active, texte) */
+  --stats-accent: #c2410c;
+  --stats-fond: #fff7ed;
+
+  /* Profil (sauge) et Import (bleu) : accents en texte, icônes et fonds d'encart */
+  --profil-accent: #576746;
+  --profil-fond: color-mix(in srgb, #576746 10%, var(--surface));
+  --import-accent: #1565c0;
+  --import-texte: #0d47a1;
+  --import-fond: #eff6ff;
+  --import-bord: #dbeafe;
 
   /* Polices hébergées (polices.css) avec repli système */
   --police-titres: 'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -76,6 +102,21 @@
   --stepper-btn-fond-survol: rgb(184 161 240 / 0.14);
   --ombre-carte: 0 2px 8px -2px rgb(0 0 0 / 0.5), 0 1px 4px -1px rgb(0 0 0 / 0.4);
   --ombre-flottante: 0 -4px 16px rgb(0 0 0 / 0.5);
+  --calendrier-texte: #fb923c;
+  --calendrier-fond: color-mix(in srgb, #fb923c 12%, #1e1e22);
+  --calendrier-fond-fort: color-mix(in srgb, #fb923c 22%, #1e1e22);
+  --calendrier-bord: color-mix(in srgb, #fb923c 40%, #1e1e22);
+  --point-programmee: #fbbf24;
+  --point-terminee: #34d399;
+  --point-en-cours: #90caf9;
+  --stats-accent: #fb923c;
+  --stats-fond: color-mix(in srgb, #fb923c 12%, #1e1e22);
+  --profil-accent: #a6bb90;
+  --profil-fond: color-mix(in srgb, #a6bb90 14%, #1e1e22);
+  --import-accent: #90caf9;
+  --import-texte: #bfdbfe;
+  --import-fond: color-mix(in srgb, #90caf9 10%, #1e1e22);
+  --import-bord: color-mix(in srgb, #90caf9 25%, #1e1e22);
   color-scheme: dark;
 }
 
@@ -584,36 +625,181 @@ time,
   }
 }
 
-/* Écran d'import */
+/* Titre d'écran commun (maquettes Stitch) : 24 px extra-gras */
+.titre-ecran {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+/* Écran d'import (maquette Stitch, module bleu) : carte de rayon 24, zone de dépôt pointillée, encart d'information */
+.import__intro {
+  margin: 0 0 1rem;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+  line-height: 1.6;
+}
+
+.import__carte {
+  padding: 1.25rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-grande);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+}
+
+/* Zone de dépôt : bordure pointillée de 2 px ; le sélecteur de fichier natif reste l'unique contrôle */
 .import__champ {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  margin: 0.75rem 0;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--fond-discret);
+  text-align: center;
+}
+
+.import__champ:hover,
+.import__champ:focus-within {
+  border-color: var(--import-accent);
+  background: var(--import-fond);
+}
+
+.import__icone {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-carte);
+  background: var(--import-fond);
+  color: var(--import-texte);
+}
+
+.import__champ label {
+  font-size: var(--taille-petit);
+  font-weight: 600;
 }
 
 .import__champ input[type='file'] {
+  max-width: 100%;
   min-height: var(--hauteur-controle);
+  color: var(--texte-secondaire);
   font: inherit;
+  font-size: var(--taille-micro);
+}
+
+.import__champ input[type='file']::file-selector-button {
+  min-height: var(--hauteur-cellule);
+  margin-right: 0.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-bouton);
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  font-size: var(--taille-petit);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .import__resultat:focus {
   outline: none;
 }
 
+.import__resultat:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .import__erreur {
-  padding: 0.5rem 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
   border-left: 4px solid #b71c1c;
-  border-radius: 8px;
+  border-radius: var(--radius-bouton);
   background: color-mix(in srgb, #b71c1c 12%, var(--surface));
   font-weight: 600;
 }
 
 .import__avertissement {
-  padding: 0.5rem 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
   border-left: 4px solid #e65100;
-  border-radius: 8px;
+  border-radius: var(--radius-bouton);
   background: color-mix(in srgb, #e65100 12%, var(--surface));
+  font-size: var(--taille-petit);
+}
+
+/* Aperçu et résultat dans la carte */
+.import__carte section {
+  margin-top: 1.25rem;
+}
+
+.import__carte section h2 {
+  margin: 0 0 0.5rem;
+  font-size: var(--taille-corps);
+  font-weight: 700;
+}
+
+.import__carte section ul {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+
+/* Bouton d'import : pleine largeur, 48 px, bleu du module (blanc sur #1565c0 : AA) */
+.import__carte .bouton--import {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-color: var(--couleur-import);
+  background: var(--couleur-import);
+  box-shadow: 0 6px 16px -4px rgb(21 101 192 / 0.3);
+  color: #ffffff;
+  font-size: var(--taille-petit);
+}
+
+.import__carte .bouton--import:disabled {
+  border-color: var(--bord);
+  background: var(--fond-discret);
+  box-shadow: none;
+  color: var(--texte-secondaire);
+  cursor: not-allowed;
+}
+
+/* Encart d'information */
+.import__info {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--import-bord);
+  border-radius: var(--radius-carte);
+  background: var(--import-fond);
+  font-size: var(--taille-petit);
+  line-height: 1.6;
+}
+
+.import__info-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--import-bord);
+  color: var(--import-texte);
+}
+
+.import__info p {
+  margin: 0;
+  color: var(--texte-secondaire);
+}
+
+.import__info strong {
+  display: block;
+  color: var(--texte);
 }
 
 /* Formulaires génériques (catalogue, matériel, profil) */
@@ -727,23 +913,176 @@ time,
   margin: 0.25rem 0;
 }
 
+/* Profil (maquette Stitch, module sauge) : cartes de rayon 16, liens de 52 px, section Séance et Sauvegarde */
+.profil__groupe,
+.profil__sombre,
+.profil__sauvegarde,
+.profil__seance .reglages-retours {
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+}
+
+.profil__groupe {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.profil__groupe legend {
+  padding: 0 0.5rem;
+  font-size: var(--taille-petit);
+  font-weight: 600;
+}
+
+.profil__groupe .formulaire__case {
+  font-weight: 500;
+}
+
+.profil__groupe input[type='radio'],
+.profil__seance input[type='checkbox'] {
+  accent-color: var(--profil-accent);
+}
+
+.profil__groupe input[type='radio'] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Mode sombre : carte avec icône, libellé et interrupteur de 44 x 24 px */
+.profil__sombre {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 52px;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  font-size: var(--taille-corps);
+}
+
+.profil__icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-bouton);
+  background: var(--profil-fond);
+  color: var(--profil-accent);
+}
+
+.profil__sombre > span:nth-child(2) {
+  flex: 1 1 auto;
+}
+
+.profil__interrupteur {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-pilule);
+  background: var(--bord);
+}
+
+.profil__interrupteur::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+
+.profil__sombre[aria-pressed='true'] {
+  border-color: var(--bord);
+  box-shadow: var(--ombre-carte);
+}
+
+.profil__sombre[aria-pressed='true'] .profil__interrupteur {
+  background: #576746;
+}
+
+.profil__sombre[aria-pressed='true'] .profil__interrupteur::after {
+  transform: translateX(20px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .profil__interrupteur::after {
+    transition: transform 0.15s ease;
+  }
+}
+
+/* Liens : 52 px de haut, icône à gauche, chevron à droite */
 .profil__liens {
   display: grid;
-  gap: 0.5rem;
-  max-width: 24rem;
-  margin-top: 1rem;
+  gap: 0.625rem;
+  margin: 0 0 1.5rem;
 }
 
 .profil__lien {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-carte);
+  box-shadow: var(--ombre-carte);
   text-decoration: none;
 }
 
-/* Sauvegarde : export JSON des données */
+.profil__lien-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--profil-accent);
+}
+
+.profil__lien-texte {
+  flex: 1 1 auto;
+}
+
+.profil__lien-chevron {
+  flex: none;
+  color: var(--texte-secondaire);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.profil__seance {
+  margin: 0 0 1.5rem;
+}
+
+.profil__seance h2,
+.profil__sauvegarde h2 {
+  margin: 0 0 0.25rem;
+}
+
+.profil__seance .reglages-retours {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 1rem;
+}
+
+/* Sauvegarde : carte blanche, bouton d'export bordé de 48 px */
 .profil__sauvegarde {
-  max-width: 36rem;
-  margin-top: 1.25rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+}
+
+.profil__sauvegarde p {
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+  line-height: 1.6;
+}
+
+.profil__sauvegarde .bouton {
+  margin-top: 0.5rem;
+  padding: 0 1.25rem;
+  font-size: var(--taille-petit);
 }
 
 .profil__sauvegarde .bouton:disabled {
@@ -2087,69 +2426,155 @@ time,
   color: #f2b8b5;
 }
 
-/* Calendrier : en-tête du mois, grille des jours (lundi en premier), séances */
+/* Calendrier (maquette Stitch) : sélecteur de mois, filtres segmentés, grille de jours de 44 px, séances du jour, prochaines séances */
 .calendrier__entete {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 0.5rem;
-  margin: 0.25rem 0;
+  margin: 0.5rem 0 0.75rem;
+}
+
+/* Boutons de mois ronds de 44 px */
+.calendrier__nav {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--fond-discret);
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .calendrier__mois {
-  flex: 1 1 8rem;
   margin: 0;
   text-align: center;
   font-size: var(--taille-titre-2);
   font-weight: 800;
+  line-height: 1.3;
   text-transform: capitalize;
 }
 
+/* « Aujourd'hui » : pilule orange sur sa propre ligne, sous le mois */
+.calendrier__auj {
+  grid-column: 1 / -1;
+  justify-self: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-color: var(--calendrier-bord);
+  border-radius: var(--radius-pilule);
+  background: var(--calendrier-fond);
+  color: var(--calendrier-texte);
+  font-size: var(--taille-petit);
+}
+
+/* Filtres segmentés (calendrier) et onglets Face / Dos (statistiques) : conteneur discret, choix actif en blanc.
+   Le choix actif se lit aussi au gras et à l'ombre, jamais à la couleur seule (aria-pressed). */
+.segmente {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--fond-discret);
+}
+
+.segmente .bouton {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--hauteur-cellule);
+  padding: 0 0.5rem;
+  border-color: transparent;
+  border-radius: var(--radius-bouton);
+  background: transparent;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+  font-weight: 600;
+}
+
+.segmente .bouton[aria-pressed='true'] {
+  border-color: var(--bord);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+  color: var(--texte);
+  font-weight: 800;
+}
+
+/* Grille : carte blanche rayon 16 ; sept colonnes serrées pour garder des cases d'environ 44 px à 360 px */
 .calendrier__grille {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 3px;
-  margin: 0.5rem 0;
+  gap: 2px;
+  margin: 0.75rem 0 0.5rem;
+  padding: 4px;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+}
+
+@media (min-width: 400px) {
+  .calendrier__grille {
+    gap: 4px;
+    padding: 8px;
+  }
 }
 
 .calendrier__semaine {
+  padding: 0.25rem 0;
   text-align: center;
   color: var(--texte-secondaire);
-  font-size: var(--taille-micro);
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .calendrier__jour {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 2px;
-  min-height: var(--hauteur-controle);
+  min-height: var(--hauteur-cellule);
   min-width: 0;
   padding: 2px 0;
-  border: 1px solid var(--bord);
-  border-radius: 8px;
-  background: var(--surface);
+  border: 2px solid transparent;
+  border-radius: var(--radius-bouton);
+  background: transparent;
   color: var(--texte);
   font: inherit;
+  font-size: var(--taille-petit);
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
 }
 
 .calendrier__jour--hors {
   color: var(--texte-secondaire);
+  font-weight: 400;
   opacity: 0.7;
 }
 
+/* Jour courant : fond orangé léger et chiffre orange */
 .calendrier__jour--auj {
-  border-color: #e65100;
-  box-shadow: inset 0 0 0 1px #e65100;
+  background: var(--calendrier-fond);
+  color: var(--calendrier-texte);
+  font-weight: 800;
 }
 
+/* Jour choisi : fond orangé plus soutenu, bordure de 2 px, chiffre 16 px extra-gras, agrandi de 5 % */
 .calendrier__jour[aria-pressed='true'] {
-  background: color-mix(in srgb, #e65100 15%, var(--surface));
-  border-color: var(--focus);
+  border-color: var(--couleur-calendrier);
+  background: var(--calendrier-fond-fort);
+  box-shadow: var(--ombre-carte);
+  color: var(--calendrier-texte);
+  font-size: var(--taille-corps);
+  font-weight: 900;
+  transform: scale(1.05);
 }
 
 .calendrier__points {
@@ -2163,55 +2588,207 @@ time,
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #e65100;
+  background: var(--point-programmee);
 }
 
 .calendrier__point--terminee {
-  background: #2e7d32;
+  background: var(--point-terminee);
 }
 
 .calendrier__point--en_cours {
-  background: #1565c0;
+  background: var(--point-en-cours);
+}
+
+/* Légende des pastilles de statut (redondante avec le texte des séances : masquée aux lecteurs d'écran) */
+.calendrier__legende {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  color: var(--texte-secondaire);
+  font-size: 0.75rem;
+}
+
+.calendrier__legende li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.calendrier__legende .calendrier__point {
+  width: 8px;
+  height: 8px;
 }
 
 .calendrier__section {
-  margin: 1rem 0;
+  margin: 1.25rem 0;
 }
 
+/* Titre du jour choisi (18 px) */
+.calendrier__section h2 {
+  margin: 0 0 0.5rem;
+  font-size: var(--taille-titre-3);
+  font-weight: 700;
+}
+
+/* Séance du calendrier : carte de séance (liste Renforcement) au liseré orange du module ;
+   « Ouvrir » devient le bouton plein de la rangée, « Changer la date » et « Supprimer » restent des boutons texte */
 .calendrier__seance {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  padding: var(--espace-carte);
-  border: 1px solid var(--bord);
-  border-left: 4px solid #e65100;
-  border-radius: var(--radius-bouton);
-  background: color-mix(in srgb, #e65100 8%, var(--surface));
+  border-left-color: var(--couleur-calendrier);
+  box-shadow: var(--ombre-carte);
 }
 
-/* Statistiques (module orange #BF360C) : cartes chiffres-clés, heatmap musculaire, historique */
+.calendrier__seance .seance__actions .bouton--principal {
+  border-color: var(--calendrier-bouton);
+  background: var(--calendrier-bouton);
+  box-shadow: none;
+  flex: 1 1 100%;
+}
+
+.calendrier__seance .seance__actions > .bouton[aria-label^='Changer'],
+.calendrier__seance .seance__actions > .bouton[aria-label^='Supprimer'] {
+  flex: 1 1 0;
+}
+
+/* État vide : carte pointillée, panda à gauche */
+.calendrier__vide {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.75rem 0;
+  padding: 1rem;
+  border: 2px dashed var(--bord);
+  border-radius: var(--radius-carte);
+  color: var(--texte-secondaire);
+}
+
+.calendrier__vide p {
+  margin: 0;
+}
+
+/* Jour sans séance : carte pointillée centrée avec un accès vers la liste des séances */
+.calendrier__jour-vide {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--bord);
+  border-radius: var(--radius-carte);
+  text-align: center;
+}
+
+.calendrier__jour-vide p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.calendrier__jour-vide .aide {
+  font-weight: 400;
+}
+
+.calendrier__jour-vide .bouton {
+  width: 100%;
+  border-color: var(--calendrier-bouton);
+  background: var(--calendrier-bouton);
+  color: #ffffff;
+  font-size: var(--taille-petit);
+}
+
+/* Prochaines séances : carte vide à fond blanc */
+.calendrier__avenir-vide {
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+  color: var(--texte-secondaire);
+}
+
+.calendrier__panda {
+  flex: none;
+  width: 72px;
+}
+
+/* Statistiques (maquette Stitch, module orange brûlé) : pilules de période, grille 2 x 2 de chiffres-clés, heatmap musculaire en carte, historique */
 .stats__section {
-  margin: 1rem 0;
+  margin: 1.25rem 0;
+}
+
+.stats__section h2 {
+  margin: 0 0 0.5rem;
+  font-size: var(--taille-corps);
+  font-weight: 700;
+}
+
+/* Cartes blanches : heatmap et historique */
+.stats__section--carte {
+  padding: 1rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
 }
 
 .stats__vide {
   margin: 1rem 0;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--bord);
+  border-radius: var(--radius-carte);
   color: var(--texte-secondaire);
+  text-align: center;
+}
+
+/* Période : pilules à défilement horizontal, l'active en orange brûlé avec anneau */
+.stats__periodes {
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  margin: 0 -1rem;
+  padding: 0.25rem 1rem 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.stats__periodes::-webkit-scrollbar {
+  display: none;
+}
+
+.stats__periodes .bouton {
+  flex: none;
+  padding: 0 1rem;
+  border-radius: var(--radius-bouton);
+  box-shadow: var(--ombre-carte);
+  font-size: var(--taille-petit);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stats__periodes .bouton[aria-pressed='true'] {
+  border-color: var(--stats-accent);
+  background: #c2410c;
+  box-shadow: 0 0 0 2px var(--fond), 0 0 0 4px var(--stats-accent);
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .stats__cartes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-  gap: var(--ecart);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
+/* Chiffre-clé : carte blanche rayon 16, bande gauche de 6 px, valeur 24 px extra-gras */
 .stats__carte {
-  padding: 0.5rem 0.75rem;
+  min-width: 0;
+  padding: 1rem;
   border: 1px solid var(--bord);
-  border-left: 4px solid #bf360c;
-  border-radius: var(--radius-bouton);
-  background: color-mix(in srgb, #bf360c 8%, var(--surface));
+  border-left: 6px solid var(--stats-accent);
+  border-radius: var(--radius-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
 }
 
 .stats__carte p {
@@ -2219,16 +2796,39 @@ time,
 }
 
 .stats__valeur {
-  font-size: var(--taille-kpi);
+  overflow-wrap: anywhere;
+  font-family: var(--police-titres);
+  font-size: 1.5rem;
   letter-spacing: -0.01em;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .stats__libelle {
   color: var(--texte-secondaire);
-  font-size: var(--taille-petit);
+  font-size: var(--taille-micro);
+  font-weight: 500;
+}
+
+/* En-tête de la carte heatmap : titre à gauche, onglets Face / Dos à droite */
+.stats__entete-carte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--bord);
+}
+
+.stats__entete-carte h2 {
+  margin: 0;
+}
+
+.stats__entete-carte .segmente {
+  flex: none;
+  width: 11rem;
 }
 
 .heatmap {
@@ -2238,7 +2838,7 @@ time,
 .heatmap__cadre {
   position: relative;
   width: 100%;
-  max-width: 360px;
+  max-width: 280px;
   margin: 0 auto;
   aspect-ratio: 2 / 3;
 }
@@ -2277,9 +2877,10 @@ time,
   justify-content: center;
   gap: 0.25rem 0.75rem;
   margin: 0.5rem 0 0.75rem;
-  padding: 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--bord);
   list-style: none;
-  font-size: var(--taille-petit);
+  font-size: var(--taille-micro);
 }
 
 .heatmap__niveaux li {
@@ -2343,17 +2944,17 @@ time,
 }
 
 .stats__courbe {
-  stroke: #bf360c;
+  stroke: var(--stats-accent);
   stroke-width: 3;
 }
 
 .stats__point {
-  fill: #bf360c;
+  fill: var(--stats-accent);
 }
 
 .stats__tableau {
+  width: 100%;
   border-collapse: collapse;
-  min-width: 16rem;
 }
 
 .stats__tableau caption {
@@ -2364,9 +2965,15 @@ time,
 
 .stats__tableau th,
 .stats__tableau td {
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0;
   border-bottom: 1px solid var(--bord);
   text-align: left;
+}
+
+.stats__tableau th {
+  color: var(--texte-secondaire);
+  font-size: var(--taille-micro);
+  font-weight: 600;
 }
 
 /* Illustrations du panda : largeur fixée par la classe d'usage, hauteur déduite de width/height */
@@ -2634,17 +3241,6 @@ time,
 .bilan__panda {
   width: 88px;
   margin: 0 auto;
-}
-
-.calendrier__vide {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.calendrier__panda {
-  flex: none;
-  width: 72px;
 }
 
 .connexion {
