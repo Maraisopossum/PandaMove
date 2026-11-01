@@ -36,7 +36,7 @@ export default function ReportScreen() {
         </>
       ) : (
         <>
-          <PandaIllustration image={b.pandaVictoire} sizes="120px" className="bilan__panda" />
+          <PandaIllustration image={b.pandaVictoire} sizes="96px" className="bilan__panda" />
           {b.phrasesRecalcul.length > 0 && (
             <div role="status" className="bilan__annonce">
               <p>
@@ -153,7 +153,7 @@ export default function ReportScreen() {
 
           <section aria-labelledby="bilan-partage" className="bilan__partage">
             <h2 id="bilan-partage">Exporter</h2>
-            <div className="formulaire__ligne">
+            <div className="bilan__export">
               <button type="button" className="bouton" onClick={() => void b.copier()}>
                 Copier le résumé
               </button>
@@ -171,14 +171,14 @@ export default function ReportScreen() {
             </div>
           </section>
 
-          <div className="formulaire__ligne">
-            <Link to={b.lienCorrection} className="bouton lien-bouton">
+          <div className="bilan__pied">
+            <Link to={b.lienCorrection} className="bouton lien-bouton bilan__corriger">
               Corriger la séance
             </Link>
-            <Link to="/strength" className="bouton lien-bouton">
+            <Link to="/strength" className="bouton lien-bouton bouton--principal">
               Retour aux séances
             </Link>
-            <Link to="/strength/done" className="bouton lien-bouton">
+            <Link to="/strength/done" className="bilan__lien-fin">
               Séances terminées
             </Link>
           </div>
