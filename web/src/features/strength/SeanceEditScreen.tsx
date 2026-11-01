@@ -1,3 +1,4 @@
+import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
 import { ChampNombre, ChampTexte, ChampZoneTexte } from './champs'
 import { LIBELLES_BLOC } from './draft'
 import { BlocCarte } from './edition/BlocCarte'
@@ -20,7 +21,7 @@ export default function SeanceEditScreen({ instance = false }: { instance?: bool
 
   return (
     <div className="edition">
-      <h1>{instance ? 'Modifier les exercices' : s.enCreation ? 'Nouvelle séance' : 'Modifier la séance'}</h1>
+      <h1 className="titre-ecran">{instance ? 'Modifier les exercices' : s.enCreation ? 'Nouvelle séance' : 'Modifier la séance'}</h1>
       {instance && (
         <p className="aide">
           Séance « {d.nom} » : seule cette séance est modifiée, la séance type reste inchangée.
@@ -92,23 +93,26 @@ export default function SeanceEditScreen({ instance = false }: { instance?: bool
 
         <MenuAjoutBloc onAjouter={s.ajouterBloc} />
 
-        <div className="edition__barre">
-          {s.erreur && (
-            <ul role="alert" className="import__erreur erreurs__liste">
-              {s.erreur.split('\n').map((ligne) => (
-                <li key={ligne}>{ligne}</li>
-              ))}
-            </ul>
-          )}
-          <div className="formulaire__ligne">
-            <button type="submit" className="bouton bouton--principal" disabled={s.enregistrement}>
-              Enregistrer
-            </button>
+        {s.erreur && (
+          <ul role="alert" className="import__erreur erreurs__liste">
+            {s.erreur.split('\n').map((ligne) => (
+              <li key={ligne}>{ligne}</li>
+            ))}
+          </ul>
+        )}
+        <BarreActionsFlottante
+          libelle="Actions de la séance"
+          secondaire={
             <button type="button" className="bouton" onClick={s.annuler}>
               Annuler
             </button>
-          </div>
-        </div>
+          }
+          principal={
+            <button type="submit" className="bouton bouton--principal" disabled={s.enregistrement}>
+              Enregistrer
+            </button>
+          }
+        />
       </form>
 
       {s.selecteur.ouvert && <SelecteurDialog selecteur={s.selecteur} titreCible={s.titreSelecteur} />}
