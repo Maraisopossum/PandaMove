@@ -82,6 +82,9 @@
   /* Ombres subtiles */
   --ombre-carte: 0 2px 8px -2px rgb(0 0 0 / 0.05), 0 1px 4px -1px rgb(0 0 0 / 0.03);
   --ombre-flottante: 0 -4px 16px rgb(0 0 0 / 0.08);
+  --ombre-cta: 0 8px 24px -4px rgb(91 61 158 / 0.3);
+  --ombre-degrade: 0 6px 16px -4px rgb(91 61 158 / 0.4);
+  --degrade-violet: linear-gradient(135deg, #6d28d9, #5b3d9e);
   --ombre-carte-seance: 0 4px 20px -2px rgb(124 58 237 / 0.06), 0 2px 6px -1px rgb(0 0 0 / 0.04);
   color-scheme: light;
 }
@@ -1141,29 +1144,6 @@ time,
   font-size: var(--taille-petit);
 }
 
-.seance__lancer {
-  display: block;
-  min-height: var(--hauteur-controle);
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--texte);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.seance__lancer .seance__nom,
-.seance__lancer .seance__details {
-  display: block;
-}
-
-.seance__lancer:focus-visible {
-  outline: 2px solid currentcolor;
-  outline-offset: 4px;
-  border-radius: 8px;
-}
-
 .seance__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1201,18 +1181,7 @@ time,
   font-size: var(--taille-petit);
 }
 
-/* Ligne cliquable d'une séance programmée / terminée : la carte entière est un lien */
-.instances__lien {
-  min-height: var(--hauteur-controle);
-  color: var(--texte);
-  text-decoration: none;
-}
-
-.instances__lien .seance__nom,
-.instances__lien .seance__details {
-  display: block;
-}
-
+/* Pastille de nombre des séances programmées / terminées */
 .instances__badge {
   padding: 0.125rem 0.625rem;
   border-radius: var(--radius-pilule);
@@ -1796,7 +1765,7 @@ time,
   align-items: center;
   justify-content: center;
   width: 44px;
-  height: 44px;
+  height: var(--hauteur-cellule);
   padding: 0;
   border: 0;
   background: transparent;
@@ -1914,7 +1883,7 @@ time,
 .tableau-series__puce {
   flex: none;
   width: 44px;
-  height: 44px;
+  height: var(--hauteur-cellule);
   border: 1px solid var(--bord);
   border-radius: var(--radius-bouton);
   background: var(--surface);
@@ -2056,33 +2025,6 @@ time,
   font-weight: 500;
 }
 
-.execution__series {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.execution__ligne {
-  margin: 0.375rem 0;
-  padding: 0.125rem 0.625rem 0.5rem;
-  border: 1px solid var(--bord);
-  border-radius: 8px;
-}
-
-.execution__ligne legend {
-  font-weight: 700;
-}
-
-.execution__champs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
-  gap: 0 0.5rem;
-}
-
-.execution__champs .formulaire__champ input {
-  width: 100%;
-}
-
 .bouton--principal {
   border-color: var(--couleur-renforcement);
   background: var(--couleur-renforcement);
@@ -2132,7 +2074,7 @@ time,
 
 .execution__actions-flottantes .bouton--principal {
   font-weight: 700;
-  box-shadow: 0 8px 24px -4px rgb(91 61 158 / 0.3);
+  box-shadow: var(--ombre-cta);
 }
 
 @media (min-width: 1025px) {
@@ -2429,7 +2371,7 @@ time,
 /* Calendrier (maquette Stitch) : sélecteur de mois, filtres segmentés, grille de jours de 44 px, séances du jour, prochaines séances */
 .calendrier__entete {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: var(--hauteur-cellule) minmax(0, 1fr) var(--hauteur-cellule);
   align-items: center;
   gap: 0.5rem;
   margin: 0.5rem 0 0.75rem;
@@ -2439,9 +2381,9 @@ time,
 .calendrier__nav {
   display: grid;
   place-items: center;
-  width: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  width: var(--hauteur-cellule);
+  min-width: var(--hauteur-cellule);
+  min-height: var(--hauteur-cellule);
   padding: 0;
   border-radius: 50%;
   background: var(--fond-discret);
@@ -2462,7 +2404,7 @@ time,
 .calendrier__auj {
   grid-column: 1 / -1;
   justify-self: center;
-  min-height: 44px;
+  min-height: var(--hauteur-cellule);
   padding: 0 1rem;
   border-color: var(--calendrier-bord);
   border-radius: var(--radius-pilule);
@@ -3455,19 +3397,6 @@ time,
   list-style: none;
 }
 
-.edition__barre {
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  padding: 0.375rem 0 calc(0.375rem + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--bord);
-  background: var(--fond);
-}
-
-.edition__barre .bouton {
-  flex: 1 1 7rem;
-}
-
 .aide {
   margin: 0.125rem 0;
   color: var(--texte-secondaire);
@@ -3703,7 +3632,7 @@ time,
 .compteur__bouton {
   flex: none;
   width: 44px;
-  height: 44px;
+  height: var(--hauteur-cellule);
   border: 0;
   border-radius: var(--radius-bouton);
   background: transparent;
@@ -5014,13 +4943,13 @@ time,
 
 .bouton--degrade {
   border-color: transparent;
-  background: linear-gradient(135deg, #6d28d9, #5b3d9e);
-  box-shadow: 0 6px 16px -4px rgb(91 61 158 / 0.4);
+  background: var(--degrade-violet);
+  box-shadow: var(--ombre-degrade);
   color: #ffffff;
 }
 
 .liste-actions .bouton--degrade {
-  box-shadow: 0 6px 16px -4px rgb(91 61 158 / 0.4);
+  box-shadow: var(--ombre-degrade);
 }
 
 /* Recherche : libellé en capitales + compteur, champ de 48 px à rayon 12 */
@@ -5239,7 +5168,7 @@ time,
 
 .bilan__pied .bouton--principal {
   order: 2;
-  box-shadow: 0 8px 24px -4px rgb(91 61 158 / 0.3);
+  box-shadow: var(--ombre-cta);
 }
 
 .bilan__corriger {
@@ -5262,7 +5191,7 @@ time,
 .detail__hero {
   padding: 1rem;
   border-radius: var(--radius-grande);
-  background: linear-gradient(135deg, #6d28d9, #5b3d9e);
+  background: var(--degrade-violet);
   box-shadow: 0 12px 30px -4px rgb(109 40 217 / 0.2);
 }
 
@@ -5324,7 +5253,7 @@ time,
 }
 
 .detail__hero + .formulaire__ligne .bouton--principal {
-  box-shadow: 0 8px 24px -4px rgb(91 61 158 / 0.3);
+  box-shadow: var(--ombre-cta);
 }
 
 .demarrage {

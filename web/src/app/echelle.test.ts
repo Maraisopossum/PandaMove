@@ -71,8 +71,9 @@ describe('échelle de dimensions (jetons Stitch)', () => {
   it('le bouton ✓ garde une zone cliquable de 44 x 44 px', () => {
     const m = /\.tableau-series__fait \{([^}]*)\}/.exec(css)
     expect(m).not.toBeNull()
-    expect(m![1]).toMatch(/width:\s*44px/)
-    expect(m![1]).toMatch(/height:\s*44px/)
+    // 44 px, directement ou via le jeton --hauteur-cellule (testé plus haut)
+    expect(m![1]).toMatch(/width:\s*(44px|var\(--hauteur-cellule\))/)
+    expect(m![1]).toMatch(/height:\s*(44px|var\(--hauteur-cellule\))/)
   })
 
   it('la barre flottante réserve la zone sécurisée et porte l’ombre flottante', () => {
