@@ -1,10 +1,12 @@
 import { useEffect, useRef, type RefObject } from 'react'
+import { verrouillerDefilement } from './verrouDefilement'
 
 const FOCALISABLES = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 // Dialogue modal accessible : à l'ouverture le focus entre dans `conteneur` (sur `focusInitial` si fourni,
 // ex. un bouton non destructif ; sinon sur le premier élément focalisable) ; Tab / Maj+Tab y restent
 // piégés ; Échap appelle `onFermer` ; à la fermeture le focus revient à l'élément qui l'avait.
+// Pendant l'ouverture, la page derrière ne défile pas (verrouillerDefilement).
 export function usePiegeFocus(
   conteneur: RefObject<HTMLElement | null>,
   onFermer: () => void,
@@ -47,7 +49,9 @@ export function usePiegeFocus(
       }
     }
     document.addEventListener('keydown', surTouche)
+    const libererDefilement = verrouillerDefilement()
     return () => {
+      libererDefilement()
       document.removeEventListener('keydown', surTouche)
       precedent?.focus()
     }
