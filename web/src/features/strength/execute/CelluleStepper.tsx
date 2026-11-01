@@ -26,13 +26,15 @@ export function CelluleStepper({
   libelle, cible, valeur, facultatif, grisee, figee, suffixe = '', glyphes = { moins: '−', plus: '+' }, min, suivante, onCommit,
 }: Props) {
   const { texte, changer } = useChampNombre(valeur, facultatif, onCommit)
+  // « −5 » / « +5 » : texte plus petit pour tenir dans 24 px
+  const classePas = glyphes.moins.length > 1 ? 'tableau-series__pas tableau-series__pas--texte' : 'tableau-series__pas'
   const courant = valeur !== null && Number.isFinite(valeur) ? valeur : null
   const classes = ['tableau-series__cellule', grisee && !figee ? 'tableau-series__cellule--grisee' : '', figee ? 'tableau-series__cellule--figee' : '']
   return (
     <span className={classes.filter(Boolean).join(' ')}>
       <button
         type="button"
-        className="tableau-series__pas"
+        className={classePas}
         aria-label={`Diminuer ${cible}`}
         disabled={figee || (courant !== null && courant <= min)}
         onClick={() => onCommit(suivante(valeur, -1))}
@@ -55,7 +57,7 @@ export function CelluleStepper({
       )}
       <button
         type="button"
-        className="tableau-series__pas"
+        className={classePas}
         aria-label={`Augmenter ${cible}`}
         disabled={figee}
         onClick={() => onCommit(suivante(valeur, 1))}

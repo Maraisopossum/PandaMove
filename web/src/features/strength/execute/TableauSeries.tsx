@@ -30,7 +30,11 @@ export function TableauSeries({ nomExercice, tableau: t, lectureSeule, historiqu
           <span role="columnheader">{t.enDuree ? 'Temps' : 'Reps'}</span>
           <span role="columnheader">kg</span>
           <span role="columnheader">Repos</span>
-          {t.rpeVisible && <span role="columnheader">RPE</span>}
+          {t.rpeVisible && (
+            <span role="columnheader" className="visuellement-cache">
+              RPE
+            </span>
+          )}
           <span role="columnheader" className="visuellement-cache">
             Validation
           </span>
@@ -48,7 +52,7 @@ export function TableauSeries({ nomExercice, tableau: t, lectureSeule, historiqu
           <button type="button" className="bouton bouton--alerte" disabled={t.enCours} onClick={() => void t.supprimer()}>
             Supprimer
           </button>
-          <button type="button" className="bouton bouton--alerte" disabled={t.enCours} onClick={() => void t.ajouter()}>
+          <button type="button" className="bouton bouton--module" disabled={t.enCours} onClick={() => void t.ajouter()}>
             <span aria-hidden="true">＋ </span>Ajouter
           </button>
         </div>
@@ -124,7 +128,7 @@ function LigneSerie({
         />
       </span>
       {t.rpeVisible && (
-        <span role="cell" className="tableau-series__cellule" aria-label={l.rpe !== null ? `Série ${l.libelle}, RPE ${l.rpe}` : undefined}>
+        <span role="cell" className="tableau-series__rpe-valeur" aria-label={l.rpe !== null ? `Série ${l.libelle}, RPE ${l.rpe}` : undefined}>
           {l.rpe ?? ''}
         </span>
       )}

@@ -36,12 +36,28 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
         {e.pandaMotivation !== undefined && (
           <PandaIllustration image={e.pandaMotivation} sizes="96px" decoratif className="execution__panda" />
         )}
+        {e.demarre && !e.terminee && !e.enPause && <p className="execution__surtitre">Séance active</p>}
         <h1>{e.chargement ? 'Séance' : e.nomSeance}</h1>
-        <p className="execution__chrono" role="timer" aria-live="off" aria-label={e.libelleChrono}>
-          {e.chrono}
-        </p>
         {e.enPause && <p className="execution__etat">En pause</p>}
         {e.terminee && <p className="execution__etat">{correction ? 'Correction d’une séance terminée' : 'Séance terminée'}</p>}
+        <div className="execution__chrono-carte">
+          <div className="execution__chrono-bloc">
+            <p className="execution__chrono" role="timer" aria-live="off" aria-label={e.libelleChrono}>
+              {e.chrono}
+            </p>
+            <span className="execution__chrono-legende" aria-hidden="true">
+              Écoulé
+            </span>
+          </div>
+          {!e.terminee && (
+            <div className="execution__outils">
+              <button type="button" className="bouton" onClick={() => e.ouvrirFeuille('minuteur')}>
+                <span aria-hidden="true">⏱ </span>Minuteur
+              </button>
+              {e.trouvee && <MenuActions libelle="Actions de la séance" actions={e.menuSeance} />}
+            </div>
+          )}
+        </div>
         {e.repos.restantMs !== null &&
           (e.repos.termine ? (
             <p className="execution__repos" aria-live="off">
@@ -50,14 +66,6 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
           ) : (
             <MenuRepos texte={e.repos.texte} urgent={e.repos.urgent} onAllonger={e.repos.allonger} onEcourter={e.repos.ecourter} onArreter={e.repos.arreter} />
           ))}
-        {!e.terminee && (
-          <div className="execution__outils">
-            <button type="button" className="bouton" onClick={() => e.ouvrirFeuille('minuteur')}>
-              <span aria-hidden="true">⏱ </span>Minuteur
-            </button>
-            {e.trouvee && <MenuActions libelle="Actions de la séance" actions={e.menuSeance} />}
-          </div>
-        )}
       </header>
 
       {/* Résultat du circuit / du minuteur (terminé, arrêté, interrompu) : annoncé poliment, vide sinon */}
@@ -259,9 +267,23 @@ function CarteExercice({
   const noteSaisie = useNotesSeance(note.enregistree, note.enregistrer)
   return (
     <article className="execution__exercice" aria-labelledby={idTitre}>
-      <h3 id={idTitre} className="execution__nom">
-        {ex.nom}
-      </h3>
+      <div className="execution__tete">
+        <h3 id={idTitre} className="execution__nom">
+          {ex.nom}
+        </h3>
+        {!lectureSeule && (
+          <div className="execution__outils-exercice">
+            {outils.monteeDisponible && (
+              <button type="button" className="bouton" onClick={outils.ouvrirMontee}>
+                <span aria-hidden="true">⚡ </span>Montée en charge
+              </button>
+            )}
+            <button type="button" className="bouton" onClick={outils.ouvrirDisques}>
+              <span aria-hidden="true">🏋 </span>Disques
+            </button>
+          </div>
+        )}
+      </div>
       {ex.libelleSuperset && <span className="execution__superset">{ex.libelleSuperset}</span>}
       {ex.enchaineAvec && <p className="execution__enchainement">Enchaîne sans repos avec {ex.enchaineAvec}</p>}
       {bandeau && !lectureSeule && <BandeauLive nomExercice={ex.nom} bandeau={bandeau} />}
@@ -285,18 +307,6 @@ function CarteExercice({
           onBlur={noteSaisie.sortir}
         />
       </div>
-      {!lectureSeule && (
-        <div className="execution__outils-exercice">
-          {outils.monteeDisponible && (
-            <button type="button" className="bouton" onClick={outils.ouvrirMontee}>
-              <span aria-hidden="true">⚡ </span>Montée en charge
-            </button>
-          )}
-          <button type="button" className="bouton" onClick={outils.ouvrirDisques}>
-            <span aria-hidden="true">🏋 </span>Disques
-          </button>
-        </div>
-      )}
       <TableauSeries
         nomExercice={ex.nom}
         tableau={tableau}
