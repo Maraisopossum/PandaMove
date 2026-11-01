@@ -23,7 +23,7 @@ export default function StatsScreen() {
 
   return (
     <>
-      <h1>Statistiques</h1>
+      <h1 className="titre-ecran">Statistiques</h1>
 
       <div role="group" aria-label="Période" className="formulaire__ligne stats__periodes">
         {PERIODES.map((p) => (
@@ -67,14 +67,16 @@ export default function StatsScreen() {
             </div>
           </section>
 
-          <section aria-labelledby="stats-muscles" className="stats__section">
-            <h2 id="stats-muscles">Muscles travaillés</h2>
-            <div role="group" aria-label="Vue de la figure" className="formulaire__ligne">
-              {VUES.map((v) => (
-                <button key={v.id} type="button" className="bouton" aria-pressed={s.vue === v.id} onClick={() => s.setVue(v.id)}>
-                  {v.libelle}
-                </button>
-              ))}
+          <section aria-labelledby="stats-muscles" className="stats__section stats__section--carte">
+            <div className="stats__entete-carte">
+              <h2 id="stats-muscles">Muscles travaillés</h2>
+              <div role="group" aria-label="Vue de la figure" className="segmente">
+                {VUES.map((v) => (
+                  <button key={v.id} type="button" className="bouton" aria-pressed={s.vue === v.id} onClick={() => s.setVue(v.id)}>
+                    {v.libelle}
+                  </button>
+                ))}
+              </div>
             </div>
             <MuscleHeatmap image={s.image} vue={s.vue} zones={s.zonesVue} />
             <ul className="heatmap__niveaux" aria-label="Légende des couleurs">
@@ -103,7 +105,7 @@ export default function StatsScreen() {
       )}
 
       {s.pret && (
-        <section aria-labelledby="stats-historique" className="stats__section">
+        <section aria-labelledby="stats-historique" className="stats__section stats__section--carte">
           <h2 id="stats-historique">Historique d'un exercice</h2>
           {s.erreurHistorique && (
             <p role="alert" className="import__erreur">

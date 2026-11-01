@@ -139,6 +139,15 @@ Dans l'écran d'exécution d'une séance : un bloc **Circuit** (au moins un exer
 - **Couleurs des groupes musculaires** : les couleurs de l'Android servent de repère (liseré, teinte de la puce choisie) dans le sélecteur d'exercices ; le texte garde la couleur du thème (contrastes AA vérifiés).
 - **Export du rapport** : texte copiable, fichier HTML autonome, image PNG (dessinée sur un canvas, sans bibliothèque), partage natif.
 
+## Design
+
+La source de vérité visuelle est `web/DESIGN.md` (design system « PandaMove System » issu de Stitch) et `web/DESIGN.tokens.json`. Les jetons vivent dans `:root` de `src/app/app.css` : rayons (carte 16 px, bouton 12 px, grande carte 24 px, pilule), hauteurs (contrôle 48 px, cellule 44 px, barre 52 px), ombres, couleurs de module, accents d'écran.
+
+- **Polices** : Plus Jakarta Sans (titres) et Inter (corps), hébergées avec l'application (`@fontsource-variable`, `src/app/polices.css`), avec repli sur la pile système ; aucune requête vers un CDN.
+- **Échelle** : racine à 100 % (1 rem = 16 px) ; corps 16, petit 14, micro 13, titres 22 (mobile) / 20 / 18, titre d'écran 24, chiffre clé 24-26, chrono 40. Elle suit le réglage de taille de police de l'utilisateur.
+- **Thème** : clair par défaut, sombre par choix explicite (Profil ou menu) ; contrastes AA vérifiés dans les deux thèmes (`src/app/contraste*.test.ts`).
+- **Écarts assumés (accessibilité AA)** : barre du calendrier `#D24700` (au lieu de `#E65100`), vert et violet éclaircis en thème sombre, texte orange du calendrier `#B43C00`, barre du haut de 52 px, cellules tactiles de 44 px. Liste complète en tête de `DESIGN.md`.
+
 ## Sauvegarde
 
 Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne pas dépendre seulement de ces services, faire régulièrement une sauvegarde locale.

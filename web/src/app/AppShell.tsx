@@ -45,7 +45,9 @@ export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, de
             aria-controls="drawer"
             onClick={drawer.basculer}
           >
-            <span aria-hidden="true">☰</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden="true" focusable="false">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
           </button>
           <span className="barre__titre">{module.label}</span>
           {indicateurSynchro}

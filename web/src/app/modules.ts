@@ -13,23 +13,25 @@ export interface ModuleInfo {
   sousLiens?: SousLien[]
 }
 
-// Couleurs de DESIGN.md (PandaPurple, PandaOrange, PandaOrangeDark...). Les modules « génériques »
-// (accueil, profil) prennent un gris sombre neutre. Texte blanc sur toutes ces couleurs.
+// Couleurs de la barre du haut selon le design system Stitch « PandaMove System » (web/DESIGN.md §2).
+// Texte blanc >= 4,5:1 sur chacune (testé dans contraste.test.ts). Écart assumé : le calendrier utilise
+// #D24700 au lieu de #E65100 (3,8:1 seulement avec du texte blanc) ; #E65100 reste la couleur d'accent
+// (jeton --couleur-calendrier) pour les éléments non textuels.
 export const MODULES: Record<ModuleId, ModuleInfo> = {
-  home: { path: '/', label: 'Accueil', color: '#1E1E22' },
+  home: { path: '/', label: 'Accueil', color: '#5B3D9E' },
   strength: {
     path: '/strength',
     label: 'Renforcement',
-    color: '#7C5CBF',
+    color: '#5B3D9E',
     sousLiens: [
       { path: '/strength', label: 'Séances types' },
       { path: '/strength/planned', label: 'Séances programmées' },
       { path: '/strength/done', label: 'Séances terminées' },
     ],
   },
-  calendar: { path: '/calendar', label: 'Calendrier', color: '#E65100' },
+  calendar: { path: '/calendar', label: 'Calendrier', color: '#D24700' },
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C' },
-  profile: { path: '/profile', label: 'Profil', color: '#5A5E4C' },
+  profile: { path: '/profile', label: 'Profil', color: '#576746' },
   import: { path: '/import', label: 'Import', color: '#1565C0' },
 }
 

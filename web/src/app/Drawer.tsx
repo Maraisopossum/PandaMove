@@ -15,7 +15,16 @@ interface Props {
 export function Drawer({ refNav, ouvert, onNavigation, deconnexion, sombre }: Props) {
   return (
     <nav ref={refNav} id="drawer" className={`drawer${ouvert ? ' drawer--ouvert' : ''}`} aria-label="Navigation principale">
-      <p className="drawer__marque">PandaMove</p>
+      <div className="drawer__entete">
+        <span className="drawer__logo" aria-hidden="true">
+          P
+        </span>
+        <div>
+          <p className="drawer__marque">PandaMove</p>
+          <p className="drawer__signature">Fitness &amp; Training</p>
+        </div>
+      </div>
+      <div className="drawer__liens">
       {Object.values(MODULES).map(({ path, label, color, sousLiens }) => {
         const style = { '--couleur-module': color } as CSSProperties
         return (
@@ -46,11 +55,16 @@ export function Drawer({ refNav, ouvert, onNavigation, deconnexion, sombre }: Pr
           </Fragment>
         )
       })}
+      </div>
       <div className="drawer__pied">
-        <button type="button" className="bouton" aria-pressed={sombre.dark} onClick={() => sombre.setDark(!sombre.dark)}>
+        <button type="button" className="bouton drawer__sombre" aria-pressed={sombre.dark} onClick={() => sombre.setDark(!sombre.dark)}>
           Mode sombre
+          <span className="drawer__interrupteur" aria-hidden="true" />
         </button>
-        <button type="button" className="bouton" disabled={deconnexion.enCours} onClick={() => void deconnexion.deconnecter()}>
+        <button type="button" className="bouton drawer__deconnexion" disabled={deconnexion.enCours} onClick={() => void deconnexion.deconnecter()}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+          </svg>
           Se déconnecter
         </button>
         {deconnexion.avertissement && (

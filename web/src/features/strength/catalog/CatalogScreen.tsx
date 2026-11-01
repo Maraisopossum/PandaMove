@@ -16,7 +16,7 @@ export default function CatalogScreen() {
 
   return (
     <>
-      <h1>Catalogue d'exercices</h1>
+      <h1 className="titre-ecran">Catalogue d'exercices</h1>
 
       <div className="catalogue__filtres" role="search">
         <div className="formulaire__champ">
@@ -51,7 +51,7 @@ export default function CatalogScreen() {
           />
           Favoris seulement
         </label>
-        <button type="button" className="bouton" onClick={form.nouveau}>
+        <button type="button" className="bouton bouton--degrade" onClick={form.nouveau}>
           Nouvel exercice
         </button>
       </div>

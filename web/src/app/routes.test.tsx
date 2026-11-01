@@ -110,7 +110,7 @@ describe('moduleActif', () => {
 
 describe('MODULES', () => {
   it('strength est violet et stats est orange (DESIGN.md)', () => {
-    expect(MODULES.strength.color).toBe('#7C5CBF')
+    expect(MODULES.strength.color).toBe('#5B3D9E')
     expect(MODULES.stats.color).toBe('#BF360C')
   })
 })

@@ -32,14 +32,17 @@ export default function SeanceListScreen() {
 
   return (
     <>
-      <h1>Renforcement</h1>
+      <div className="liste-tete">
+        <h1>Mes séances</h1>
+        <span className="liste-tete__chip">Modèles</span>
+      </div>
       <p className="ecran__aide">
         Vos séances types (des modèles réutilisables : « Lancer », 📅 pour les planifier), puis vos séances programmées et terminées.
       </p>
       {!sel.mode && (
-        <div className="formulaire__ligne">
+        <div className="liste-actions">
           {!l.vide && (
-            <Link to="/strength/new" className="bouton bouton--principal lien-bouton">
+            <Link to="/strength/new" className="bouton bouton--degrade lien-bouton">
               <span aria-hidden="true">＋ </span>Nouvelle séance
             </Link>
           )}
@@ -98,8 +101,13 @@ export default function SeanceListScreen() {
             <section aria-labelledby="titre-types">
               <h2 id="titre-types">Séances types</h2>
               {l.rechercheVisible && (
-                <div className="formulaire__champ">
-                  <label htmlFor="recherche-seances">Rechercher une séance</label>
+                <div className="recherche">
+                  <div className="recherche__tete">
+                    <label htmlFor="recherche-seances">Rechercher une séance</label>
+                    <span className="recherche__compte">
+                      {l.cartes.length} modèle{l.cartes.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
                   <input
                     id="recherche-seances"
                     type="search"

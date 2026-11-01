@@ -124,6 +124,57 @@ describe('ExecuteScreen', () => {
     expect(await series('i-saisie')).toHaveLength(1)
   })
 
+  it('steppers − / + : reps ±1, kg ±2,5, repos ±5 s, saisie clavier conservée, écrits à la validation', async () => {
+    await instance('i-steppers')
+    monter('i-steppers')
+    fireEvent.click(await screen.findByRole('button', { name: 'Démarrer' }))
+    await screen.findByRole('button', { name: 'Pause' })
+    const dc = carte('Développé couché')
+    const champ = (nom: string) => within(dc).getByLabelText(nom) as HTMLInputElement
+
+    fireEvent.click(within(dc).getByRole('button', { name: 'Augmenter les répétitions, série 1' }))
+    expect(champ('Série 1, répétitions').value).toBe('9')
+    fireEvent.click(within(dc).getByRole('button', { name: 'Diminuer les répétitions, série 1' }))
+    fireEvent.click(within(dc).getByRole('button', { name: 'Diminuer les répétitions, série 1' }))
+    expect(champ('Série 1, répétitions').value).toBe('7')
+    // Une valeur modifiée n'est plus « prévue » : elle n'est plus grisée
+    expect(champ('Série 1, répétitions').closest('.tableau-series__cellule--grisee')).toBeNull()
+
+    fireEvent.click(within(dc).getByRole('button', { name: 'Augmenter la charge, série 1' }))
+    expect(champ('Série 1, charge en kilogrammes').value).toBe('62,5')
+    // La charge se répercute sur les séries suivantes non validées
+    expect(champ('Série 2, charge en kilogrammes').value).toBe('62,5')
+
+    fireEvent.click(within(dc).getByRole('button', { name: 'Augmenter le repos de 5 secondes, série 1' }))
+    expect(champ('Série 1, repos en secondes').value).toBe('95')
+    fireEvent.click(within(dc).getByRole('button', { name: 'Diminuer le repos de 5 secondes, série 1' }))
+    fireEvent.click(within(dc).getByRole('button', { name: 'Diminuer le repos de 5 secondes, série 1' }))
+    expect(champ('Série 1, repos en secondes').value).toBe('85')
+
+    // Le clavier reste possible, virgule décimale comprise, puis un pas repart de la valeur saisie
+    fireEvent.change(champ('Série 1, charge en kilogrammes'), { target: { value: '70,5' } })
+    fireEvent.click(within(dc).getByRole('button', { name: 'Diminuer la charge, série 1' }))
+    expect(champ('Série 1, charge en kilogrammes').value).toBe('68')
+
+    fireEvent.click(within(dc).getByRole('button', { name: 'Valider la série 1' }))
+    await waitFor(async () => expect(await series('i-steppers')).toMatchObject([{ numero_serie: 1, reps_realisees: 7, charge_kg: 68 }]))
+    // Série validée : plus de pas possible
+    expect((within(dc).getByRole('button', { name: 'Augmenter les répétitions, série 1' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((within(dc).getByRole('button', { name: 'Diminuer la charge, série 1' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('le bouton − s’arrête au minimum (1 rep, 0 kg, 0 s)', async () => {
+    await instance('i-min')
+    monter('i-min')
+    const dc = await screen.findByRole('article', { name: 'Développé couché' })
+    fireEvent.change(within(dc).getByLabelText('Série 1, répétitions'), { target: { value: '1' } })
+    expect((within(dc).getByRole('button', { name: 'Diminuer les répétitions, série 1' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(within(dc).getByLabelText('Série 1, charge en kilogrammes'), { target: { value: '0' } })
+    expect((within(dc).getByRole('button', { name: 'Diminuer la charge, série 1' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(within(dc).getByLabelText('Série 1, repos en secondes'), { target: { value: '0' } })
+    expect((within(dc).getByRole('button', { name: 'Diminuer le repos de 5 secondes, série 1' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it('« Ajouter » et « Supprimer » changent le nombre de lignes', async () => {
     await instance('i-lignes')
     monter('i-lignes')

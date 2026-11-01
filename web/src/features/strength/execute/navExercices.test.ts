@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { composer, ratioContraste } from '../../../app/contraste'
 import { mapBloc, mapExerciceSeance, mapSerie } from '../../../core/db/repos/mappers'
 import {
-  COULEURS_BLOC, construireNav, couleursBloc, exerciceTermine, indexParDefaut, libelleCourt,
-  positionDefilement,
+  COULEURS_BLOC, construireNav, couleursBloc, exerciceTermine, indexParDefaut, libelleCourt, positionDefilement, progressionNav,
 } from './navExercices'
 import { construireVue, type ExerciceVue } from './vue'
 
@@ -96,6 +95,27 @@ describe('construireNav', () => {
   it('exercice terminé : état « terminé »', () => {
     const fini = construireNav(vue(blocs, exos, [serie('e1', 1), serie('e1', 2)]).blocs, 'e1')
     expect(fini[0].badges[0]).toMatchObject({ termine: true, etat: 'terminé' })
+  })
+})
+
+describe('construireNav : rang du bloc, statut des badges, progression', () => {
+  const blocs = [bloc('e', 0, 'ECHAUFFEMENT'), bloc('f', 1, 'AUTRE')]
+  const exos = [ex('e1', 'e', 0), ex('e2', 'e', 1), ex('f1', 'f', 0)]
+  const nav = construireNav(vue(blocs, exos, [serie('e1', 1), serie('e1', 2)]).blocs, 'e2')
+
+  it('chaque groupe porte son rang (à partir de 1) et le nom de son bloc', () => {
+    expect(nav.map((g) => [g.rang, g.nom])).toEqual([[1, 'Bloc e'], [2, 'Bloc f']])
+  })
+  it('statut court : Terminé, En cours (actif), À venir', () => {
+    expect(nav.flatMap((g) => g.badges.map((b) => b.statut))).toEqual(['Terminé', 'En cours', 'À venir'])
+  })
+  it('un exercice terminé et actif reste « En cours » (il est affiché)', () => {
+    const t = construireNav(vue(blocs, exos, [serie('e1', 1), serie('e1', 2)]).blocs, 'e1')
+    expect(t[0].badges[0].statut).toBe('En cours')
+  })
+  it('progression : rang de l’exercice actif sur le total, 0 sans exercice actif', () => {
+    expect(progressionNav(nav)).toEqual({ rang: 2, total: 3 })
+    expect(progressionNav(construireNav(vue(blocs, exos).blocs, null))).toEqual({ rang: 0, total: 3 })
   })
 })
 

@@ -204,7 +204,7 @@ export default function EquipmentScreen() {
   const avecPas = categoriesAvecPas(m.categories, m.pasParCategorie)
   return (
     <>
-      <h1>Mon matériel</h1>
+      <h1 className="titre-ecran">Mon matériel</h1>
       <p>Déclarez votre matériel : la progression de charge proposera des valeurs réellement composables.</p>
 
       <fieldset className="formulaire__groupe materiel__section">

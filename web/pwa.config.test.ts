@@ -37,6 +37,12 @@ describe('configuration PWA', () => {
     expect(motifs.join(',')).toMatch(/html/)
   })
 
+  it('précache les polices woff2 (rendu identique hors ligne), sans autre format de police', () => {
+    const motifs = (pwaOptions.workbox?.globPatterns ?? []).join(',')
+    expect(motifs).toMatch(/woff2/)
+    expect(motifs).not.toMatch(/woff[^2]|ttf|otf|eot/)
+  })
+
   it('icônes légères (précachées à l’installation) : chacune < 150 Ko', () => {
     for (const icone of manifest.icons) {
       const taille = statSync(join(import.meta.dirname, 'public', icone.src)).size

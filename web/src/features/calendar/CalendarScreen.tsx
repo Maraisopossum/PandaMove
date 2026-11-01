@@ -36,7 +36,7 @@ function LigneSeance({ seance, avecDate, onDate, onSupprimer }: LigneProps) {
   const quand = formaterJourLong(seance.dateIso)
   const terminee = seance.etat === 'terminee'
   return (
-    <li className="calendrier__seance">
+    <li className="seance__carte calendrier__seance">
       <div className="seance__texte">
         <h3 className="seance__nom">{seance.nom}</h3>
         <p className="seance__details">
@@ -47,7 +47,7 @@ function LigneSeance({ seance, avecDate, onDate, onSupprimer }: LigneProps) {
       <div className="seance__actions">
         <Link
           to={terminee ? `/strength/instance/${seance.id}/report` : `/strength/instance/${seance.id}`}
-          className="bouton lien-bouton"
+          className="bouton bouton--principal lien-bouton"
           aria-label={`Ouvrir ${seance.nom}, ${quand}`}
         >
           Ouvrir
@@ -71,24 +71,24 @@ export default function CalendarScreen() {
 
   return (
     <>
-      <h1>Calendrier</h1>
+      <h1 className="titre-ecran">Calendrier</h1>
 
       <div className="calendrier__entete">
-        <button type="button" className="bouton" aria-label="Mois précédent" onClick={c.precedent}>
+        <button type="button" className="bouton calendrier__nav" aria-label="Mois précédent" onClick={c.precedent}>
           <span aria-hidden="true">‹</span>
         </button>
         <h2 className="calendrier__mois" aria-live="polite">
           {c.titreMois}
         </h2>
-        <button type="button" className="bouton" aria-label="Mois suivant" onClick={c.suivant}>
+        <button type="button" className="bouton calendrier__nav" aria-label="Mois suivant" onClick={c.suivant}>
           <span aria-hidden="true">›</span>
         </button>
-        <button type="button" className="bouton" onClick={c.auj}>
+        <button type="button" className="bouton calendrier__auj" onClick={c.auj}>
           Aujourd'hui
         </button>
       </div>
 
-      <div role="group" aria-label="Filtrer par statut" className="formulaire__ligne">
+      <div role="group" aria-label="Filtrer par statut" className="segmente">
         {FILTRES.map((f) => (
           <button
             key={f.statut}
@@ -145,6 +145,21 @@ export default function CalendarScreen() {
             ))}
           </div>
 
+          <ul className="calendrier__legende" aria-hidden="true">
+            <li>
+              <span className="calendrier__point calendrier__point--terminee" />
+              Terminée
+            </li>
+            <li>
+              <span className="calendrier__point" />
+              Programmée
+            </li>
+            <li>
+              <span className="calendrier__point calendrier__point--en_cours" />
+              En cours
+            </li>
+          </ul>
+
           {c.aucuneSeanceCeMois && (
             <div className="calendrier__vide">
               <PandaIllustration image={c.pandaRepos} sizes="96px" decoratif className="calendrier__panda" />
@@ -156,7 +171,13 @@ export default function CalendarScreen() {
             <section aria-labelledby="calendrier-detail" className="calendrier__section">
               <h2 id="calendrier-detail">{c.titreDetail}</h2>
               {c.detail.instances.length === 0 ? (
-                <p>Aucune séance ce jour-là.</p>
+                <div className="calendrier__jour-vide">
+                  <p>Aucune séance ce jour-là.</p>
+                  <p className="aide">Programmez-en une depuis vos séances (icône calendrier).</p>
+                  <Link to="/strength" className="bouton lien-bouton">
+                    Voir mes séances
+                  </Link>
+                </div>
               ) : (
                 <ul className="seances__liste">
                   {c.detail.instances.map((i) => (
@@ -170,7 +191,7 @@ export default function CalendarScreen() {
           <section aria-labelledby="calendrier-prochaines" className="calendrier__section">
             <h2 id="calendrier-prochaines">Prochaines séances</h2>
             {c.prochaines.length === 0 ? (
-              <p>Aucune séance à venir.</p>
+              <p className="calendrier__avenir-vide">Aucune séance à venir.</p>
             ) : (
               <ul className="seances__liste">
                 {c.prochaines.map((i) => (
