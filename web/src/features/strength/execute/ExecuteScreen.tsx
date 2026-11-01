@@ -16,6 +16,7 @@ import { LancementCircuit } from './circuit/LancementCircuit'
 import { OverlayCircuit } from './circuit/OverlayCircuit'
 import { useEcranExecution } from './useEcranExecution'
 import { useNotesSeance } from './useNotesSeance'
+import { chargeSuivante } from './pasSteppers'
 import { TableauSeries } from './TableauSeries'
 import { texteCibles, type ExerciceVue } from './vue'
 
@@ -296,7 +297,13 @@ function CarteExercice({
           </button>
         </div>
       )}
-      <TableauSeries nomExercice={ex.nom} tableau={tableau} lectureSeule={lectureSeule} historique={historique} />
+      <TableauSeries
+        nomExercice={ex.nom}
+        tableau={tableau}
+        lectureSeule={lectureSeule}
+        historique={historique}
+        chargeSuivante={(valeur, sens) => chargeSuivante(valeur, sens, ex.equipement, outils.inventaire)}
+      />
     </article>
   )
 }

@@ -20,3 +20,38 @@ describe('contrastes AA des outils de l’exécution', () => {
     expect(ratioContraste(texte, fond)).toBeGreaterThanOrEqual(4.5)
   })
 })
+
+// Tableau de séries à steppers (app.css) : texte >= 4,5:1, éléments graphiques (coche, bouton −/+) >= 3:1.
+describe('contrastes du tableau de séries à steppers', () => {
+  const ligneClair = sur('#5b3d9e', 0.08, '#ffffff')
+  const ligneSombre = sur('#c9b6f2', 0.12, '#1e1e22')
+  const estompe = (texte: string, fond: string) => composer({ couleur: texte, alpha: 0.65 }, fond)
+
+  it.each([
+    ['n° de la série en cours, clair', '#5b3d9e', ligneClair],
+    ['n° de la série en cours, sombre', '#c9b6f2', ligneSombre],
+    ['n° des autres séries sur la ligne en cours, clair', '#5c5c66', ligneClair],
+    ['n° des autres séries sur la ligne en cours, sombre', '#a8a8b3', ligneSombre],
+    ['valeur grisée (prévu) sur cellule, clair', '#5c5c66', '#ffffff'],
+    ['valeur grisée (prévu) sur cellule, sombre', '#a8a8b3', '#1e1e22'],
+    ['valeur d’une série validée (estompée), clair', estompe('#1e1e22', '#ffffff'), '#ffffff'],
+    ['valeur d’une série validée (estompée), sombre', estompe('#f2f2f5', '#1e1e22'), '#1e1e22'],
+    ['en-têtes de colonnes, clair', '#5c5c66', '#f6f6f8'],
+    ['en-têtes de colonnes, sombre', '#a8a8b3', '#121214'],
+  ])('texte : %s', (_nom, texte, fond) => {
+    expect(ratioContraste(texte, fond)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it.each([
+    ['coche blanche sur cercle validé #059669, clair', '#ffffff', '#059669'],
+    ['coche sombre sur cercle validé #34d399, sombre', '#0f2a22', '#34d399'],
+    ['cercle validé sur la ligne en cours, clair', '#059669', ligneClair],
+    ['cercle validé sur la ligne en cours, sombre', '#34d399', ligneSombre],
+    ['boutons − / + sur cellule, clair', '#7c5cbf', '#ffffff'],
+    ['boutons − / + sur cellule, sombre', '#b8a1f0', '#1e1e22'],
+    ['liseré de la série en cours, clair', '#5b3d9e', '#ffffff'],
+    ['liseré de la série en cours, sombre', '#c9b6f2', '#1e1e22'],
+  ])('graphique : %s', (_nom, premier, second) => {
+    expect(ratioContraste(premier, second)).toBeGreaterThanOrEqual(3)
+  })
+})
