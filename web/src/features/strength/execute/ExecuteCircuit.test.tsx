@@ -72,7 +72,7 @@ async function passer(s: number) {
 // Laisse toutes les promesses (écritures en base, relectures, rendus) se terminer : chaque tour passe par une
 // vraie macro-tâche (setImmediate n'est pas simulé), qui vide entièrement la file de micro-tâches
 async function viderFile() {
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 40; i++) {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
       await new Promise((resolve) => setImmediate(resolve))
