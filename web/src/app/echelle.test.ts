@@ -41,15 +41,27 @@ describe('échelle de dimensions (jetons Stitch)', () => {
     expect(css).not.toMatch(/\nhtml\s*\{[^}]*font-size:\s*(?!100%)\d/)
   })
 
-  it('tailles rendues à 390 px : corps 16, petit 14, micro 13, titre mobile 22, KPI 26, chrono 40', () => {
-    expect(px('--taille-corps')).toBe(16)
-    expect(px('--taille-petit')).toBe(14)
-    expect(px('--taille-micro')).toBe(13)
-    expect(px('--taille-titre-1')).toBe(22)
-    expect(px('--taille-titre-2')).toBe(20)
-    expect(px('--taille-titre-3')).toBe(18)
-    expect(px('--taille-kpi')).toBe(26)
-    expect(px('--taille-chrono')).toBe(40)
+  it('tailles rendues sur téléphone : corps 15, petit 13, micro 12, titres 20 / 18 / 16, KPI 22, chrono 34', () => {
+    expect(px('--taille-corps')).toBe(15)
+    expect(px('--taille-petit')).toBe(13)
+    expect(px('--taille-micro')).toBe(12)
+    expect(px('--taille-titre-1')).toBe(20)
+    expect(px('--taille-titre-2')).toBe(18)
+    expect(px('--taille-titre-3')).toBe(16)
+    expect(px('--taille-kpi')).toBe(22)
+    expect(px('--taille-chrono')).toBe(34)
+  })
+
+  it('au-dessus de 640 px : valeurs Stitch (corps 16, petit 14, micro 13, titre 28, KPI 26, chrono 40)', () => {
+    const m = /@media \(min-width: 641px\) \{\s*:root \{([^}]*)\}/.exec(css)
+    expect(m).not.toBeNull()
+    const v = (nom: string) => parseFloat(new RegExp(`${nom}:\\s*([\\d.]+)rem`).exec(m![1])![1]) * PX_PAR_REM
+    expect(v('--taille-corps')).toBe(16)
+    expect(v('--taille-petit')).toBe(14)
+    expect(v('--taille-micro')).toBe(13)
+    expect(v('--taille-titre-1')).toBe(28)
+    expect(v('--taille-kpi')).toBe(26)
+    expect(v('--taille-chrono')).toBe(40)
   })
 
   it('aucun texte courant ne descend sous 12 px', () => {
