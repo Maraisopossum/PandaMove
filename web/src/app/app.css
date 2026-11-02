@@ -1643,7 +1643,14 @@ time,
 .navex__groupe {
   --bloc-texte: var(--bloc-clair, #5b3d9e);
   --bloc-sur-plein: #ffffff;
+  /* Même cadre (transparent hors bloc) pour tous les groupes : étiquette en haut, exercices alignés en bas */
+  display: flex;
   flex: none;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-carte);
   scroll-snap-align: start;
 }
 
@@ -1654,9 +1661,7 @@ time,
 
 /* Groupe encadré (bloc d'échauffement, superset, circuit…) : carte blanche, bordure du bloc quand il est actif */
 .navex__groupe--cadre {
-  padding: 6px;
-  border: 1px solid var(--bord);
-  border-radius: var(--radius-carte);
+  border-color: var(--bord);
   background: var(--surface);
 }
 
@@ -1668,6 +1673,11 @@ time,
   display: flex;
   align-items: baseline;
   gap: 6px;
+  /* Reste visible quand le groupe défile à gauche de l'écran */
+  position: sticky;
+  left: calc(var(--marge-page) + 4px);
+  align-self: flex-start;
+  max-width: 100%;
   margin: 0 0 4px 4px;
   color: var(--texte-secondaire);
   font-size: 0.625rem;
@@ -1699,10 +1709,12 @@ time,
 .navex__badge {
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: 9.5rem;
-  min-height: var(--hauteur-controle);
-  padding: 6px 12px 6px 8px;
+  gap: 6px;
+  /* Même largeur et même hauteur pour toutes les vignettes */
+  box-sizing: border-box;
+  width: 7.5rem;
+  height: var(--hauteur-cellule);
+  padding: 0 8px 0 5px;
   border: 2px solid var(--bord);
   border-radius: var(--radius-bouton);
   background: color-mix(in srgb, var(--texte) 4%, var(--surface));
@@ -1728,12 +1740,12 @@ time,
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--bloc-texte) 10%, transparent);
   color: var(--bloc-texte);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -1750,8 +1762,8 @@ time,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid var(--surface);
   border-radius: 50%;
   background: var(--couleur-succes);
