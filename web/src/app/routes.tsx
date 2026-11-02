@@ -28,7 +28,8 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
     // Détail d'un modèle ; les chemins statiques (new, planned, done, catalog, instance/…) l'emportent sur :id
     { path: 'strength/:id', element: chargement(<SeanceDetailScreen />) },
     { path: 'strength/:id/edit', element: chargement(<SeanceEditScreen />) },
-    { path: 'strength/instance/:id', element: chargement(<ExecuteScreen />) },
+    // Monté et gardé en vie par ExecutionEnFond (coque) : la séance continue quand on navigue ailleurs
+    { path: 'strength/instance/:id', element: null },
     { path: 'strength/instance/:id/edit', element: chargement(<SeanceEditScreen instance />) },
     { path: 'strength/instance/:id/correct', element: chargement(<ExecuteScreen correction />) },
     { path: 'strength/instance/:id/report', element: chargement(<ReportScreen />) },

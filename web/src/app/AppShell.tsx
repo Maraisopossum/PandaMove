@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { Outlet } from 'react-router'
 import { BandeauSeanceActive } from '../features/strength/execute/BandeauSeanceActive'
+import { ExecutionEnFond } from '../features/strength/execute/ExecutionEnFond'
 import { AlerteRejetEnvoi } from '../core/sync/AlerteRejetEnvoi'
 import { SyncIndicator } from '../core/sync/SyncIndicator'
 import { Drawer } from './Drawer'
@@ -64,6 +65,7 @@ export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, de
         )}
         <main id="contenu" tabIndex={-1} className="contenu">
           {children}
+          <ExecutionEnFond />
         </main>
       </div>
     </div>
