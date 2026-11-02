@@ -52,6 +52,7 @@ export function texteProposition(p: PropositionProgression): string {
 
 /** Explication du statut en langage courant. */
 export function texteStatut(p: PropositionProgression): string {
+  if (p.dechargePlanifiee) return 'Décharge planifiée : le délai réglé depuis la dernière décharge est écoulé. Réduction de 10 % proposée ; vous pouvez la refuser ou choisir votre charge.'
   if (p.deload) return 'Deload proposé : réduction de 10 % après échecs répétés. Vous pouvez le refuser ou choisir votre charge.'
   switch (p.statut) {
     case 'SUCCES':
