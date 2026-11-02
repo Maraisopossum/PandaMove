@@ -198,8 +198,13 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     await act(async () => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    await passer(0)
-    const fin = await series(id)
+    // Le rattrapage écrit en base de façon asynchrone : on attend le résultat plutôt qu'un nombre de tours fixe
+    // (la CI chargée en demande davantage)
+    let fin = await series(id)
+    for (let i = 0; i < 60 && fin.length < 4; i++) {
+      await passer(0)
+      fin = await series(id)
+    }
     expect(fin).toHaveLength(4)
     expect(new Set(fin.map((s) => `${s.exercice_seance_id}#${s.numero_serie}`)).size).toBe(4)
     expect(screen.queryByRole('dialog')).toBeNull()
