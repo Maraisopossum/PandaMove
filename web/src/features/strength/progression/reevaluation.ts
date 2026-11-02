@@ -4,7 +4,7 @@ import { getObjectif, saveObjectif, supprimerObjectif } from '../../../core/db/r
 import { changerSeriesPrevues } from '../../../core/db/repos/series'
 import type { InstanceSeance } from '../../../core/db/types'
 import {
-  retirerExercice, serialiserProgression, enregistrerBase, type BaseExercice, type EtatProgression, type ObjectifMarque,
+  REGLE_PROGRESSION, retirerExercice, serialiserProgression, enregistrerBase, type BaseExercice, type EtatProgression, type ObjectifMarque,
   type PropositionMarquee,
 } from '../../../core/progression/marqueur'
 import {
@@ -52,8 +52,9 @@ const memeObjectif = (a: ObjectifMarque, b: ObjectifMarque) =>
 
 // Exercices dont la proposition, recalculée depuis la base d'origine, diffère de celle d'origine.
 async function analyser(db: DbLecture, instance: InstanceSeance, userId: string | undefined): Promise<Analyse[]> {
-  const bases = instance.progression?.bases
-  if (!bases || Object.keys(bases).length === 0) return []
+  // Seules les bases écrites avec la règle courante sont recalculées : un bilan évalué avec une ancienne règle reste figé
+  const bases = Object.fromEntries(Object.entries(instance.progression?.bases ?? {}).filter(([, b]) => b.regle === REGLE_PROGRESSION))
+  if (Object.keys(bases).length === 0) return []
   const evaluations = await evaluerInstance(db, instance.id, userId, bases)
   return evaluations.flatMap((evaluation) => {
     const base = bases[evaluation.exerciceId]

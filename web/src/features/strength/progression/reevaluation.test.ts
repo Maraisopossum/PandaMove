@@ -251,4 +251,19 @@ describe('Correction d’une séance terminée : recalcul de la progression', ()
     expect(await corriger()).toEqual([])
     expect(await objectifVivant()).toMatchObject({ compteur_echec: 2 })
   })
+
+  it('séance évaluée avec une ancienne règle (base sans version) : jamais recalculée, décision et objectif intacts', async () => {
+    await exercice()
+    await series([8, 8, 8])
+    await decider({ type: 'accepter' })
+    // Marqueur d'avant la règle versionnée : on retire la version de la base
+    const m = await marqueur()
+    for (const b of Object.values(m.bases ?? {})) delete (b as { regle?: number }).regle
+    await db.execute("UPDATE instances_seance SET progression_json = ? WHERE id = 'i1'", [JSON.stringify(m)])
+    const avant = await objectifVivant()
+    await corrigerReps(5)
+    expect(await corriger()).toEqual([])
+    expect(await objectifVivant()).toEqual(avant)
+    expect((await marqueur()).decisions).toEqual({ e1: 'acceptee' })
+  })
 })

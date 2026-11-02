@@ -119,8 +119,8 @@ function executer(cas: Cas): unknown {
 const tousLesCas = fixtures.cas as Cas[]
 
 describe('ProgressionEngine (fixtures partagées avec Kotlin)', () => {
-  it('reprend les 30 tests de ProgressionEngineTest.kt', () => {
-    expect(tousLesCas.filter((c) => c.origine === 'test-kotlin')).toHaveLength(30)
+  it('reprend les tests de ProgressionEngineTest.kt, sauf 3 cas dont la règle a changé (Android abandonné)', () => {
+    expect(tousLesCas.filter((c) => c.origine === 'test-kotlin')).toHaveLength(27)
   })
 
   it.each(tousLesCas)('$origine : $nom', (cas) => {

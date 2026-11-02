@@ -1,4 +1,6 @@
-// Portage de ProgressionEngine.kt (logique pure de la bible de progression, §2.3/§4).
+// Portage de ProgressionEngine.kt (logique pure de la bible de progression, §2.3/§4). L'Android est abandonné : le moteur
+// diverge désormais du Kotlin (règle versionnée REGLE_PROGRESSION dans marqueur.ts : double progression sur les
+// répétitions atteintes, charge soulevée reprise, côté faible en bilatéral, RPE ignoré).
 //
 // Précision flottante : les charges, pourcentages et RPE sont des Float 32 bits côté Kotlin.
 // Chaque valeur Float lue en entrée et chaque opération arithmétique Float (multiplication par
@@ -66,7 +68,6 @@ const SEUIL_ECART_LEGER = f32(0.15)
 const SEUIL_ECART_FLAG = f32(0.3)
 
 // RPE moyen à partir duquel on considère qu'il n'y a plus de marge, même en cas de succès (bible §4.5).
-const RPE_SANS_MARGE = 9
 
 const POURCENTAGE_DELOAD = f32(0.1)
 
@@ -137,6 +138,8 @@ interface ResultatBrut {
   statut: StatutExercice
   rpeMoyen: number | null
   valeurAtteinte: number | null
+  // Plus petite charge réellement soulevée (null si une série n'a pas de charge : poids de corps)
+  chargeMinKg: number | null
 }
 
 const RANG_SEVERITE: Record<StatutExercice, number> = {
@@ -149,7 +152,14 @@ const RANG_SEVERITE: Record<StatutExercice, number> = {
 
 // Pire des deux côtés ; à sévérité égale, le premier (côté G) est retenu, comme en Kotlin.
 function piorerResultat(a: ResultatBrut, b: ResultatBrut): ResultatBrut {
-  return RANG_SEVERITE[a.statut] >= RANG_SEVERITE[b.statut] ? a : b
+  const pire = RANG_SEVERITE[a.statut] >= RANG_SEVERITE[b.statut] ? a : b
+  // Le côté le plus faible décide aussi des répétitions atteintes et de la charge soulevée
+  const plusPetit = (x: number | null, y: number | null) => (x == null ? y : y == null ? x : Math.min(x, y))
+  return {
+    ...pire,
+    valeurAtteinte: plusPetit(a.valeurAtteinte, b.valeurAtteinte),
+    chargeMinKg: a.chargeMinKg == null || b.chargeMinKg == null ? null : Math.min(a.chargeMinKg, b.chargeMinKg),
+  }
 }
 
 /** Une série isolée atteint-elle la cible (reps/durée @ charge) ? Bible §2.2. */
@@ -166,7 +176,7 @@ export function serieReussie(config: ExerciceConfig, cible: CibleExercice, serie
 }
 
 function evaluerSeries(config: ExerciceConfig, cible: CibleExercice, series: SerieEvaluee[]): ResultatBrut {
-  if (series.length === 0) return { statut: 'NON_LOGGE', rpeMoyen: null, valeurAtteinte: null }
+  if (series.length === 0) return { statut: 'NON_LOGGE', rpeMoyen: null, valeurAtteinte: null, chargeMinKg: null }
 
   const reference = config.repsType === 'DURATION' ? cible.dureeSec : cible.reps
   // Écart relatif (Float) entre la cible et la valeur réalisée, nul si pas de cible.
@@ -187,13 +197,16 @@ function evaluerSeries(config: ExerciceConfig, cible: CibleExercice, series: Ser
 
   let statut: StatutExercice
   if (reussies === total) {
-    statut = rpeMoyen != null && rpeMoyen >= RPE_SANS_MARGE ? 'SUCCES_SANS_MARGE' : 'SUCCES'
+    // Le RPE n'intervient plus dans la progression : toutes les séries réussies = succès
+    statut = 'SUCCES'
   } else if (reussies >= total - 1 && (ecartMax == null || ecartMax < SEUIL_ECART_LEGER)) {
     statut = 'ECHEC'
   } else {
     statut = (ecartMax ?? 0) >= SEUIL_ECART_FLAG ? 'ECHEC_MARQUE' : 'ECHEC'
   }
-  return { statut, rpeMoyen, valeurAtteinte }
+  const charges = series.map((s) => s.chargeKg)
+  const chargeMinKg = charges.every((c) => c != null) ? Math.min(...charges.map((c) => f32(c ?? 0))) : null
+  return { statut, rpeMoyen, valeurAtteinte, chargeMinKg }
 }
 
 function appliquerCompteurEtDeload(
@@ -208,7 +221,7 @@ function appliquerCompteurEtDeload(
     case 'NON_LOGGE':
       return maintien('NON_LOGGE', cible, compteurEchecActuel)
     case 'SUCCES':
-      return proposerMontee(config, cible, 0, pasMateriel, chargesAtteignables, resultat.valeurAtteinte)
+      return proposerMontee(config, cible, 0, pasMateriel, chargesAtteignables, resultat.valeurAtteinte, resultat.chargeMinKg)
     case 'SUCCES_SANS_MARGE':
       return maintien('SUCCES_SANS_MARGE', cible, 0)
     case 'ECHEC':
@@ -232,10 +245,13 @@ export function proposerMontee(
   pasMateriel?: number | null,
   chargesAtteignables?: number[] | null,
   repsReellementAtteintes?: number | null,
+  chargeRealiseeKg?: number | null,
 ): PropositionProgression {
   const base = maintien('SUCCES', cible, compteurEchecActuel)
+  // Charge soulevée plus lourde que la cible : la suite part de cette charge (une charge plus légère ne baisse rien)
+  const chargeBase = chargeRealiseeKg != null && (cible.chargeKg == null || chargeRealiseeKg > cible.chargeKg) ? chargeRealiseeKg : cible.chargeKg
   const nouvelleCharge = (): number => {
-    const charge = f32(cible.chargeKg ?? 0)
+    const charge = f32(chargeBase ?? 0)
     const increment = calculerIncrementQualitatif(
       charge,
       config.typeExercice,
@@ -262,6 +278,12 @@ export function proposerMontee(
           return { ...base, nouveauRepsCible: repsMin, nouveauNombreSeries: config.nombreSeriesPrevues + 1 }
         }
         return { ...base, nouvelleChargeCible: nouvelleCharge(), nouveauRepsCible: repsMin }
+      }
+      // Plage connue (hors durée) : on part des répétitions réellement atteintes si elles dépassent la cible (8 atteintes = 9),
+      // sans dépasser le haut de plage. Sinon : cible + 1 comme avant.
+      if (repsMax != null && repsMin != null && config.repsType !== 'DURATION') {
+        const depart = Math.max(cible.reps ?? repsMin, repsReellementAtteintes ?? 0)
+        return { ...base, nouvelleChargeCible: f32OuNull(chargeBase), nouveauRepsCible: Math.min(depart + 1, repsMax) }
       }
       return { ...base, nouveauRepsCible: (cible.reps ?? repsMin ?? 0) + 1 }
     }

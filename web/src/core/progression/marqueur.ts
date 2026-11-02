@@ -9,6 +9,13 @@
 //   recalculer après une correction de la séance : la cible évaluée, l'objectif d'avant, l'objectif écrit et la
 //   proposition. Un marqueur sans « bases » (séance évaluée avant ce lot) n'est jamais recalculé.
 
+/**
+ * Version de la règle de progression qui a produit une base. Une base sans version (ou d'une autre version) n'est jamais
+ * recalculée : un bilan déjà évalué reste figé quand la règle change. Version 2 : répétitions atteintes, charge soulevée,
+ * côté faible en bilatéral, RPE ignoré.
+ */
+export const REGLE_PROGRESSION = 2
+
 export type DecisionEnregistree = 'acceptee' | 'refusee' | 'ajustee' | 'appliquee_auto'
 
 /** Objectif de progression tel qu'écrit ou lu en base (sans identifiants). */
@@ -44,6 +51,8 @@ export interface BaseExercice {
   /** Séries prévues de la ligne d'instance avant / après un « +1 série » ; null si non touchées */
   seriesAvant: number | null
   seriesApres: number | null
+  /** Version de la règle (REGLE_PROGRESSION) ; absente = ancienne règle, jamais recalculée */
+  regle?: number
 }
 
 export interface EtatProgression {
@@ -86,6 +95,7 @@ function lireBase(v: unknown): BaseExercice | null {
     },
     seriesAvant: v.seriesAvant,
     seriesApres: v.seriesApres,
+    ...(typeof v.regle === 'number' ? { regle: v.regle } : {}),
   }
 }
 
