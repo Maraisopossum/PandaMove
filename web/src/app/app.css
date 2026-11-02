@@ -60,16 +60,17 @@
   --police-titres: 'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --police-texte: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /* Échelle typographique Stitch : 1rem = 16 px sur tous les écrans (racine à 100 %).
-     Tailles rendues : corps 16, petit 14, micro 13, titres 22 (mobile) / 20 / 18, chiffre clé 26, chrono 40. */
-  --taille-corps: 1rem;
-  --taille-petit: 0.875rem;
-  --taille-micro: 0.8125rem;
-  --taille-titre-1: 1.375rem;
-  --taille-titre-2: 1.25rem;
-  --taille-titre-3: 1.125rem;
-  --taille-kpi: 1.625rem;
-  --taille-chrono: 2.5rem;
+  /* Échelle typographique (racine à 100 % : 1rem = 16 px, le réglage de police du système s'applique).
+     Téléphone (par défaut) : corps 15, petit 13, micro 12, titres 20 / 18 / 16, chiffre clé 22, chrono 34.
+     Les valeurs Stitch (16 / 14 / 13, titres 28 / 20 / 18, 26, 40) reviennent au-dessus de 640 px. */
+  --taille-corps: 0.9375rem;
+  --taille-petit: 0.8125rem;
+  --taille-micro: 0.75rem;
+  --taille-titre-1: 1.25rem;
+  --taille-titre-2: 1.125rem;
+  --taille-titre-3: 1rem;
+  --taille-kpi: 1.375rem;
+  --taille-chrono: 2.125rem;
   --marge-page: 1rem;
   --espace-carte: 0.75rem 1rem;
   --ecart: 0.5rem;
@@ -134,7 +135,14 @@ html {
 /* Au-dessus de 640 px : seul le titre d'écran grandit (28 px) */
 @media (min-width: 641px) {
   :root {
+    --taille-corps: 1rem;
+    --taille-petit: 0.875rem;
+    --taille-micro: 0.8125rem;
     --taille-titre-1: 1.75rem;
+    --taille-titre-2: 1.25rem;
+    --taille-titre-3: 1.125rem;
+    --taille-kpi: 1.625rem;
+    --taille-chrono: 2.5rem;
     --ecart: 0.75rem;
   }
 }
@@ -3727,7 +3735,12 @@ time,
 
 .bloc-edition__entete .formulaire__champ {
   flex: 1;
+  min-width: 0;
   margin: 0;
+}
+
+.bloc-edition__entete .bouton {
+  flex: none;
 }
 
 .bloc-edition__icone {
@@ -3851,7 +3864,7 @@ time,
 
 .exo__grille {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
   gap: 0 0.75rem;
 }
 
@@ -3895,6 +3908,8 @@ time,
   display: grid;
   gap: 0.125rem;
   margin: 0.375rem 0;
+  /* Un item de grille ne doit pas être élargi par la largeur intrinsèque de son champ */
+  min-width: 0;
 }
 
 .compteur__libelle {
@@ -3904,6 +3919,7 @@ time,
 
 .compteur__boite {
   display: flex;
+  min-width: 0;
   align-items: center;
   border: 1px solid var(--bord);
   border-radius: var(--radius-bouton);
