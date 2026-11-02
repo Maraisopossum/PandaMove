@@ -22,8 +22,11 @@ import { texteCibles, type ExerciceVue } from './vue'
 
 // Séance en cours (spec §5) : tout est écrit en base locale d'abord, l'affichage est relu ensuite.
 // Aucune logique ici : données et actions viennent de useEcranExecution.
-export default function ExecuteScreen({ correction = false }: { correction?: boolean }) {
-  const { id = '' } = useParams()
+// `enFond` : l'écran est masqué (on navigue ailleurs) mais la séance continue ; ni boîte de dialogue ni garde de
+// navigation n'est alors rendue (elles verrouilleraient la page affichée).
+export default function ExecuteScreen({ correction = false, instanceId, enFond = false }: { correction?: boolean; instanceId?: string; enFond?: boolean }) {
+  const { id: idRoute = '' } = useParams()
+  const id = instanceId ?? idRoute
   const e = useEcranExecution(id, { correction })
   const actif = e.nav.exerciceActif
 
@@ -166,7 +169,7 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
           }
         />
       )}
-      {e.fin.ouverte && (
+      {!enFond && e.fin.ouverte && (
         <DialogueConfirmation
           titre={e.fin.message.titre}
           libelleConfirmer="Terminer"
@@ -180,7 +183,7 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
           ))}
         </DialogueConfirmation>
       )}
-      {e.suppression.ouverte && (
+      {!enFond && e.suppression.ouverte && (
         <DialogueConfirmation
           titre={e.suppression.motif === 'sortie' ? 'Annuler la séance ?' : 'Supprimer la séance ?'}
           libelleConfirmer={e.suppression.motif === 'sortie' ? 'Annuler la séance' : 'Supprimer'}
@@ -200,7 +203,7 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
           )}
         </DialogueConfirmation>
       )}
-      {e.renommage.ouvert && (
+      {!enFond && e.renommage.ouvert && (
         <RenommerSeanceDialog
           texte={e.renommage.texte}
           erreur={e.renommage.erreur}
@@ -211,7 +214,7 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
         />
       )}
       {/* Un seul bloqueur de navigation à la fois (limite du routeur) : celui de la correction ou celui de la séance */}
-      {correction ? (
+      {enFond ? null : correction ? (
         <GardeCorrection bloquerRef={e.sortieCorrection.bloquerRef} />
       ) : (
         <GardeSortieExecution
@@ -221,7 +224,7 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
           onAnnuler={e.sortie.annuler}
         />
       )}
-      {e.feuille === 'minuteur' && (
+      {!enFond && e.feuille === 'minuteur' && (
         <FeuilleMinuteur
           restantMs={e.repos.restantMs}
           derniereSec={e.minuteurManuel.derniereSec}
@@ -232,10 +235,10 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
           onFermer={e.fermerFeuille}
         />
       )}
-      {e.feuille === 'disques' && (
+      {!enFond && e.feuille === 'disques' && (
         <FeuilleDisques inventaire={e.outilsExercice.inventaire} chargeInitiale={e.outilsExercice.chargeDisques} onFermer={e.fermerFeuille} />
       )}
-      {e.feuille === 'echauffement' && actif && e.outilsExercice.montee.etat && (
+      {!enFond && e.feuille === 'echauffement' && actif && e.outilsExercice.montee.etat && (
         <FeuilleMontee
           nomExercice={actif.nom}
           etat={e.outilsExercice.montee.etat}
@@ -245,7 +248,7 @@ export default function ExecuteScreen({ correction = false }: { correction?: boo
           onFermer={e.fermerFeuille}
         />
       )}
-      {e.circuit.affichage && <OverlayCircuit affichage={e.circuit.affichage} onArreter={e.circuit.arreter} />}
+      {!enFond && e.circuit.affichage && <OverlayCircuit affichage={e.circuit.affichage} onArreter={e.circuit.arreter} />}
     </div>
   )
 }

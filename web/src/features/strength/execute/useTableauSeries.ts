@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useReglageRpe } from './reglageRpe'
 import {
   construireLignes, mesuresLigne, numeroCourant, propagerCharge, reposLigne, rpeApplicable, valeursLigne,
   type Brouillon, type SerieHisto,
@@ -36,6 +37,7 @@ export interface ActionsSeries {
 // change d'exercice), validation / dé-validation, ajout et suppression. Les données restent écrites
 // par useExecute ; ici seulement la présentation et les brouillons.
 export function useTableauSeries(exercice: ExerciceVue | null, historique: SerieHisto[], actions: ActionsSeries) {
+  const { rpeActif } = useReglageRpe()
   // Clé « exercice#rang »
   const [brouillons, setBrouillons] = useState<Record<string, Brouillon>>({})
   const [enCours, setEnCours] = useState(false)
@@ -127,7 +129,7 @@ export function useTableauSeries(exercice: ExerciceVue | null, historique: Serie
     /** Saisies en cours, clé « exercice#rang » : le circuit s'en sert pour chronométrer la durée affichée. */
     brouillons,
     oublier,
-    rpeVisible: exercice ? rpeApplicable(exercice.blocType, exercice.repsType) : false,
+    rpeVisible: rpeActif && exercice ? rpeApplicable(exercice.blocType, exercice.repsType) : false,
     enDuree: exercice?.repsType === 'DURATION',
     enCours,
     setReps: (numero: number, reps: number | null) => modifier(numero, { reps }),

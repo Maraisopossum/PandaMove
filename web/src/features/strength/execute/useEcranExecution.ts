@@ -17,6 +17,7 @@ import { useNavExercices } from './useNavExercices'
 import { useNotesSeance } from './useNotesSeance'
 import { useBipsRepos } from './useBipsRepos'
 import { useGardeSortie } from './useGardeSortie'
+import { useReglageRpe } from './reglageRpe'
 import { useRenommageSeance } from './useRenommageSeance'
 import { useTableauSeries } from './useTableauSeries'
 import { useWakeLock } from './useWakeLock'
@@ -34,6 +35,7 @@ const SANS_HISTORIQUE: SerieHisto[] = []
 // la séance, confirmation de fin puis ouverture du bilan, textes du chrono et du repos.
 export function useEcranExecution(instanceId: string, { correction = false }: { correction?: boolean } = {}) {
   const { session } = useAuth()
+  const { rpeActif, changerRpe } = useReglageRpe()
   const ex = useExecute(instanceId, { userId: session?.user.id, correction })
   const nav = useNavExercices(ex.blocs, ex.exercices)
   const actif = nav.exerciceActif
@@ -145,6 +147,7 @@ export function useEcranExecution(instanceId: string, { correction = false }: { 
     menuSeance: [
       { id: 'renommer', libelle: 'Modifier le nom', onChoisir: renommage.ouvrir },
       { id: 'modifier', libelle: 'Modifier les exercices', onChoisir: modifierExercices },
+      { id: 'rpe', libelle: rpeActif ? 'Désactiver les RPE' : 'Activer les RPE', onChoisir: () => changerRpe(!rpeActif) },
       { id: 'supprimer', libelle: 'Supprimer la séance', destructive: true, onChoisir: () => suppression.demander('menu') },
     ],
     renommage,

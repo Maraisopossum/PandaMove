@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
+import { useReglageRpe } from '../strength/execute/reglageRpe'
 import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
@@ -50,6 +51,7 @@ const LIENS = [
 export default function ProfileScreen() {
   const { session } = useAuth()
   const p = useProfile({ userId: session?.user.id })
+  const { rpeActif, changerRpe } = useReglageRpe()
   const sauvegarde = useExport({ userId: session?.user.id })
 
   return (
@@ -85,6 +87,14 @@ export default function ProfileScreen() {
           <IconeLune />
         </span>
         <span>Mode sombre</span>
+        <span className="profil__interrupteur" aria-hidden="true" />
+      </button>
+
+      <button type="button" className="bouton profil__sombre" aria-pressed={rpeActif} onClick={() => changerRpe(!rpeActif)}>
+        <span className="profil__icone" aria-hidden="true">
+          RPE
+        </span>
+        <span>RPE dans les séances</span>
         <span className="profil__interrupteur" aria-hidden="true" />
       </button>
 
