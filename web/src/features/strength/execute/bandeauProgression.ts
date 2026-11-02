@@ -49,6 +49,12 @@ export function bandeauProgression(exercice: ExerciceVue, apercu: PropositionPro
         : es.repsMax !== null && (cible.reps ?? 0) >= es.repsMax
           ? 'UNLOCK_CHARGE'
           : 'NEXT_REPS'
+  // Prochaine cible de répétitions : part des répétitions réellement atteintes (la plus petite série validée), comme au bilan
+  const faites = exercice.series.filter((s) => s.terminee && s.reps !== null).map((s) => s.reps as number)
+  const nouveauReps =
+    mode === 'NEXT_REPS' && es.repsType !== 'DURATION' && es.repsMin !== null && es.repsMax !== null && faites.length > 0
+      ? Math.min(Math.max(cible.reps ?? es.repsMin, Math.min(...faites)) + 1, es.repsMax)
+      : apercu.nouveauRepsCible
   return {
     mode,
     cibleReps: cible.reps,
@@ -56,7 +62,7 @@ export function bandeauProgression(exercice: ExerciceVue, apercu: PropositionPro
     totalSeries: nombreLignes(exercice),
     seriesReussies: reussies,
     nouvelleChargeKg: apercu.nouvelleChargeCible,
-    nouveauRepsCible: apercu.nouveauRepsCible,
+    nouveauRepsCible: nouveauReps,
     nouvelleDureeCibleSec: apercu.nouvelleDureeCible,
     nouveauNombreSeries: apercu.nouveauNombreSeries,
   }

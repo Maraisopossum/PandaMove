@@ -11,7 +11,7 @@ import { lireIntervalleDecharge } from './reglageDecharge'
 import { evaluerExercice, requiresValidation, type PropositionProgression } from '../../../core/progression/engine'
 import {
   enregistrerBase, enregistrerDecision, marquerEvaluee, serialiserProgression,
-  type BaseExercice, type DecisionEnregistree, type EtatProgression, type ObjectifMarque, type PropositionMarquee,
+  REGLE_PROGRESSION, type BaseExercice, type DecisionEnregistree, type EtatProgression, type ObjectifMarque, type PropositionMarquee,
 } from '../../../core/progression/marqueur'
 import type { ObjectifProgression } from '../../../core/db/types'
 import {
@@ -153,6 +153,7 @@ async function ecrireAvecBase(
     proposition: marquerProposition(e.proposition),
     seriesAvant,
     seriesApres,
+    regle: REGLE_PROGRESSION,
   }
 }
 
