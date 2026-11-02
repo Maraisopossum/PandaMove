@@ -382,6 +382,11 @@ describe('ExecuteScreen : outils de l’exercice', () => {
       reps_cibles: '8', charge_cible: '60 kg', reps_type: 'REPS', temps_repos_sec: 90, instance_seance_id: null,
       progression_activee: 1, systeme_progression: 'DOUBLE', reps_min: 8, reps_max: 12, type_exercice: 'COMPOSE_HAUT',
     })
+    // Un objectif existe déjà : sans lui, la première séance de ce gros exercice serait une calibration (sans bandeau)
+    await inserer(base, 'objectifs_progression', {
+      ...commun, id: 'obj-prog', seance_id: 's-prog', exercise_id: 'x1', charge_cible: 60, reps_cible: 8, duree_cible_sec: null,
+      compteur_echec: 0, derniere_maj: '2026-10-01', nombre_series_cible: null,
+    })
     await inserer(base, 'instances_seance', {
       ...commun, id: 'i-bandeau', seance_id: 's-prog', date: '2026-10-24', notes: '', is_completed: 0, completed_at: null, duration_seconds: 0, created_at: 'c',
     })

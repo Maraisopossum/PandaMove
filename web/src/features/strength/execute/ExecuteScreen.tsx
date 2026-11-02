@@ -111,6 +111,7 @@ export default function ExecuteScreen({ correction = false, instanceId, enFond =
                 lectureSeule={e.lectureSeule}
                 outils={e.outilsExercice}
                 bandeau={e.bandeau}
+                calibration={e.calibration}
                 note={e.noteExercice}
               />
             </section>
@@ -254,7 +255,7 @@ export default function ExecuteScreen({ correction = false, instanceId, enFond =
 }
 
 function CarteExercice({
-  exercice: ex, tableau, historique, lectureSeule, outils, bandeau, note,
+  exercice: ex, tableau, historique, lectureSeule, outils, bandeau, calibration, note,
 }: {
   exercice: ExerciceVue
   tableau: ReturnType<typeof useEcranExecution>['tableau']
@@ -262,6 +263,7 @@ function CarteExercice({
   lectureSeule: boolean
   outils: ReturnType<typeof useEcranExecution>['outilsExercice']
   bandeau: ReturnType<typeof useEcranExecution>['bandeau']
+  calibration: boolean
   note: ReturnType<typeof useEcranExecution>['noteExercice']
 }) {
   const idTitre = useId()
@@ -289,6 +291,12 @@ function CarteExercice({
       </div>
       {ex.libelleSuperset && <span className="execution__superset">{ex.libelleSuperset}</span>}
       {ex.enchaineAvec && <p className="execution__enchainement">Enchaîne sans repos avec {ex.enchaineAvec}</p>}
+      {calibration && !lectureSeule && (
+        <p className="aide" role="note">
+          Calibration : première séance de cet exercice. Cherchez votre charge série par série ; la charge la plus lourde tenue
+          dans la plage de répétitions vous sera proposée au bilan.
+        </p>
+      )}
       {bandeau && !lectureSeule && <BandeauLive nomExercice={ex.nom} bandeau={bandeau} />}
       <p className="execution__cibles">{texteCibles(ex)}</p>
       {ex.consigne && (

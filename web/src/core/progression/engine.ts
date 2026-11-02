@@ -24,6 +24,8 @@ export interface PropositionProgression {
   nouveauNombreSeries: number | null
   // Décharge proposée par le calendrier (toutes les N semaines), pas par des échecs répétés
   dechargePlanifiee?: boolean
+  // Charge de départ proposée à la première séance d'un exercice (voir calibration.ts) : ni échec, ni montée, ni deload
+  calibration?: boolean
 }
 
 /** Cible courante, indépendante de sa source (objectif persisté ou valeur initiale du template). */

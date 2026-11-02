@@ -162,6 +162,7 @@ describe('useReport : propositions', () => {
 
   it("sans inventaire, l'incrément retombe sur le pas simple ; avec inventaire il suit les charges composables", async () => {
     await exercice('e1', { exercise_id: 'x1', progression_activee: 1, type_exercice: 'COMPOSE_HAUT' })
+    await objectifStocke('x1', { charge_cible: 60, reps_cible: 8 })
     await series('e1', [[8, 60], [8, 60], [8, 60]])
     const sans = await monter()
     expect(propositionDe(sans, 'e1')?.proposition?.nouvelleChargeCible).toBe(62.5)
@@ -175,6 +176,7 @@ describe('useReport : propositions', () => {
 
   it('MACHINE sans pas déclaré : pas par défaut 5 kg (PAS_DEFAUT Android)', async () => {
     await exercice('e4', { exercise_id: 'x4', progression_activee: 1, type_exercice: 'MACHINE', increment_kg: null, charge_cible: '40 kg' })
+    await objectifStocke('x4', { charge_cible: 40, reps_cible: 8 })
     await series('e4', [[8, 40], [8, 40], [8, 40]])
     const r = await monter()
     expect(propositionDe(r, 'e4')?.proposition?.nouvelleChargeCible).toBe(45)
