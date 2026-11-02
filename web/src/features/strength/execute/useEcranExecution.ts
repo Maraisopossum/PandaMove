@@ -184,6 +184,8 @@ export function useEcranExecution(instanceId: string, { correction = false }: { 
       },
     },
     bandeau: actif ? bandeauProgression(actif, ex.apercus.get(actif.id)) : null,
+    // Première séance de l'exercice actif : la charge se cherche, le bilan proposera la charge de départ
+    calibration: actif ? ex.apercus.get(actif.id)?.calibration === true : false,
     // Note de l'exercice actif : enregistrée en base à la sortie du champ (colonne exercices_seance.notes, migration 0007)
     noteExercice: {
       enregistree: actif?.ligne.notes ?? '',

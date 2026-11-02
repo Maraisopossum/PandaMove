@@ -31,7 +31,7 @@ function repsCibles(texte: string): number | null {
 
 export function bandeauProgression(exercice: ExerciceVue, apercu: PropositionProgression | undefined): Bandeau | null {
   const es = exercice.ligne
-  if (!es.progressionActivee || !apercu) return null
+  if (!es.progressionActivee || !apercu || apercu.calibration) return null
   const reps = repsCibles(es.repsCibles)
   const cible: CibleExercice = {
     chargeKg: parseChargeKg(es.chargeCible),
