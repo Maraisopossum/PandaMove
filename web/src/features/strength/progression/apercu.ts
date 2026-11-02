@@ -4,6 +4,7 @@ import { getSettings } from '../../../core/db/repos/settings'
 import type { ExerciceSeance } from '../../../core/db/types'
 import { lireEquipementStocke } from '../../../core/import/equipment'
 import { proposerMontee, type PropositionProgression } from '../../../core/progression/engine'
+import { aCalibrer } from './calibration'
 import { chargesAtteignablesExercice, cibleDepuis, lireListeEquipement, pasMaterielExercice } from './cible'
 
 // Aperçu de progression (calculerProgressionPreview Android) : pour chaque exercice en progression, ce que proposerait
@@ -34,13 +35,17 @@ export async function calculerApercus(
     const equipement = fiches.get(es.exerciseId) ?? []
     apercus.set(
       es.id,
-      proposerMontee(
-        es,
-        cibleDepuis(objectif, es),
-        0,
-        pasMaterielExercice(equipement, stocke.pasParCategorie),
-        chargesAtteignablesExercice(equipement, inventaire),
-      ),
+      {
+        ...proposerMontee(
+          es,
+          cibleDepuis(objectif, es),
+          0,
+          pasMaterielExercice(equipement, stocke.pasParCategorie),
+          chargesAtteignablesExercice(equipement, inventaire),
+        ),
+        // Première séance d'un gros exercice sans objectif : calibration (pas de bandeau de progression)
+        ...((await aCalibrer(db, es, objectif, seanceId, es.instanceSeanceId ?? '', new Date().toISOString())) ? { calibration: true } : {}),
+      },
     )
   }
   return apercus

@@ -6,6 +6,8 @@ import { getSeanceTree } from '../../../core/db/repos/seances'
 import { changerSeriesPrevues, listSeries } from '../../../core/db/repos/series'
 import { getSettings } from '../../../core/db/repos/settings'
 import { lireEquipementStocke } from '../../../core/import/equipment'
+import { proposerCalibration } from '../../../core/progression/calibration'
+import { aCalibrer } from './calibration'
 import { dechargeDue, passagesExercice } from './decharge'
 import { lireIntervalleDecharge } from './reglageDecharge'
 import { evaluerExercice, requiresValidation, type PropositionProgression } from '../../../core/progression/engine'
@@ -71,6 +73,25 @@ export async function evaluerInstance(
     const equipement = fiches.get(es.exerciseId)?.equipement ?? []
     const chargesAtteignables = chargesAtteignablesExercice(equipement, inventaire)
     const maintenantMs = parseTimestamp(instance.completedAt) ?? Date.now()
+    // Première séance d'un gros exercice sans objectif : calibration de la charge de départ, jamais une évaluation normale
+    // (ni échec, ni compteur, ni deload). Une base de calibration (recalcul après correction) reste une calibration.
+    const calibration =
+      base?.calibration === true ||
+      (await aCalibrer(db, es, objectif, instance.seanceId, instanceId, new Date(maintenantMs).toISOString()))
+    if (calibration) {
+      const proposeeCalibration = proposerCalibration(es, cible, series.filter((s) => s.exerciceSeanceId === es.id && s.isCompleted))
+      if (proposeeCalibration) {
+        resultats.push({
+          exerciceId: es.id,
+          nom: fiches.get(es.exerciseId)?.nom ?? 'Exercice inconnu',
+          proposition: proposeeCalibration,
+          aValider: true,
+          chargesAtteignables: chargesAtteignables ?? [],
+          ctx: { seanceId: instance.seanceId, exerciseId: es.exerciseId, cible },
+        })
+      }
+      continue
+    }
     const due =
       intervalleDechargeSemaines > 0 &&
       dechargeDue(await passagesExercice(db, instance.seanceId, es.exerciseId, instanceId), maintenantMs, intervalleDechargeSemaines)
@@ -154,6 +175,7 @@ async function ecrireAvecBase(
     seriesAvant,
     seriesApres,
     regle: REGLE_PROGRESSION,
+    ...(e.proposition.calibration ? { calibration: true } : {}),
   }
 }
 

@@ -53,6 +53,8 @@ export interface BaseExercice {
   seriesApres: number | null
   /** Version de la règle (REGLE_PROGRESSION) ; absente = ancienne règle, jamais recalculée */
   regle?: number
+  /** Base d'une calibration : le recalcul après correction refait la calibration, pas une évaluation normale */
+  calibration?: boolean
 }
 
 export interface EtatProgression {
@@ -96,6 +98,7 @@ function lireBase(v: unknown): BaseExercice | null {
     seriesAvant: v.seriesAvant,
     seriesApres: v.seriesApres,
     ...(typeof v.regle === 'number' ? { regle: v.regle } : {}),
+    ...(v.calibration === true ? { calibration: true } : {}),
   }
 }
 
