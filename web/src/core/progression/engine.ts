@@ -20,6 +20,8 @@ export interface PropositionProgression {
   deload: boolean
   // Proposition "ajout de série" (exercices au poids de corps au plafond de reps, bible §4.5 PDC)
   nouveauNombreSeries: number | null
+  // Décharge proposée par le calendrier (toutes les N semaines), pas par des échecs répétés
+  dechargePlanifiee?: boolean
 }
 
 /** Cible courante, indépendante de sa source (objectif persisté ou valeur initiale du template). */
@@ -108,6 +110,8 @@ export function evaluerExercice(
   isBilateral: boolean,
   pasMateriel?: number | null,
   chargesAtteignables?: number[] | null,
+  // Décharge planifiée échue : un succès devient une proposition de décharge (voir progression/decharge.ts)
+  dechargeDue?: boolean,
 ): PropositionProgression {
   if (seriesRealisees.length === 0) return maintien('NON_LOGGE', cible, compteurEchecActuel)
 
@@ -121,6 +125,9 @@ export function evaluerExercice(
     resultat = evaluerSeries(config, cible, seriesRealisees)
   }
 
+  if (dechargeDue && (resultat.statut === 'SUCCES' || resultat.statut === 'SUCCES_SANS_MARGE')) {
+    return { ...proposerDeload(config, cible), statut: resultat.statut, dechargePlanifiee: true }
+  }
   return appliquerCompteurEtDeload(config, cible, resultat, compteurEchecActuel, pasMateriel, chargesAtteignables)
 }
 

@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
 import { useReglageRpe } from '../strength/execute/reglageRpe'
+import { SEMAINES_DECHARGE_MAX, useReglageDecharge } from '../strength/progression/reglageDecharge'
 import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
@@ -52,6 +53,7 @@ export default function ProfileScreen() {
   const { session } = useAuth()
   const p = useProfile({ userId: session?.user.id })
   const { rpeActif, changerRpe } = useReglageRpe()
+  const { semaines: semainesDecharge, changerSemaines } = useReglageDecharge()
   const sauvegarde = useExport({ userId: session?.user.id })
 
   return (
@@ -97,6 +99,23 @@ export default function ProfileScreen() {
         <span>RPE dans les séances</span>
         <span className="profil__interrupteur" aria-hidden="true" />
       </button>
+
+      <div className="formulaire__champ">
+        <label htmlFor="decharge-semaines">Décharge planifiée (semaines)</label>
+        <input
+          id="decharge-semaines"
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={SEMAINES_DECHARGE_MAX}
+          value={semainesDecharge}
+          onChange={(e) => changerSemaines(e.target.valueAsNumber)}
+          aria-describedby="decharge-aide"
+        />
+        <p id="decharge-aide" className="aide">
+          0 : désactivée. Sinon, tous les N semaines sans décharge, une réduction de 10 % est proposée à la fin d’une séance réussie.
+        </p>
+      </div>
 
       {p.erreur && <p role="alert">{p.erreur}</p>}
 

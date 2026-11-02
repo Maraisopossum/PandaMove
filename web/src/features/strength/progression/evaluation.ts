@@ -1,3 +1,4 @@
+import { parseTimestamp } from '../../../core/common/parseTimestamp'
 import type { DbLecture, DbTx } from '../../../core/db/Db'
 import { enregistrerProgression, getInstance } from '../../../core/db/repos/instances'
 import { getObjectif, saveObjectif } from '../../../core/db/repos/objectifs'
@@ -5,6 +6,8 @@ import { getSeanceTree } from '../../../core/db/repos/seances'
 import { changerSeriesPrevues, listSeries } from '../../../core/db/repos/series'
 import { getSettings } from '../../../core/db/repos/settings'
 import { lireEquipementStocke } from '../../../core/import/equipment'
+import { dechargeDue, passagesExercice } from './decharge'
+import { lireIntervalleDecharge } from './reglageDecharge'
 import { evaluerExercice, requiresValidation, type PropositionProgression } from '../../../core/progression/engine'
 import {
   enregistrerBase, enregistrerDecision, marquerEvaluee, serialiserProgression,
@@ -38,6 +41,8 @@ export async function evaluerInstance(
   userId?: string,
   // Bases d'évaluation (recalcul après correction) : la cible et le compteur d'ORIGINE remplacent l'objectif courant
   bases?: Record<string, BaseExercice>,
+  // Intervalle de décharge planifiée en semaines (défaut : réglage de l'appareil ; 0 = désactivée)
+  intervalleDechargeSemaines: number = lireIntervalleDecharge(),
 ): Promise<EvaluationExercice[]> {
   const instance = await getInstance(db, instanceId)
   if (!instance) throw new Error('Instance introuvable')
@@ -65,6 +70,10 @@ export async function evaluerInstance(
     const compteur = base ? (base.avant?.compteurEchec ?? 0) : (objectif?.compteurEchec ?? 0)
     const equipement = fiches.get(es.exerciseId)?.equipement ?? []
     const chargesAtteignables = chargesAtteignablesExercice(equipement, inventaire)
+    const maintenantMs = parseTimestamp(instance.completedAt) ?? Date.now()
+    const due =
+      intervalleDechargeSemaines > 0 &&
+      dechargeDue(await passagesExercice(db, instance.seanceId, es.exerciseId, instanceId), maintenantMs, intervalleDechargeSemaines)
     const proposition = evaluerExercice(
       es,
       cible,
@@ -73,6 +82,7 @@ export async function evaluerInstance(
       es.isBilateral,
       pasMaterielExercice(equipement, stocke.pasParCategorie),
       chargesAtteignables,
+      due,
     )
     resultats.push({
       exerciceId: es.id,
