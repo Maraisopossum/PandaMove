@@ -79,11 +79,11 @@ describe('Barre d’exercices de l’exécution', () => {
     expect(actifs()).toEqual([null, 'true'])
   })
 
-  it('pastille : 4 lettres du premier muscle, 3 lettres du nom sans muscle, 🔄 si bilatéral ; groupes encadrés', async () => {
+  it('pastille : initiales de l’exercice ; groupes encadrés', async () => {
     await monterSeance('b2', [['a', 'ECHAUFFEMENT'], ['b', 'AUTRE']], [
       { id: 'e1', exo: 'x1', bloc: 'a' }, { id: 'e2', exo: 'x2', bloc: 'b' }, { id: 'e3', exo: 'x3', bloc: 'b', bilateral: true },
     ])
-    expect(boutons().map((b) => b.querySelector('.navex__pastille')!.textContent)).toEqual(['PECT', 'GAI', '🔄'])
+    expect(boutons().map((b) => b.querySelector('.navex__pastille')!.textContent)).toEqual(['DC', 'GP', 'TU'])
     const groupes = Array.from(barre().querySelectorAll('.navex__groupe'))
     expect(groupes.map((g) => g.getAttribute('data-groupe-encadre'))).toEqual(['true', 'false'])
     expect((groupes[0] as HTMLElement).style.getPropertyValue('--bloc-clair')).toBe('#9A5700')

@@ -72,7 +72,7 @@ async function passer(s: number) {
 // Laisse toutes les promesses (écritures en base, relectures, rendus) se terminer : chaque tour passe par une
 // vraie macro-tâche (setImmediate n'est pas simulé), qui vide entièrement la file de micro-tâches
 async function viderFile() {
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 40; i++) {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
       await new Promise((resolve) => setImmediate(resolve))
@@ -198,8 +198,13 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     await act(async () => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    await passer(0)
-    const fin = await series(id)
+    // Le rattrapage écrit en base de façon asynchrone : on attend le résultat plutôt qu'un nombre de tours fixe
+    // (la CI chargée en demande davantage)
+    let fin = await series(id)
+    for (let i = 0; i < 60 && fin.length < 4; i++) {
+      await passer(0)
+      fin = await series(id)
+    }
     expect(fin).toHaveLength(4)
     expect(new Set(fin.map((s) => `${s.exercice_seance_id}#${s.numero_serie}`)).size).toBe(4)
     expect(screen.queryByRole('dialog')).toBeNull()

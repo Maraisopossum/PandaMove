@@ -36,12 +36,17 @@ export function estGroupeEncadre(type: string | null, nbExercices: number): bool
   return type === 'ECHAUFFEMENT' || type === 'ACTIVATION' || type === 'RECUPERATION'
 }
 
-// Libellé de la pastille : « 🔄 » si bilatéral, sinon premier mot du premier groupe musculaire (4 lettres
-// max, majuscules), à défaut les 3 premières lettres du nom.
-export function libelleCourt(e: Pick<ExerciceVue, 'isBilateral' | 'muscles' | 'nom'>): string {
-  if (e.isBilateral) return '🔄'
-  const mot = (e.muscles[0] ?? '').split(/[\s_-]+/).find((m) => m !== '')
-  return (mot ?? e.nom.trim().slice(0, 3)).slice(0, 4).toUpperCase()
+const MOTS_VIDES = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'au', 'aux', 'a', 'à', 'en', 'et', 'sur', 'avec'])
+
+// Libellé de la pastille : initiales de l'exercice (2 lettres max, majuscules) en ignorant les petits mots
+// (« Développé couché haltères » → DC) ; un seul mot : ses deux premières lettres.
+export function libelleCourt(e: Pick<ExerciceVue, 'nom'>): string {
+  const mots = e.nom.split(/[\s'’_-]+/).filter((m) => m !== '')
+  const utiles = mots.filter((m) => !MOTS_VIDES.has(m.toLowerCase()))
+  const retenus = utiles.length > 0 ? utiles : mots
+  const lettres = (m: string) => m.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '')
+  const initiales = retenus.length >= 2 ? lettres(retenus[0]).slice(0, 1) + lettres(retenus[1]).slice(0, 1) : lettres(retenus[0] ?? '').slice(0, 2)
+  return initiales.toUpperCase()
 }
 
 // Libellé du type de bloc (« Superset »…) ; null hors bloc ou pour un type inconnu.

@@ -4,7 +4,7 @@ import { mapBloc, mapExerciceSeance, mapSerie } from '../../../core/db/repos/map
 import {
   COULEURS_BLOC, construireNav, couleursBloc, exerciceTermine, indexParDefaut, libelleCourt, positionDefilement, progressionNav,
 } from './navExercices'
-import { construireVue, type ExerciceVue } from './vue'
+import { construireVue } from './vue'
 
 const bloc = (id: string, position: number, type: string) => mapBloc({ id, nom: `Bloc ${id}`, position, type })
 const ex = (id: string, blocId: string | null, position: number, extra: Record<string, unknown> = {}) =>
@@ -39,19 +39,13 @@ describe('couleursBloc', () => {
 })
 
 describe('libelleCourt', () => {
-  const base = vue([], [ex('a', null, 0)]).exercices[0]
-  const v = (extra: Partial<ExerciceVue>): ExerciceVue => ({ ...base, ...extra })
-
-  it('premier mot du premier groupe musculaire, 4 lettres max, majuscules', () => {
-    expect(libelleCourt(v({ muscles: ['PECTORAUX', 'TRICEPS'] }))).toBe('PECT')
-    expect(libelleCourt(v({ muscles: ['AVANT_BRAS'] }))).toBe('AVAN')
-    expect(libelleCourt(v({ muscles: ['dos'] }))).toBe('DOS')
+  it('initiales des deux premiers mots utiles, majuscules', () => {
+    expect(libelleCourt({ nom: 'Band pull-apart' })).toBe('BP')
+    expect(libelleCourt({ nom: 'Développé couché haltères' })).toBe('DC')
+    expect(libelleCourt({ nom: 'Écarté à la poulie' })).toBe('EP')
   })
-  it('sans muscle : 3 premières lettres du nom', () => {
-    expect(libelleCourt(v({ muscles: [], nom: 'Squat' }))).toBe('SQU')
-  })
-  it('exercice bilatéral : 🔄', () => {
-    expect(libelleCourt(v({ muscles: ['DOS'], isBilateral: true }))).toBe('🔄')
+  it('un seul mot : ses deux premières lettres', () => {
+    expect(libelleCourt({ nom: 'Squat' })).toBe('SQ')
   })
 })
 
