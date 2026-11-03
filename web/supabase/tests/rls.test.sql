@@ -1,6 +1,6 @@
 -- Test pgTAP d'isolation RLS (à lancer avec `supabase test db`).
 begin;
-select plan(7);
+select plan(11);
 
 -- Deux utilisateurs (auth.users est fourni par Supabase)
 insert into auth.users (id, instance_id, aud, role, email)
@@ -14,6 +14,12 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000000a
 insert into seances (id, nom, groupes_musculaires, duree_estimee_min, notes, seance_category, created_at, is_archived)
 values ('10000000-0000-4000-8000-000000000001', 'Push', 'PECTORAUX', 45, '', 'STRENGTH', '2026-01-01', false);
 
+-- 0008 : A pose aussi une séance de course et une séance de vélo
+insert into seances_course (id, titre, date, created_at)
+values ('20000000-0000-4000-8000-000000000001', 'Footing facile', '2026-11-03', '2026-11-01T10:00:00.000Z');
+insert into seances_velo (id, titre, date, created_at)
+values ('20000000-0000-4000-8000-000000000002', 'Vélo de reprise', '2026-11-07', '2026-11-01T10:00:00.000Z');
+
 -- B ne voit rien et ne peut rien modifier
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000000b', true);
 
@@ -21,6 +27,16 @@ select is((select count(*) from seances), 0::bigint, 'B ne voit aucune séance d
 
 with u as (update seances set nom = 'piraté' returning 1)
 select is((select count(*) from u), 0::bigint, 'update de B sur la ligne de A : 0 ligne');
+
+-- 0008 : même isolation pour les séances de cardio
+select is((select count(*) from seances_course), 0::bigint, 'B ne voit aucune séance de course de A');
+select is((select count(*) from seances_velo), 0::bigint, 'B ne voit aucune séance de vélo de A');
+
+with u as (update seances_course set titre = 'piraté' returning 1)
+select is((select count(*) from u), 0::bigint, 'update de B sur la séance de course de A : 0 ligne');
+
+with u as (update seances_velo set titre = 'piraté' returning 1)
+select is((select count(*) from u), 0::bigint, 'update de B sur la séance de vélo de A : 0 ligne');
 
 -- 0006 : plus aucun DELETE physique (suppression logique via deleted_at)
 select throws_ok($$delete from seances$$, '42501', null, 'delete physique refusé (droit retiré par 0006)');

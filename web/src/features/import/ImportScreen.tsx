@@ -1,6 +1,8 @@
 import { useEffect, useRef, type ChangeEvent } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
 import ImportIaPanel from './ImportIaPanel'
+import { useSourceSynchro } from '../calendar/seancesCardio/useSourceSynchro'
+import ImportProgrammePanel from './ImportProgrammePanel'
 import { useImport } from './useImport'
 import { idOnglet, idPanneau, useOngletsImport, type OngletImport } from './useOngletsImport'
 
@@ -8,12 +10,20 @@ const AVERTISSEMENT =
   "Le contenu du fichier remplace les éléments correspondants déjà présents (sauvegarde PandaMove de ce compte, ou " +
   "export Android déjà importé) ; les autres éléments sont ajoutés. Réimporter le même fichier ne crée pas de doublon."
 
+// Branche l'onglet « Programme 2027 » sur la synchronisation réelle. Séparé de l'écran pour que les autres onglets ne
+// lisent pas l'état de synchronisation.
+function PanneauProgramme({ userId }: { userId?: string }) {
+  return <ImportProgrammePanel userId={userId} synchro={useSourceSynchro()} />
+}
+
 const ONGLETS: { id: OngletImport; libelle: string }[] = [
   { id: 'android', libelle: 'Export Android' },
   { id: 'ia', libelle: 'Séances créées par une IA' },
+  { id: 'programme', libelle: 'Programme 2027' },
 ]
 
-// Écran d'import : export JSON PandaFit (Android, logique dans useImport) ou séances créées par une IA (ImportIaPanel).
+// Écran d'import : export JSON PandaFit (Android, logique dans useImport), séances créées par une IA (ImportIaPanel)
+// ou programme de cardio 2027 (ImportProgrammePanel).
 export default function ImportScreen() {
   const { session } = useAuth()
   const { preview, error, load, confirm, status, resultat, reset } = useImport({ userId: session?.user.id })
@@ -61,6 +71,8 @@ export default function ImportScreen() {
       <div role="tabpanel" id={idPanneau(onglet)} aria-labelledby={idOnglet(onglet)}>
         {onglet === 'ia' ? (
           <ImportIaPanel userId={session?.user.id} />
+        ) : onglet === 'programme' ? (
+          <PanneauProgramme userId={session?.user.id} />
         ) : (
           <>
           <p className="import__intro">Importez un export JSON de l'application Android (séances, exercices, matériel).</p>

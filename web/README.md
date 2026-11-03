@@ -168,6 +168,14 @@ Profil → « Importer des données » → onglet **Séances créées par une IA
 
 **Sécurité et données personnelles** : le fichier modèle est produit localement et ne contient que des noms d'exercices (le catalogue de base et vos exercices personnalisés) : aucune donnée de profil, d'historique ni de santé. L'application n'envoie rien à une IA ; c'est vous qui collez la consigne dans l'outil de votre choix. N'ajoutez pas de données personnelles (poids, blessures, identité) à votre demande si vous ne voulez pas que l'IA les reçoive, et vérifiez les conditions d'utilisation de l'outil. Le contenu importé est traité comme des données (jamais exécuté) et validé champ par champ avant toute écriture.
 
+## Séances de cardio dans l'agenda
+
+L'agenda (écran Calendrier) accueille aussi des séances de **course** et de **vélo**. Ce n'est pas un module : pas d'écran d'exécution ni de statistiques, on pose la séance dans l'agenda, on la déplace, on la valide (une séance validée ne se déplace pas : la dévalider d'abord), on la supprime. Une séance peut être marquée « Optionnelle », porter un jalon (course importante, affichée avec un drapeau) et un lien `https://` vers ses statistiques (Strava, Suunto, MyWoosh).
+
+- **Saisie** : bouton « Ajouter une séance de cardio » sur le jour choisi, puis « Modifier » sur la séance.
+- **Programme 2027** : Profil → « Importer des données » → onglet **Programme 2027** → « Importer le programme 2027 » (113 séances, du 3 novembre 2026 au 6 juin 2027). Le bouton reste inactif (raison affichée) tant que l'appareil n'a pas fini sa première synchronisation, est hors ligne, synchronise ou a des modifications non envoyées : à lancer une seule fois, sur l'appareil à jour. Rejouable sans doublon ; une séance déplacée, validée ou supprimée n'est jamais modifiée. La source est `support/Programme_endurance_PandaMove_2027_Zwift_KICKR.html`, convertie une fois par `node scripts/extraire-programme-2027.mjs`.
+- **Données** : tables `seances_course` et `seances_velo` (migration `0008_seances_cardio.sql`, à appliquer avant les règles PowerSync puis le client). Détail dans `src/features/calendar/README.md`.
+
 ## Sauvegarde
 
 Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne pas dépendre seulement de ces services, faire régulièrement une sauvegarde locale.
@@ -175,6 +183,8 @@ Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne 
 **Exporter** : Profil → Sauvegarde → « Exporter mes données ». Le navigateur télécharge `pandamove-export-AAAA-MM-JJ.json` (rien n'est envoyé ailleurs). Ranger ce fichier sur l'appareil ou un support personnel ; il contient tout l'historique d'entraînement, ne pas le déposer dans un dépôt ni un service partagé.
 
 Contenu : export « PandaMoveExport » v3.2, le format de l'application Android, limité au renforcement (séances, séances jouées avec blocs, exercices et séries, exercices du catalogue, objectifs de progression, « Mon matériel »). Seules les lignes non supprimées sont exportées, sauf ce qui porte l'historique : une séance supprimée avec « Garder l'historique » (exportée archivée, sans blocs ni exercices) et un exercice supprimé encore utilisé par une séance. Les identifiants numériques du format sont dérivés des UUID de la base web (stables d'un export à l'autre). Chaque élément garde aussi son UUID et les champs propres au web (`uuid`, `isArchived`, `deletedAt`, `progressionJson`, `startedAt`, `pausedJson`, `validatedAt`, `updatedAt`, `nombreSeriesCible`, `isFavorite`, `isBodyweight`, et, seulement quand ils existent, `nom` d'une séance jouée renommée et `notes` d'un exercice), et le fichier porte l'identifiant du compte (`webUserId`).
+
+**Séances de cardio** : l'export ne les contient pas (course et vélo). Les séances importées se recréent depuis le fichier HTML du programme ; celles saisies à la main n'ont pas d'autre sauvegarde que la base synchronisée.
 
 **Réimporter** : Profil → « Importer des données », choisir le fichier, vérifier l'aperçu puis confirmer.
 

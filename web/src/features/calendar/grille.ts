@@ -1,4 +1,4 @@
-import type { InstanceVue, JourVue } from './types'
+import type { EvenementAgenda, JourVue } from './types'
 
 export interface Mois {
   year: number
@@ -43,7 +43,7 @@ export function moisDe(iso: string): Mois {
 const indexLundi = (d: Date) => (d.getDay() + 6) % 7
 
 // Grille du mois : semaines complètes commençant le lundi ; les jours des mois voisins sont marqués
-// `dansLeMois: false`. Les instances sont vides ici (rattachées ensuite par le hook).
+// `dansLeMois: false`. Les événements sont vides ici (rattachés ensuite par le hook).
 export function construireGrille(mois: Mois, aujourdhuiIso: string): JourVue[] {
   const premier = new Date(mois.year, mois.month - 1, 1, 12)
   const dernier = new Date(mois.year, mois.month, 0, 12)
@@ -57,7 +57,7 @@ export function construireGrille(mois: Mois, aujourdhuiIso: string): JourVue[] {
       jourDuMois: Number(dateIso.slice(8)),
       dansLeMois: dateIso.startsWith(prefixe),
       estAujourdhui: dateIso === aujourdhuiIso,
-      instances: [] as InstanceVue[],
+      evenements: [] as EvenementAgenda[],
     }
   })
 }

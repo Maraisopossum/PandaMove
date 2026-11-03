@@ -27,8 +27,9 @@ describe('règles de synchro PowerSync (Sync Streams, édition 3)', () => {
     expect([...(queryTables as string[])].sort()).toEqual(schemaTables)
   })
 
-  it('synchronise les 8 tables de AppSchema (aucune table oubliée)', () => {
-    expect(schemaTables).toHaveLength(8)
+  it('synchronise les 10 tables de AppSchema (aucune table oubliée)', () => {
+    expect(schemaTables).toHaveLength(10)
+    expect(schemaTables).toEqual(expect.arrayContaining(['seances_course', 'seances_velo']))
     expect(new Set(queryTables).size).toBe(queryTables.length)
   })
 })

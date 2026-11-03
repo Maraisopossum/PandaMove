@@ -1,7 +1,7 @@
 import { useCallback, useState, type KeyboardEvent } from 'react'
 
-export type OngletImport = 'android' | 'ia'
-const ORDRE: OngletImport[] = ['android', 'ia']
+export type OngletImport = 'android' | 'ia' | 'programme'
+const ORDRE: OngletImport[] = ['android', 'ia', 'programme']
 
 export const idOnglet = (o: OngletImport) => `import-onglet-${o}`
 export const idPanneau = (o: OngletImport) => `import-panneau-${o}`

@@ -10,12 +10,13 @@ import { exigerVariables } from './prerequis.ts'
 // Deux comptes de test distincts, fournis par variables d'environnement (jamais écrits en dur) :
 //   E2E_EMAIL / E2E_PASSWORD (compte A) et E2E_EMAIL2 / E2E_PASSWORD2 (compte B).
 // URL et clé publique Supabase lues dans web/.env.local (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
-// Prérequis : migrations 0001 à 0006 exécutées (0006 retire tout droit au rôle anon).
+// Prérequis : migrations 0001 à 0008 exécutées (0006 retire tout droit au rôle anon ; 0008 crée seances_course et seances_velo).
 
 const VARIABLES = ['E2E_EMAIL', 'E2E_PASSWORD', 'E2E_EMAIL2', 'E2E_PASSWORD2']
 const TABLES = [
   'exercises', 'seances', 'blocs_seance', 'exercices_seance',
   'instances_seance', 'series_realisees', 'objectifs_progression', 'user_settings',
+  'seances_course', 'seances_velo',
 ]
 
 const envVite = loadEnv('development', path.resolve(import.meta.dirname, '..'), 'VITE_')

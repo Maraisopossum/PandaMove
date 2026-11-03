@@ -20,6 +20,6 @@ export default defineConfig({
     testTimeout: 20_000,
     hookTimeout: 20_000,
     // Les tests e2e Playwright vivent dans e2e/ et ne doivent pas être collectés par Vitest
-    include: ['src/**/*.test.{ts,tsx}', 'supabase/tests/**/*.test.ts', 'pwa.config.test.ts', 'powersync/**/*.test.ts', 'e2e/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'supabase/tests/**/*.test.ts', 'pwa.config.test.ts', 'powersync/**/*.test.ts', 'e2e/**/*.test.ts', 'scripts/**/*.test.mjs'],
   },
 })

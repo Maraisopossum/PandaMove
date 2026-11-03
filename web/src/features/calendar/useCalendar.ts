@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
-import { deplacerInstance, ErreurCalendrier, lireInstancesPlage, lireProchaines, supprimerInstance } from './calendrier'
+import type { ChampsSeanceCardio, GenreCardio, SaisieSeanceCardio } from '../../core/db/repos/seancesCardio'
+import {
+  creerSeanceCardio, deplacerEvenement, ErreurCalendrier, lireEvenementsPlage, lireEvenementsProchains, modifierSeanceCardio,
+  supprimerEvenement, validerEvenement,
+} from './calendrier'
+import { messageRefusDeplacement, peutDeplacer } from './evenements'
 import { construireGrille, isoDepuisParties, type Mois } from './grille'
-import type { Filtre, InstanceVue, JourVue } from './types'
+import type { EvenementAgenda, Filtre, JourVue } from './types'
 
 export interface DepsCalendrier {
   /** Base à utiliser (défaut : base de l'application, résolue à l'usage). */
@@ -15,19 +20,20 @@ export interface DepsCalendrier {
 const NB_PROCHAINES = 10
 
 interface Donnees {
-  instances: InstanceVue[]
-  prochaines: InstanceVue[]
+  evenements: EvenementAgenda[]
+  prochaines: EvenementAgenda[]
 }
 
 const aujourdhuiIso = (maintenant: Date) =>
   isoDepuisParties(maintenant.getFullYear(), maintenant.getMonth() + 1, maintenant.getDate())
 
-// Calendrier du mois : grille de semaines (lundi en premier), séances rattachées à leur date planifiée,
-// « prochaines séances », filtre de statut, déplacement et suppression d'une séance.
-// La base n'expose pas d'observation : les données sont relues après chaque action.
+// Calendrier du mois : grille de semaines (lundi en premier), événements (renforcement, course, vélo) rattachés à leur
+// date planifiée, « prochaines séances », filtre de statut, et actions sur un événement (déplacer, supprimer, valider...).
+// La base n'expose pas d'observation : les données sont relues après chaque action. Les actions renvoient true si elles
+// ont réussi ; sinon le message français est dans `erreur` (jamais de rejet non géré).
 export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
   const { year, month } = mois
-  const [donnees, setDonnees] = useState<Donnees>({ instances: [], prochaines: [] })
+  const [donnees, setDonnees] = useState<Donnees>({ evenements: [], prochaines: [] })
   const [cleChargee, setCleChargee] = useState<string | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [filtre, setFiltreEtat] = useState<Filtre>({ statut: 'toutes' })
@@ -42,15 +48,17 @@ export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
   const cle = `${debut}|${fin}|${aujourdhui}`
   const chargement = cleChargee !== cle
 
-  // Lecture ; seule la dernière demande est appliquée (changement de mois rapide)
+  // Lecture des trois sources en une passe ; seule la dernière demande est appliquée (changement de mois rapide).
+  // Les lectures ne forment pas une transaction : une écriture entre deux lectures peut montrer une séance en double ou
+  // manquante jusqu'à la relecture qui suit chaque action.
   const lire = useCallback(async () => {
     const numero = ++sequence.current
     const base = db ?? getDb()
-    const [instances, prochaines] = await Promise.all([
-      lireInstancesPlage(base, debut, fin),
-      lireProchaines(base, aujourdhui, NB_PROCHAINES),
+    const [evenements, prochaines] = await Promise.all([
+      lireEvenementsPlage(base, debut, fin),
+      lireEvenementsProchains(base, aujourdhui, NB_PROCHAINES),
     ])
-    if (numero === sequence.current) setDonnees({ instances, prochaines })
+    if (numero === sequence.current) setDonnees({ evenements, prochaines })
   }, [db, debut, fin, aujourdhui])
 
   useEffect(() => {
@@ -68,45 +76,80 @@ export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
     }
   }, [lire, cle])
 
-  // Exécute une écriture puis relit ; toute erreur finit dans `erreur` (jamais de rejet non géré).
+  // Exécute une écriture puis relit ; toute erreur finit dans `erreur`. Renvoie true si l'action a réussi.
   const agir = useCallback(
-    async (ecrire: (base: Db) => Promise<void>, echec: string) => {
+    async (ecrire: (base: Db) => Promise<unknown>, echec: string): Promise<boolean> => {
       setErreur(null)
       try {
         await ecrire(db ?? getDb())
         await lire()
+        return true
       } catch (e) {
         if (e instanceof ErreurCalendrier) setErreur(e.message)
         else {
           console.error(echec, e)
           setErreur(echec)
         }
+        return false
       }
     },
     [db, lire],
   )
 
   const deplacer = useCallback(
-    (instanceId: string, dateIso: string) =>
-      agir((base) => deplacerInstance(base, instanceId, dateIso), 'Le déplacement de la séance a échoué.'),
+    (evenement: EvenementAgenda, dateIso: string) =>
+      agir((base) => deplacerEvenement(base, evenement, dateIso), 'Le déplacement de la séance a échoué.'),
     [agir],
   )
   const supprimer = useCallback(
-    (instanceId: string) => agir((base) => supprimerInstance(base, instanceId), 'La suppression de la séance a échoué.'),
+    (evenement: EvenementAgenda) => agir((base) => supprimerEvenement(base, evenement), 'La suppression de la séance a échoué.'),
     [agir],
   )
+  const validerCardio = useCallback(
+    (evenement: EvenementAgenda) => agir((base) => validerEvenement(base, evenement, true), 'La validation de la séance a échoué.'),
+    [agir],
+  )
+  const devaliderCardio = useCallback(
+    (evenement: EvenementAgenda) => agir((base) => validerEvenement(base, evenement, false), 'La dévalidation de la séance a échoué.'),
+    [agir],
+  )
+  const creerCardio = useCallback(
+    (genre: GenreCardio, saisie: SaisieSeanceCardio) =>
+      agir((base) => creerSeanceCardio(base, genre, saisie), "L'ajout de la séance a échoué."),
+    [agir],
+  )
+  const modifierCardio = useCallback(
+    (evenement: EvenementAgenda, champs: ChampsSeanceCardio) =>
+      agir((base) => modifierSeanceCardio(base, evenement, champs), 'La modification de la séance a échoué.'),
+    [agir],
+  )
+
+  // Avant d'ouvrir le dialogue de déplacement : si l'événement ne peut pas bouger (séance de cardio validée), le message
+  // s'affiche à la place et le dialogue ne s'ouvre pas. Le déplacement relit de toute façon l'état à l'écriture.
+  const verifierDeplacement = useCallback((evenement: EvenementAgenda): boolean => {
+    if (peutDeplacer(evenement)) {
+      setErreur(null)
+      return true
+    }
+    setErreur(messageRefusDeplacement(evenement))
+    return false
+  }, [])
+
+  // Efface le message d'une action précédente (à l'ouverture d'un dialogue de saisie).
+  const effacerErreur = useCallback(() => setErreur(null), [])
+
   const setFiltre = useCallback((f: Filtre) => setFiltreEtat(f), [])
 
   const jours: JourVue[] = useMemo(() => {
-    const garde = (i: InstanceVue) =>
-      filtre.statut === 'toutes' || (filtre.statut === 'terminees' ? i.etat === 'terminee' : i.etat !== 'terminee')
-    const parDate = new Map<string, InstanceVue[]>()
-    for (const i of donnees.instances.filter(garde)) parDate.set(i.dateIso, [...(parDate.get(i.dateIso) ?? []), i])
-    return squelette.map((j) => ({ ...j, instances: parDate.get(j.dateIso) ?? [] }))
-  }, [squelette, donnees.instances, filtre])
+    const garde = (e: EvenementAgenda) =>
+      filtre.statut === 'toutes' || (filtre.statut === 'terminees' ? e.etat === 'terminee' : e.etat !== 'terminee')
+    const parDate = new Map<string, EvenementAgenda[]>()
+    for (const e of donnees.evenements.filter(garde)) parDate.set(e.dateIso, [...(parDate.get(e.dateIso) ?? []), e])
+    return squelette.map((j) => ({ ...j, evenements: parDate.get(j.dateIso) ?? [] }))
+  }, [squelette, donnees.evenements, filtre])
 
   return {
-    chargement, erreur, jours, prochaines: donnees.prochaines, filtre, setFiltre, deplacer,
-    supprimerInstance: supprimer,
+    chargement, erreur, jours, prochaines: donnees.prochaines, filtre, setFiltre,
+    deplacer, supprimer, validerCardio, devaliderCardio, creerCardio, modifierCardio, verifierDeplacement, effacerErreur,
   }
 }

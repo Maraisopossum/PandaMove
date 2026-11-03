@@ -1,3 +1,4 @@
+import { dateIsoValide } from '../../core/common/dates'
 import type { Db } from '../../core/db/Db'
 import { createInstance, demarrerInstance } from '../../core/db/repos/instances'
 import { aujourdhuiIso } from './saisie'
@@ -5,15 +6,9 @@ import { aujourdhuiIso } from './saisie'
 // Erreur destinée à l'utilisateur (message en français).
 export class ErreurSeance extends Error {}
 
-// Vrai si `texte` est une vraie date du calendrier au format yyyy-MM-dd (2026-02-30 est refusé).
-export function dateIsoValide(texte: string): boolean {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texte)
-  if (!m) return false
-  const [annee, mois, jour] = [Number(m[1]), Number(m[2]), Number(m[3])]
-  const d = new Date(Date.UTC(annee, mois - 1, jour))
-  // Date.UTC « déborde » (30 février -> 2 mars) : on vérifie que la date relue est identique.
-  return d.getUTCFullYear() === annee && d.getUTCMonth() === mois - 1 && d.getUTCDate() === jour
-}
+// Définie dans core/common/dates (module neutre, partagé avec le calendrier) ; ré-exportée ici pour que les
+// fichiers du renforcement qui l'importent depuis ce module restent inchangés.
+export { dateIsoValide }
 
 // Affecte un modèle de séance à une date : crée UNE instance (non terminée). Aucune copie des
 // blocs/exercices ici : elle a lieu à l'ouverture de l'exécution (isolation template/instance).

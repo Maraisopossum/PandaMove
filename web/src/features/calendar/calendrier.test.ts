@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Db, DbTx } from '../../core/db/Db'
+import { creer, definirValidation, type GenreCardio, lireParId } from '../../core/db/repos/seancesCardio'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
-import { deplacerInstance, lireInstancesPlage, lireProchaines, supprimerInstance } from './calendrier'
+import {
+  creerSeanceCardio, deplacerEvenement, deplacerInstance, ErreurCalendrier, lireEvenementsPlage, lireEvenementsProchains,
+  lireInstancesPlage, lireProchaines, modifierSeanceCardio, supprimerEvenement, supprimerInstance, validerEvenement,
+} from './calendrier'
+import type { EvenementAgenda } from './types'
 
 const base = { user_id: 'u1', updated_at: 'u0', deleted_at: null }
 
@@ -242,5 +247,237 @@ describe('supprimerInstance', () => {
       await expect(supprimerInstance(piege, 'i1')).rejects.toThrow('échec simulé')
       expect(await etat(db)).toEqual(avant)
     }
+  })
+})
+
+// ── Agenda à trois sources : renforcement, course, vélo ──
+describe('agenda à trois sources', () => {
+  const seanceCardio = (genre: GenreCardio, date: string, id?: string, titre = 'Footing facile') => creer(db, genre, { id, date, titre })
+  const evenement = async (plage: [string, string], id: string): Promise<EvenementAgenda> => {
+    const trouve = (await lireEvenementsPlage(db, plage[0], plage[1])).find((e) => e.id === id)
+    if (!trouve) throw new Error(`événement ${id} absent`)
+    return trouve
+  }
+  const NOVEMBRE: [string, string] = ['2026-11-01', '2026-11-30']
+
+  describe('lireEvenementsPlage', () => {
+    it('fusionne les trois sources, triées par jour puis genre (renforcement, course, vélo) puis identifiant', async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'r2', 's1', '2026-11-03')
+      await instance(db, 'r1', 's1', '2026-11-03')
+      await seanceCardio('velo', '2026-11-03', 'v1')
+      await seanceCardio('course', '2026-11-03', 'c2')
+      await seanceCardio('course', '2026-11-03', 'c1')
+      await seanceCardio('course', '2026-11-02', 'c0')
+      const lus = await lireEvenementsPlage(db, '2026-11-01', '2026-11-30')
+      expect(lus.map((e) => `${e.dateIso}:${e.genre}:${e.id}`)).toEqual([
+        '2026-11-02:course:c0', '2026-11-03:renfo:r1', '2026-11-03:renfo:r2', '2026-11-03:course:c1', '2026-11-03:course:c2',
+        '2026-11-03:velo:v1',
+      ])
+    })
+
+    it('ne garde que la plage (bornes comprises), hors séances supprimées, validées comprises', async () => {
+      await seanceCardio('course', '2026-10-31', 'avant')
+      await seanceCardio('course', '2026-11-01', 'debut')
+      await seanceCardio('velo', '2026-11-30', 'fin')
+      await seanceCardio('velo', '2026-12-01', 'apres')
+      await seanceCardio('course', '2026-11-10', 'sup')
+      await seanceCardio('velo', '2026-11-11', 'val')
+      await db.execute("UPDATE seances_course SET deleted_at = 'x' WHERE id = 'sup'")
+      await definirValidation(db, 'velo', 'val', true)
+      const lus = await lireEvenementsPlage(db, '2026-11-01', '2026-11-30')
+      expect(lus.map((e) => e.id)).toEqual(['debut', 'val', 'fin'])
+      expect(lus.find((e) => e.id === 'val')?.etat).toBe('terminee')
+    })
+
+    it("le renforcement garde tous ses champs (instance d'origine)", async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'a', 's1', '2026-11-03', { is_completed: 1, duration_seconds: 3000 })
+      const [e] = await lireEvenementsPlage(db, '2026-11-01', '2026-11-30')
+      expect(e).toMatchObject({ genre: 'renfo', titre: 'Pull', etat: 'terminee' })
+      expect(e.genre === 'renfo' && e.instance).toMatchObject({ id: 'a', seanceId: 's1', dureeSec: 3000 })
+    })
+
+    it('base vide : aucune exception', async () => {
+      expect(await lireEvenementsPlage(db, '2026-11-01', '2026-11-30')).toEqual([])
+    })
+  })
+
+  describe('lireEvenementsProchains', () => {
+    it('limite après fusion : 10 de chaque source suffisent pour obtenir les 10 premiers au total', async () => {
+      await seance(db, 's1', 'Pull')
+      for (let i = 0; i < 10; i++) await instance(db, `r${String(i).padStart(2, '0')}`, 's1', `2026-12-${String(10 + i).padStart(2, '0')}`)
+      for (let i = 0; i < 10; i++) await seanceCardio('course', `2026-11-${String(10 + i).padStart(2, '0')}`, `c${String(i).padStart(2, '0')}`)
+      for (let i = 0; i < 10; i++) await seanceCardio('velo', `2026-11-${String(10 + i).padStart(2, '0')}`, `v${String(i).padStart(2, '0')}`)
+      const prochaines = await lireEvenementsProchains(db, '2026-11-01', 10)
+      expect(prochaines).toHaveLength(10)
+      expect(prochaines.every((e) => e.genre !== 'renfo')).toBe(true)
+      expect(prochaines.map((e) => `${e.dateIso}:${e.genre}`).slice(0, 4)).toEqual([
+        '2026-11-10:course', '2026-11-10:velo', '2026-11-11:course', '2026-11-11:velo',
+      ])
+    })
+
+    it('exclut les séances terminées et validées, garde le renforcement en cours', async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'cours', 's1', '2026-11-05', { started_at: '2026-11-05T08:00:00.000Z' })
+      await instance(db, 'faite', 's1', '2026-11-06', { is_completed: 1 })
+      await seanceCardio('course', '2026-11-07', 'validee')
+      await definirValidation(db, 'course', 'validee', true)
+      await seanceCardio('velo', '2026-11-08', 'ouverte')
+      const prochaines = await lireEvenementsProchains(db, '2026-11-01', 10)
+      expect(prochaines.map((e) => e.id)).toEqual(['cours', 'ouverte'])
+      expect(prochaines[0]).toMatchObject({ genre: 'renfo', etat: 'en_cours' })
+    })
+
+    it("commence à aujourd'hui (compris)", async () => {
+      await seanceCardio('course', '2026-10-31', 'hier')
+      await seanceCardio('course', '2026-11-01', 'auj')
+      expect((await lireEvenementsProchains(db, '2026-11-01', 10)).map((e) => e.id)).toEqual(['auj'])
+    })
+  })
+
+  describe('deplacerEvenement', () => {
+    it('déplace une séance de cardio', async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      await deplacerEvenement(db, await evenement(NOVEMBRE, 'c1'), '2026-11-05')
+      expect(await lireParId(db, 'course', 'c1')).toMatchObject({ date: '2026-11-05' })
+    })
+
+    it('déplace une instance de renforcement (comportement inchangé)', async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'p', 's1', '2026-11-03')
+      await deplacerEvenement(db, await evenement(NOVEMBRE, 'p'), '2026-11-04')
+      expect((await db.get<{ date: string }>("SELECT date FROM instances_seance WHERE id = 'p'")).date).toBe('2026-11-04')
+    })
+
+    it('refuse une séance validée avec le message du cardio, sans rien écrire', async () => {
+      await seanceCardio('velo', '2026-11-03', 'v1')
+      await definirValidation(db, 'velo', 'v1', true)
+      const vue = await evenement(NOVEMBRE, 'v1')
+      await expect(deplacerEvenement(db, vue, '2026-11-05')).rejects.toThrow('Dévalidez la séance pour la déplacer.')
+      expect(await lireParId(db, 'velo', 'v1')).toMatchObject({ date: '2026-11-03', isValidated: true })
+    })
+
+    it("une validation arrivée entre l'affichage et le déplacement est détectée à l'écriture", async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      const affichee = await evenement(NOVEMBRE, 'c1') // vue « non validée »
+      await db.execute("UPDATE seances_course SET is_validated = 1 WHERE id = 'c1'") // validée sur un autre appareil
+      const erreur = await deplacerEvenement(db, affichee, '2026-11-05').then(() => null, (e: unknown) => e)
+      expect(erreur).toBeInstanceOf(ErreurCalendrier)
+      expect((erreur as Error).message).toBe('Dévalidez la séance pour la déplacer.')
+    })
+
+    it('après dévalidation, le déplacement est accepté', async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      await definirValidation(db, 'course', 'c1', true)
+      await definirValidation(db, 'course', 'c1', false)
+      await deplacerEvenement(db, await evenement(NOVEMBRE, 'c1'), '2026-11-05')
+      expect(await lireParId(db, 'course', 'c1')).toMatchObject({ date: '2026-11-05' })
+    })
+
+    it.each(['2026-02-30', 'demain', ''])("date %j refusée pour le cardio, en erreur d'écran", async (date) => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      const vue = await evenement(NOVEMBRE, 'c1')
+      await expect(deplacerEvenement(db, vue, date)).rejects.toBeInstanceOf(ErreurCalendrier)
+      await expect(deplacerEvenement(db, vue, date)).rejects.toThrow(/date invalide/i)
+      expect(await lireParId(db, 'course', 'c1')).toMatchObject({ date: '2026-11-03' })
+    })
+
+    it('une séance de cardio supprimée entre-temps : « introuvable »', async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      const vue = await evenement(NOVEMBRE, 'c1')
+      await db.execute("UPDATE seances_course SET deleted_at = 'x' WHERE id = 'c1'")
+      await expect(deplacerEvenement(db, vue, '2026-11-05')).rejects.toThrow(/introuvable/i)
+    })
+
+    it('une instance de renforcement terminée garde son message historique', async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 't', 's1', '2026-11-03', { is_completed: 1 })
+      const vue = await evenement(NOVEMBRE, 't')
+      await expect(deplacerEvenement(db, vue, '2026-11-05')).rejects.toThrow(/terminée.*statistiques/)
+    })
+  })
+
+  describe('supprimerEvenement', () => {
+    it('supprime logiquement une séance de cardio, validée ou non, sans toucher aux autres sources', async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'p', 's1', '2026-11-03')
+      await seanceCardio('course', '2026-11-03', 'c1')
+      await seanceCardio('velo', '2026-11-03', 'v1')
+      await definirValidation(db, 'velo', 'v1', true)
+      await supprimerEvenement(db, await evenement(NOVEMBRE, 'c1'))
+      await supprimerEvenement(db, await evenement(NOVEMBRE, 'v1'))
+      expect((await lireEvenementsPlage(db, '2026-11-01', '2026-11-30')).map((e) => e.id)).toEqual(['p'])
+      expect(await lireParId(db, 'course', 'c1')).toMatchObject({ supprimee: true })
+    })
+
+    it('supprime une instance de renforcement (comportement inchangé) et refuse une seconde suppression', async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'p', 's1', '2026-11-03')
+      const vue = await evenement(NOVEMBRE, 'p')
+      await supprimerEvenement(db, vue)
+      await expect(supprimerEvenement(db, vue)).rejects.toThrow(/introuvable/i)
+    })
+
+    it("une séance de cardio déjà supprimée : erreur d'écran « introuvable »", async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      const vue = await evenement(NOVEMBRE, 'c1')
+      await supprimerEvenement(db, vue)
+      await expect(supprimerEvenement(db, vue)).rejects.toBeInstanceOf(ErreurCalendrier)
+    })
+  })
+
+  describe('validerEvenement', () => {
+    it('valide puis dévalide une séance de cardio ; la validée passe à « terminée »', async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      const vue = await evenement(NOVEMBRE, 'c1')
+      await validerEvenement(db, vue, true)
+      expect((await evenement(NOVEMBRE, 'c1')).etat).toBe('terminee')
+      await validerEvenement(db, vue, false)
+      expect((await evenement(NOVEMBRE, 'c1')).etat).toBe('planifiee')
+    })
+
+    it("refuse une instance de renforcement (elle se termine en exécutant la séance)", async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'p', 's1', '2026-11-03')
+      const vue = await evenement(NOVEMBRE, 'p')
+      await expect(validerEvenement(db, vue, true)).rejects.toBeInstanceOf(ErreurCalendrier)
+    })
+
+    it("une séance supprimée entre-temps : erreur d'écran « introuvable »", async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      const vue = await evenement(NOVEMBRE, 'c1')
+      await db.execute("UPDATE seances_course SET deleted_at = 'x' WHERE id = 'c1'")
+      await expect(validerEvenement(db, vue, true)).rejects.toThrow(/introuvable/i)
+    })
+  })
+
+  describe('creerSeanceCardio et modifierSeanceCardio', () => {
+    it('crée une séance et renvoie son identifiant', async () => {
+      const id = await creerSeanceCardio(db, 'velo', { date: '2026-11-07', titre: 'Vélo de reprise', detail: '30 min · Z1–Z2' })
+      expect(await lireParId(db, 'velo', id)).toMatchObject({ titre: 'Vélo de reprise', detail: '30 min · Z1–Z2', date: '2026-11-07' })
+    })
+
+    it("convertit les refus de validation en erreurs d'écran (message français), sans rien écrire", async () => {
+      await expect(creerSeanceCardio(db, 'course', { date: '2026-02-30', titre: 'x' })).rejects.toBeInstanceOf(ErreurCalendrier)
+      await expect(creerSeanceCardio(db, 'course', { date: '2026-11-03', titre: '  ' })).rejects.toThrow(/titre est obligatoire/i)
+      expect(await lireEvenementsPlage(db, '2026-01-01', '2026-12-31')).toEqual([])
+    })
+
+    it("modifie les champs d'une séance de cardio et convertit « introuvable »", async () => {
+      await seanceCardio('course', '2026-11-03', 'c1')
+      const vue = await evenement(NOVEMBRE, 'c1')
+      await modifierSeanceCardio(db, vue, { titre: 'Footing souple', optionnelle: true })
+      expect(await lireParId(db, 'course', 'c1')).toMatchObject({ titre: 'Footing souple', optionnelle: true })
+      await db.execute("UPDATE seances_course SET deleted_at = 'x' WHERE id = 'c1'")
+      await expect(modifierSeanceCardio(db, vue, { titre: 'x' })).rejects.toBeInstanceOf(ErreurCalendrier)
+    })
+
+    it('refuse de modifier une instance de renforcement par cette voie', async () => {
+      await seance(db, 's1', 'Pull')
+      await instance(db, 'p', 's1', '2026-11-03')
+      const vue = await evenement(NOVEMBRE, 'p')
+      await expect(modifierSeanceCardio(db, vue, { titre: 'x' })).rejects.toBeInstanceOf(ErreurCalendrier)
+    })
   })
 })

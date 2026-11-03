@@ -19,6 +19,14 @@ vi.mock('./telecharger', () => ({
   copierTexte: (...a: unknown[]) => (copierTexte as (...x: unknown[]) => Promise<boolean>)(...a),
 }))
 
+vi.mock('../calendar/seancesCardio/useSourceSynchro', () => ({
+  useSourceSynchro: () => ({
+    etat: 'online',
+    attendrePremiereSynchro: () => Promise.resolve(),
+    compterFileEnvoi: () => Promise.resolve(0),
+  }),
+}))
+
 import ImportIaPanel from './ImportIaPanel'
 import ImportScreen from './ImportScreen'
 
@@ -211,7 +219,7 @@ describe('ImportScreen : onglets', () => {
   it('l\'import Android reste l\'onglet par défaut ; l\'onglet IA est accessible', () => {
     ecran()
     const onglets = screen.getAllByRole('tab')
-    expect(onglets.map((o) => o.textContent)).toEqual(['Export Android', 'Séances créées par une IA'])
+    expect(onglets.map((o) => o.textContent)).toEqual(['Export Android', 'Séances créées par une IA', 'Programme 2027'])
     expect(onglets[0].getAttribute('aria-selected')).toBe('true')
     expect(screen.getByLabelText(/Fichier d'export/)).toBeTruthy()
     fireEvent.click(onglets[1])
@@ -221,18 +229,29 @@ describe('ImportScreen : onglets', () => {
     expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe(onglets[1].id)
   })
 
-  it('flèches du clavier : changent d\'onglet et déplacent le focus', () => {
+  it("flèches du clavier : changent d'onglet, bouclent et déplacent le focus", () => {
     ecran()
-    const [android, ia] = screen.getAllByRole('tab')
+    const [android, ia, prog] = screen.getAllByRole('tab')
     android.focus()
     fireEvent.keyDown(android, { key: 'ArrowRight' })
     expect(ia.getAttribute('aria-selected')).toBe('true')
     expect(document.activeElement).toBe(ia)
     fireEvent.keyDown(ia, { key: 'ArrowRight' })
+    expect(prog.getAttribute('aria-selected')).toBe('true')
+    fireEvent.keyDown(prog, { key: 'ArrowRight' })
     expect(android.getAttribute('aria-selected')).toBe('true')
     fireEvent.keyDown(android, { key: 'End' })
-    expect(ia.getAttribute('aria-selected')).toBe('true')
-    expect(ia.tabIndex).toBe(0)
+    expect(prog.getAttribute('aria-selected')).toBe('true')
+    expect(prog.tabIndex).toBe(0)
     expect(android.tabIndex).toBe(-1)
+    fireEvent.keyDown(prog, { key: 'Home' })
+    expect(android.getAttribute('aria-selected')).toBe('true')
+  })
+
+  it("l'onglet Programme 2027 affiche son panneau", () => {
+    ecran()
+    fireEvent.click(screen.getAllByRole('tab')[2])
+    expect(screen.getByRole('button', { name: 'Importer le programme 2027' })).toBeTruthy()
+    expect(screen.queryByLabelText(/Fichier d'export/)).toBeNull()
   })
 })
