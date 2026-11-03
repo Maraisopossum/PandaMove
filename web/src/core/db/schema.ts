@@ -10,6 +10,22 @@ const r = column.real
 // Colonnes de synchro communes à toutes les tables
 const sync = { user_id: t, updated_at: t, deleted_at: t }
 
+// Séances de cardio (migration 0008) : course et vélo ont exactement les mêmes colonnes, définies une seule fois.
+// `detail` reprend tel quel le texte « durée · zone » ; `date` et `created_at` sont du texte ISO ;
+// `optionnelle` (simple mention) et `is_validated` sont des booléens 0/1.
+const seanceCardio = {
+  ...sync,
+  titre: t,
+  consigne: t,
+  detail: t,
+  date: t,
+  optionnelle: i,
+  jalon: t,
+  lien: t,
+  is_validated: i,
+  created_at: t,
+}
+
 export const AppSchema = new Schema({
   exercises: new Table({
     ...sync,
@@ -128,4 +144,7 @@ export const AppSchema = new Schema({
     panda_variant: t,
     dark_mode: i,
   }),
+  // Une déclaration par table : sync-rules.test.ts lit ce fichier ligne à ligne (`  nom: new Table(`)
+  seances_course: new Table(seanceCardio),
+  seances_velo: new Table(seanceCardio),
 })

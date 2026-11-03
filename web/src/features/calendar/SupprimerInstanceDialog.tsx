@@ -1,5 +1,5 @@
 import { useId, useRef } from 'react'
-import { usePiegeFocus } from '../strength/usePiegeFocus'
+import { usePiegeFocus } from '../../core/ui/usePiegeFocus'
 
 interface Props {
   nomSeance: string

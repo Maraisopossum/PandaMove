@@ -21,9 +21,11 @@ const MIGRATIONS_AVANT_0006 = [
   '0004_instance_clock.sql',
   '0005_instance_progression.sql',
 ]
+const CARDIO = ['seances_course', 'seances_velo'] as const
 const TABLES = [
   'exercises', 'seances', 'blocs_seance', 'exercices_seance',
   'instances_seance', 'series_realisees', 'objectifs_progression', 'user_settings',
+  ...CARDIO,
 ]
 
 /** Exécute `fn` sous le rôle donné (défaut `authenticated`) avec le claim `sub` de l'utilisateur ;
@@ -79,6 +81,10 @@ beforeAll(async () => {
   for (const nom of MIGRATIONS_AVANT_0006) await db.exec(migration(nom))
   await db.exec('grant select on all tables in schema public to powersync_role;')
   await db.exec(migration('0006_durcissement.sql'))
+  // 0008 est appliquée APRÈS le `grant select on all tables` ci-dessus : le droit du rôle de réplication sur
+  // les deux nouvelles tables ne peut venir que de la migration elle-même. 0007 n'est appliquée que dans son
+  // propre test (0008 n'en dépend pas).
+  await db.exec(migration('0008_seances_cardio.sql'))
 })
 
 afterAll(async () => {
@@ -214,6 +220,278 @@ describe('0007 : nom de séance jouée et note d’exercice', () => {
       { table_name: 'exercices_seance', column_name: 'notes', data_type: 'text', is_nullable: 'YES', column_default: null },
       { table_name: 'instances_seance', column_name: 'nom', data_type: 'text', is_nullable: 'YES', column_default: null },
     ])
+  })
+})
+
+describe('0008 : séances de cardio', () => {
+  const LIEN_OK = 'https://www.strava.com/activities/123456789'
+  let compteur = 0
+  const idCardio = () => `c0000000-0000-4000-8000-${String(++compteur).padStart(12, '0')}`
+
+  /** Insère une séance de cardio ; `champs` écrase les valeurs par défaut du test (null = NULL SQL). */
+  const insererCardio = (table: string, id: string, champs: Record<string, string | null> = {}) => {
+    const valeurs: Record<string, string | null> = {
+      titre: 'Footing facile', date: '2026-11-03', created_at: '2026-11-01T10:00:00.000Z', ...champs,
+    }
+    const colonnes = Object.keys(valeurs).join(', ')
+    const sql = Object.values(valeurs).map((v) => (v === null ? 'null' : `'${v.replace(/'/g, "''")}'`)).join(', ')
+    return db.exec(`insert into ${table} (id, ${colonnes}) values ('${id}', ${sql})`)
+  }
+
+  describe.each(CARDIO)('%s', (table) => {
+    it('a les colonnes, types, nullabilités et défauts attendus', async () => {
+      const r = await db.query<{ column_name: string; data_type: string; is_nullable: string; column_default: string | null }>(
+        `select column_name, data_type, is_nullable, column_default from information_schema.columns
+         where table_schema = 'public' and table_name = '${table}' order by column_name`,
+      )
+      expect(r.rows).toEqual([
+        { column_name: 'consigne', data_type: 'text', is_nullable: 'YES', column_default: null },
+        { column_name: 'created_at', data_type: 'text', is_nullable: 'NO', column_default: null },
+        { column_name: 'date', data_type: 'text', is_nullable: 'NO', column_default: null },
+        { column_name: 'deleted_at', data_type: 'timestamp with time zone', is_nullable: 'YES', column_default: null },
+        { column_name: 'detail', data_type: 'text', is_nullable: 'YES', column_default: null },
+        { column_name: 'id', data_type: 'uuid', is_nullable: 'NO', column_default: null },
+        { column_name: 'is_validated', data_type: 'boolean', is_nullable: 'NO', column_default: 'false' },
+        { column_name: 'jalon', data_type: 'text', is_nullable: 'YES', column_default: null },
+        { column_name: 'lien', data_type: 'text', is_nullable: 'YES', column_default: null },
+        { column_name: 'optionnelle', data_type: 'boolean', is_nullable: 'NO', column_default: 'false' },
+        { column_name: 'titre', data_type: 'text', is_nullable: 'NO', column_default: null },
+        { column_name: 'updated_at', data_type: 'timestamp with time zone', is_nullable: 'NO', column_default: 'now()' },
+        { column_name: 'user_id', data_type: 'uuid', is_nullable: 'NO', column_default: 'auth.uid()' },
+      ])
+    })
+
+    it('enregistre une séance minimale : user_id = auth.uid(), non validée, non optionnelle, facultatifs à NULL', async () => {
+      const id = idCardio()
+      await commeUtilisateur(A, () => insererCardio(table, id))
+      const r = await commeUtilisateur(A, () =>
+        db.query(`select user_id, is_validated, optionnelle, consigne, detail, jalon, lien, deleted_at from ${table} where id = '${id}'`),
+      )
+      expect(r.rows).toEqual([
+        { user_id: A, is_validated: false, optionnelle: false, consigne: null, detail: null, jalon: null, lien: null, deleted_at: null },
+      ])
+    })
+
+    it('accepte une séance complète (détail non découpé, jalon, lien https)', async () => {
+      await commeUtilisateur(A, () =>
+        insererCardio(table, idCardio(), {
+          consigne: 'Aisance respiratoire, sans objectif d’allure.', detail: '40–45 min · Z1–Z2',
+          jalon: 'Ravensberg', lien: LIEN_OK,
+        }),
+      )
+    })
+
+    it.each([
+      ['date au format jj/mm/aaaa', { date: '05/01/2027' }, 'date'],
+      ['date sans zéro de tête', { date: '2027-1-5' }, 'date'],
+      ['date avec une heure', { date: '2027-01-05T10:00' }, 'date'],
+      ['date vide', { date: '' }, 'date'],
+      ['titre vide', { titre: '' }, 'titre'],
+      ['titre de 201 caractères', { titre: 'x'.repeat(201) }, 'titre'],
+      ['consigne de 2001 caractères', { consigne: 'x'.repeat(2001) }, 'consigne'],
+      ['détail de 101 caractères', { detail: 'x'.repeat(101) }, 'detail'],
+      ['jalon de 101 caractères', { jalon: 'x'.repeat(101) }, 'jalon'],
+      ['lien en http://', { lien: 'http://www.strava.com/activities/1' }, 'lien'],
+      ['lien javascript:', { lien: 'javascript:alert(1)' }, 'lien'],
+      ['lien https en majuscules (la forme normalisée est en minuscules)', { lien: 'HTTPS://www.strava.com/activities/1' }, 'lien'],
+      ['lien vide (le client enregistre NULL)', { lien: '' }, 'lien'],
+      ['lien de 2049 caractères', { lien: `https://${'x'.repeat(2041)}` }, 'lien'],
+    ])('refuse : %s', async (_nom, champs, colonne) => {
+      await expect(commeUtilisateur(A, () => insererCardio(table, idCardio(), champs))).rejects.toThrow(
+        new RegExp(`${table}_${colonne}_check`),
+      )
+    })
+
+    it.each([
+      ['titre de 200 caractères', { titre: 'x'.repeat(200) }],
+      ['consigne de 2000 caractères', { consigne: 'x'.repeat(2000) }],
+      ['détail de 100 caractères', { detail: 'x'.repeat(100) }],
+      ['jalon de 100 caractères', { jalon: 'x'.repeat(100) }],
+      ['lien de 2048 caractères', { lien: `https://${'x'.repeat(2040)}` }],
+    ])('accepte à la limite : %s', async (_nom, champs) => {
+      await commeUtilisateur(A, () => insererCardio(table, idCardio(), champs))
+    })
+
+    it("isole les comptes : B ne voit pas la séance de A, ne la modifie pas et ne peut pas insérer avec le user_id de A", async () => {
+      const id = idCardio()
+      await commeUtilisateur(A, () => insererCardio(table, id))
+      const vu = await commeUtilisateur(B, () => db.query<{ n: number }>(`select count(*)::int as n from ${table}`))
+      expect(vu.rows[0].n).toBe(0)
+      const maj = await commeUtilisateur(B, () => db.query(`update ${table} set titre = 'piraté' where id = '${id}'`))
+      expect(maj.affectedRows).toBe(0)
+      await expect(
+        commeUtilisateur(B, () => insererCardio(table, idCardio(), { user_id: A })),
+      ).rejects.toThrow(/row-level security/)
+    })
+
+    it('suppression logique autorisée (deleted_at), suppression physique refusée', async () => {
+      const id = idCardio()
+      await commeUtilisateur(A, () => insererCardio(table, id))
+      await commeUtilisateur(A, () => db.exec(`update ${table} set deleted_at = now() where id = '${id}'`))
+      await expect(commeUtilisateur(A, () => db.exec(`delete from ${table} where id = '${id}'`))).rejects.toThrow(
+        /permission denied/,
+      )
+    })
+
+    it('met à jour updated_at à chaque update (trigger set_updated_at)', async () => {
+      const id = idCardio()
+      await commeUtilisateur(A, () => insererCardio(table, id))
+      await db.exec(`alter table ${table} disable trigger set_updated_at;
+        update ${table} set updated_at = '2000-01-01T00:00:00Z' where id = '${id}';
+        alter table ${table} enable trigger set_updated_at;`)
+      await commeUtilisateur(A, () => db.exec(`update ${table} set is_validated = true where id = '${id}'`))
+      const r = await db.query<{ updated_at: Date }>(`select updated_at from ${table} where id = '${id}'`)
+      expect(r.rows[0].updated_at.getUTCFullYear()).toBeGreaterThanOrEqual(2026)
+    })
+
+    it('a un index partiel (user_id, date) sur les lignes vivantes', async () => {
+      const r = await db.query<{ indexdef: string }>(
+        `select indexdef from pg_indexes where schemaname = 'public' and indexname = '${table}_user_date_idx'`,
+      )
+      expect(r.rows).toHaveLength(1)
+      expect(r.rows[0].indexdef).toMatch(/\(user_id, date\)/)
+      expect(r.rows[0].indexdef).toMatch(/WHERE \(deleted_at IS NULL\)/)
+    })
+  })
+
+  it('la migration est rejouable : aucune erreur, aucune donnée perdue, une politique par table', async () => {
+    const avant = await db.query<{ n: number }>(
+      `select (select count(*) from seances_course) + (select count(*) from seances_velo) as n`,
+    )
+    await db.exec(migration('0008_seances_cardio.sql'))
+    await db.exec(migration('0008_seances_cardio.sql'))
+    const apres = await db.query<{ n: number }>(
+      `select (select count(*) from seances_course) + (select count(*) from seances_velo) as n`,
+    )
+    expect(Number(apres.rows[0].n)).toBe(Number(avant.rows[0].n))
+    expect(Number(avant.rows[0].n)).toBeGreaterThan(0)
+    const p = await db.query<{ n: number }>(`select count(*)::int as n from pg_policies where schemaname = 'public'`)
+    expect(p.rows[0].n).toBe(TABLES.length)
+  })
+
+  /** Base PGlite isolée (rôles et schéma auth de Supabase, migrations 0001 à 0006) : `avant0008` s'exécute juste
+   * avant la migration 0008 (rôles de réplication, publication...). Chaque base a ses propres rôles. */
+  async function avecBaseIsolee<T>(avant0008: string, fn: (base: PGlite) => Promise<T>): Promise<T> {
+    const base = new PGlite()
+    try {
+      await base.exec(`
+        create schema auth;
+        create function auth.uid() returns uuid language sql stable
+          as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+        create role anon nologin;
+        create role authenticated nologin;
+        grant usage on schema public, auth to anon, authenticated;
+        alter default privileges in schema public grant all on tables to anon, authenticated;
+      `)
+      for (const nom of [...MIGRATIONS_AVANT_0006, '0006_durcissement.sql']) await base.exec(migration(nom))
+      if (avant0008) await base.exec(avant0008)
+      await base.exec(migration('0008_seances_cardio.sql'))
+      return await fn(base)
+    } finally {
+      await base.close()
+    }
+  }
+
+  const membresPublication = async (base: PGlite, publication = 'powersync') =>
+    (await base.query<{ tablename: string }>(
+      `select tablename from pg_publication_tables where pubname = '${publication}' order by tablename`,
+    )).rows.map((l) => l.tablename)
+
+  it("s'applique sans erreur quand ni rôle de réplication ni publication n'existent (à contrôler au déploiement)", async () => {
+    await avecBaseIsolee('', async (base) => {
+      const r = await base.query<{ n: number }>(
+        `select count(*)::int as n from information_schema.tables where table_name in ('seances_course', 'seances_velo')`,
+      )
+      expect(r.rows[0].n).toBe(2)
+    })
+  })
+
+  describe('rôle de réplication PowerSync', () => {
+    const GENERE = 'powersync_139f8681431505f8ca4df3c4'
+
+    it('accorde SELECT au rôle généré par PowerSync Cloud (powersync_<suffixe> avec réplication), pas aux autres rôles', async () => {
+      await avecBaseIsolee(
+        `create role ${GENERE} nologin replication bypassrls;
+         create role powersync_sans_replication nologin;
+         create role autre_role nologin replication;`,
+        async (base) => {
+          const droit = async (role: string, table: string) =>
+            (await base.query<{ ok: boolean }>(`select has_table_privilege('${role}', 'public.${table}', 'SELECT') as ok`)).rows[0].ok
+          for (const table of CARDIO) {
+            expect(await droit(GENERE, table), `${GENERE} sur ${table}`).toBe(true)
+            expect(await droit('powersync_sans_replication', table), `sans réplication sur ${table}`).toBe(false)
+            expect(await droit('autre_role', table), `autre rôle sur ${table}`).toBe(false)
+          }
+        },
+      )
+    })
+
+    it('garde le rôle powersync_role (sans attribut de réplication) du guide Supabase + PowerSync', async () => {
+      await avecBaseIsolee('create role powersync_role nologin bypassrls;', async (base) => {
+        for (const table of CARDIO) {
+          const r = await base.query<{ ok: boolean }>(`select has_table_privilege('powersync_role', 'public.${table}', 'SELECT') as ok`)
+          expect(r.rows[0].ok, table).toBe(true)
+        }
+      })
+    })
+  })
+
+  describe('publication powersync', () => {
+    it('ajoute les deux tables à une publication qui liste ses tables, sans toucher aux autres', async () => {
+      await avecBaseIsolee('create publication powersync for table public.seances;', async (base) => {
+        expect(await membresPublication(base)).toEqual(['seances', 'seances_course', 'seances_velo'])
+      })
+    })
+
+    it("est rejouable et n'ajoute que les tables manquantes (jamais d'erreur « already member »)", async () => {
+      await avecBaseIsolee('create publication powersync for table public.seances;', async (base) => {
+        await base.exec(migration('0008_seances_cardio.sql'))
+        expect(await membresPublication(base)).toEqual(['seances', 'seances_course', 'seances_velo'])
+        await base.exec('alter publication powersync drop table public.seances_velo;')
+        expect(await membresPublication(base)).toEqual(['seances', 'seances_course'])
+        await base.exec(migration('0008_seances_cardio.sql'))
+        expect(await membresPublication(base)).toEqual(['seances', 'seances_course', 'seances_velo'])
+      })
+    })
+
+    it('laisse une publication « toutes les tables » telle quelle (elle couvre déjà les nouvelles tables)', async () => {
+      await avecBaseIsolee('create publication powersync for all tables;', async (base) => {
+        const r = await base.query<{ puballtables: boolean }>(`select puballtables from pg_publication where pubname = 'powersync'`)
+        expect(r.rows).toEqual([{ puballtables: true }])
+        expect(await membresPublication(base)).toEqual(expect.arrayContaining(['seances_course', 'seances_velo']))
+      })
+    })
+
+    it("n'abandonne pas la migration quand l'exécutant n'est pas propriétaire de la publication", async () => {
+      const base = new PGlite()
+      try {
+        await base.exec(`
+          create schema auth;
+          create function auth.uid() returns uuid language sql stable
+            as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+          create role anon nologin;
+          create role authenticated nologin;
+          grant usage on schema public, auth to anon, authenticated;
+        `)
+        for (const nom of [...MIGRATIONS_AVANT_0006, '0006_durcissement.sql']) await base.exec(migration(nom))
+        // La publication appartient au superutilisateur ; la migration est exécutée par un rôle ordinaire.
+        await base.exec(`
+          create publication powersync for table public.seances;
+          create role migrateur nologin;
+          grant create, usage on schema public to migrateur;
+          grant usage on schema auth to migrateur;
+          grant execute on function public.set_updated_at() to migrateur;
+        `)
+        await base.exec(`set role migrateur; ${migration('0008_seances_cardio.sql')}; reset role;`)
+        const r = await base.query<{ n: number }>(
+          `select count(*)::int as n from information_schema.tables where table_name in ('seances_course', 'seances_velo')`,
+        )
+        expect(r.rows[0].n).toBe(2)
+        expect(await membresPublication(base)).toEqual(['seances'])
+      } finally {
+        await base.close()
+      }
+    })
   })
 })
 

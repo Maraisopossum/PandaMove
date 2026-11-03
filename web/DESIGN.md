@@ -285,3 +285,11 @@ spacing:
 ### D. Barre d'Actions Inférieure Flottante (`.execution__actions-flottantes`)
 - Fixée en bas de l'écran avec intégration de la zone sécurisée (`env(safe-area-inset-bottom)`).
 - Bouton secondaire (Pause / Repos) et bouton principal plein largeur (Terminer la séance / Enregistrer l'aliment).
+
+### E. Agenda : séances de cardio (`.calendrier__seance--cardio`)
+- Carte `seance__carte` à liseré gauche orange du calendrier (`--couleur-calendrier`) ; aucune nouvelle couleur de module.
+- Genre en toutes lettres (« Course » ou « Vélo », `.calendrier__genre`, texte `--calendrier-texte`), puis le détail « durée · zone ».
+- Marques (`.calendrier__marques`, pastilles arrondies) : drapeau ⚑ + « Jalon : libellé » (le drapeau est décoratif, le texte porte le sens), « Optionnelle », « Validée » (teinte succès).
+- Règle : **jamais la couleur seule** pour le genre, le jalon, l'option ou la validation ; chaque état a son texte.
+- Actions : Valider ou Dévalider, Modifier, Changer la date, Supprimer. Cibles tactiles de 44 px, libellés accessibles avec le titre et le jour. Le lien vers les statistiques s'ouvre dans un nouvel onglet et le dit pour les lecteurs d'écran.
+- Contrastes vérifiés par `src/app/contraste.test.ts`.

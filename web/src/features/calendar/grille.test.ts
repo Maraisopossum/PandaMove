@@ -35,7 +35,7 @@ describe('construireGrille', () => {
     expect(g[34]).toMatchObject({ dateIso: '2026-11-01', dansLeMois: false })
     expect(g.filter((j) => j.dansLeMois)).toHaveLength(31)
     expect(g.filter((j) => j.estAujourdhui).map((j) => j.dateIso)).toEqual(['2026-10-24'])
-    expect(g.every((j) => j.instances.length === 0)).toBe(true)
+    expect(g.every((j) => j.evenements.length === 0)).toBe(true)
   })
 
   it('février 2026 (non bissextile) commençant un dimanche : 28 jours dans le mois, 5 semaines', () => {

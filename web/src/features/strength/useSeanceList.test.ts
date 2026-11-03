@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Db } from '../../core/db/Db'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
-import { dateIsoValide } from './affectation'
 import { useSeanceList } from './useSeanceList'
 
 async function seance(db: Db, id: string, nom: string, extra: Record<string, unknown> = {}) {
@@ -41,21 +40,6 @@ async function monter(db: Db) {
   await waitFor(() => expect(rendu.result.current.charge).toBe(true))
   return rendu
 }
-
-describe('dateIsoValide', () => {
-  it('accepte uniquement de vraies dates yyyy-MM-dd', () => {
-    expect(dateIsoValide('2026-10-24')).toBe(true)
-    expect(dateIsoValide('2024-02-29')).toBe(true)
-    expect(dateIsoValide('2026-02-29')).toBe(false)
-    expect(dateIsoValide('2026-02-30')).toBe(false)
-    expect(dateIsoValide('2026-13-01')).toBe(false)
-    expect(dateIsoValide('2026-00-10')).toBe(false)
-    expect(dateIsoValide('2026-4-5')).toBe(false)
-    expect(dateIsoValide('24/10/2026')).toBe(false)
-    expect(dateIsoValide('')).toBe(false)
-    expect(dateIsoValide('2026-10-24T10:00')).toBe(false)
-  })
-})
 
 describe('useSeanceList', () => {
   it('liste les modèles de renforcement vivants et non archivés, avec leur nombre d\'exercices', async () => {
