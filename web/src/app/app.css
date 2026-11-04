@@ -2949,6 +2949,14 @@ time,
   flex: 1 1 0;
 }
 
+/* Carte de cardio : quatre boutons texte (Dévalider, Modifier, Changer la date, Supprimer). Avec la règle ci-dessus (base nulle),
+   ils ne passent jamais à la ligne et se font écraser sur un téléphone : chacun garde la largeur de son texte, la rangée se
+   répartit sur deux lignes si besoin. Doit rester après la règle des séances jouées (même spécificité). */
+.calendrier__seance--cardio .seance__actions > .bouton[aria-label] {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 /* État vide : carte pointillée, panda à gauche */
 .calendrier__vide {
   display: flex;

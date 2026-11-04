@@ -30,6 +30,36 @@ describe('boutons d’action de la ligne cardio', () => {
   })
 })
 
+// Sur un téléphone, les quatre boutons (Dévalider, Modifier, Changer la date, Supprimer) ne tiennent pas sur une ligne. La règle des
+// séances jouées donne `flex: 1 1 0` à « Changer » et « Supprimer » : base nulle, donc jamais de retour à la ligne, et le libellé
+// est écrasé ou déborde. Dans une carte de cardio, chaque bouton garde la largeur de son texte et la rangée passe à la ligne.
+describe('rangée de boutons d’une carte de cardio sur petit écran', () => {
+  const regleCardio = /\.calendrier__seance--cardio \.seance__actions > \.bouton\[aria-label\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+  const posRegleSeances = css.indexOf(".calendrier__seance .seance__actions > .bouton[aria-label^='Changer']")
+  const posRegleCardio = css.indexOf('.calendrier__seance--cardio .seance__actions > .bouton[aria-label]')
+
+  it('la règle existe', () => {
+    expect(regleCardio).not.toBe('')
+  })
+
+  it('les boutons gardent la largeur de leur texte (pas de base nulle, pas de rétrécissement)', () => {
+    expect(regleCardio).toMatch(/flex:\s*0 0 auto/)
+  })
+
+  it('le libellé ne se coupe pas en deux lignes', () => {
+    expect(regleCardio).toMatch(/white-space:\s*nowrap/)
+  })
+
+  it('la rangée peut passer à la ligne', () => {
+    expect(css).toMatch(/\.seance__actions\s*\{[^}]*flex-wrap:\s*wrap/)
+  })
+
+  it('passe après la règle des séances jouées, à spécificité égale ou supérieure', () => {
+    expect(posRegleSeances).toBeGreaterThan(-1)
+    expect(posRegleCardio).toBeGreaterThan(posRegleSeances)
+  })
+})
+
 describe('champs de saisie d’une séance de cardio', () => {
   it('le message d’erreur d’un champ a un style (texte, jamais la couleur seule)', () => {
     expect(css).toMatch(/\.formulaire__erreur\s*{/)
