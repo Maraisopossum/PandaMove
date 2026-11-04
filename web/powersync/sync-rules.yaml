@@ -21,3 +21,5 @@ streams:
       - SELECT * FROM user_settings WHERE user_id = auth.user_id()
       - SELECT * FROM seances_course WHERE user_id = auth.user_id()
       - SELECT * FROM seances_velo WHERE user_id = auth.user_id()
+      - SELECT * FROM methodes_respiration WHERE user_id = auth.user_id()
+      - SELECT * FROM seances_respiration WHERE user_id = auth.user_id()

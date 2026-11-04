@@ -107,6 +107,19 @@ export const PANDA_MANIFEST = {
       },
     },
   },
+  pose_meditation: {
+    alt: 'Panda en méditation',
+    variantes: {
+      male: {
+        sm: { src: '/panda/pose-meditation-male-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/pose-meditation-male-lg.webp', width: 640, height: 960 },
+      },
+      female: {
+        sm: { src: '/panda/pose-meditation-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/pose-meditation-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
   pose_squat: {
     alt: 'Panda en squat',
     variantes: {

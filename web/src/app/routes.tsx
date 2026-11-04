@@ -1,8 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { RouteObject } from 'react-router'
 import {
-  CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, ProfileScreen, ReportScreen,
-  SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, StatsScreen,
+  CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
+  ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, StatsScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
@@ -35,6 +35,11 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
     { path: 'strength/instance/:id/report', element: chargement(<ReportScreen />) },
     { path: 'calendar', element: chargement(<CalendarScreen />) },
     { path: 'stats', element: chargement(<StatsScreen />) },
+    { path: 'breathing', element: chargement(<RespirationScreen />) },
+    // Chemins statiques (new, session/…) avant :id/edit
+    { path: 'breathing/new', element: chargement(<MethodeFormScreen />) },
+    { path: 'breathing/:id/edit', element: chargement(<MethodeFormScreen />) },
+    { path: 'breathing/session/:id/:cycles', element: chargement(<SessionRespirationScreen />) },
     { path: 'strength/catalog', element: chargement(<CatalogScreen />) },
     { path: 'profile', element: chargement(<ProfileScreen />) },
     { path: 'profile/equipment', element: chargement(<EquipmentScreen />) },

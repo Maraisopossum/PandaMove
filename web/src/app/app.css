@@ -15,6 +15,7 @@
   /* Violet du module en texte et liseré sur surface (AA sur blanc ; version claire en thème sombre) */
   --renforcement-texte: #5b3d9e;
   --couleur-calendrier: #e65100;
+  --couleur-respiration: #00695c;
   --couleur-stats: #bf360c;
   --couleur-nutrition: #059669;
   --couleur-import: #1565c0;
@@ -1059,6 +1060,9 @@ time,
 .formulaire__champ input,
 .formulaire__champ select,
 .formulaire__champ textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: var(--hauteur-controle);
   padding: 0.375rem 0.625rem;
   border: 1px solid var(--bord);
@@ -3958,6 +3962,8 @@ time,
 
 .exo__panneau {
   display: grid;
+  /* minmax(0, …) : sans lui, la largeur intrinsèque d'un champ de saisie élargit la colonne au-delà de la carte (mobile) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.25rem;
   padding: 0 0.625rem 0.5rem;
 }
@@ -4075,7 +4081,7 @@ time,
 
 .duree__champs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 0.5rem;
 }
 
@@ -5786,3 +5792,315 @@ time,
 .import-ia__actions .bouton--import {
   margin-top: 0;
 }
+
+/* Carte d'exercice (édition) : les enfants de la grille peuvent rétrécir sous leur largeur intrinsèque */
+.exo__grille > *,
+.exo__panneau > * {
+  min-width: 0;
+}
+
+/* Respiration (module teal) : choix de la méthode, formulaire, séance (cercle qui suit le souffle) et fin de séance */
+.respiration {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.respiration__haut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.respiration__panda {
+  flex: none;
+  width: min(9rem, 40vw);
+  height: auto;
+}
+
+.respiration__titre {
+  margin: 0.5rem 0 0;
+  font-size: var(--taille-titre-2, 1.25rem);
+}
+
+.respiration__liste,
+.respiration__seances {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.respiration__carte,
+.respiration__seance {
+  min-width: 0;
+  border: 1px solid var(--bord);
+  border-left: 4px solid var(--couleur-respiration);
+  border-radius: var(--radius-bouton);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+}
+
+.respiration__entete {
+  display: grid;
+}
+
+.respiration__bascule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: var(--hauteur-controle);
+  padding: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.respiration__emoji {
+  flex: none;
+  font-size: 1.75rem;
+}
+
+.respiration__texte {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.respiration__nom {
+  margin: 0;
+  font-weight: 700;
+}
+
+.respiration__description {
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+}
+
+.respiration__chevron {
+  flex: none;
+  color: var(--texte-secondaire);
+}
+
+.respiration__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.respiration__panneau {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 0.75rem 0.75rem;
+  border-top: 1px solid var(--bord);
+  padding-top: 0.75rem;
+}
+
+.respiration__mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.respiration__compteur {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.respiration__valeur {
+  display: grid;
+  min-width: 4.5rem;
+  margin: 0;
+  text-align: center;
+}
+
+.respiration__valeur strong {
+  color: var(--couleur-respiration);
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.respiration__demarrer {
+  background: var(--couleur-respiration);
+  border-color: var(--couleur-respiration);
+}
+
+.respiration__historique .respiration__titre {
+  margin: 0;
+}
+
+.respiration__historique .respiration__bascule {
+  justify-content: space-between;
+  padding-inline: 0;
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.respiration__seance {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.respiration__formulaire {
+  min-width: 0;
+}
+
+.respiration__identite {
+  display: grid;
+  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
+  gap: 0 0.75rem;
+}
+
+.respiration__phase {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.respiration__duree {
+  min-width: 3rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.respiration__apercu {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: var(--radius-bouton);
+  background: color-mix(in srgb, var(--couleur-respiration) 8%, var(--surface));
+}
+
+/* Séance : la zone du cercle est carrée ; le cercle va de 22 % à 88 % de son rayon (variable --echelle) */
+.respiration__session,
+.respiration__fin {
+  justify-items: center;
+  text-align: center;
+}
+
+.respiration__barre {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) 3rem;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.respiration__barre p {
+  margin: 0;
+}
+
+.respiration__cycle {
+  color: var(--couleur-phase);
+  font-weight: 700;
+}
+
+.respiration__cercle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(18rem, 78vw);
+  aspect-ratio: 1;
+  margin: 1rem 0;
+}
+
+.respiration__halo,
+.respiration__disque {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--couleur-phase);
+  transition: transform 100ms linear, background-color 600ms ease;
+}
+
+.respiration__halo {
+  opacity: 0.14;
+  transform: scale(calc(var(--echelle) + 0.09));
+}
+
+.respiration__disque {
+  transform: scale(var(--echelle));
+}
+
+.respiration__chiffre {
+  position: relative;
+  color: var(--texte-phase);
+  font-size: 2.5rem;
+  font-weight: 800;
+  transition: color 600ms ease;
+}
+
+.respiration__phase-titre,
+.respiration__consigne .respiration__phase {
+  display: block;
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.respiration__consigne {
+  min-height: 4rem;
+}
+
+.respiration__consigne p {
+  margin: 0.25rem 0;
+}
+
+.respiration__pause {
+  min-width: 9rem;
+  min-height: 3.5rem;
+}
+
+.respiration__message {
+  margin: 0;
+  color: var(--texte-secondaire);
+  font-style: italic;
+}
+
+.respiration__bilan {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-bouton);
+  background: var(--surface);
+}
+
+.respiration__bilan dl {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 0.5rem 0 0;
+}
+
+.respiration__bilan dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .respiration__halo,
+  .respiration__disque,
+  .respiration__chiffre {
+    transition: none;
+  }
+}
+
