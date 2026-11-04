@@ -24,6 +24,7 @@ describe('barre du haut colorée par module (couleurs Stitch)', () => {
     expect(MODULES.stats.color.toLowerCase()).toBe('#bf360c')
     expect(MODULES.import.color.toLowerCase()).toBe('#1565c0')
     expect(MODULES.profile.color.toLowerCase()).toBe('#576746')
+    expect(MODULES.breathing.color.toLowerCase()).toBe('#00695c')
   })
 
   it.each(Object.entries(MODULES))('titre et icône blancs >= 4,5:1 sur la barre (%s)', (_id, { color }) => {

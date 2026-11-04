@@ -176,6 +176,14 @@ L'agenda (écran Calendrier) accueille aussi des séances de **course** et de **
 - **Programme 2027** : Profil → « Importer des données » → onglet **Programme 2027** → « Importer le programme 2027 » (113 séances, du 3 novembre 2026 au 6 juin 2027). Le bouton reste inactif (raison affichée) tant que l'appareil n'a pas fini sa première synchronisation, est hors ligne, synchronise ou a des modifications non envoyées : à lancer une seule fois, sur l'appareil à jour. Rejouable sans doublon ; une séance déplacée, validée ou supprimée n'est jamais modifiée. La source est `support/Programme_endurance_PandaMove_2027_Zwift_KICKR.html`, convertie une fois par `node scripts/extraire-programme-2027.mjs`.
 - **Données** : tables `seances_course` et `seances_velo` (migration `0008_seances_cardio.sql`, à appliquer avant les règles PowerSync puis le client). Détail dans `src/features/calendar/README.md`.
 
+## Respiration
+
+Module repris de l'application Android : quatre méthodes intégrées (cohérence cardiaque, 4-7-8, respiration en boîte, Wim Hof), méthodes personnalisées (emoji, durées des quatre phases, cycles par défaut), durée réglée en cycles ou en minutes, décompte de 5 s, cercle qui suit le souffle, tonalités par phase (Web Audio, rien à télécharger), pause et reprise, écran de fin avec le panda, historique des 15 dernières séances.
+
+- **Écran gardé allumé** pendant la séance (API Screen Wake Lock, quand le navigateur l'offre). Il n'y a pas de service d'arrière-plan comme sur Android : si l'onglet passe en arrière-plan, le temps continue de s'écouler mais les sons peuvent s'interrompre selon le navigateur.
+- **Données** : tables `methodes_respiration` et `seances_respiration` (migration `0009_respiration.sql`, à appliquer avant les règles PowerSync puis le client). Une séance n'est enregistrée que menée jusqu'au bout. Détail dans `src/features/respiration/README.md`.
+- La respiration est hors de l'export JSON de sauvegarde.
+
 ## Sauvegarde
 
 Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne pas dépendre seulement de ces services, faire régulièrement une sauvegarde locale.

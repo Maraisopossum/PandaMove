@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { TABLES_RESPIRATION } from './repos/respiration'
 import { TABLES_CARDIO } from './repos/seancesCardio'
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
@@ -10,10 +11,12 @@ const lire = (...chemin: string[]) => readFileSync(join(web, ...chemin), 'utf8')
 const schema = lire('src', 'core', 'db', 'schema.ts')
 const regles = lire('powersync', 'sync-rules.yaml')
 const migration = lire('supabase', 'migrations', '0008_seances_cardio.sql')
+const migrationRespiration = lire('supabase', 'migrations', '0009_respiration.sql')
 
 const tablesSchema = [...schema.matchAll(/^ {2}(\w+): new Table\(/gm)].map((m) => m[1])
 const tablesRegles = [...regles.matchAll(/^\s*- SELECT \* FROM (\w+) WHERE/gm)].map((m) => m[1])
 const tablesMigration = [...(/foreach t in array array\[([^\]]+)\] loop/.exec(migration)?.[1] ?? '').matchAll(/'(\w+)'/g)].map((m) => m[1])
+const tablesMigrationRespiration = [...(/foreach t in array array\[([^\]]+)\] loop/.exec(migrationRespiration)?.[1] ?? '').matchAll(/'(\w+)'/g)].map((m) => m[1])
 
 // Les tables de cardio sont écrites à la main à quatre endroits : migration, schéma local, règles de synchro, module d'accès.
 describe('cohérence des tables de cardio', () => {
@@ -29,6 +32,19 @@ describe('cohérence des tables de cardio', () => {
 
   it('les règles de synchro en envoient chacune', () => {
     for (const t of attendues) expect(tablesRegles, t).toContain(t)
+  })
+
+  it('la migration 0009 crée exactement les tables du module d’accès à la respiration', () => {
+    expect([...tablesMigrationRespiration].sort()).toEqual(Object.values(TABLES_RESPIRATION).sort())
+    // Les tables sont créées par des create table explicites (et non dans la boucle) : chacune doit y figurer.
+    for (const t of Object.values(TABLES_RESPIRATION)) expect(migrationRespiration, t).toContain(`create table if not exists public.${t} (`)
+  })
+
+  it('le schéma local et les règles de synchro portent les tables de respiration', () => {
+    for (const t of Object.values(TABLES_RESPIRATION)) {
+      expect(tablesSchema, t).toContain(t)
+      expect(tablesRegles, t).toContain(t)
+    }
   })
 
   it('le schéma et les règles listent les mêmes tables', () => {

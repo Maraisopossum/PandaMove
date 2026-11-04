@@ -46,6 +46,7 @@ const IMAGES = {
   // Poses (la plupart n'existent qu'en version femme : pandaImage se replie dessus)
   pose_standing: { alt: 'Panda debout', male: `${POSES}/male_pose_standing_v1.png`, female: `${POSES}/female_pose_standing_v1.png` },
   pose_sitting: { alt: 'Panda assis, au repos', male: `${POSES}/male_pose_sitting_v1.png`, female: `${POSES}/female_pose_sitting_v1.png` },
+  pose_meditation: { alt: 'Panda en méditation', male: `${POSES}/male_pose_meditation_v1.png`, female: `${POSES}/female_pose_lotus_v1.png` },
   pose_squat: { alt: 'Panda en squat', female: `${POSES}/female_pose_squat_v1.png` },
   pose_deadlift: { alt: 'Panda en soulevé de terre', female: `${POSES}/female_pose_deadlift_v1.png` },
   pose_pushup: { alt: 'Panda en pompe', female: `${POSES}/female_pose_pushup_v1.png` },

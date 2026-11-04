@@ -26,6 +26,30 @@ const seanceCardio = {
   created_at: t,
 }
 
+// Module Respiration (migration 0009). Les durées sont en secondes (0 = phase absente) ; `date` et `created_at` sont du
+// texte ISO ; `methode_id` désigne une méthode intégrée (« 4_7_8 ») ou l'id d'une méthode personnalisée, sans clé étrangère.
+const methodeRespiration = {
+  ...sync,
+  nom: t,
+  emoji: t,
+  inspire_sec: i,
+  retention_pleine_sec: i,
+  expire_sec: i,
+  retention_vide_sec: i,
+  cycles_defaut: i,
+  created_at: t,
+}
+
+const seanceRespiration = {
+  ...sync,
+  methode_id: t,
+  methode_nom: t,
+  cycles: i,
+  duree_sec: i,
+  date: t,
+  created_at: t,
+}
+
 export const AppSchema = new Schema({
   exercises: new Table({
     ...sync,
@@ -147,4 +171,6 @@ export const AppSchema = new Schema({
   // Une déclaration par table : sync-rules.test.ts lit ce fichier ligne à ligne (`  nom: new Table(`)
   seances_course: new Table(seanceCardio),
   seances_velo: new Table(seanceCardio),
+  methodes_respiration: new Table(methodeRespiration),
+  seances_respiration: new Table(seanceRespiration),
 })

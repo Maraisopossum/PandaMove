@@ -1,4 +1,4 @@
-export type ModuleId = 'home' | 'strength' | 'calendar' | 'stats' | 'profile' | 'import'
+export type ModuleId = 'home' | 'strength' | 'calendar' | 'stats' | 'breathing' | 'profile' | 'import'
 
 export interface SousLien {
   path: string
@@ -31,6 +31,8 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
   },
   calendar: { path: '/calendar', label: 'Calendrier', color: '#D24700' },
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C' },
+  // Teal : texte blanc 6,5:1 (contraste.test.ts)
+  breathing: { path: '/breathing', label: 'Respiration', color: '#00695C' },
   profile: { path: '/profile', label: 'Profil', color: '#576746' },
   import: { path: '/import', label: 'Import', color: '#1565C0' },
 }
