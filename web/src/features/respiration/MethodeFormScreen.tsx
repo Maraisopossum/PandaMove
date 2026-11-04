@@ -74,6 +74,11 @@ export default function MethodeFormScreen() {
     >
       <h1 className="titre-ecran">{id === undefined ? 'Nouvelle méthode' : 'Modifier la méthode'}</h1>
 
+      <p className="respiration__apercu">
+        <span className="aide">Aperçu de la description</span>
+        <strong>{form.apercu}</strong>
+      </p>
+
       <fieldset className="formulaire__groupe">
         <legend>Identité</legend>
         <div className="respiration__identite">
@@ -124,24 +129,19 @@ export default function MethodeFormScreen() {
         </div>
       </fieldset>
 
-      <p className="respiration__apercu">
-        <span className="aide">Aperçu de la description</span>
-        <strong>{form.apercu}</strong>
-      </p>
-
       {form.erreur && (
         <p role="alert" className="formulaire__erreur">
           {form.erreur}
         </p>
       )}
 
-      <div className="formulaire__ligne">
-        <button type="submit" className="bouton bouton--principal" disabled={!form.peutEnregistrer}>
-          {id === undefined ? 'Créer la méthode' : 'Enregistrer les modifications'}
-        </button>
+      <div className="respiration__actions-bas">
         <Link to="/breathing" className="bouton">
           Annuler
         </Link>
+        <button type="submit" className="bouton bouton--principal" disabled={!form.peutEnregistrer}>
+          {id === undefined ? 'Créer la méthode' : 'Enregistrer les modifications'}
+        </button>
       </div>
     </form>
   )

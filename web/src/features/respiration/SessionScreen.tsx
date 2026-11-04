@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { useImagePanda } from '../../core/images/usePandaVariante'
+import { ecrireSonActif, lireSonActif } from './audio'
 import type { Methode } from './methodes'
 import { avancement, echelleCercle, INFOS_PHASE, secondesRestantes } from './moteur'
 import { formaterDuree, messagePandaAuHasard } from './presentation'
@@ -49,7 +50,7 @@ function FinDeSeance({ methode, cycles, dureeSec, erreur, onRecommencer }: FinPr
           {erreur}
         </p>
       )}
-      <div className="formulaire__ligne">
+      <div className="respiration__actions-bas respiration__actions-bas--fin">
         <Link to="/breathing" className="bouton">
           Fermer
         </Link>
@@ -71,6 +72,11 @@ interface ContenuProps {
 function ContenuSession({ methode, cycles, onRecommencer }: ContenuProps) {
   const s = useSessionRespiration(methode, cycles)
   useVeilleEcran(s.statut === 'decompte' || s.statut === 'en_cours' || s.statut === 'pause')
+  const [son, setSon] = useState(lireSonActif)
+  const basculerSon = () => {
+    ecrireSonActif(!son)
+    setSon(!son)
+  }
 
   if (s.statut === 'termine') {
     return <FinDeSeance methode={methode} cycles={cycles} dureeSec={s.dureeSec} erreur={s.erreurEnregistrement} onRecommencer={onRecommencer} />
@@ -89,8 +95,10 @@ function ContenuSession({ methode, cycles, onRecommencer }: ContenuProps) {
   return (
     <div className="respiration respiration__session" style={style}>
       <div className="respiration__barre">
-        <Link to="/breathing" className="bouton" aria-label="Quitter la séance">
-          ✕
+        <Link to="/breathing" className="bouton respiration__quitter" aria-label="Quitter la séance">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </Link>
         <p className="respiration__nom">{methode.nom}</p>
         <p className="respiration__cycle" aria-label={s.etat ? `Cycle ${s.etat.cycle} sur ${s.etat.cyclesTotal}` : undefined}>
@@ -98,9 +106,15 @@ function ContenuSession({ methode, cycles, onRecommencer }: ContenuProps) {
         </p>
       </div>
 
-      <div className="respiration__cercle" aria-hidden="true">
-        <span className="respiration__halo" />
-        <span className="respiration__disque" />
+      {/* Deux anneaux qui pulsent : l'anneau extérieur suit le disque avec un léger retard et respire en continu ;
+          pendant les rétentions, le disque pulse à peine. Pas de petit cercle au centre. */}
+      <div className={`respiration__cercle${s.etat && (s.etat.phase === 'retention_pleine' || s.etat.phase === 'retention_vide') ? ' respiration__cercle--retenue' : ''}`} aria-hidden="true">
+        <span className="respiration__halo">
+          <span className="respiration__pulsation" />
+        </span>
+        <span className="respiration__disque">
+          <span className="respiration__pulsation" />
+        </span>
         <span className="respiration__chiffre">{enDecompte ? s.decompte : s.etat ? secondesRestantes(s.etat) : ''}</span>
       </div>
 
@@ -120,11 +134,19 @@ function ContenuSession({ methode, cycles, onRecommencer }: ContenuProps) {
         )}
       </div>
 
-      {!enDecompte && (
-        <button type="button" className="bouton bouton--principal respiration__pause" onClick={s.statut === 'en_cours' ? s.pause : s.reprendre}>
-          {s.statut === 'en_cours' ? 'Pause' : 'Reprendre'}
+      <div className="respiration__controles">
+        {!enDecompte && (
+          <button type="button" className="bouton bouton--principal respiration__pause" onClick={s.statut === 'en_cours' ? s.pause : s.reprendre}>
+            {s.statut === 'en_cours' ? 'Pause' : 'Reprendre'}
+          </button>
+        )}
+        <button type="button" className="bouton respiration__son" aria-label={son ? 'Son activé' : 'Son coupé'} aria-pressed={son} onClick={basculerSon}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+            <path d="M11 5L6 9H3v6h3l5 4V5z" />
+            {son ? <path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" /> : <path d="M16 9l5 6M21 9l-5 6" />}
+          </svg>
         </button>
-      )}
+      </div>
     </div>
   )
 }

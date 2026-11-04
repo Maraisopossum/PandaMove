@@ -5799,36 +5799,78 @@ time,
   min-width: 0;
 }
 
-/* Respiration (module teal) : choix de la méthode, formulaire, séance (cercle qui suit le souffle) et fin de séance */
+/* Respiration (module teal) : choix de la méthode, formulaire, séance (deux anneaux qui pulsent) et fin de séance */
 .respiration {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.875rem;
   max-width: 40rem;
   margin: 0 auto;
+}
+
+/* Boutons du module : liens et boutons identiques (centrés, sans soulignement), 48 px de haut, coins arrondis */
+.respiration .bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1rem;
+  border-radius: 16px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.respiration .bouton--principal {
+  border-color: var(--couleur-respiration);
+  background: var(--couleur-respiration);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.respiration .bouton--principal:disabled {
+  opacity: 0.5;
 }
 
 .respiration__haut {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bord);
+  border-radius: 20px;
+  background: var(--surface);
 }
 
 .respiration__panda {
   flex: none;
-  width: min(9rem, 40vw);
+  width: 5.5rem;
   height: auto;
 }
 
+.respiration__accroche {
+  display: grid;
+  min-width: 0;
+  gap: 0.625rem;
+  justify-items: start;
+}
+
+.respiration__titre-page {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
 .respiration__titre {
-  margin: 0.5rem 0 0;
-  font-size: var(--taille-titre-2, 1.25rem);
+  margin: 0.25rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 700;
 }
 
 .respiration__liste,
 .respiration__seances {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.625rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -5838,9 +5880,13 @@ time,
 .respiration__seance {
   min-width: 0;
   border: 1px solid var(--bord);
-  border-left: 4px solid var(--couleur-respiration);
-  border-radius: var(--radius-bouton);
+  border-radius: 20px;
   background: var(--surface);
+  overflow: hidden;
+}
+
+.respiration__carte:has(.respiration__panneau) {
+  border-color: var(--couleur-respiration);
   box-shadow: var(--ombre-carte);
 }
 
@@ -5851,10 +5897,10 @@ time,
 .respiration__bascule {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.875rem;
   width: 100%;
-  min-height: var(--hauteur-controle);
-  padding: 0.75rem;
+  min-height: 48px;
+  padding: 0.875rem 1rem;
   border: 0;
   background: transparent;
   color: inherit;
@@ -5864,8 +5910,15 @@ time,
 }
 
 .respiration__emoji {
+  display: flex;
   flex: none;
-  font-size: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--couleur-respiration) 12%, var(--surface));
+  font-size: 1.625rem;
 }
 
 .respiration__texte {
@@ -5877,6 +5930,7 @@ time,
 
 .respiration__nom {
   margin: 0;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -5894,17 +5948,17 @@ time,
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0 0.75rem 0.75rem;
+  padding: 0 1rem 0.875rem;
 }
 
 .respiration__panneau {
   display: grid;
-  gap: 0.75rem;
-  padding: 0 0.75rem 0.75rem;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem 1rem;
   border-top: 1px solid var(--bord);
-  padding-top: 0.75rem;
 }
 
+/* Durée : « Cycles » / « Minutes » en pastilles */
 .respiration__mode {
   display: flex;
   flex-wrap: wrap;
@@ -5912,27 +5966,50 @@ time,
   gap: 0.5rem;
 }
 
+.respiration__mode .bouton {
+  min-height: 40px;
+  border-radius: 999px;
+}
+
+.respiration__mode .bouton[aria-pressed='true'] {
+  border-color: var(--couleur-respiration);
+  background: var(--couleur-respiration);
+  color: #ffffff;
+}
+
 .respiration__compteur {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 1.5rem;
+}
+
+.respiration__compteur .bouton {
+  flex: none;
+  width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .respiration__valeur {
   display: grid;
-  min-width: 4.5rem;
+  min-width: 5rem;
   margin: 0;
   text-align: center;
 }
 
 .respiration__valeur strong {
   color: var(--couleur-respiration);
-  font-size: 1.75rem;
+  font-size: 2.5rem;
   font-weight: 800;
+  line-height: 1;
 }
 
 .respiration__demarrer {
+  min-height: 52px;
   background: var(--couleur-respiration);
   border-color: var(--couleur-respiration);
 }
@@ -5952,44 +6029,104 @@ time,
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 1rem;
 }
 
+.respiration__seance .bouton {
+  min-height: 40px;
+}
+
+/* Formulaire : une phase tient sur une ligne (case, libellé, compteur compact à droite) */
 .respiration__formulaire {
   min-width: 0;
+  padding-bottom: 5rem;
+}
+
+.respiration__formulaire .formulaire__groupe {
+  margin: 0;
+  border-radius: 20px;
 }
 
 .respiration__identite {
   display: grid;
-  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 5rem) minmax(0, 1fr);
   gap: 0 0.75rem;
 }
 
 .respiration__phase {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
+  gap: 0.75rem;
+  min-height: 60px;
+  border-bottom: 1px solid var(--bord);
+}
+
+.respiration__phase:last-of-type {
+  border-bottom: 0;
+}
+
+.respiration__phase > :first-child {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.respiration__phase .formulaire__case {
+  margin: 0;
+}
+
+.respiration__phase .respiration__compteur {
+  flex: none;
+  gap: 0.25rem;
+}
+
+.respiration__phase .respiration__compteur .bouton {
+  width: 40px;
+  min-height: 40px;
+  font-size: 1.25rem;
 }
 
 .respiration__duree {
   min-width: 3rem;
+  color: var(--couleur-respiration);
   font-weight: 700;
   text-align: center;
 }
 
 .respiration__apercu {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.125rem;
   margin: 0;
-  padding: 0.75rem;
-  border-radius: var(--radius-bouton);
-  background: color-mix(in srgb, var(--couleur-respiration) 8%, var(--surface));
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--couleur-respiration) 10%, var(--surface));
 }
 
-/* Séance : la zone du cercle est carrée ; le cercle va de 22 % à 88 % de son rayon (variable --echelle) */
+/* Boutons du bas : Annuler (1 part) et valider (2 parts), de même hauteur, collés en bas de l'écran */
+.respiration__actions-bas {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 0 1rem;
+  background: var(--fond);
+  border-top: 1px solid var(--bord);
+}
+
+.respiration__actions-bas > :first-child {
+  flex: 1;
+}
+
+.respiration__actions-bas > :last-child {
+  flex: 2;
+}
+
+.respiration__actions-bas--fin > :last-child {
+  flex: 1;
+}
+
+/* Séance : deux anneaux qui pulsent autour du chiffre. --echelle (de 0,22 à 0,88) donne la taille du disque ;
+   l'anneau extérieur est plus large, plus léger, et suit avec un léger retard (transition plus lente) */
 .respiration__session,
 .respiration__fin {
   justify-items: center;
@@ -5998,28 +6135,44 @@ time,
 
 .respiration__barre {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr) 3rem;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   width: 100%;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .respiration__barre p {
   margin: 0;
 }
 
+.respiration .respiration__quitter {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
 .respiration__cycle {
-  color: var(--couleur-phase);
+  min-width: 44px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--couleur-respiration) 12%, var(--surface));
+  color: var(--couleur-respiration);
+  font-size: 0.875rem;
   font-weight: 700;
+}
+
+.respiration__cycle:empty {
+  visibility: hidden;
 }
 
 .respiration__cercle {
   position: relative;
   display: grid;
   place-items: center;
-  width: min(18rem, 78vw);
+  width: min(20rem, 82vw);
   aspect-ratio: 1;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
 }
 
 .respiration__halo,
@@ -6027,46 +6180,106 @@ time,
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: var(--couleur-phase);
-  transition: transform 100ms linear, background-color 600ms ease;
 }
 
 .respiration__halo {
-  opacity: 0.14;
+  opacity: 0.22;
   transform: scale(calc(var(--echelle) + 0.09));
+  transition: transform 600ms ease-out;
 }
 
 .respiration__disque {
   transform: scale(var(--echelle));
+  transition: transform 100ms linear;
+}
+
+.respiration__pulsation {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--couleur-phase);
+  transition: background-color 600ms ease;
+}
+
+.respiration__halo > .respiration__pulsation {
+  animation: respiration-anneau 2.6s ease-in-out infinite;
+}
+
+.respiration__cercle--retenue .respiration__disque > .respiration__pulsation {
+  animation: respiration-disque 2.2s ease-in-out infinite;
+}
+
+@keyframes respiration-anneau {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes respiration-disque {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
 }
 
 .respiration__chiffre {
   position: relative;
   color: var(--texte-phase);
-  font-size: 2.5rem;
+  font-size: 4.75rem;
   font-weight: 800;
+  line-height: 1;
   transition: color 600ms ease;
 }
 
-.respiration__phase-titre,
-.respiration__consigne .respiration__phase {
-  display: block;
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
+.respiration__consigne {
+  min-height: 4.5rem;
 }
 
-.respiration__consigne {
-  min-height: 4rem;
+.respiration__consigne p.respiration__phase {
+  display: block;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  font-size: 2rem;
+  font-weight: 800;
 }
 
 .respiration__consigne p {
   margin: 0.25rem 0;
 }
 
-.respiration__pause {
-  min-width: 9rem;
-  min-height: 3.5rem;
+.respiration__controles {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.respiration .respiration__pause {
+  flex: 1;
+  min-height: 60px;
+  border-radius: 18px;
+  font-size: 1.125rem;
+}
+
+.respiration .respiration__son {
+  flex: none;
+  width: 60px;
+  min-height: 60px;
+  padding: 0;
+  border-radius: 18px;
+  color: var(--couleur-respiration);
+}
+
+.respiration .respiration__son[aria-pressed='false'] {
+  color: var(--texte-secondaire);
 }
 
 .respiration__message {
@@ -6077,30 +6290,36 @@ time,
 
 .respiration__bilan {
   width: 100%;
+  box-sizing: border-box;
   padding: 1rem;
   border: 1px solid var(--bord);
-  border-radius: var(--radius-bouton);
+  border-radius: 20px;
   background: var(--surface);
 }
 
 .respiration__bilan dl {
   display: flex;
   justify-content: center;
-  gap: 2rem;
-  margin: 0.5rem 0 0;
+  gap: 2.5rem;
+  margin: 0.75rem 0 0;
 }
 
 .respiration__bilan dd {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.875rem;
   font-weight: 800;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .respiration__halo,
   .respiration__disque,
-  .respiration__chiffre {
+  .respiration__chiffre,
+  .respiration__pulsation {
     transition: none;
   }
-}
 
+  .respiration__halo > .respiration__pulsation,
+  .respiration__cercle--retenue .respiration__disque > .respiration__pulsation {
+    animation: none;
+  }
+}
