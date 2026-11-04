@@ -146,12 +146,14 @@ export default function RespirationScreen() {
 
   return (
     <div className="respiration">
-      <h1 className="titre-ecran">Respiration</h1>
       <div className="respiration__haut">
-        <PandaIllustration image={panda} sizes="160px" decoratif className="respiration__panda" />
-        <Link to="/breathing/new" className="bouton bouton--module">
-          Créer une méthode
-        </Link>
+        <PandaIllustration image={panda} sizes="120px" decoratif className="respiration__panda" />
+        <div className="respiration__accroche">
+          <h1 className="respiration__titre-page">Un souffle, une pause</h1>
+          <Link to="/breathing/new" className="bouton bouton--principal">
+            + Créer une méthode
+          </Link>
+        </div>
       </div>
 
       {data.erreur && (
