@@ -10853,3 +10853,55 @@ time,
 .heatmap__zone--vide {
   stroke-width: 1;
 }
+
+/* Respiration, pulsations alignées sur la maquette Claude Design : l'anneau extérieur gonfle de 0 à 5 % en continu
+   (période d'environ 4 s) ; pendant les rétentions, le disque oscille de ±1,2 % et l'anneau de ±2,4 % (période d'environ 3,3 s) */
+.respiration__halo > .respiration__pulsation {
+  animation: respiration-anneau 4.08s ease-in-out infinite;
+}
+
+.respiration__cercle--retenue .respiration__disque > .respiration__pulsation {
+  animation: respiration-disque 3.27s ease-in-out infinite;
+}
+
+.respiration__cercle--retenue .respiration__halo {
+  animation: respiration-anneau-retenue 3.27s ease-in-out infinite;
+}
+
+@keyframes respiration-anneau {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.055);
+  }
+}
+
+@keyframes respiration-disque {
+  0%,
+  100% {
+    transform: scale(0.988);
+  }
+  50% {
+    transform: scale(1.012);
+  }
+}
+
+@keyframes respiration-anneau-retenue {
+  0%,
+  100% {
+    scale: 0.976;
+  }
+  50% {
+    scale: 1.024;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .respiration__halo,
+  .respiration__halo > .respiration__pulsation,
+  .respiration__disque > .respiration__pulsation {
+    animation: none !important;
+  }
+}
