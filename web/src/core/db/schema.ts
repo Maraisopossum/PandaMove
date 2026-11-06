@@ -50,6 +50,39 @@ const seanceRespiration = {
   created_at: t,
 }
 
+// Sorties d'endurance réalisées, course et vélo (migration 0010). Distances en mètres, durées en secondes ; `date` et
+// `created_at` sont du texte ISO ; `en_salle` est un booléen 0/1 ; `tours`, `serie` et `trace` sont du texte JSON.
+const sortie = {
+  ...sync,
+  sport: t,
+  date: t,
+  debut_at: t,
+  duree_s: i,
+  duree_deplacement_s: i,
+  distance_m: r,
+  denivele_pos_m: r,
+  denivele_neg_m: r,
+  fc_moy: i,
+  fc_max: i,
+  rpe: i,
+  puissance_moy_w: i,
+  puissance_max_w: i,
+  puissance_norm_w: i,
+  cadence_moy: i,
+  en_salle: i,
+  titre: t,
+  notes: t,
+  lien: t,
+  source: t,
+  empreinte: t,
+  seance_course_id: t,
+  seance_velo_id: t,
+  tours: t,
+  serie: t,
+  trace: t,
+  created_at: t,
+}
+
 export const AppSchema = new Schema({
   exercises: new Table({
     ...sync,
@@ -173,4 +206,5 @@ export const AppSchema = new Schema({
   seances_velo: new Table(seanceCardio),
   methodes_respiration: new Table(methodeRespiration),
   seances_respiration: new Table(seanceRespiration),
+  sorties: new Table(sortie),
 })

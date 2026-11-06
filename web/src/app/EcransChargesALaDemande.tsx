@@ -17,4 +17,7 @@ export const ReportScreen = lazy(() => import('../features/strength/report/Repor
 export const RespirationScreen = lazy(() => import('../features/respiration/RespirationScreen'))
 export const MethodeFormScreen = lazy(() => import('../features/respiration/MethodeFormScreen'))
 export const SessionRespirationScreen = lazy(() => import('../features/respiration/SessionScreen'))
+export const SortiesScreen = lazy(() => import('../features/endurance/SortiesScreen'))
+export const SortieFormScreen = lazy(() => import('../features/endurance/SortieFormScreen'))
+export const SortieDetailScreen = lazy(() => import('../features/endurance/SortieDetailScreen'))
 export const StatsScreen = lazy(() => import('../features/stats/StatsScreen'))

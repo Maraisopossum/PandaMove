@@ -24,6 +24,8 @@ describe('barre du haut colorée par module (couleurs Stitch)', () => {
     expect(MODULES.stats.color.toLowerCase()).toBe('#bf360c')
     expect(MODULES.import.color.toLowerCase()).toBe('#1565c0')
     expect(MODULES.profile.color.toLowerCase()).toBe('#576746')
+    expect(MODULES.running.color.toLowerCase()).toBe('#2e7d32')
+    expect(MODULES.cycling.color.toLowerCase()).toBe('#0277bd')
     expect(MODULES.breathing.color.toLowerCase()).toBe('#00695c')
   })
 

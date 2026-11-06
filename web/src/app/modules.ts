@@ -1,4 +1,4 @@
-export type ModuleId = 'home' | 'strength' | 'calendar' | 'stats' | 'breathing' | 'profile' | 'import'
+export type ModuleId = 'home' | 'strength' | 'running' | 'cycling' | 'calendar' | 'stats' | 'breathing' | 'profile' | 'import'
 
 export interface SousLien {
   path: string
@@ -29,6 +29,9 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
       { path: '/strength/done', label: 'Séances terminées' },
     ],
   },
+  // Vert (course) et bleu (vélo) : texte blanc >= 4,5:1 (contraste.test.ts)
+  running: { path: '/running', label: 'Course', color: '#2E7D32' },
+  cycling: { path: '/cycling', label: 'Vélo', color: '#0277BD' },
   calendar: { path: '/calendar', label: 'Calendrier', color: '#D24700' },
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C' },
   // Teal : texte blanc 6,5:1 (contraste.test.ts)
