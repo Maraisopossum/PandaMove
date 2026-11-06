@@ -1,0 +1,4 @@
+etiq_*.npy
+*.png
+zones_trace.json
+classes_*.json
