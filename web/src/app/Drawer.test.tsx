@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Drawer } from './Drawer'
@@ -31,13 +33,14 @@ describe('Drawer', () => {
     for (const { label } of Object.values(MODULES)) {
       expect(nav.textContent).toContain(label)
     }
-    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length + 3)
+    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length + 4)
     // Sous-menus toujours visibles, en liste sémantique, même hors du module
     const sousMenus = screen.getByRole('list', { name: 'Renforcement' })
     expect(within(sousMenus).getAllByRole('link').map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
       ['Séances types', '/strength'],
       ['Séances programmées', '/strength/planned'],
       ['Séances terminées', '/strength/done'],
+      ['Catalogue d’exercices', '/strength/catalog'],
     ])
     expect(screen.getByRole('link', { name: MODULES.strength.label }).getAttribute('href')).toBe('/strength')
   })
@@ -100,6 +103,24 @@ describe('Drawer', () => {
     const props = monter()
     fireEvent.click(screen.getByRole('link', { name: MODULES.calendar.label }))
     expect(props.onNavigation).toHaveBeenCalled()
+  })
+})
+
+describe('pastilles du menu', () => {
+  it('chaque module a sa pastille illustrée, décorative (le nom du lien reste le libellé)', () => {
+    monter()
+    const nav = screen.getByRole('navigation', { name: 'Navigation principale' })
+    for (const { label, icone } of Object.values(MODULES)) {
+      const lien = within(nav).getByRole('link', { name: label })
+      const img = lien.querySelector('img')
+      expect(img?.getAttribute('src'), label).toBe(`/icons/menu/${icone}.webp`)
+      expect(img?.getAttribute('alt')).toBe('')
+    }
+  })
+
+  it('chaque fichier de pastille référencé existe dans public/icons/menu', () => {
+    const dossier = join(import.meta.dirname, '..', '..', 'public', 'icons', 'menu')
+    for (const { icone } of Object.values(MODULES)) expect(existsSync(join(dossier, `${icone}.webp`)), icone).toBe(true)
   })
 })
 

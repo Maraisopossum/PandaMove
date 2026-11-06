@@ -1,6 +1,6 @@
 import { Fragment, type CSSProperties, type Ref } from 'react'
 import { NavLink } from 'react-router'
-import { MODULES } from './modules'
+import { MODULES, urlIcone } from './modules'
 import type { Deconnexion } from './useDeconnexion'
 
 interface Props {
@@ -25,7 +25,7 @@ export function Drawer({ refNav, ouvert, onNavigation, deconnexion, sombre }: Pr
         </div>
       </div>
       <div className="drawer__liens">
-      {Object.values(MODULES).map(({ path, label, color, sousLiens }) => {
+      {Object.values(MODULES).map(({ path, label, color, icone, sousLiens }) => {
         const style = { '--couleur-module': color } as CSSProperties
         return (
           <Fragment key={path}>
@@ -38,6 +38,7 @@ export function Drawer({ refNav, ouvert, onNavigation, deconnexion, sombre }: Pr
               style={style}
               onClick={onNavigation}
             >
+              <img className="drawer__puce" src={urlIcone(icone)} alt="" width={30} height={30} decoding="async" />
               {label}
             </NavLink>
             {sousLiens && (

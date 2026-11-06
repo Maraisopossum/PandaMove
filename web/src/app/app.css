@@ -347,6 +347,19 @@ time,
   text-decoration: none;
 }
 
+/* Pastille illustrée du module : fond teinté de la couleur du module, image de 30 px */
+.drawer__puce {
+  flex: none;
+  box-sizing: content-box;
+  width: 30px;
+  height: 30px;
+  margin: 0 0.75rem 0 -0.375rem;
+  padding: 3px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--couleur-module) 14%, var(--surface));
+  object-fit: contain;
+}
+
 .drawer__lien:hover {
   background: color-mix(in srgb, var(--texte) 6%, transparent);
 }
@@ -3464,159 +3477,58 @@ time,
   font-weight: 600;
 }
 
-.accueil__liens {
+/* Accès rapides : grille de trois colonnes, une tuile par module avec sa pastille illustrée */
+.accueil__tuiles {
   display: grid;
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
 }
 
-/* Carte Renforcement : dégradé violet du module, texte blanc (>= 5:1 sur toute la longueur) */
-.accueil__vedette {
+.accueil__tuile {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 5rem;
-  padding: 1rem;
-  border-radius: var(--radius-carte);
-  background: linear-gradient(90deg, #5b3d9e, #6d28d9);
-  box-shadow: 0 12px 30px -4px rgb(109 40 217 / 0.2);
-  color: #ffffff;
-  text-decoration: none;
-}
-
-.accueil__vedette-icone {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-bouton);
-  background: rgb(255 255 255 / 0.2);
-}
-
-.accueil__vedette-icone svg {
-  width: 1.625rem;
-  height: 1.625rem;
-}
-
-.accueil__vedette-texte {
-  display: grid;
-  flex: 1;
-  gap: 0.125rem;
-  min-width: 0;
-}
-
-.accueil__vedette-titre {
-  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  font-family: var(--police-titres);
-  font-size: var(--taille-corps);
-  font-weight: 700;
-}
-
-.accueil__go {
-  padding: 0.125rem 0.375rem;
-  border-radius: 4px;
-  background: #a3e635;
-  color: #0f172a;
-  font-family: var(--police-texte);
-  font-size: 0.625rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.accueil__vedette-aide {
-  color: #ede9fe;
-  font-size: 0.75rem;
-}
-
-.accueil__vedette-fleche {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: rgb(255 255 255 / 0.15);
-}
-
-.accueil__vedette-fleche svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-.accueil__duo {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.accueil__carte {
-  --accent: var(--couleur-renforcement);
-  display: grid;
-  align-content: start;
-  gap: 0.125rem;
-  min-height: 7.5rem;
-  padding: 1rem;
+  min-height: 5.75rem;
+  padding: 0.75rem 0.25rem;
   border: 1px solid var(--bord);
   border-radius: var(--radius-carte);
   background: var(--surface);
-  box-shadow: 0 8px 24px -4px rgb(91 61 158 / 0.08), 0 4px 12px -2px rgb(0 0 0 / 0.04);
+  box-shadow: var(--ombre-carte);
   color: var(--texte);
+  text-align: center;
   text-decoration: none;
 }
 
-.accueil__carte--calendrier {
-  --accent: #92400e;
+.accueil__puce {
+  box-sizing: content-box;
+  width: 50px;
+  height: 50px;
+  padding: 4px;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--couleur-module) 14%, var(--surface));
+  object-fit: contain;
 }
 
-.accueil__carte--stats {
-  --accent: #0e7490;
+.accueil__tuile-titre {
+  font-family: var(--police-titres);
+  font-size: 0.78125rem;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: break-word;
 }
 
-:root[data-theme='dark'] .accueil__carte--calendrier {
-  --accent: #fbbf24;
-}
-
-:root[data-theme='dark'] .accueil__carte--stats {
-  --accent: #67e8f9;
-}
-
-.accueil__carte-icone {
-  display: grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  margin-bottom: 0.5rem;
-  border-radius: var(--radius-bouton);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  color: var(--accent);
-}
-
-.accueil__carte-icone svg {
-  width: 1.375rem;
-  height: 1.375rem;
-}
-
-.accueil__carte-titre {
-  font-size: var(--taille-petit);
-  font-weight: 700;
-}
-
-.accueil__carte-aide {
-  color: var(--texte-secondaire);
-  font-size: 0.75rem;
+.accueil__tuile:focus-visible {
+  outline: 2px solid var(--couleur-module);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .accueil__vedette,
-  .accueil__carte {
+  .accueil__tuile {
     transition: transform 0.15s ease;
   }
 
-  .accueil__vedette:active,
-  .accueil__carte:active {
+  .accueil__tuile:active {
     transform: scale(0.985);
   }
 }

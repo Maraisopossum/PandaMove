@@ -27,14 +27,22 @@ describe('configuration PWA', () => {
     }
   })
 
-  it("ne précache que le shell de l'application (images : icônes et splash seulement)", () => {
+  it("ne précache que le shell de l'application (images : icônes, pastilles du menu et splash seulement)", () => {
     const motifs = pwaOptions.workbox?.globPatterns ?? []
     const motifsImages = motifs.filter((m) => /png|jpg|jpeg|webp|svg/.test(m))
-    expect(motifsImages.sort()).toEqual(['icons/*.png', 'panda/splash-*.webp'])
+    expect(motifsImages.sort()).toEqual(['icons/*.png', 'icons/menu/*.webp', 'panda/splash-*.webp'])
     // Le motif du splash désigne bien des fichiers produits par scripts/build-images.mjs
     expect(readdirSync(join(__dirname, 'public', 'panda')).filter((f) => /^splash-.*\.webp$/.test(f)).length).toBeGreaterThan(0)
     expect(motifs.join(',')).toMatch(/js/)
     expect(motifs.join(',')).toMatch(/html/)
+  })
+
+  it('pastilles du menu précachées : légères (chacune < 40 Ko, 250 Ko au total)', () => {
+    const dossier = join(__dirname, 'public', 'icons', 'menu')
+    const tailles = readdirSync(dossier).map((f) => statSync(join(dossier, f)).size)
+    expect(tailles.length).toBeGreaterThan(0)
+    for (const taille of tailles) expect(taille).toBeLessThan(40 * 1024)
+    expect(tailles.reduce((a, b) => a + b, 0)).toBeLessThan(250 * 1024)
   })
 
   it('précache les polices woff2 (rendu identique hors ligne), sans autre format de police', () => {
