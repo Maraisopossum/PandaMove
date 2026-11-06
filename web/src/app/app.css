@@ -47,6 +47,7 @@
 
   /* Statistiques : orange brûlé du module (bandes, pilule de période active, texte) */
   --stats-accent: #c2410c;
+  --stats-fort: #9a3412;
   --stats-fond: #fff7ed;
 
   /* Profil (sauge) et Import (bleu) : accents en texte, icônes et fonds d'encart */
@@ -115,6 +116,7 @@
   --point-terminee: #34d399;
   --point-en-cours: #90caf9;
   --stats-accent: #fb923c;
+  --stats-fort: #fdba74;
   --stats-fond: color-mix(in srgb, #fb923c 12%, #1e1e22);
   --profil-accent: #a6bb90;
   --profil-fond: color-mix(in srgb, #a6bb90 14%, #1e1e22);
@@ -3036,9 +3038,11 @@ time,
 }
 
 .stats__section h2 {
-  margin: 0 0 0.5rem;
-  font-size: var(--taille-corps);
-  font-weight: 700;
+  margin: 0 0 0.625rem;
+  font-family: var(--police-titres);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 /* Cartes blanches : heatmap et historique */
@@ -3091,24 +3095,43 @@ time,
   font-weight: 700;
 }
 
-.stats__cartes {
+/* Résumé : le tonnage mène (grand chiffre), séances, séries et répétitions en trois colonnes filetées dessous */
+.stats__resume {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-/* Chiffre-clé : carte blanche rayon 16, bande gauche de 6 px, valeur 24 px extra-gras */
-.stats__carte {
-  min-width: 0;
+  gap: 0.875rem;
   padding: 1rem;
   border: 1px solid var(--bord);
-  border-left: 6px solid var(--stats-accent);
   border-radius: var(--radius-carte);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--stats-accent) 5%, var(--surface));
   box-shadow: var(--ombre-carte);
 }
 
-.stats__carte p {
+.stats__tonnage {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+}
+
+.stats__trio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bord);
+}
+
+.stats__trio > div {
+  min-width: 0;
+  padding: 0 0.75rem;
+  border-left: 1px solid var(--bord);
+}
+
+.stats__trio > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.stats__trio p {
   margin: 0;
 }
 
@@ -3122,10 +3145,17 @@ time,
   line-height: 1.2;
 }
 
+.stats__valeur--grande {
+  font-size: 2.5rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--stats-fort);
+}
+
 .stats__libelle {
   color: var(--texte-secondaire);
   font-size: var(--taille-micro);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* En-tête de la carte heatmap : titre à gauche, onglets Face / Dos à droite */
@@ -3247,24 +3277,67 @@ time,
   font-variant-numeric: tabular-nums;
 }
 
+/* Courbe : zone teintée sous la ligne, extrêmes au-dessus, première et dernière date dessous */
+.stats__courbe-bloc {
+  max-width: 480px;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.stats__extremes {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 0.25rem;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-micro);
+  font-weight: 600;
+}
+
+.stats__extremes strong {
+  color: var(--texte);
+  font-variant-numeric: tabular-nums;
+}
+
 .stats__graphique {
   display: block;
   width: 100%;
-  max-width: 480px;
   height: auto;
-  margin: 0.5rem 0 0.75rem;
   border: 1px solid var(--bord);
   border-radius: var(--radius-bouton);
   background: var(--surface);
 }
 
+.stats__aire {
+  fill: var(--stats-accent);
+  fill-opacity: 0.1;
+}
+
 .stats__courbe {
   stroke: var(--stats-accent);
   stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
 .stats__point {
+  fill: var(--surface);
+  stroke: var(--stats-accent);
+  stroke-width: 2;
+}
+
+.stats__point--dernier {
   fill: var(--stats-accent);
+  stroke: var(--surface);
+  stroke-width: 3;
+}
+
+.stats__dates {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  margin-top: 0.25rem;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-micro);
+  font-variant-numeric: tabular-nums;
 }
 
 .stats__tableau {
