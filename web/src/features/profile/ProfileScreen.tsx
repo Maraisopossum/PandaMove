@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { urlIcone } from '../../app/modules'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
 import { useReglageRpe } from '../strength/execute/reglageRpe'
@@ -7,45 +8,16 @@ import { MotDePasseSection } from './MotDePasseSection'
 import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
-const trace = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
-
-function IconeLune() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" {...trace}>
-      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-    </svg>
-  )
+// Pastille décorative (images générées, style des pandas) : le libellé suffit au nom accessible
+function Puce({ icone }: { icone: string }) {
+  return <img className="profil__puce" src={urlIcone(icone)} alt="" width={30} height={30} decoding="async" />
 }
 
 // Liens du profil : icône décorative (le nom accessible reste le libellé)
 const LIENS = [
-  {
-    to: '/profile/equipment',
-    libelle: 'Mon matériel',
-    icone: (
-      <svg width="20" height="20" viewBox="0 0 24 24" {...trace}>
-        <path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12" />
-      </svg>
-    ),
-  },
-  {
-    to: '/strength/catalog',
-    libelle: "Catalogue d'exercices",
-    icone: (
-      <svg width="20" height="20" viewBox="0 0 24 24" {...trace}>
-        <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M9 7h6" />
-      </svg>
-    ),
-  },
-  {
-    to: '/import',
-    libelle: 'Importer des données',
-    icone: (
-      <svg width="20" height="20" viewBox="0 0 24 24" {...trace}>
-        <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
-      </svg>
-    ),
-  },
+  { to: '/profile/equipment', libelle: 'Mon matériel', icone: 'materiel' },
+  { to: '/strength/catalog', libelle: "Catalogue d'exercices", icone: 'catalogue' },
+  { to: '/import', libelle: 'Importer des données', icone: 'import' },
 ]
 
 // Profil : variante du panda, mode sombre, accès au matériel, au catalogue et à l'import, et
@@ -87,7 +59,7 @@ export default function ProfileScreen() {
 
       <button type="button" className="bouton profil__sombre" aria-pressed={p.dark} onClick={() => void p.changerDark(!p.dark)}>
         <span className="profil__icone" aria-hidden="true">
-          <IconeLune />
+          <Puce icone="lune" />
         </span>
         <span>Mode sombre</span>
         <span className="profil__interrupteur" aria-hidden="true" />
@@ -124,7 +96,7 @@ export default function ProfileScreen() {
         {LIENS.map((l) => (
           <Link key={l.to} className="bouton profil__lien" to={l.to}>
             <span className="profil__lien-icone" aria-hidden="true">
-              {l.icone}
+              <Puce icone={l.icone} />
             </span>
             <span className="profil__lien-texte">{l.libelle}</span>
             <span className="profil__lien-chevron" aria-hidden="true">

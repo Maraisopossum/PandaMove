@@ -3,9 +3,18 @@ import { Link } from 'react-router'
 import { MODULES, urlIcone } from '../../app/modules'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { CarteDemarrage } from '../demarrage/CarteDemarrage'
+import { LIBELLE_GENRE } from '../calendar/evenements'
+import type { EvenementAgenda } from '../calendar/types'
+import { libelleJour } from './semaine'
 import { useEcranAccueil } from './useEcranAccueil'
 
 // Modules proposés en accès rapide, dans l'ordre d'affichage (libellé, chemin, couleur et pastille viennent de MODULES).
+// Où mène le bouton de la prochaine séance : renforcement = exécution de l'instance ; cardio = son module.
+function actionProchaine(e: EvenementAgenda): { vers: string; libelle: string } {
+  if (e.genre === 'renfo') return { vers: `/strength/instance/${e.id}`, libelle: 'Commencer' }
+  return { vers: e.genre === 'course' ? '/running' : '/cycling', libelle: 'Voir la course' }
+}
+
 const TUILES = ['strength', 'running', 'cycling', 'calendar', 'stats', 'breathing'] as const
 
 // Accueil : panda sur halo, accroche, accès directs aux six modules (pastilles illustrées). Le titre de page « Accueil »
@@ -13,7 +22,7 @@ const TUILES = ['strength', 'running', 'cycling', 'calendar', 'stats', 'breathin
 // activité locale » : aucune donnée de dernière séance n'est exposée à l'accueil, il n'est donc pas affiché
 // (la reprise d'une séance en cours se fait par le bandeau « Séance en cours » de la coque).
 export default function HomeScreen() {
-  const { panda } = useEcranAccueil()
+  const { panda, prochaine, semaine } = useEcranAccueil()
   return (
     <div className="accueil">
       <h1 className="visuellement-cache">Accueil</h1>
@@ -25,6 +34,58 @@ export default function HomeScreen() {
         <p className="accueil__texte">Vos données sont enregistrées en direct sur l’appareil. Tout reste accessible même sans réseau.</p>
         <span className="accueil__chip">Stockage local sécurisé</span>
       </header>
+      {prochaine && (
+        <section className="accueil__prochaine" aria-labelledby="accueil-prochaine">
+          <h2 id="accueil-prochaine" className="visuellement-cache">
+            Prochaine séance
+          </h2>
+          <p className="accueil__prochaine-surtitre">
+            <span className="accueil__prochaine-pastille">Prochaine séance</span>
+            <span>{LIBELLE_GENRE[prochaine.evenement.genre]}</span>
+          </p>
+          <p className="accueil__prochaine-nom">{prochaine.evenement.titre}</p>
+          <p className="accueil__prochaine-quand">{prochaine.quand}</p>
+          {prochaine.evenement.genre === 'renfo' ? (
+            <Link to={actionProchaine(prochaine.evenement).vers} className="accueil__prochaine-action">
+              {actionProchaine(prochaine.evenement).libelle}
+              <span className="visuellement-cache"> : {prochaine.evenement.titre}</span>
+            </Link>
+          ) : (
+            <Link to="/calendar" className="accueil__prochaine-action accueil__prochaine-action--secondaire">
+              Voir dans le calendrier
+            </Link>
+          )}
+        </section>
+      )}
+      {semaine && (
+        <section className="accueil__semaine" aria-labelledby="accueil-semaine">
+          <div className="accueil__semaine-tete">
+            <h2 id="accueil-semaine" className="accueil__libelle">
+              Cette semaine
+            </h2>
+            <p className="accueil__semaine-compte">
+              <strong>{semaine.terminees}</strong> terminée{semaine.terminees > 1 ? 's' : ''} sur {semaine.total}
+            </p>
+          </div>
+          <ol className="accueil__jours">
+            {semaine.jours.map((j) => (
+              <li key={j.dateIso} className={`accueil__jour accueil__jour--${j.etat}${j.estAujourdhui ? ' accueil__jour--auj' : ''}`}>
+                <span aria-hidden="true" className="accueil__jour-lettre">
+                  {j.lettre}
+                </span>
+                <span aria-hidden="true" className="accueil__jour-rond">
+                  {j.etat === 'fait' ? '✓' : j.jourDuMois}
+                </span>
+                <span className="visuellement-cache">
+                  {libelleJour(j.dateIso, semaine.jours.find((x) => x.estAujourdhui)?.dateIso ?? '')}
+                  {' : '}
+                  {{ fait: 'séance terminée', prevu: 'séance prévue', manque: 'séance non faite', repos: 'repos' }[j.etat]}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <CarteDemarrage />
       <div className="accueil__section">
         <h2 className="accueil__libelle">Actions rapides</h2>
