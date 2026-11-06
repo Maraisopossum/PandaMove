@@ -1549,6 +1549,15 @@ time,
 }
 
 /* Carte du chrono (maquette) : chrono 40 px + « Écoulé » à gauche, Minuteur et menu à droite */
+.execution__collant {
+  /* Chrono et repos restent affichés sous la barre du haut quand on défile */
+  position: sticky;
+  top: calc(var(--hauteur-barre) + env(safe-area-inset-top));
+  z-index: 5;
+  padding-bottom: 0.25rem;
+  background: var(--fond);
+}
+
 .execution__chrono-carte {
   display: flex;
   flex-wrap: wrap;

@@ -114,8 +114,8 @@ describe('construireNav : rang du bloc, statut des badges, progression', () => {
 })
 
 describe('positionDefilement', () => {
-  it('groupe encadré : début du groupe calé sur le bord gauche, moins 16 px', () => {
-    expect(positionDefilement({ largeurVue: 400, gauche: 500, largeur: 64, groupeGauche: 450 })).toBe(434)
+  it('groupe encadré : le badge reste centré (pas de retour au début du bloc)', () => {
+    expect(positionDefilement({ largeurVue: 400, gauche: 500, largeur: 64, groupeGauche: 450 })).toBe(332)
   })
   it('hors groupe encadré : badge centré dans la barre', () => {
     expect(positionDefilement({ largeurVue: 400, gauche: 500, largeur: 64, groupeGauche: null })).toBe(332)

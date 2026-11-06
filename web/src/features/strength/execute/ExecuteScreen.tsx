@@ -43,6 +43,7 @@ export default function ExecuteScreen({ correction = false, instanceId, enFond =
         <h1>{e.chargement ? 'Séance' : e.nomSeance}</h1>
         {e.enPause && <p className="execution__etat">En pause</p>}
         {e.terminee && <p className="execution__etat">{correction ? 'Correction d’une séance terminée' : 'Séance terminée'}</p>}
+        <div className="execution__collant">
         <div className="execution__chrono-carte">
           <div className="execution__chrono-bloc">
             <p className="execution__chrono" role="timer" aria-live="off" aria-label={e.libelleChrono}>
@@ -69,6 +70,7 @@ export default function ExecuteScreen({ correction = false, instanceId, enFond =
           ) : (
             <MenuRepos texte={e.repos.texte} urgent={e.repos.urgent} onAllonger={e.repos.allonger} onEcourter={e.repos.ecourter} onArreter={e.repos.arreter} />
           ))}
+        </div>
       </header>
 
       {/* Résultat du circuit / du minuteur (terminé, arrêté, interrompu) : annoncé poliment, vide sinon */}
