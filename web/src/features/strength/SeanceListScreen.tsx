@@ -36,6 +36,7 @@ export default function SeanceListScreen() {
       <div className="liste-tete">
         <h1>Mes séances</h1>
         <span className="liste-tete__chip">Modèles</span>
+        <PandaIllustration image={l.pandaEntete} sizes="64px" decoratif className="liste-tete__panda" />
       </div>
       <OngletsSeances actif="types" comptes={{ types: l.cartes.length, programmees: prog.lignes.length, terminees: fin.lignes.length }} />
       <p className="ecran__aide">

@@ -14,6 +14,12 @@ export interface ProchaineSeance {
   quand: string
 }
 
+// « Jeudi 5 novembre » : jour de la semaine et date, première lettre en capitale.
+export function dateLongue(d: Date): string {
+  const texte = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(d)
+  return texte.charAt(0).toUpperCase() + texte.slice(1)
+}
+
 export interface DepsAccueil {
   /** Base à lire (défaut : base de l'application, résolue à l'usage). */
   db?: DbLecture
@@ -28,6 +34,7 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
   const panda = useImagePanda('joy', { userId: session?.user.id, taille: 'sm' })
   const [prochaine, setProchaine] = useState<ProchaineSeance | null>(null)
   const [semaine, setSemaine] = useState<Semaine | null>(null)
+  const [date] = useState(() => dateLongue(maintenant()))
 
   useEffect(() => {
     let annule = false
@@ -49,5 +56,5 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db])
 
-  return { panda, prochaine, semaine }
+  return { panda, prochaine, semaine, date }
 }

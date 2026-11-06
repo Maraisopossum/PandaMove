@@ -22,41 +22,52 @@ const TUILES = ['strength', 'running', 'cycling', 'calendar', 'stats', 'breathin
 // activité locale » : aucune donnée de dernière séance n'est exposée à l'accueil, il n'est donc pas affiché
 // (la reprise d'une séance en cours se fait par le bandeau « Séance en cours » de la coque).
 export default function HomeScreen() {
-  const { panda, prochaine, semaine } = useEcranAccueil()
+  const { panda, prochaine, semaine, date } = useEcranAccueil()
   return (
     <div className="accueil">
       <h1 className="visuellement-cache">Accueil</h1>
-      <header className="accueil__hero">
-        <div className="accueil__halo">
-          <PandaIllustration image={panda} sizes="118px" className="accueil__panda" />
-        </div>
+      <header className="accueil__tete">
+        <p className="accueil__date">{date}</p>
         <p className="accueil__titre">Prêt pour votre séance ?</p>
-        <p className="accueil__texte">Vos données sont enregistrées en direct sur l’appareil. Tout reste accessible même sans réseau.</p>
-        <span className="accueil__chip">Stockage local sécurisé</span>
       </header>
-      {prochaine && (
-        <section className="accueil__prochaine" aria-labelledby="accueil-prochaine">
-          <h2 id="accueil-prochaine" className="visuellement-cache">
-            Prochaine séance
-          </h2>
-          <p className="accueil__prochaine-surtitre">
-            <span className="accueil__prochaine-pastille">Prochaine séance</span>
-            <span>{LIBELLE_GENRE[prochaine.evenement.genre]}</span>
-          </p>
-          <p className="accueil__prochaine-nom">{prochaine.evenement.titre}</p>
-          <p className="accueil__prochaine-quand">{prochaine.quand}</p>
-          {prochaine.evenement.genre === 'renfo' ? (
-            <Link to={actionProchaine(prochaine.evenement).vers} className="accueil__prochaine-action">
-              {actionProchaine(prochaine.evenement).libelle}
-              <span className="visuellement-cache"> : {prochaine.evenement.titre}</span>
-            </Link>
+      <section className="accueil__carte-hero" aria-labelledby="accueil-prochaine">
+        <div className="accueil__hero-texte">
+          {prochaine ? (
+            <>
+              <h2 id="accueil-prochaine" className="visuellement-cache">
+                Prochaine séance
+              </h2>
+              <p className="accueil__prochaine-surtitre">
+                <span className="accueil__prochaine-pastille">Prochaine séance</span>
+                <span>{LIBELLE_GENRE[prochaine.evenement.genre]}</span>
+              </p>
+              <p className="accueil__prochaine-nom">{prochaine.evenement.titre}</p>
+              <p className="accueil__prochaine-quand">{prochaine.quand}</p>
+              {prochaine.evenement.genre === 'renfo' ? (
+                <Link to={actionProchaine(prochaine.evenement).vers} className="accueil__prochaine-action">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M7 4.5l12 7.5-12 7.5z" />
+                  </svg>
+                  {actionProchaine(prochaine.evenement).libelle}
+                  <span className="visuellement-cache"> : {prochaine.evenement.titre}</span>
+                </Link>
+              ) : (
+                <Link to="/calendar" className="accueil__prochaine-action accueil__prochaine-action--secondaire">
+                  Voir dans le calendrier
+                </Link>
+              )}
+            </>
           ) : (
-            <Link to="/calendar" className="accueil__prochaine-action accueil__prochaine-action--secondaire">
-              Voir dans le calendrier
-            </Link>
+            <>
+              <h2 id="accueil-prochaine" className="accueil__prochaine-nom">
+                Bienvenue
+              </h2>
+              <p className="accueil__texte">Vos données sont enregistrées en direct sur l’appareil. Tout reste accessible même sans réseau.</p>
+            </>
           )}
-        </section>
-      )}
+        </div>
+        <PandaIllustration image={panda} sizes="118px" className="accueil__panda" />
+      </section>
       {semaine && (
         <section className="accueil__semaine" aria-labelledby="accueil-semaine">
           <div className="accueil__semaine-tete">
@@ -74,7 +85,7 @@ export default function HomeScreen() {
                   {j.lettre}
                 </span>
                 <span aria-hidden="true" className="accueil__jour-rond">
-                  {j.etat === 'fait' ? '✓' : j.jourDuMois}
+                  {j.etat === 'fait' ? '✓' : j.estAujourdhui || j.etat === 'prevu' ? j.jourDuMois : ''}
                 </span>
                 <span className="visuellement-cache">
                   {libelleJour(j.dateIso, semaine.jours.find((x) => x.estAujourdhui)?.dateIso ?? '')}
@@ -102,6 +113,10 @@ export default function HomeScreen() {
           )
         })}
       </nav>
+      <p className="accueil__stockage">
+        <span className="accueil__chip">Stockage local sécurisé</span>
+        <span>Accessible sans réseau</span>
+      </p>
     </div>
   )
 }

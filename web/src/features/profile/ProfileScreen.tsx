@@ -1,6 +1,8 @@
 import { Link } from 'react-router'
 import { urlIcone } from '../../app/modules'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { useImagePanda } from '../../core/images/usePandaVariante'
 import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
 import { useReglageRpe } from '../strength/execute/reglageRpe'
 import { SEMAINES_DECHARGE_MAX, useReglageDecharge } from '../strength/progression/reglageDecharge'
@@ -25,13 +27,22 @@ const LIENS = [
 export default function ProfileScreen() {
   const { session } = useAuth()
   const p = useProfile({ userId: session?.user.id })
+  const panda = useImagePanda('joy', { userId: session?.user.id, taille: 'sm' })
   const { rpeActif, changerRpe } = useReglageRpe()
   const { semaines: semainesDecharge, changerSemaines } = useReglageDecharge()
   const sauvegarde = useExport({ userId: session?.user.id })
 
   return (
     <>
-      <h1 className="titre-ecran">Profil</h1>
+      <div className="profil__identite">
+        <PandaIllustration image={panda} sizes="64px" decoratif className="profil__identite-panda" />
+        <div>
+          <h1 className="titre-ecran">Profil</h1>
+          {session?.user.email && <p className="profil__identite-mail">{session.user.email}</p>}
+        </div>
+      </div>
+
+      <h2 className="profil__rubrique">Apparence</h2>
 
       <fieldset className="profil__groupe">
         <legend>Variante du panda</legend>
@@ -64,6 +75,8 @@ export default function ProfileScreen() {
         <span>Mode sombre</span>
         <span className="profil__interrupteur" aria-hidden="true" />
       </button>
+
+      <h2 className="profil__rubrique">Entraînement</h2>
 
       <button type="button" className="bouton profil__sombre" aria-pressed={rpeActif} onClick={() => changerRpe(!rpeActif)}>
         <span className="profil__icone" aria-hidden="true">
@@ -111,6 +124,8 @@ export default function ProfileScreen() {
         <p className="aide">Retours du circuit automatique et du minuteur d’exercice, mémorisés sur cet appareil.</p>
         <ReglagesRetours />
       </section>
+
+      <h2 className="profil__rubrique">Compte et données</h2>
 
       <MotDePasseSection />
 
