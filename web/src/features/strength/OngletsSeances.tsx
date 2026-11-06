@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { useComptesSeances } from './useComptesSeances'
 
 export type VueSeances = 'types' | 'programmees' | 'terminees'
 
@@ -10,13 +11,15 @@ const ONGLETS: { id: VueSeances; libelle: string; vers: string }[] = [
 
 interface Props {
   actif: VueSeances
-  /** Effectifs affichés à côté des libellés quand l'écran les connaît. */
+  /** Effectifs à jour fournis par l'écran (liste des types : relus après chaque action) ; sinon l'onglet les lit lui-même. */
   comptes?: Partial<Record<VueSeances, number>>
 }
 
 // Navigation entre les trois vues du renforcement (séances types, programmées, terminées) : de simples liens vers les
 // écrans existants ; la vue courante porte aria-current. Aucune logique de données ici.
-export function OngletsSeances({ actif, comptes }: Props) {
+export function OngletsSeances({ actif, comptes: fournis }: Props) {
+  const lus = useComptesSeances()
+  const comptes = fournis ?? lus
   return (
     <nav className="onglets-seances" aria-label="Vues des séances">
       {ONGLETS.map((o) => (
