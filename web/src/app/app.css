@@ -2913,6 +2913,40 @@ time,
   background: var(--point-en-cours);
 }
 
+/* Le point porte la couleur du sport (renforcement, course, vélo) ; l'état reste lisible : terminée estompée, en cours cerclée.
+   Le genre est aussi écrit en toutes lettres dans le nom accessible du jour. */
+.calendrier__point--renfo {
+  background: var(--couleur-renforcement);
+}
+
+.calendrier__point--course {
+  background: #2e7d32;
+}
+
+.calendrier__point--velo {
+  background: #0277bd;
+}
+
+:root[data-theme='dark'] .calendrier__point--renfo {
+  background: #c9b6f2;
+}
+
+:root[data-theme='dark'] .calendrier__point--course {
+  background: #81c784;
+}
+
+:root[data-theme='dark'] .calendrier__point--velo {
+  background: #64b5f6;
+}
+
+.calendrier__point--terminee {
+  opacity: 0.45;
+}
+
+.calendrier__point--en_cours {
+  box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 3px var(--texte-secondaire);
+}
+
 /* Séances de cardio (course, vélo) : liseré orange du module Calendrier, genre / jalon / « Optionnelle » / « Validée »
    écrits en toutes lettres (jamais la couleur seule). Contrastes vérifiés dans contraste.test.ts. */
 .calendrier__seance--cardio {

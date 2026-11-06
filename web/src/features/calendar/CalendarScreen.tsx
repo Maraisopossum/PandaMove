@@ -182,7 +182,7 @@ export default function CalendarScreen() {
                 {j.evenements.length > 0 && (
                   <span className="calendrier__points" aria-hidden="true">
                     {j.evenements.slice(0, 3).map((e) => (
-                      <span key={e.id} className={`calendrier__point calendrier__point--${e.etat}`} />
+                      <span key={e.id} className={`calendrier__point calendrier__point--${e.etat} calendrier__point--${e.genre}`} />
                     ))}
                     {j.evenements.length > 3 && <span className="calendrier__plus">+{j.evenements.length - 3}</span>}
                   </span>
@@ -193,16 +193,20 @@ export default function CalendarScreen() {
 
           <ul className="calendrier__legende" aria-hidden="true">
             <li>
-              <span className="calendrier__point calendrier__point--terminee" />
+              <span className="calendrier__point calendrier__point--renfo" />
+              Renforcement
+            </li>
+            <li>
+              <span className="calendrier__point calendrier__point--course" />
+              Course
+            </li>
+            <li>
+              <span className="calendrier__point calendrier__point--velo" />
+              Vélo
+            </li>
+            <li>
+              <span className="calendrier__point calendrier__point--renfo calendrier__point--terminee" />
               Terminée
-            </li>
-            <li>
-              <span className="calendrier__point" />
-              Programmée
-            </li>
-            <li>
-              <span className="calendrier__point calendrier__point--en_cours" />
-              En cours
             </li>
           </ul>
 

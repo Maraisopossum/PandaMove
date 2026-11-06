@@ -59,6 +59,22 @@ describe('CalendarScreen', () => {
     expect(document.body.textContent).toContain('dim.')
   })
 
+  it('les points de la grille portent la couleur du sport (renforcement) et une séance terminée est estompée', async () => {
+    monter()
+    await screen.findByRole('heading', { name: 'octobre 2026' })
+    const jour = (nom: string) => screen.getByRole('button', { name: nom })
+    // Le 24 : deux séances de renforcement programmées ; le 5 : une séance terminée
+    const pointsAuj = jour('samedi 24 octobre 2026, 2 séances').querySelectorAll('.calendrier__point')
+    expect(pointsAuj).toHaveLength(2)
+    for (const p of pointsAuj) expect(p.className).toContain('calendrier__point--renfo')
+    expect(jour('lundi 5 octobre 2026, 1 séance').querySelector('.calendrier__point--terminee.calendrier__point--renfo')).not.toBeNull()
+    // La légende nomme les trois sports
+    const legende = document.querySelector('.calendrier__legende')
+    expect(legende?.textContent).toContain('Renforcement')
+    expect(legende?.textContent).toContain('Course')
+    expect(legende?.textContent).toContain('Vélo')
+  })
+
   it("sélectionne aujourd'hui par défaut et affiche ses séances avec les liens d'ouverture", async () => {
     monter()
     await screen.findByRole('heading', { name: 'octobre 2026' })
