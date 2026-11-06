@@ -3,6 +3,7 @@ import { useAuth } from '../../core/auth/AuthProvider'
 import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
 import { useReglageRpe } from '../strength/execute/reglageRpe'
 import { SEMAINES_DECHARGE_MAX, useReglageDecharge } from '../strength/progression/reglageDecharge'
+import { MotDePasseSection } from './MotDePasseSection'
 import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
@@ -138,6 +139,8 @@ export default function ProfileScreen() {
         <p className="aide">Retours du circuit automatique et du minuteur d’exercice, mémorisés sur cet appareil.</p>
         <ReglagesRetours />
       </section>
+
+      <MotDePasseSection />
 
       <section aria-labelledby="profil-sauvegarde" className="profil__sauvegarde">
         <h2 id="profil-sauvegarde">Sauvegarde</h2>

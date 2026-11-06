@@ -8,6 +8,8 @@ export interface AuthContextValue {
   signIn(email: string, password: string): Promise<void>
   signUp(email: string, password: string): Promise<void>
   signInWithMagicLink(email: string): Promise<void>
+  // Change le mot de passe du compte connecté (sert aussi à en définir un pour un compte créé par lien magique)
+  updatePassword(nouveau: string): Promise<void>
   // Pas de signOut ici : la déconnexion passe uniquement par signOutSafely (useSyncConnection),
   // qui protège les modifications locales non envoyées.
 }
@@ -48,6 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           options: { emailRedirectTo: window.location.origin },
         })
+        if (error) throw error
+      },
+      async updatePassword(nouveau) {
+        const { error } = await getSupabase().auth.updateUser({ password: nouveau })
         if (error) throw error
       },
     }),
