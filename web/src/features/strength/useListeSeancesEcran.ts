@@ -200,6 +200,7 @@ export function useListeSeancesEcran() {
     // Seuls des modèles archivés subsistent
     aucuneActive: liste.charge && liste.seances.length === 0 && liste.archivees.length > 0,
     // Aucun type actif mais des séances jouées ou archivées : la section des types n'est pas affichée
+    nbTypes: liste.seances.length,
     aTypes: liste.seances.length > 0,
     rechercheVisible: liste.seances.length >= SEUIL_RECHERCHE,
     requete,

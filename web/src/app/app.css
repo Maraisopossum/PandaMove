@@ -10777,3 +10777,131 @@ time,
 :root[data-theme='dark'] .respiration__bilan dd {
   color: #80cbc4;
 }
+
+/* Retours téléphone : défilement jusqu'en bas sous la barre fixe, notes complètes, mot de passe */
+.contenu:has(.execution__actions-flottantes) {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+.seance__notes {
+  display: block;
+  overflow: visible;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.profil__mdp {
+  display: grid;
+  gap: 0.875rem;
+  margin-top: 0.75rem;
+}
+
+.profil__champ {
+  display: grid;
+  gap: 0.375rem;
+  color: var(--texte);
+  font-size: var(--taille-petit);
+  font-weight: 600;
+}
+
+.profil__champ input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--hauteur-controle);
+  padding: 0 0.875rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-bouton);
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  font-weight: 400;
+}
+
+.profil__champ input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.profil__sauvegarde .profil__mdp .bouton {
+  width: 100%;
+  min-height: var(--hauteur-controle);
+  margin-top: 0.25rem;
+}
+
+.profil__mdp-retour {
+  margin: 0.75rem 0 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-bouton);
+  background: color-mix(in srgb, var(--couleur-succes, #2e7d32) 12%, var(--surface));
+  font-weight: 600;
+}
+
+.profil__sauvegarde .profil__mdp-retour--erreur {
+  background: color-mix(in srgb, var(--couleur-erreur, #c62828) 12%, var(--surface));
+}
+
+/* Heatmap : zones adoucies, contour fin et arrondi, remplissage plus doux */
+.heatmap__zone {
+  fill-opacity: 0.62;
+  stroke: color-mix(in srgb, #5d1a00 70%, transparent);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+
+.heatmap__zone--vide {
+  stroke-width: 1;
+}
+
+/* Respiration, pulsations alignées sur la maquette Claude Design : l'anneau extérieur gonfle de 0 à 5 % en continu
+   (période d'environ 4 s) ; pendant les rétentions, le disque oscille de ±1,2 % et l'anneau de ±2,4 % (période d'environ 3,3 s) */
+.respiration__halo > .respiration__pulsation {
+  animation: respiration-anneau 4.08s ease-in-out infinite;
+}
+
+.respiration__cercle--retenue .respiration__disque > .respiration__pulsation {
+  animation: respiration-disque 3.27s ease-in-out infinite;
+}
+
+.respiration__cercle--retenue .respiration__halo {
+  animation: respiration-anneau-retenue 3.27s ease-in-out infinite;
+}
+
+@keyframes respiration-anneau {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.055);
+  }
+}
+
+@keyframes respiration-disque {
+  0%,
+  100% {
+    transform: scale(0.988);
+  }
+  50% {
+    transform: scale(1.012);
+  }
+}
+
+@keyframes respiration-anneau-retenue {
+  0%,
+  100% {
+    scale: 0.976;
+  }
+  50% {
+    scale: 1.024;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .respiration__halo,
+  .respiration__halo > .respiration__pulsation,
+  .respiration__disque > .respiration__pulsation {
+    animation: none !important;
+  }
+}

@@ -38,7 +38,7 @@ export default function SeanceListScreen() {
         <span className="liste-tete__chip">Modèles</span>
         <PandaIllustration image={l.pandaEntete} sizes="64px" decoratif className="liste-tete__panda" />
       </div>
-      <OngletsSeances actif="types" comptes={{ types: l.cartes.length, programmees: prog.lignes.length, terminees: fin.lignes.length }} />
+      <OngletsSeances actif="types" comptes={{ types: l.nbTypes, programmees: prog.lignes.length, terminees: fin.lignes.length }} />
       <p className="ecran__aide">
         Vos séances types (des modèles réutilisables : « Lancer », 📅 pour les planifier), puis vos séances programmées et terminées.
       </p>

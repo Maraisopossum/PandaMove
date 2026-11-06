@@ -1,4 +1,5 @@
 import { HEATMAP_VIEWBOX, type VueHeatmap } from './heatmapZones'
+import { lisserTrace } from './lisserTrace'
 import { libelleSeries, type GroupeVue } from './presentation'
 
 const NOM_VUE: Record<VueHeatmap, string> = { face: 'de face', dos: 'de dos' }
@@ -23,7 +24,7 @@ export function MuscleHeatmap({ image, vue, zones }: Props) {
             z.svgPath ? (
               <path
                 key={z.groupe}
-                d={z.svgPath}
+                d={lisserTrace(z.svgPath)}
                 className={z.couleur ? 'heatmap__zone' : 'heatmap__zone heatmap__zone--vide'}
                 fill={z.couleur ?? 'transparent'}
               >
