@@ -1,45 +1,14 @@
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router'
+import { MODULES, urlIcone } from '../../app/modules'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { CarteDemarrage } from '../demarrage/CarteDemarrage'
 import { useEcranAccueil } from './useEcranAccueil'
 
-// Pictogrammes décoratifs des cartes (aucun sens porté : le titre de la carte suffit)
-const trait = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
+// Modules proposés en accès rapide, dans l'ordre d'affichage (libellé, chemin, couleur et pastille viennent de MODULES).
+const TUILES = ['strength', 'running', 'cycling', 'calendar', 'stats', 'breathing'] as const
 
-function IconeHaltere() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" {...trait}>
-      <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11" />
-    </svg>
-  )
-}
-
-function IconeCalendrier() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" {...trait}>
-      <rect x="4" y="5.5" width="16" height="14.5" rx="3" />
-      <path d="M8 3.5v4M16 3.5v4M4 10.5h16" />
-    </svg>
-  )
-}
-
-function IconeStats() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" {...trait}>
-      <path d="M5 20V11M12 20V5M19 20v-6" />
-    </svg>
-  )
-}
-
-function Chevron() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" {...trait}>
-      <path d="m9.5 6 6 6-6 6" />
-    </svg>
-  )
-}
-
-// Accueil (maquette Stitch) : panda sur halo, accroche, accès directs aux écrans principaux. Le titre de page « Accueil »
+// Accueil : panda sur halo, accroche, accès directs aux six modules (pastilles illustrées). Le titre de page « Accueil »
 // reste dans l'arbre d'accessibilité (la barre du haut l'affiche déjà). La maquette montre aussi un widget « Dernière
 // activité locale » : aucune donnée de dernière séance n'est exposée à l'accueil, il n'est donc pas affiché
 // (la reprise d'une séance en cours se fait par le bandeau « Séance en cours » de la coque).
@@ -61,37 +30,16 @@ export default function HomeScreen() {
         <h2 className="accueil__libelle">Actions rapides</h2>
         <span className="accueil__version">PandaMove v2</span>
       </div>
-      <nav aria-label="Accès rapides" className="accueil__liens">
-        <Link to="/strength" className="accueil__vedette" aria-label="Renforcement">
-          <span className="accueil__vedette-icone">
-            <IconeHaltere />
-          </span>
-          <span className="accueil__vedette-texte">
-            <span className="accueil__vedette-titre">
-              Renforcement <span className="accueil__go">Go</span>
-            </span>
-            <span className="accueil__vedette-aide">Programmes, séries &amp; séances</span>
-          </span>
-          <span className="accueil__vedette-fleche">
-            <Chevron />
-          </span>
-        </Link>
-        <div className="accueil__duo">
-          <Link to="/calendar" className="accueil__carte accueil__carte--calendrier" aria-label="Calendrier">
-            <span className="accueil__carte-icone">
-              <IconeCalendrier />
-            </span>
-            <span className="accueil__carte-titre">Calendrier</span>
-            <span className="accueil__carte-aide">Planifier &amp; suivre vos jours</span>
-          </Link>
-          <Link to="/stats" className="accueil__carte accueil__carte--stats" aria-label="Statistiques">
-            <span className="accueil__carte-icone">
-              <IconeStats />
-            </span>
-            <span className="accueil__carte-titre">Statistiques</span>
-            <span className="accueil__carte-aide">Volume &amp; progression</span>
-          </Link>
-        </div>
+      <nav aria-label="Accès rapides" className="accueil__tuiles">
+        {TUILES.map((id) => {
+          const { path, label, color, icone } = MODULES[id]
+          return (
+            <Link key={id} to={path} className="accueil__tuile" aria-label={label} style={{ '--couleur-module': color } as CSSProperties}>
+              <img className="accueil__puce" src={urlIcone(icone)} alt="" width={50} height={50} decoding="async" />
+              <span className="accueil__tuile-titre">{label}</span>
+            </Link>
+          )
+        })}
       </nav>
     </div>
   )
