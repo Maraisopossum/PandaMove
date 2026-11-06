@@ -25,10 +25,11 @@ function piste(): { piste: HTMLElement; scrollTo: ReturnType<typeof vi.fn> } {
 }
 
 describe('defilerVersBadge', () => {
-  it('groupe encadré : début du groupe au bord gauche moins 16 px, animé', () => {
+  it('badge dans un groupe encadré : centré (pas de retour au début du bloc), animé', () => {
     const p = piste()
     defilerVersBadge(p.piste, 'a', false)
-    expect(p.scrollTo).toHaveBeenCalledWith({ left: 74, behavior: 'smooth' })
+    // 100 + 32 - 200 < 0 : borné à 0
+    expect(p.scrollTo).toHaveBeenCalledWith({ left: 0, behavior: 'smooth' })
   })
   it('badge libre : centré ; prefers-reduced-motion : sans animation', () => {
     const p = piste()

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { TABLES_RESPIRATION } from './repos/respiration'
 import { TABLES_CARDIO } from './repos/seancesCardio'
+import { TABLE_SORTIES } from './repos/sorties'
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const lire = (...chemin: string[]) => readFileSync(join(web, ...chemin), 'utf8').replace(/\r\n/g, '\n')
@@ -12,6 +13,7 @@ const schema = lire('src', 'core', 'db', 'schema.ts')
 const regles = lire('powersync', 'sync-rules.yaml')
 const migration = lire('supabase', 'migrations', '0008_seances_cardio.sql')
 const migrationRespiration = lire('supabase', 'migrations', '0009_respiration.sql')
+const migrationSorties = lire('supabase', 'migrations', '0010_sorties.sql')
 
 const tablesSchema = [...schema.matchAll(/^ {2}(\w+): new Table\(/gm)].map((m) => m[1])
 const tablesRegles = [...regles.matchAll(/^\s*- SELECT \* FROM (\w+) WHERE/gm)].map((m) => m[1])
@@ -45,6 +47,13 @@ describe('cohérence des tables de cardio', () => {
       expect(tablesSchema, t).toContain(t)
       expect(tablesRegles, t).toContain(t)
     }
+  })
+
+  it('la migration 0010 crée la table des sorties, présente aussi dans le schéma local et les règles de synchro', () => {
+    expect(/foreach t in array array\['sorties'\] loop/.test(migrationSorties)).toBe(true)
+    expect(migrationSorties).toContain(`create table if not exists public.${TABLE_SORTIES} (`)
+    expect(tablesSchema).toContain(TABLE_SORTIES)
+    expect(tablesRegles).toContain(TABLE_SORTIES)
   })
 
   it('le schéma et les règles listent les mêmes tables', () => {

@@ -129,11 +129,10 @@ export function progressionNav(groupes: GroupeNav[]): { rang: number; total: num
   return { rang: badges.findIndex((b) => b.actif) + 1, total: badges.length }
 }
 
-export const MARGE_GROUPE_PX = 16
 
-// Position de défilement (scrollLeft) cible, coordonnées relatives au contenu défilant. Groupe encadré :
-// son début au bord gauche moins 16 px ; sinon badge centré dans la barre.
+// Position de défilement (scrollLeft) cible, coordonnées relatives au contenu défilant : l'exercice actif est
+// toujours centré dans la barre (même dans un bloc encadré ; `groupeGauche` n'est plus utilisé).
 export function positionDefilement(p: { largeurVue: number; gauche: number; largeur: number; groupeGauche: number | null }): number {
-  const cible = p.groupeGauche !== null ? p.groupeGauche - MARGE_GROUPE_PX : p.gauche + p.largeur / 2 - p.largeurVue / 2
+  const cible = p.gauche + p.largeur / 2 - p.largeurVue / 2
   return Math.max(0, Math.round(cible))
 }

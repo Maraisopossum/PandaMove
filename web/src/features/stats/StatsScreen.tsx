@@ -47,22 +47,24 @@ export default function StatsScreen() {
         <div aria-busy={s.chargement}>
           <section aria-labelledby="stats-resume" className="stats__section">
             <h2 id="stats-resume">Résumé de la période</h2>
-            <div className="stats__cartes">
-              <div className="stats__carte">
-                <p className="stats__valeur">{formaterTonnage(s.resume.tonnageKg)}</p>
-                <p className="stats__libelle">Tonnage</p>
-              </div>
-              <div className="stats__carte">
-                <p className="stats__valeur">{s.resume.seancesTerminees}</p>
-                <p className="stats__libelle">{pluriel(s.resume.seancesTerminees, 'séance')} {pluriel(s.resume.seancesTerminees, 'terminée')}</p>
-              </div>
-              <div className="stats__carte">
-                <p className="stats__valeur">{s.resume.seriesTotal}</p>
-                <p className="stats__libelle">{pluriel(s.resume.seriesTotal, 'série')}</p>
-              </div>
-              <div className="stats__carte">
-                <p className="stats__valeur">{formaterNombre(s.resume.repsTotal)}</p>
-                <p className="stats__libelle">{pluriel(s.resume.repsTotal, 'répétition')}</p>
+            <div className="stats__resume">
+              <p className="stats__tonnage">
+                <span className="stats__valeur stats__valeur--grande">{formaterTonnage(s.resume.tonnageKg)}</span>
+                <span className="stats__libelle">Tonnage</span>
+              </p>
+              <div className="stats__trio">
+                <div>
+                  <p className="stats__valeur">{s.resume.seancesTerminees}</p>
+                  <p className="stats__libelle">{pluriel(s.resume.seancesTerminees, 'séance')} {pluriel(s.resume.seancesTerminees, 'terminée')}</p>
+                </div>
+                <div>
+                  <p className="stats__valeur">{s.resume.seriesTotal}</p>
+                  <p className="stats__libelle">{pluriel(s.resume.seriesTotal, 'série')}</p>
+                </div>
+                <div>
+                  <p className="stats__valeur">{formaterNombre(s.resume.repsTotal)}</p>
+                  <p className="stats__libelle">{pluriel(s.resume.repsTotal, 'répétition')}</p>
+                </div>
               </div>
             </div>
           </section>
@@ -128,17 +130,37 @@ export default function StatsScreen() {
                 </select>
               </label>
               {g.points.length > 0 && (
-                <svg
-                  className="stats__graphique"
-                  viewBox={`0 0 ${g.largeur} ${g.hauteur}`}
-                  role="img"
-                  aria-label={`Évolution de ${formaterValeur(g.min, g.unite)} à ${formaterValeur(g.max, g.unite)} sur ${g.points.length} ${pluriel(g.points.length, 'séance')}`}
-                >
-                  <polyline points={g.polyligne} fill="none" className="stats__courbe" />
-                  {g.points.map((p) => (
-                    <circle key={p.dateIso} cx={p.x} cy={p.y} r="4" className="stats__point" />
-                  ))}
-                </svg>
+                <div className="stats__courbe-bloc">
+                  <p className="stats__extremes" aria-hidden="true">
+                    <span>
+                      Min <strong>{formaterValeur(g.min, g.unite)}</strong>
+                    </span>
+                    <span>
+                      Max <strong>{formaterValeur(g.max, g.unite)}</strong>
+                    </span>
+                  </p>
+                  <svg
+                    className="stats__graphique"
+                    viewBox={`0 0 ${g.largeur} ${g.hauteur}`}
+                    role="img"
+                    aria-label={`Évolution de ${formaterValeur(g.min, g.unite)} à ${formaterValeur(g.max, g.unite)} sur ${g.points.length} ${pluriel(g.points.length, 'séance')}`}
+                  >
+                    {g.points.length > 1 && (
+                      <polygon
+                        className="stats__aire"
+                        points={`${g.points[0].x},${g.hauteur - 20} ${g.polyligne} ${g.points[g.points.length - 1].x},${g.hauteur - 20}`}
+                      />
+                    )}
+                    <polyline points={g.polyligne} fill="none" className="stats__courbe" />
+                    {g.points.map((p, i) => (
+                      <circle key={p.dateIso} cx={p.x} cy={p.y} r={i === g.points.length - 1 ? 6 : 4} className={i === g.points.length - 1 ? 'stats__point stats__point--dernier' : 'stats__point'} />
+                    ))}
+                  </svg>
+                  <p className="stats__dates" aria-hidden="true">
+                    <span>{formaterDate(g.points[0].dateIso)}</span>
+                    {g.points.length > 1 && <span>{formaterDate(g.points[g.points.length - 1].dateIso)}</span>}
+                  </p>
+                </div>
               )}
               <table className="stats__tableau">
                 <caption>Charge maximale par séance</caption>
