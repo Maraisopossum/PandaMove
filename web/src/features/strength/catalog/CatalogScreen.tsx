@@ -1,6 +1,7 @@
+import { BarreActionsFlottante } from '../../../app/BarreActionsFlottante'
+import { urlIcone } from '../../../app/modules'
 import { useAuth } from '../../../core/auth/AuthProvider'
-import type { MuscleGroup } from '../../../core/db/types'
-import { musclesAffiches } from './filtreCatalogue'
+import { lireGroupes, musclesAffiches } from './filtreCatalogue'
 import { CATEGORIES_EXERCICE, libelleMuscle, MUSCLE_GROUPS } from './libelles'
 import { useCatalog } from './useCatalog'
 import { useFormulaireExercice, useSuppressionExercice } from './useFormulaireExercice'
@@ -19,40 +20,40 @@ export default function CatalogScreen() {
       <h1 className="titre-ecran">Catalogue d'exercices</h1>
 
       <div className="catalogue__filtres" role="search">
-        <div className="formulaire__champ">
-          <label htmlFor="cat-recherche">Rechercher</label>
+        <label className="catalogue__recherche" htmlFor="cat-recherche">
+          <img className="catalogue__loupe" src={urlIcone('catalogue')} alt="" width={26} height={26} decoding="async" />
+          <span className="visuellement-cache">Rechercher</span>
           <input
             id="cat-recherche"
             type="search"
+            placeholder="Rechercher"
             value={c.filtre.query}
             onChange={(e) => c.setFiltre({ ...c.filtre, query: e.target.value })}
           />
-        </div>
-        <div className="formulaire__champ">
-          <label htmlFor="cat-muscle">Groupe musculaire</label>
-          <select
-            id="cat-muscle"
-            value={c.filtre.muscle ?? ''}
-            onChange={(e) => c.setFiltre({ ...c.filtre, muscle: (e.target.value || null) as MuscleGroup | null })}
-          >
-            <option value="">Tous</option>
-            {MUSCLE_GROUPS.map((m) => (
-              <option key={m} value={m}>
-                {libelleMuscle(m)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <label className="formulaire__case">
-          <input
-            type="checkbox"
-            checked={c.filtre.favorisSeulement}
-            onChange={(e) => c.setFiltre({ ...c.filtre, favorisSeulement: e.target.checked })}
-          />
-          Favoris seulement
         </label>
-        <button type="button" className="bouton bouton--degrade" onClick={form.nouveau}>
-          Nouvel exercice
+        <div role="group" aria-label="Groupe musculaire" className="catalogue__puces">
+          <button type="button" className="catalogue__puce" aria-pressed={c.filtre.muscle === null} onClick={() => c.setFiltre({ ...c.filtre, muscle: null })}>
+            Tous
+          </button>
+          {MUSCLE_GROUPS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              className="catalogue__puce"
+              aria-pressed={c.filtre.muscle === m}
+              onClick={() => c.setFiltre({ ...c.filtre, muscle: m })}
+            >
+              {libelleMuscle(m)}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="catalogue__puce catalogue__puce--favoris"
+          aria-pressed={c.filtre.favorisSeulement}
+          onClick={() => c.setFiltre({ ...c.filtre, favorisSeulement: !c.filtre.favorisSeulement })}
+        >
+          <span aria-hidden="true">★ </span>Favoris seulement
         </button>
       </div>
 
@@ -157,12 +158,19 @@ export default function CatalogScreen() {
               const muscles = musclesAffiches(e)
               return (
               <li key={e.id} className="catalogue__carte">
+                <img className="catalogue__pastille" src={urlIcone('catalogue')} alt="" width={40} height={40} decoding="async" />
                 <div className="catalogue__texte">
                   <strong>{e.name}</strong>
                   <span className="catalogue__muscles">
                     {muscles.principal === null ? 'Muscle non renseigné' : <>Principal : <b>{muscles.principal}</b></>}
                     {muscles.secondaires.length > 0 && ' · Aussi : ' + muscles.secondaires.join(', ')}
                   </span>
+                  {(e.exerciseType || lireGroupes(e.equipment).length > 0) && (
+                    <span className="catalogue__details">
+                      {e.exerciseType && <span className="catalogue__type">{e.exerciseType}</span>}
+                      {lireGroupes(e.equipment).join(', ')}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -185,6 +193,14 @@ export default function CatalogScreen() {
           </ul>
         </>
       )}
+      <BarreActionsFlottante
+        libelle="Actions du catalogue"
+        principal={
+          <button type="button" className="bouton bouton--principal" onClick={form.nouveau}>
+            Nouvel exercice
+          </button>
+        }
+      />
     </>
   )
 }

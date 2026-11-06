@@ -26,14 +26,16 @@ export function OnboardingScreen({ onboarding: o }: Props) {
         </button>
       </div>
 
-      <PandaIllustration
-        key={o.image.src}
-        image={o.image}
-        sizes="(min-width: 480px) 280px, 60vw"
-        /* Première étape visible dès l'ouverture : chargée sans attendre (LCP) */
-        prioritaire={o.estPremiere}
-        className="onboarding__image"
-      />
+      <div className="onboarding__halo">
+        <PandaIllustration
+          key={o.image.src}
+          image={o.image}
+          sizes="(min-width: 480px) 280px, 60vw"
+          /* Première étape visible dès l'ouverture : chargée sans attendre (LCP) */
+          prioritaire={o.estPremiere}
+          className="onboarding__image"
+        />
+      </div>
 
       <h1 id="onboarding-titre" ref={refTitre} tabIndex={-1} className="onboarding__titre">
         {o.etape.titre}

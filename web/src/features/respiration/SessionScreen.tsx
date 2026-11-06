@@ -25,11 +25,11 @@ interface FinProps {
 
 function FinDeSeance({ methode, cycles, dureeSec, erreur, onRecommencer }: FinProps) {
   const { session } = useAuth()
-  const panda = useImagePanda('pose_meditation', { userId: session?.user.id, taille: 'lg' })
+  const panda = useImagePanda('victory', { userId: session?.user.id, taille: 'lg' })
   const [message] = useState(() => messagePandaAuHasard())
   return (
     <div className="respiration respiration__fin">
-      <h1 className="titre-ecran">Séance terminée 🎉</h1>
+      <h1 className="titre-ecran">Séance terminée</h1>
       <PandaIllustration image={panda} sizes="220px" decoratif className="respiration__panda" />
       <p className="respiration__message">« {message} »</p>
       <div className="respiration__bilan">
@@ -51,12 +51,12 @@ function FinDeSeance({ methode, cycles, dureeSec, erreur, onRecommencer }: FinPr
         </p>
       )}
       <div className="respiration__actions-bas respiration__actions-bas--fin">
-        <Link to="/breathing" className="bouton">
-          Fermer
-        </Link>
-        <button type="button" className="bouton bouton--principal" onClick={onRecommencer}>
+        <button type="button" className="bouton" onClick={onRecommencer}>
           Recommencer
         </button>
+        <Link to="/breathing" className="bouton lien-bouton bouton--principal">
+          Terminer
+        </Link>
       </div>
     </div>
   )
@@ -118,6 +118,19 @@ function ContenuSession({ methode, cycles, onRecommencer }: ContenuProps) {
         <span className="respiration__chiffre">{enDecompte ? s.decompte : s.etat ? secondesRestantes(s.etat) : ''}</span>
       </div>
 
+      {s.etat && !enDecompte && (
+        <div
+          className="respiration__progression"
+          role="progressbar"
+          aria-label="Avancement de la séance"
+          aria-valuemin={0}
+          aria-valuemax={s.etat.cyclesTotal}
+          aria-valuenow={s.etat.cycle - 1}
+        >
+          <span style={{ width: `${Math.round(((s.etat.cycle - 1) / s.etat.cyclesTotal) * 100)}%` }} />
+        </div>
+      )}
+
       <div className="respiration__consigne" role="status" aria-live="polite">
         {enDecompte ? (
           <>
@@ -140,6 +153,9 @@ function ContenuSession({ methode, cycles, onRecommencer }: ContenuProps) {
             {s.statut === 'en_cours' ? 'Pause' : 'Reprendre'}
           </button>
         )}
+        <Link to="/breathing" className="bouton lien-bouton respiration__quitter-texte">
+          Quitter
+        </Link>
         <button type="button" className="bouton respiration__son" aria-label={son ? 'Son activé' : 'Son coupé'} aria-pressed={son} onClick={basculerSon}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
             <path d="M11 5L6 9H3v6h3l5 4V5z" />

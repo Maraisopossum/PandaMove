@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, within, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { saveSettings } from '../../core/db/repos/settings'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
@@ -56,5 +56,42 @@ describe('HomeScreen', () => {
     await screen.findByRole('link', { name: 'Renforcement' })
     await new Promise((r) => setTimeout(r, 30))
     expect(screen.queryByRole('heading', { name: 'Pour commencer' })).toBeNull()
+  })
+
+  describe('agenda : prochaine séance et rythme de la semaine', () => {
+    const b = { user_id: 'u1', updated_at: 'u0', deleted_at: null }
+
+    beforeEach(() => {
+      // Seule l'horloge est simulée (jeudi 5 novembre 2026) : les minuteries réelles servent à findBy / waitFor
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(2026, 10, 5, 9, 0))
+    })
+    afterEach(() => vi.useRealTimers())
+
+    const monter = () =>
+      render(
+        <MemoryRouter>
+          <HomeScreen />
+        </MemoryRouter>,
+      )
+
+    it('montre la prochaine séance avec un lien d’exécution, et la semaine avec ses jours faits et prévus', async () => {
+      await inserer(base, 'seances', { ...b, id: 'sa', nom: 'Haut du corps A', is_archived: 0, seance_category: 'STRENGTH', created_at: 'c' })
+      await inserer(base, 'instances_seance', { ...b, id: 'faite', seance_id: 'sa', date: '2026-11-02', is_completed: 1, duration_seconds: 3000 })
+      await inserer(base, 'instances_seance', { ...b, id: 'du-jour', seance_id: 'sa', date: '2026-11-05', is_completed: 0 })
+      monter()
+      const section = await screen.findByRole('region', { name: 'Prochaine séance' })
+      expect(within(section).getByText('Haut du corps A')).toBeTruthy()
+      expect(within(section).getByText('Aujourd’hui')).toBeTruthy()
+      expect(within(section).getByRole('link', { name: /Commencer/ }).getAttribute('href')).toBe('/strength/instance/du-jour')
+
+      const semaine = screen.getByRole('region', { name: 'Cette semaine' })
+      const jours = within(semaine).getAllByRole('listitem')
+      expect(jours).toHaveLength(7)
+      expect(jours[0].textContent).toContain('séance terminée')
+      expect(jours[3].textContent).toContain('séance prévue')
+      expect(jours[3].className).toContain('accueil__jour--auj')
+      expect(semaine.textContent).toContain('1 terminée sur 2')
+    })
   })
 })

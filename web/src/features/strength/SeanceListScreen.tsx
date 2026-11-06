@@ -7,6 +7,7 @@ import { BarreSelection } from './BarreSelection'
 import { CarteInstance } from './CarteInstance'
 import { CarteSelectionnable } from './CarteSelectionnable'
 import { MenuActions } from './MenuActions'
+import { OngletsSeances } from './OngletsSeances'
 import { SeanceDirecteDialog } from './SeanceDirecteDialog'
 import { SupprimerDialog } from './SupprimerDialog'
 import { SupprimerSelectionDialog } from './SupprimerSelectionDialog'
@@ -35,7 +36,9 @@ export default function SeanceListScreen() {
       <div className="liste-tete">
         <h1>Mes séances</h1>
         <span className="liste-tete__chip">Modèles</span>
+        <PandaIllustration image={l.pandaEntete} sizes="64px" decoratif className="liste-tete__panda" />
       </div>
+      <OngletsSeances actif="types" comptes={{ types: l.cartes.length, programmees: prog.lignes.length, terminees: fin.lignes.length }} />
       <p className="ecran__aide">
         Vos séances types (des modèles réutilisables : « Lancer », 📅 pour les planifier), puis vos séances programmées et terminées.
       </p>

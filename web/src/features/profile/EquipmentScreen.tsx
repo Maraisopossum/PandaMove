@@ -1,5 +1,7 @@
 import { useId } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { useImagePanda } from '../../core/images/usePandaVariante'
 import type { DisquesConfig, HalteresConfig, PlageConfig } from '../../core/progression/types'
 import {
   apercuCharges, BARRE_DEFAUT, brouillonDisques, brouillonHalteres, brouillonPlage, CABLE_DEFAUT, categoriesAvecPas,
@@ -198,6 +200,7 @@ function LignePas({ categorie, valeur, sauver }: LignePasProps) {
 export default function EquipmentScreen() {
   const { session } = useAuth()
   const m = useEquipment({ userId: session?.user.id })
+  const panda = useImagePanda('pose_standing', { userId: session?.user.id, taille: 'sm' })
 
   if (!m.charge) return <p>Chargement…</p>
 
@@ -205,9 +208,12 @@ export default function EquipmentScreen() {
   return (
     <>
       <h1 className="titre-ecran">Mon matériel</h1>
-      <p>Déclarez votre matériel : la progression de charge proposera des valeurs réellement composables.</p>
+      <div className="materiel__intro">
+        <p>Déclarez votre matériel : la progression de charge proposera des valeurs réellement composables.</p>
+        <PandaIllustration image={panda} sizes="70px" decoratif className="materiel__panda" />
+      </div>
 
-      <fieldset className="formulaire__groupe materiel__section">
+      <fieldset className="formulaire__groupe materiel__section materiel__categories">
         <legend>Catégories possédées</legend>
         {Object.entries(LIBELLES_CATEGORIES).map(([id, libelle]) => (
           <label key={id} className="formulaire__case">

@@ -46,6 +46,7 @@ export function useListeSeancesEcran() {
   const navigate = useNavigate()
   const { session } = useAuth()
   const pandaVide = useImagePanda('pose_sitting', { userId: session?.user.id, taille: 'sm' })
+  const pandaEntete = useImagePanda('musculation', { userId: session?.user.id, taille: 'sm' })
   const [notice, setNotice] = useState<Notice | null>(null)
   const [requete, setRequete] = useState('')
 
@@ -205,6 +206,7 @@ export function useListeSeancesEcran() {
     setRequete,
     aucunResultat: requete.trim() !== '' && cartes.length === 0,
     pandaVide,
+    pandaEntete,
     affectation,
     lancement,
     suppression,

@@ -1,5 +1,7 @@
 import { useEffect, useRef, type ChangeEvent } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { useImagePanda } from '../../core/images/usePandaVariante'
 import ImportIaPanel from './ImportIaPanel'
 import { useSourceSynchro } from '../calendar/seancesCardio/useSourceSynchro'
 import ImportProgrammePanel from './ImportProgrammePanel'
@@ -26,6 +28,7 @@ const ONGLETS: { id: OngletImport; libelle: string }[] = [
 // ou programme de cardio 2027 (ImportProgrammePanel).
 export default function ImportScreen() {
   const { session } = useAuth()
+  const panda = useImagePanda('pose_sitting', { userId: session?.user.id, taille: 'sm' })
   const { preview, error, load, confirm, status, resultat, reset } = useImport({ userId: session?.user.id })
   const zoneResultat = useRef<HTMLDivElement>(null)
   const { onglet, setOnglet, surTouche } = useOngletsImport()
@@ -79,11 +82,7 @@ export default function ImportScreen() {
 
           <div className="import__carte">
             <div className="import__champ">
-              <span className="import__icone" aria-hidden="true">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
-                </svg>
-              </span>
+              <PandaIllustration image={panda} sizes="76px" decoratif className="import__panda" />
               <label htmlFor="import-fichier">Fichier d'export (.json)</label>
               <input id="import-fichier" type="file" accept=".json,application/json" onChange={choisir} disabled={enCours} />
             </div>

@@ -1,4 +1,5 @@
 import { useActionState } from 'react'
+import { urlIcone } from '../../app/modules'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { pandaImage } from '../../core/images/pandaImage'
@@ -32,8 +33,11 @@ export default function LoginScreen() {
 
   return (
     <main className="connexion">
-      <PandaIllustration image={SPLASH} sizes="130px" prioritaire className="connexion__splash" />
-      <h1 className="titre-ecran">Connexion</h1>
+      <header className="connexion__tete">
+        <PandaIllustration image={SPLASH} sizes="130px" prioritaire className="connexion__splash" />
+        <h1 className="titre-ecran">Connexion</h1>
+        <p className="connexion__sous-titre">Retrouvez vos séances sur tous vos appareils.</p>
+      </header>
       <form action={action}>
         <label>
           Adresse e-mail
@@ -46,12 +50,19 @@ export default function LoginScreen() {
         <button type="submit" name="intent" value="signin" disabled={enCours}>
           Se connecter
         </button>
-        <button type="submit" name="intent" value="signup" disabled={enCours}>
-          Créer un compte
-        </button>
-        <button type="submit" name="intent" value="magic" disabled={enCours}>
+        <p className="connexion__ou" aria-hidden="true">
+          <span>ou</span>
+        </p>
+        <button type="submit" name="intent" value="magic" disabled={enCours} className="connexion__magique">
+          <img src={urlIcone('cle')} alt="" width={26} height={26} decoding="async" />
           Recevoir un lien magique
         </button>
+        <p className="connexion__compte">
+          Pas encore de compte ?{' '}
+          <button type="submit" name="intent" value="signup" disabled={enCours} className="connexion__lien">
+            Créer un compte
+          </button>
+        </p>
       </form>
       {message && <p role="status">{message}</p>}
     </main>

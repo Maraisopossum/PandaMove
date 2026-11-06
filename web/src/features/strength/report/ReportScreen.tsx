@@ -36,7 +36,6 @@ export default function ReportScreen() {
         </>
       ) : (
         <>
-          <PandaIllustration image={b.pandaVictoire} sizes="96px" className="bilan__panda" />
           {b.phrasesRecalcul.length > 0 && (
             <div role="status" className="bilan__annonce">
               <p>
@@ -48,6 +47,7 @@ export default function ReportScreen() {
             </div>
           )}
           <section aria-label="Résumé" className="bilan__entete">
+            <PandaIllustration image={b.pandaVictoire} sizes="96px" className="bilan__panda" />
             <h2>{b.nomSeance}</h2>
             {b.dateLongue && <p className="bilan__date">{b.dateLongue}</p>}
             {b.notesSeance.trim() && <p className="bilan__notes">{b.notesSeance}</p>}

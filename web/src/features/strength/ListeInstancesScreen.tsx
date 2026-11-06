@@ -4,6 +4,7 @@ import { DateDialog } from '../calendar/DateDialog'
 import { SupprimerInstanceDialog } from '../calendar/SupprimerInstanceDialog'
 import { BarreSelection } from './BarreSelection'
 import { CarteInstance } from './CarteInstance'
+import { OngletsSeances } from './OngletsSeances'
 import { SupprimerSelectionDialog } from './SupprimerSelectionDialog'
 import { useEcranListeInstances } from './useEcranListeInstances'
 import type { TypeListeInstances } from './useListeInstances'
@@ -20,6 +21,7 @@ export default function ListeInstancesScreen({ type }: { type: TypeListeInstance
   return (
     <>
       <h1>{e.titre}</h1>
+      <OngletsSeances actif={type} />
 
       {e.erreur && (
         <div className="formulaire__ligne">
