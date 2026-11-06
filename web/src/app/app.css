@@ -10641,3 +10641,139 @@ time,
   background: var(--couleur-renforcement);
   color: #ffffff;
 }
+
+/* Respiration (maquettes Claude Design) : carte d'accroche teintée avec le panda à droite, bascule Cycles / Minutes en haut
+   de la liste, historique en rangée pointillée, création de méthode en barre fixe. */
+.respiration__haut {
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.875rem 0.75rem 0.875rem 1rem;
+  border-color: color-mix(in srgb, var(--couleur-respiration) 22%, var(--surface));
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--couleur-respiration) 7%, var(--surface));
+}
+
+.respiration__titre-page {
+  font-family: var(--police-titres);
+  letter-spacing: -0.02em;
+}
+
+.respiration__aide {
+  margin: 0;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+  line-height: 1.4;
+}
+
+.respiration__panda {
+  width: auto;
+  height: 6.25rem;
+}
+
+.respiration__ligne-titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.respiration__ligne-titre .respiration__titre {
+  margin: 0;
+  font-family: var(--police-titres);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* Bascule segmentée : l'unité active en carte blanche */
+.respiration__ligne-titre .respiration__mode {
+  gap: 0;
+  padding: 3px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--texte) 7%, var(--surface));
+}
+
+.respiration__ligne-titre .respiration__mode .bouton {
+  min-height: 34px;
+  padding: 0 0.625rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--texte-secondaire);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.respiration__ligne-titre .respiration__mode .bouton[aria-pressed='true'] {
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+  color: var(--couleur-respiration);
+  font-weight: 800;
+}
+
+:root[data-theme='dark'] .respiration__ligne-titre .respiration__mode .bouton[aria-pressed='true'] {
+  color: #80cbc4;
+}
+
+.respiration__historique {
+  margin-top: 0.25rem;
+}
+
+.respiration__historique > h2 > .respiration__bascule {
+  min-height: 48px;
+  padding: 0 0.875rem;
+  border: 1px dashed var(--bord);
+  border-radius: 14px;
+  color: var(--texte-secondaire);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Séance de respiration : avancement global, Quitter en texte, bilan de fin en deux tuiles (maquettes Claude Design) */
+.respiration__progression {
+  align-self: center;
+  width: min(14rem, 70%);
+  height: 6px;
+  margin-top: 0.5rem;
+  border-radius: var(--radius-pilule);
+  background: color-mix(in srgb, var(--couleur-respiration) 16%, var(--surface));
+  overflow: hidden;
+}
+
+.respiration__progression > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--couleur-respiration);
+  transition: width 0.4s ease;
+}
+
+.respiration .respiration__quitter-texte {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  border-radius: 18px;
+  font-size: 1.0625rem;
+}
+
+.respiration__bilan {
+  border-color: color-mix(in srgb, var(--couleur-respiration) 22%, var(--surface));
+  background: color-mix(in srgb, var(--couleur-respiration) 7%, var(--surface));
+}
+
+.respiration__bilan dd {
+  margin: 0;
+  color: var(--couleur-respiration);
+  font-family: var(--police-titres);
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme='dark'] .respiration__bilan dd {
+  color: #80cbc4;
+}

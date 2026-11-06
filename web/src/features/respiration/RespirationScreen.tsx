@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { useImagePanda } from '../../core/images/usePandaVariante'
@@ -87,15 +88,6 @@ function CarteMethode({ methode, ouverte, onBasculer, onSupprimer, choix, onDema
       </div>
       {ouverte && (
         <div id={idPanneau} className="respiration__panneau">
-          <div className="respiration__mode" role="group" aria-label="Durée">
-            <span className="aide">Durée</span>
-            <button type="button" className="bouton" aria-pressed={choix.mode === 'cycles'} onClick={() => choix.setMode('cycles')}>
-              Cycles
-            </button>
-            <button type="button" className="bouton" aria-pressed={choix.mode === 'minutes'} onClick={() => choix.setMode('minutes')}>
-              Minutes
-            </button>
-          </div>
           <div className="respiration__compteur">
             <button type="button" className="bouton" aria-label="Diminuer" disabled={valeur <= choix.bornes.min} onClick={() => choix.changer(methode, -1)}>
               −
@@ -147,13 +139,11 @@ export default function RespirationScreen() {
   return (
     <div className="respiration">
       <div className="respiration__haut">
-        <PandaIllustration image={panda} sizes="120px" decoratif className="respiration__panda" />
         <div className="respiration__accroche">
           <h1 className="respiration__titre-page">Un souffle, une pause</h1>
-          <Link to="/breathing/new" className="bouton bouton--principal">
-            + Créer une méthode
-          </Link>
+          <p className="respiration__aide">Choisissez une méthode, réglez la durée, laissez le cercle vous guider.</p>
         </div>
+        <PandaIllustration image={panda} sizes="120px" decoratif className="respiration__panda" />
       </div>
 
       {data.erreur && (
@@ -162,7 +152,17 @@ export default function RespirationScreen() {
         </p>
       )}
 
-      <h2 className="respiration__titre">Choisissez une méthode</h2>
+      <div className="respiration__ligne-titre">
+        <h2 className="respiration__titre">Choisissez une méthode</h2>
+        <div className="respiration__mode" role="group" aria-label="Durée">
+          <button type="button" className="bouton" aria-pressed={choix.mode === 'cycles'} onClick={() => choix.setMode('cycles')}>
+            Cycles
+          </button>
+          <button type="button" className="bouton" aria-pressed={choix.mode === 'minutes'} onClick={() => choix.setMode('minutes')}>
+            Minutes
+          </button>
+        </div>
+      </div>
       <ul className="respiration__liste" aria-label="Méthodes de respiration">
         {data.methodes.map((m) => (
           <CarteMethode
@@ -211,6 +211,15 @@ export default function RespirationScreen() {
           )}
         </section>
       )}
+
+      <BarreActionsFlottante
+        libelle="Actions de la respiration"
+        principal={
+          <Link to="/breathing/new" className="bouton lien-bouton">
+            + Créer ma méthode
+          </Link>
+        }
+      />
 
       {aSupprimer && (
         <ConfirmationSuppression
