@@ -3,7 +3,7 @@ import type { RouteObject } from 'react-router'
 import {
   CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, DonneesScreen, RappelsScreen, ProgressionScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
@@ -54,6 +54,10 @@ export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.en
     { path: 'profile', element: chargement(<ProfileScreen />) },
     { path: 'profile/equipment', element: chargement(<EquipmentScreen />) },
     { path: 'import', element: chargement(<ImportScreen />) },
+    { path: 'outils', element: chargement(<OutilsScreen />) },
+    { path: 'outils/donnees', element: chargement(<DonneesScreen />) },
+    { path: 'outils/rappels', element: chargement(<RappelsScreen />) },
+    { path: 'outils/progression', element: chargement(<ProgressionScreen />) },
   ]
   if (dev && DebugWriteScreen) {
     enfants.push({

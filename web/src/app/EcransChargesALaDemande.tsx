@@ -21,3 +21,7 @@ export const SortiesScreen = lazy(() => import('../features/endurance/SortiesScr
 export const SortieFormScreen = lazy(() => import('../features/endurance/SortieFormScreen'))
 export const SortieDetailScreen = lazy(() => import('../features/endurance/SortieDetailScreen'))
 export const StatsScreen = lazy(() => import('../features/stats/StatsScreen'))
+export const OutilsScreen = lazy(() => import('../features/outils/OutilsScreen'))
+export const DonneesScreen = lazy(() => import('../features/outils/DonneesScreen'))
+export const RappelsScreen = lazy(() => import('../features/outils/RappelsScreen'))
+export const ProgressionScreen = lazy(() => import('../features/outils/ProgressionScreen'))
