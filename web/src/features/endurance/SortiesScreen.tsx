@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import type { Sport } from '../../core/db/repos/sorties'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDateCourte, formaterDuree, formaterRythme } from './presentation'
+import { useImportFit } from './importFit/useImportFit'
 import { useSorties } from './useSorties'
 
 const trace = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
@@ -9,7 +10,8 @@ const trace = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLine
 // Liste des sorties d'un sport (`/running` ou `/cycling`), les plus récentes d'abord. Chaque carte : titre et date, puis
 // la distance en grand, la durée et le rythme (allure ou vitesse) ; le reste est dans le détail.
 export default function SortiesScreen({ sport }: { sport: Sport }) {
-  const { sorties, charge, erreur } = useSorties(sport)
+  const { sorties, charge, erreur, recharger } = useSorties(sport)
+  const importFit = useImportFit({ apres: () => void recharger() })
   const chemin = CHEMIN_SPORT[sport]
   return (
     <div className={`sorties sorties--${sport}`}>
@@ -20,6 +22,31 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
         </svg>
         Ajouter une sortie
       </Link>
+
+      <label className="sorties__import">
+        <input
+          type="file"
+          accept=".fit,.zip"
+          multiple
+          disabled={importFit.enCours}
+          onChange={(e) => {
+            const fichiers = Array.from(e.target.files ?? [])
+            e.target.value = ''
+            if (fichiers.length > 0) void importFit.importer(fichiers)
+          }}
+        />
+        <span>{importFit.enCours ? 'Import en cours…' : 'Importer des fichiers FIT ou zip (Suunto, Garmin, MyWoosh)'}</span>
+      </label>
+      {importFit.resultats.length > 0 && (
+        <ul className="sorties__import-resultats" role="status">
+          {importFit.resultats.map((r) => (
+            <li key={r.nom} className={`sorties__import-resultat sorties__import-resultat--${r.etat}`}>
+              <strong>{r.nom}</strong> : {r.message}
+              {r.etat === 'importee' && r.sport !== undefined && r.sport !== sport && ' (dans l’autre sport)'}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {erreur && <p role="alert">{erreur}</p>}
       {!charge && !erreur && <p role="status">Chargement…</p>}

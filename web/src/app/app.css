@@ -10905,3 +10905,56 @@ time,
     animation: none !important;
   }
 }
+
+/* Import de fichiers FIT sur la liste des sorties */
+.sorties__import {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--hauteur-controle);
+  margin: 0.5rem 0;
+  padding: 0 1rem;
+  border: 1.5px dashed var(--bord);
+  border-radius: var(--radius-bouton);
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sorties__import input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.sorties__import:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sorties__import-resultats {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--taille-petit);
+}
+
+.sorties__import-resultat {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-bouton);
+  background: color-mix(in srgb, var(--texte) 5%, var(--surface));
+  overflow-wrap: anywhere;
+}
+
+.sorties__import-resultat--importee {
+  background: color-mix(in srgb, #2e7d32 12%, var(--surface));
+}
+
+.sorties__import-resultat--erreur {
+  background: color-mix(in srgb, #c62828 12%, var(--surface));
+}
