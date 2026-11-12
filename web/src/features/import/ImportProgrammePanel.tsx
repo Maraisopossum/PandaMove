@@ -6,8 +6,9 @@ import { formaterDate } from '../endurance/presentation'
 
 const pluriel = (n: number, un: string, plusieurs: string) => `${n} ${n > 1 ? plusieurs : un}`
 
-function messageResultat({ creees, dejaPresentes }: ResultatImportProgramme): string {
+function messageResultat({ creees, dejaPresentes, restaurees }: ResultatImportProgramme): string {
   const presentes = dejaPresentes > 0 ? pluriel(dejaPresentes, 'déjà présente', 'déjà présentes') : null
+  if (restaurees > 0) return `${pluriel(restaurees, 'séance rétablie', 'séances rétablies')}${creees > 0 ? `, ${pluriel(creees, 'séance ajoutée', 'séances ajoutées')}` : ''}${presentes ? `, ${presentes}` : ''}.`
   if (creees === 0) return `Aucune séance ajoutée${presentes ? ` : ${presentes}` : ''}.`
   return `${pluriel(creees, 'séance ajoutée', 'séances ajoutées')}${presentes ? `, ${presentes}` : ''}.`
 }
@@ -38,12 +39,18 @@ export default function ImportProgrammePanel(props: DepsImportProgramme) {
         <button
           type="button"
           className="bouton bouton--import"
-          onClick={() => void importer()}
+          onClick={() => void importer(false)}
           disabled={!peutImporter}
           aria-describedby={raisonBlocage ? 'import-programme-raison' : undefined}
         >
           {enCours ? 'Import en cours…' : statut === 'done' ? 'Importer à nouveau' : 'Importer le programme 2027'}
         </button>
+        <button type="button" className="bouton" onClick={() => void importer(true)} disabled={!peutImporter} aria-describedby="import-programme-retablir">
+          Rétablir les séances supprimées
+        </button>
+        <p id="import-programme-retablir" className="import-ia__aide">
+          Remet dans l'agenda les séances du programme que vous avez supprimées. Celles déplacées ou validées ne sont pas touchées.
+        </p>
         {raisonBlocage && (
           <p id="import-programme-raison" className="import-ia__aide">
             {raisonBlocage}

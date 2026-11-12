@@ -55,7 +55,7 @@ describe('useImportProgramme', () => {
       await result.current.importer()
     })
     expect(result.current.statut).toBe('done')
-    expect(result.current.resultat).toEqual({ creees: programme.length, dejaPresentes: 0 })
+    expect(result.current.resultat).toEqual({ creees: programme.length, dejaPresentes: 0, restaurees: 0 })
     expect(await compter()).toBe(programme.length)
   })
 
@@ -68,7 +68,7 @@ describe('useImportProgramme', () => {
     await act(async () => {
       await result.current.importer()
     })
-    expect(result.current.resultat).toEqual({ creees: 0, dejaPresentes: programme.length })
+    expect(result.current.resultat).toEqual({ creees: 0, dejaPresentes: programme.length, restaurees: 0 })
     expect(await compter()).toBe(programme.length)
   })
 
@@ -112,7 +112,7 @@ describe('useImportProgramme', () => {
     await act(async () => {
       await Promise.all([result.current.importer(), result.current.importer()])
     })
-    expect(result.current.resultat).toEqual({ creees: programme.length, dejaPresentes: 0 })
+    expect(result.current.resultat).toEqual({ creees: programme.length, dejaPresentes: 0, restaurees: 0 })
     expect(await compter()).toBe(programme.length)
   })
 })
