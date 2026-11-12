@@ -8,13 +8,14 @@ const VARIANTES = ['male', 'female'] as const
 const CHEMIN = /^M\s*-?\d+(\.\d+)?[ ,]-?\d+(\.\d+)?(\s*[MLZ]\s*(-?\d+(\.\d+)?[ ,]-?\d+(\.\d+)?)?)*\s*Z$/
 
 describe('HEATMAP_ZONES', () => {
-  it.each(VARIANTES)('%s : chaque groupe musculaire figure exactement une fois', (variante) => {
+  it.each(VARIANTES)('%s : chaque groupe figure une fois, tracé au moins sur sa vue principale', (variante) => {
     const zones = HEATMAP_ZONES[variante]
     expect(Object.keys(zones).sort()).toEqual([...MUSCLE_GROUPS].sort())
     for (const g of MUSCLE_GROUPS) {
       const z = zones[g]
-      // Une zone « liste » n'a pas de tracé ; une zone de vue en a toujours un
-      expect(z.vue === 'liste', g).toBe(z.svgPath === null)
+      // Une zone « liste » n'a aucun tracé ; une zone de vue est au moins tracée sur sa vue principale
+      if (z.vue === 'liste') expect(Object.keys(z.traces), g).toEqual([])
+      else expect(z.traces[z.vue], g).toBeTruthy()
     }
     const vues = new Set(MUSCLE_GROUPS.map((g) => zones[g].vue))
     expect(vues).toEqual(new Set(['face', 'dos', 'liste']))
@@ -23,9 +24,7 @@ describe('HEATMAP_ZONES', () => {
   })
 
   it.each(VARIANTES)('%s : chaque tracé est un chemin valide dont les points restent dans le viewBox', (variante) => {
-    for (const g of MUSCLE_GROUPS) {
-      const chemin = HEATMAP_ZONES[variante][g].svgPath
-      if (chemin === null) continue
+    for (const g of MUSCLE_GROUPS) for (const chemin of Object.values(HEATMAP_ZONES[variante][g].traces)) {
       expect(chemin, g).toMatch(CHEMIN)
       const nombres = (chemin.match(/-?\d+(\.\d+)?/g) ?? []).map(Number)
       expect(nombres.length % 2, g).toBe(0)
@@ -36,6 +35,28 @@ describe('HEATMAP_ZONES', () => {
         expect(nombres[i + 1], g).toBeLessThanOrEqual(HEATMAP_VIEWBOX.hauteur)
       }
     }
+  })
+})
+
+describe('corrections du découpage (relevé du 2026-11-12)', () => {
+  it('femme : obliques détachés des abdominaux, flancs (dos) vus de face, avant-bras et épaules vus de dos', () => {
+    const f = HEATMAP_ZONES.female
+    expect(f.OBLIQUES).toMatchObject({ vue: 'face' })
+    expect(f.OBLIQUES.traces.face).toBeTruthy()
+    expect(f.DOS.traces.face).toBeTruthy()
+    expect(f.AVANT_BRAS.traces.dos).toBeTruthy()
+    expect(f.EPAULES.traces.dos).toBeTruthy()
+  })
+
+  it('homme : triceps et dos vus de face, biceps, avant-bras et épaules vus de dos, vues principales inchangées', () => {
+    const m = HEATMAP_ZONES.male
+    expect(m.TRICEPS).toMatchObject({ vue: 'dos' })
+    expect(m.TRICEPS.traces.face).toBeTruthy()
+    expect(m.DOS.traces.face).toBeTruthy()
+    expect(m.BICEPS).toMatchObject({ vue: 'face' })
+    expect(m.BICEPS.traces.dos).toBeTruthy()
+    expect(m.AVANT_BRAS.traces.dos).toBeTruthy()
+    expect(m.EPAULES.traces.dos).toBeTruthy()
   })
 })
 

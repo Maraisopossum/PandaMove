@@ -135,7 +135,8 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     // Jamais « vide » sur une erreur : le résumé à 0 n'est alors pas une donnée lue
     vide: !chargement && erreur === null && donnees.resume.seancesTerminees === 0,
     groupes,
-    zonesVue: groupes.filter((g) => g.vue === vue),
+    // Groupes tracés sur la vue affichée (un groupe peut l'être sur les deux vues)
+    zonesVue: groupes.filter((g) => g.traces[vue] !== undefined),
     vue, setVue, variante, image: imageHeatmap(variante, vue),
     exercices, exerciceId, choisirExercice: setExerciceChoisi,
     historique: historiqueAffiche, graphique,

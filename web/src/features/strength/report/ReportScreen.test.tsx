@@ -370,7 +370,9 @@ describe('ReportScreen : récap de progression', () => {
   it('« Plus tard » et Échap ferment sans rien écrire ; le bouton du rapport rouvre le récap et récupère le focus', async () => {
     const seanceId = await seanceTerminee('r-focus')
     monter('r-focus')
-    await screen.findByRole('dialog', { name: 'Progression' })
+    const premier = await screen.findByRole('dialog', { name: 'Progression' })
+    // Échap est écouté par l'effet qui pose aussi le focus : attendre qu'il soit installé avant d'appuyer
+    await waitFor(() => expect(premier.contains(document.activeElement)).toBe(true))
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(await objectif(seanceId)).toEqual({ charge_cible: 50, reps_cible: 8, compteur_echec: 2 })
@@ -384,7 +386,8 @@ describe('ReportScreen : récap de progression', () => {
     await waitFor(() => expect(dialogue.contains(document.activeElement)).toBe(true))
     fireEvent.click(within(dialogue).getByRole('button', { name: 'Plus tard' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Voir le récap de progression' }))
+    // Le focus est rendu au bouton par le nettoyage du même effet
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Voir le récap de progression' })))
   })
 
   it('le focus reste piégé dans le récap (Tab sur le dernier élément revient au premier)', async () => {
