@@ -86,8 +86,14 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   await ignorerOnboarding(contexteB)
   const pageB = await contexteB.newPage()
   await seConnecter(pageB, new URL(urlSeance).pathname)
+  // L'écran lit la base à l'ouverture : sur un appareil neuf, la séance peut ne pas être encore arrivée (« Séance
+  // introuvable »). On attend la synchro, puis on recharge jusqu'à voir les 3 séries.
+  await expect(pageB.getByTestId('sync-state')).toHaveText('en ligne', { timeout: 60_000 })
   const tableauB = pageB.getByRole('table').first()
-  await expect(tableauB.getByRole('button', { name: /^Annuler la validation de la série / })).toHaveCount(3, { timeout: 60_000 })
+  await expect(async () => {
+    await pageB.reload()
+    await expect(tableauB.getByRole('button', { name: /^Annuler la validation de la série / })).toHaveCount(3, { timeout: 5_000 })
+  }).toPass({ timeout: 60_000 })
 
   await contexteA.close()
   await contexteB.close()
