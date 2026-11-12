@@ -1,4 +1,7 @@
 import { Link } from 'react-router'
+import { useAuth } from '../../core/auth/AuthProvider'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { useImagePanda } from '../../core/images/usePandaVariante'
 import type { Sport } from '../../core/db/repos/sorties'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDateCourte, formaterDuree, formaterRythme } from './presentation'
@@ -13,12 +16,17 @@ const trace = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLine
 // Liste des sorties d'un sport (`/running` ou `/cycling`), les plus récentes d'abord. Chaque carte : titre et date, puis
 // la distance en grand, la durée et le rythme (allure ou vitesse) ; le reste est dans le détail.
 export default function SortiesScreen({ sport }: { sport: Sport }) {
+  const { session } = useAuth()
+  const panda = useImagePanda(sport === 'course' ? 'course' : 'velo', { userId: session?.user.id, taille: 'lg' })
   const { sorties, charge, erreur, recharger } = useSorties(sport)
   const importFit = useImportFit({ apres: () => void recharger() })
   const chemin = CHEMIN_SPORT[sport]
   return (
     <div className={`sorties sorties--${sport}`}>
-      <h1 className="titre-ecran">{sport === 'course' ? 'Course à pied' : 'Vélo'}</h1>
+      <header className="sorties__hero">
+        <h1 className="titre-ecran">{sport === 'course' ? 'Course à pied' : 'Vélo'}</h1>
+        <PandaIllustration image={panda} sizes="96px" decoratif className="sorties__panda" />
+      </header>
       <div className="sorties__actions-haut">
         <Link to={`${chemin}/new`} className="sorties__ajout">
           <svg width="18" height="18" viewBox="0 0 24 24" {...trace} strokeWidth={2.4} aria-hidden="true">

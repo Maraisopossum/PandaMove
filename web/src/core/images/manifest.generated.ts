@@ -81,6 +81,45 @@ export const PANDA_MANIFEST = {
       },
     },
   },
+  course: {
+    alt: 'Panda en pleine course',
+    variantes: {
+      male: {
+        sm: { src: '/panda/course-male-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/course-male-lg.webp', width: 640, height: 960 },
+      },
+      female: {
+        sm: { src: '/panda/course-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/course-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
+  velo: {
+    alt: 'Panda à vélo',
+    variantes: {
+      male: {
+        sm: { src: '/panda/velo-male-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/velo-male-lg.webp', width: 640, height: 960 },
+      },
+      female: {
+        sm: { src: '/panda/velo-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/velo-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
+  yoga: {
+    alt: 'Panda en posture de yoga',
+    variantes: {
+      male: {
+        sm: { src: '/panda/yoga-male-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/yoga-male-lg.webp', width: 640, height: 960 },
+      },
+      female: {
+        sm: { src: '/panda/yoga-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/yoga-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
   pose_standing: {
     alt: 'Panda debout',
     variantes: {
@@ -180,6 +219,46 @@ export const PANDA_MANIFEST = {
       female: {
         sm: { src: '/panda/pose-sled-push-female-sm.webp', width: 320, height: 480 },
         lg: { src: '/panda/pose-sled-push-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
+  pose_cobra: {
+    alt: 'Panda en posture du cobra',
+    variantes: {
+      female: {
+        sm: { src: '/panda/pose-cobra-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/pose-cobra-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
+  pose_warrior: {
+    alt: 'Panda en posture du guerrier',
+    variantes: {
+      female: {
+        sm: { src: '/panda/pose-warrior-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/pose-warrior-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
+  pose_sprint: {
+    alt: 'Panda en plein sprint',
+    variantes: {
+      female: {
+        sm: { src: '/panda/pose-sprint-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/pose-sprint-female-lg.webp', width: 640, height: 960 },
+      },
+    },
+  },
+  pose_walk: {
+    alt: 'Panda qui marche tranquillement',
+    variantes: {
+      male: {
+        sm: { src: '/panda/pose-walk-male-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/pose-walk-male-lg.webp', width: 640, height: 960 },
+      },
+      female: {
+        sm: { src: '/panda/pose-walk-female-sm.webp', width: 320, height: 480 },
+        lg: { src: '/panda/pose-walk-female-lg.webp', width: 640, height: 960 },
       },
     },
   },

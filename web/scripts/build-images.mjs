@@ -43,6 +43,9 @@ const IMAGES = {
   motivation: { alt: 'Panda motivé, poing levé', male: `${EMO_M}/male_emotion_motivation_v1.png`, female: `${EMO_F}/female_emotion_motivation_v1.png` },
   // Sport
   musculation: { alt: 'Panda qui soulève des haltères', male: '05_Sports_Male/male_musculation_v1.png', female: '06_Sports_Female/female_musculation_v1.png' },
+  course: { alt: 'Panda en pleine course', male: '05_Sports_Male/male_running_v1.png', female: '06_Sports_Female/female_running_v1.png' },
+  velo: { alt: 'Panda à vélo', male: '05_Sports_Male/male_cycling_v1.png', female: '06_Sports_Female/female_cycling_v1.png' },
+  yoga: { alt: 'Panda en posture de yoga', male: '05_Sports_Male/male_yoga_v1.png', female: '06_Sports_Female/female_yoga_v1.png' },
   // Poses (la plupart n'existent qu'en version femme : pandaImage se replie dessus)
   pose_standing: { alt: 'Panda debout', male: `${POSES}/male_pose_standing_v1.png`, female: `${POSES}/female_pose_standing_v1.png` },
   pose_sitting: { alt: 'Panda assis, au repos', male: `${POSES}/male_pose_sitting_v1.png`, female: `${POSES}/female_pose_sitting_v1.png` },
@@ -54,6 +57,10 @@ const IMAGES = {
   pose_farmers_carry: { alt: 'Panda en marche du fermier, une kettlebell dans chaque main', female: `${POSES}/female_pose_farmers_carry_v1.png` },
   pose_burpees: { alt: 'Panda en plein burpee', female: `${POSES}/female_pose_burpees_v1.png` },
   pose_sled_push: { alt: 'Panda qui pousse un traîneau', female: `${POSES}/female_pose_sled_push_v1.png` },
+  pose_cobra: { alt: 'Panda en posture du cobra', female: `${POSES}/female_pose_cobra_v1.png` },
+  pose_warrior: { alt: 'Panda en posture du guerrier', female: `${POSES}/female_pose_warrior_v1.png` },
+  pose_sprint: { alt: 'Panda en plein sprint', female: `${POSES}/female_pose_sprint_v1.png` },
+  pose_walk: { alt: 'Panda qui marche tranquillement', male: `${POSES}/male_pose_walk_quiety_v1.png`, female: `${POSES}/female_pose_walk_quiety_v1.png` },
   // Fonds (communs)
   bg_gym: { alt: 'Salle de sport futuriste', commun: `${FONDS}/bg_gym_futuristic_v1.png` },
   bg_reward: { alt: 'Podium illuminé sous des confettis dorés', commun: `${FONDS}/bg_reward_ceremony_v1.png` },
