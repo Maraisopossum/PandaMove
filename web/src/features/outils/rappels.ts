@@ -40,6 +40,19 @@ export function lireReglages(brut: string | null): ReglagesRappels {
   }
 }
 
+// Part synchronisée des réglages (user_settings.rappels_json, migration 0012) : quand et à quelle heure rappeler.
+// L'interrupteur général reste propre à l'appareil : l'autorisation de notifier se donne appareil par appareil.
+export function versJsonSynchro(r: ReglagesRappels): string {
+  return JSON.stringify({ veille: r.veille, veilleHeure: r.veilleHeure, jour: r.jour, jourHeure: r.jourHeure })
+}
+
+// Réglages de l'appareil complétés par la part synchronisée (si elle existe) ; l'interrupteur de l'appareil est gardé.
+export function fusionnerSynchro(local: ReglagesRappels, json: string | null): ReglagesRappels {
+  if (json === null) return local
+  const synchro = lireReglages(json)
+  return { ...synchro, actif: local.actif }
+}
+
 export interface RappelDu {
   /** Identifiant stable : un rappel n'est envoyé qu'une fois. */
   cle: string

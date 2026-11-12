@@ -7,7 +7,8 @@ import { createTestDb } from '../../test/sqliteDb'
 import type { EvenementAgenda } from '../calendar/types'
 import type { PointHistorique } from '../stats/statsQueries'
 import { pointsDeLaPeriode, resumerProgression } from './progression'
-import { lireReglages, purgerEnvoyes, rappelsDus, REGLAGES_PAR_DEFAUT, type ReglagesRappels } from './rappels'
+import { getSettings, lireRappelsJson, saveRappelsJson } from '../../core/db/repos/settings'
+import { fusionnerSynchro, lireReglages, purgerEnvoyes, rappelsDus, REGLAGES_PAR_DEFAUT, versJsonSynchro, type ReglagesRappels } from './rappels'
 import { compterDonnees, formaterDerniereSauvegarde } from './useDonnees'
 import { useReglagesRappels, useRappelsActifs } from './useRappels'
 
@@ -19,9 +20,10 @@ import DonneesScreen from './DonneesScreen'
 import OutilsScreen from './OutilsScreen'
 import RappelsScreen from './RappelsScreen'
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
   window.localStorage.clear()
+  await base.execute('DELETE FROM user_settings')
 })
 
 const evenement = (id: string, dateIso: string, etat: EvenementAgenda['etat'] = 'planifiee'): EvenementAgenda =>
@@ -143,6 +145,39 @@ describe('écrans', () => {
   })
 })
 
+describe('rappels synchronisés entre appareils', () => {
+  it('la part synchronisée ne porte pas l’interrupteur, qui reste celui de l’appareil', () => {
+    const json = versJsonSynchro({ ...actifs, veilleHeure: '21:00' })
+    expect(JSON.parse(json)).toEqual({ veille: true, veilleHeure: '21:00', jour: true, jourHeure: '07:30' })
+    expect(fusionnerSynchro({ ...REGLAGES_PAR_DEFAUT, actif: false }, json)).toMatchObject({ actif: false, veilleHeure: '21:00' })
+    expect(fusionnerSynchro(actifs, null)).toBe(actifs)
+  })
+
+  it('une heure changée est écrite en base ; les autres réglages ne bougent pas', async () => {
+    vi.stubGlobal('Notification', Object.assign(vi.fn(), { permission: 'granted', requestPermission: vi.fn() }))
+    const { result } = renderHook(() => useReglagesRappels({ db: base }))
+    act(() => result.current.regler('jourHeure', '06:45'))
+    await waitFor(async () => expect(await lireRappelsJson(base, 'u1')).not.toBeNull())
+    expect(lireReglages(await lireRappelsJson(base, 'u1'))).toMatchObject({ jourHeure: '06:45' })
+    expect(await getSettings(base, 'u1')).toEqual({ pandaVariant: 'male', darkMode: null, equipmentJson: '{}' })
+    vi.unstubAllGlobals()
+  })
+
+  it('un autre appareil retrouve les heures réglées ailleurs, avec son propre interrupteur', async () => {
+    await saveRappelsJson(base, 'u1', versJsonSynchro({ ...REGLAGES_PAR_DEFAUT, veille: false, jourHeure: '06:00' }))
+    window.localStorage.setItem('pandamove.rappels', JSON.stringify({ ...REGLAGES_PAR_DEFAUT, actif: true }))
+    const { result } = renderHook(() => useReglagesRappels({ db: base }))
+    await waitFor(() => expect(result.current.reglages.jourHeure).toBe('06:00'))
+    expect(result.current.reglages).toMatchObject({ actif: true, veille: false })
+  })
+
+  it('réglages faits avant la synchronisation : repris en base au premier affichage', async () => {
+    window.localStorage.setItem('pandamove.rappels', JSON.stringify({ ...REGLAGES_PAR_DEFAUT, veilleHeure: '18:30' }))
+    renderHook(() => useReglagesRappels({ db: base }))
+    await waitFor(async () => expect(lireReglages(await lireRappelsJson(base, 'u1'))).toMatchObject({ veilleHeure: '18:30' }))
+  })
+})
+
 describe('useRappelsActifs', () => {
   it('envoie un rappel dû une seule fois', async () => {
     vi.stubGlobal('Notification', Object.assign(vi.fn(), { permission: 'granted' }))
@@ -157,6 +192,22 @@ describe('useRappelsActifs', () => {
     await new Promise((r) => setTimeout(r, 80))
     expect(envoyer).toHaveBeenCalledTimes(1)
     expect(envoyer.mock.calls[0][0]).toBe('Séance demain')
+    unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('suit les heures synchronisées : rappel de la veille désactivé sur un autre appareil, rien n’est envoyé', async () => {
+    vi.stubGlobal('Notification', Object.assign(vi.fn(), { permission: 'granted' }))
+    window.localStorage.setItem('pandamove.rappels', JSON.stringify(actifs))
+    await saveRappelsJson(base, 'u1', versJsonSynchro({ ...actifs, veille: false }))
+    const c = { user_id: 'u1', updated_at: 'u0', deleted_at: null }
+    await inserer(base, 'seances', { ...c, id: 'rap-s2', nom: 'Pull', is_archived: 0, seance_category: 'STRENGTH', created_at: 'c' })
+    await inserer(base, 'instances_seance', { ...c, id: 'rap-i2', seance_id: 'rap-s2', date: '2026-11-12', is_completed: 0 })
+    const envoyer = vi.fn().mockResolvedValue(undefined)
+    const maintenant = () => new Date(2026, 10, 11, 19, 30)
+    const { unmount } = renderHook(() => useRappelsActifs({ db: base, userId: 'u1', maintenant, envoyer, intervalleMs: 20 }))
+    await new Promise((r) => setTimeout(r, 120))
+    expect(envoyer).not.toHaveBeenCalled()
     unmount()
     vi.unstubAllGlobals()
   })

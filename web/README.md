@@ -54,6 +54,7 @@ Exécuter les migrations **dans l'ordre**, une seule fois chacune, dans l'édite
 9. `supabase/migrations/0009_respiration.sql` : tables `methodes_respiration` et `seances_respiration`
 10. `supabase/migrations/0010_sorties.sql` : table `sorties` (activités de course et de vélo réellement faites, import de fichiers)
 11. `supabase/migrations/0011_sorties_source_garmin.sql` : accepte la source `garmin` pour une sortie
+12. `supabase/migrations/0012_mobilite_rappels.sql` : table `seances_mobilite` (historique de mobilité) et colonne `user_settings.rappels_json` (réglages des rappels)
 
 Toutes sont idempotentes. Règle générale : une migration s'applique **avant** la fusion sur `main` du client qui l'utilise, puis les règles PowerSync (`powersync/sync-rules.yaml`) sont redéployées si de nouvelles tables apparaissent.
 
@@ -204,7 +205,7 @@ Module repris de l'application Android : quatre méthodes intégrées (cohérenc
 
 Module de séances d'étirement et de mobilité générées sur l'appareil : durée (5, 10, 15, 20 ou 30 min), séance type (course, vélo, renforcement, journée au bureau) qui pré-remplit les zones, zones à travailler et moment (avant le sport, après, libre). Aperçu de la séance (remplacer un exercice, retirer, nouveau tirage), puis exécution guidée : phases préparation / travail / changement de côté, chrono circulaire, consigne, illustration du panda par exercice (`public/mobilite/<id>-male|female.webp`, dans la variante du profil), bips et écran gardé allumé.
 
-- **Données** : catalogue d'exercices dans le code (`src/features/mobilite/donnees.ts`), aucune table. L'historique est gardé sur l'appareil seulement (`localStorage`).
+- **Données** : catalogue d'exercices dans le code (`src/features/mobilite/donnees.ts`). L'historique des séances terminées est synchronisé (table `seances_mobilite`, migration 0012) ; l'ancien historique du navigateur est repris en base une fois, sans doublon, puis effacé. Le dernier choix (temps, zones, moment) reste propre à l'appareil.
 - `illustrations.test.ts` vérifie que chaque exercice a ses deux illustrations.
 
 ## Sauvegarde
@@ -230,7 +231,7 @@ Contenu : export « PandaMoveExport » v3.2, le format de l'application Android,
 - **Dernier écrit gagne entre appareils** : deux appareils qui modifient la même ligne hors ligne gardent la version envoyée en dernier ; l'autre modification est perdue pour cette ligne. Même règle pour le marqueur de progression d'une instance : deux appareils qui décident des exercices différents hors ligne peuvent perdre une des décisions (les objectifs, eux, sont bien écrits).
 - **Même série sur deux appareils** : si deux appareils saisissent la même série (même exercice, même numéro) de la même séance en parallèle, une seule des deux est affichée et comptée ; l'autre reste en base, non supprimée.
 - **Import de JSON** : « l'export gagne ». Réimporter un export (Android, ou sauvegarde web du même compte) remplace les lignes de même identifiant, y compris des modifications faites depuis sur le web. Si le fichier apporte les lignes d'une séance jouée déjà ouverte sur le web, seules les copies web du même exercice (même ligne du modèle) passent en suppression logique, avant l'écriture des lignes du fichier ; leurs séries sont rattachées aux lignes du fichier, et les exercices ajoutés sur le web restent. Seul le marqueur de progression local d'une instance est conservé.
-- **Données propres à l'appareil** : historique de mobilité, rappels, réglages de circuit, de RPE et de son (`localStorage`, clés `pandamove.*`) ne sont pas synchronisés et disparaissent si les données du navigateur sont effacées.
+- **Données propres à l'appareil** : interrupteur des rappels (l'autorisation de notifier se donne par appareil), dernier choix de mobilité, réglages de circuit, de RPE et de son (`localStorage`, clés `pandamove.*`) ne sont pas synchronisés. Les heures et choix des rappels (veille, jour même) et l'historique de mobilité le sont depuis la migration 0012.
 - **Pas de Docker en CI** : la CI lance lint, typecheck, tests Vitest (schéma et RLS vérifiés sous PGlite) et build. Les e2e, le test pgTAP (`supabase/tests/rls.test.sql`) et la vérification RLS sur le vrai Supabase se lancent à la main.
 - **Envois rejetés par le serveur** : une modification refusée définitivement par Supabase (contrainte, droit, donnée invalide) est signalée par un message sous la barre du haut (« Une modification n'a pas pu être envoyée au serveur (code …) »), mais elle n'est pas rejouable : elle disparaît de l'appareil au point de synchro suivant. Le détail (table, opération, identifiant) est dans la console du navigateur.
 - **Indicateur de synchro** : une coupure Wi-Fi peut mettre quelques secondes à apparaître ; le mode « Offline » des outils de développement ne coupe pas une connexion de synchro déjà ouverte.

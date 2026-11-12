@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createTestDb } from '../../test/sqliteDb'
+
+const base = createTestDb()
+vi.mock('../../core/db/client', () => ({ getDb: () => base }))
 vi.mock('../../core/auth/AuthProvider', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }))
 vi.mock('../../core/images/usePandaVariante', () => ({ useImagePanda: () => null, usePandaVariante: () => 'female' }))
 
@@ -13,12 +17,15 @@ import MobiliteScreen from './MobiliteScreen'
 import { decouperEnPhases, dureePhases, PREPARATION_S } from './phases'
 import { formaterChrono, formaterMinutes } from './presentation'
 import SeanceMobiliteScreen from './SeanceMobiliteScreen'
-import { ajouterSeance, bilanSemaine, ecrireChoix, ecrirePlan, lireChoix, lireHistorique, lirePlan } from './stockage'
+import { enregistrerSeanceMobilite, lireSeancesMobilite } from '../../core/db/repos/mobilite'
+import { bilanSemaine, ecrireChoix, ecrirePlan, lireChoix, lireHistorique, lirePlan } from './stockage'
+import { useHistoriqueMobilite } from './useHistoriqueMobilite'
 import { useSeanceMobilite } from './useSeanceMobilite'
 
-beforeEach(() => {
+beforeEach(async () => {
   localStorage.clear()
   sessionStorage.clear()
+  await base.execute('DELETE FROM seances_mobilite')
 })
 afterEach(cleanup)
 
@@ -68,12 +75,49 @@ describe('stockage', () => {
     expect(lirePlan()).toBeNull()
   })
 
-  it('historique et bilan de la semaine', () => {
-    ajouterSeance({ date: '2026-11-10', dureeS: 600, exercices: 8, zones: ['hanches'], sport: 'course' })
-    ajouterSeance({ date: '2026-11-06', dureeS: 300, exercices: 5, zones: [], sport: null })
-    ajouterSeance({ date: '2026-10-01', dureeS: 900, exercices: 10, zones: [], sport: null })
-    expect(lireHistorique()).toHaveLength(3)
-    expect(bilanSemaine(lireHistorique(), new Date(2026, 10, 11))).toEqual({ seances: 2, minutes: 15 })
+  it('bilan de la semaine', () => {
+    const h = [
+      { date: '2026-11-10', dureeS: 600, exercices: 8, zones: [], sport: 'course' as const },
+      { date: '2026-11-06', dureeS: 300, exercices: 5, zones: [], sport: null },
+      { date: '2026-10-01', dureeS: 900, exercices: 10, zones: [], sport: null },
+    ]
+    expect(bilanSemaine(h, new Date(2026, 10, 11))).toEqual({ seances: 2, minutes: 15 })
+  })
+})
+
+describe('historique synchronisé', () => {
+  it('relit les séances en base, les plus récentes d’abord', async () => {
+    await enregistrerSeanceMobilite(base, { date: '2026-11-06', dureeS: 300, exercices: 5, zones: [], sport: null })
+    await enregistrerSeanceMobilite(base, { date: '2026-11-10', dureeS: 600, exercices: 8, zones: ['hanches', 'zone-inconnue'], sport: 'course' })
+    const { result } = renderHook(() => useHistoriqueMobilite({ userId: 'u1' }))
+    await waitFor(() => expect(result.current).toHaveLength(2))
+    expect(result.current[0]).toEqual({ date: '2026-11-10', dureeS: 600, exercices: 8, zones: ['hanches'], sport: 'course' })
+  })
+
+  it('reprend une fois l’historique du navigateur, sans doublon, puis l’efface', async () => {
+    const ancien = [
+      { date: '2026-11-10', dureeS: 600, exercices: 8, zones: ['hanches'], sport: 'course' },
+      { date: '2026-11-10', dureeS: 600, exercices: 8, zones: ['hanches'], sport: 'course' },
+      { date: 'pas une date', dureeS: 600, exercices: 8, zones: [], sport: null },
+    ]
+    localStorage.setItem('pandamove.mobilite.historique', JSON.stringify(ancien))
+    const premier = renderHook(() => useHistoriqueMobilite({ userId: 'u1' }))
+    // Deux séances identiques le même jour restent deux séances ; la ligne invalide est ignorée
+    await waitFor(() => expect(premier.result.current).toHaveLength(2))
+    expect(lireHistorique()).toEqual([])
+    // Reprise rejouée (stockage restauré) : aucun doublon
+    localStorage.setItem('pandamove.mobilite.historique', JSON.stringify(ancien))
+    const second = renderHook(() => useHistoriqueMobilite({ userId: 'u1' }))
+    await waitFor(() => expect(lireHistorique()).toEqual([]))
+    expect(second.result.current).toHaveLength(2)
+    expect(await lireSeancesMobilite(base)).toHaveLength(2)
+  })
+
+  it('refuse une séance qui violerait les contraintes du serveur', async () => {
+    expect(await enregistrerSeanceMobilite(base, { date: '2026-11-10', dureeS: 0, exercices: 3, zones: [], sport: null })).toBeNull()
+    expect(await enregistrerSeanceMobilite(base, { date: '10/11/2026', dureeS: 60, exercices: 3, zones: [], sport: null })).toBeNull()
+    expect(await enregistrerSeanceMobilite(base, { date: '2026-11-10', dureeS: 60, exercices: 0, zones: [], sport: null })).toBeNull()
+    expect(await lireSeancesMobilite(base)).toHaveLength(0)
   })
 })
 
@@ -127,7 +171,7 @@ describe('MobiliteScreen', () => {
 })
 
 describe('useSeanceMobilite', () => {
-  it('déroule les phases au rythme de l’horloge, supporte pause et saut, enregistre la séance à la fin', () => {
+  it('déroule les phases au rythme de l’horloge, supporte pause et saut, enregistre la séance à la fin', async () => {
     vi.useFakeTimers()
     let t = 0
     const p = plan(5)
@@ -157,9 +201,9 @@ describe('useSeanceMobilite', () => {
     // Jusqu'à la fin : la séance est enregistrée une fois
     for (let i = 0; i < 40 && !result.current.termine; i++) act(() => result.current.suivant())
     expect(result.current.termine).toBe(true)
-    expect(lireHistorique()).toHaveLength(1)
-    expect(lireHistorique()[0]).toMatchObject({ exercices: p.etapes.length, dureeS: p.dureeTotaleS })
     vi.useRealTimers()
+    await waitFor(async () => expect(await lireSeancesMobilite(base)).toHaveLength(1))
+    expect((await lireSeancesMobilite(base))[0]).toMatchObject({ exercices: p.etapes.length, dureeS: p.dureeTotaleS })
   })
 
   it('sans séance, rien ne démarre', () => {
