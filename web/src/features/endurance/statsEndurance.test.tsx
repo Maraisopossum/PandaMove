@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { creerSortie, type Sortie } from '../../core/db/repos/sorties'
 import { createTestDb } from '../../test/sqliteDb'
 import { calculerStatsEndurance } from './calculsEndurance'
-import { calculerCarte, formaterCoordonnees, lieuxFrequentes, tracesDe, type Trace } from './carteSorties'
+import { calculerCarte, formaterCoordonnees, lieuxFrequentes, tracesDe } from './carteSorties'
+import { calculerVue, type Trace } from './mercatorCarte'
 
 const base = createTestDb()
 vi.mock('../../core/db/client', () => ({ getDb: () => base }))
@@ -90,8 +91,28 @@ describe('écran Statistiques : vues Course et Vélo', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Course' }))
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Carte des sorties' })).toBeTruthy())
     expect(screen.getByRole('heading', { name: 'Records de la période' })).toBeTruthy()
-    expect(screen.getByRole('img', { name: /Zones parcourues/ })).toBeTruthy()
+    expect(screen.getByRole('img', { name: /Tracés des sorties superposés/ })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Vélo' }))
     await waitFor(() => expect(screen.getByText(/Aucune sortie de vélo/)).toBeTruthy())
+  })
+})
+
+describe('fond de carte', () => {
+  it('centre la vue sur les tracés, charge des tuiles du bon zoom et garde les points dans le cadre', () => {
+    const v = calculerVue([boucle(), boucle(0.001)], 320, 320, 28)
+    expect(v).not.toBeNull()
+    expect(v?.zoom).toBeGreaterThan(12)
+    expect(v?.tuiles.length).toBeGreaterThan(0)
+    expect(v?.tuiles.length).toBeLessThanOrEqual(16)
+    expect(v?.tuiles[0].url).toMatch(/^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/)
+    for (const l of v?.lignes ?? []) for (const p of l.split(' ')) {
+      const [x, y] = p.split(',').map(Number)
+      expect(x >= 0 && x <= 320 && y >= 0 && y <= 320).toBe(true)
+    }
+  })
+
+  it('plafonne le zoom pour une très petite boucle, rien sans tracé', () => {
+    expect(calculerVue([[[50.6, 3.07], [50.60001, 3.07001]]], 320, 320)?.zoom).toBe(17)
+    expect(calculerVue([], 320, 320)).toBeNull()
   })
 })

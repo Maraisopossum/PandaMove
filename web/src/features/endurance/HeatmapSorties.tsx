@@ -1,9 +1,14 @@
+import { useMemo } from 'react'
 import type { Sport } from '../../core/db/repos/sorties'
 import { formaterCoordonnees, type CarteSorties, type LieuFrequente } from './carteSorties'
+import { FondCarte, MentionOsm } from './FondCarte'
+import { calculerVue, type Trace } from './mercatorCarte'
 import { distanceKm } from './presentation'
 
 interface Props {
   carte: CarteSorties | null
+  /** Tracés de la période : dessinés en lignes sur le fond de carte. */
+  traces: Trace[]
   lieux: LieuFrequente[]
   /** Sorties avec un tracé GPS dans la période. */
   sortiesGps: number
@@ -12,41 +17,54 @@ interface Props {
   sport: Sport
 }
 
-// Heatmap des sorties : cellules colorées selon le nombre de sorties qui les traversent (pas de fond de carte routière :
-// la figure fonctionne hors ligne). Dessous : les lieux de départ les plus fréquentés. La couleur n'est jamais seule : chaque
-// cellule a son <title>, et la liste des lieux donne les chiffres.
-export function HeatmapSorties({ carte, lieux, sortiesGps, sorties, sport }: Props) {
+const L = 320
+const H = 320
+
+// Carte des sorties : tous les tracés de la période superposés sur un fond de carte OpenStreetMap ; chaque tracé est
+// translucide, donc les passages répétés ressortent plus foncés. Les lieux de départ les plus fréquents sont numérotés sur la
+// carte et listés dessous. Hors ligne, le fond disparaît et les tracés restent visibles.
+export function HeatmapSorties({ carte, traces, lieux, sortiesGps, sorties, sport }: Props) {
+  const vue = useMemo(() => calculerVue(traces, L, H, 28), [traces])
   return (
     <section aria-labelledby="se-carte" className="stats-endurance__carte">
       <h2 id="se-carte">Carte des sorties</h2>
-      {!carte ? (
+      {!carte || !vue ? (
         <p className="aide">
           Aucun tracé GPS sur cette période. Importez des fichiers FIT de sorties en extérieur pour voir où vous passez le plus souvent.
         </p>
       ) : (
         <>
-          <figure className="heatmap-sorties" aria-label={`Heatmap des ${sortiesGps} sorties avec tracé GPS`}>
-            <svg viewBox={`0 0 ${carte.largeur} ${carte.hauteur}`} role="img" aria-label={`Zones parcourues, jusqu'à ${carte.max} sorties dans la même zone`}>
-              <rect width={carte.largeur} height={carte.hauteur} className="heatmap-sorties__fond" />
-              {carte.cellules.map((c) => (
-                <rect key={`${c.x}|${c.y}`} x={c.x} y={c.y} width={carte.cote} height={carte.cote} rx={carte.cote * 0.25} className={`heatmap-sorties__cellule heatmap-sorties__cellule--${c.niveau}`}>
-                  <title>{`${c.n} sortie${c.n > 1 ? 's' : ''} dans cette zone`}</title>
-                </rect>
-              ))}
-            </svg>
-            <figcaption className="heatmap-sorties__legende">
-              <span>1 sortie</span>
-              <span className="heatmap-sorties__echelle" aria-hidden="true">
-                {[1, 2, 3, 4].map((n) => (
-                  <i key={n} className={`heatmap-sorties__cellule--${n}`} />
+          <figure className="heatmap-sorties" aria-label={`Carte des ${sortiesGps} sorties avec tracé GPS`}>
+            <div className="heatmap-sorties__cadre">
+              <svg viewBox={`0 0 ${L} ${H}`} role="img" aria-label={`Tracés des sorties superposés, jusqu'à ${carte.max} passages dans la même zone`}>
+                <rect width={L} height={H} className="heatmap-sorties__fond" />
+                <FondCarte vue={vue} />
+                {vue.lignes.map((points, i) => (
+                  <polyline key={i} points={points} className="heatmap-sorties__trace" />
                 ))}
-              </span>
-              <span>{carte.max} sorties</span>
+                {lieux.slice(0, 3).map((l, i) => {
+                  const [x, y] = vue.projeter(l.lat, l.lon)
+                  return (
+                    <g key={`${l.lat}|${l.lon}`} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`} className="heatmap-sorties__repere">
+                      <circle r={9} />
+                      <text y={3.5} textAnchor="middle">
+                        {i + 1}
+                      </text>
+                    </g>
+                  )
+                })}
+              </svg>
+              <MentionOsm />
+            </div>
+            <figcaption className="heatmap-sorties__legende">
+              <span>1 passage</span>
+              <span className="heatmap-sorties__degrade" aria-hidden="true" />
+              <span>{carte.max} passages</span>
             </figcaption>
           </figure>
           <p className="aide">
             {sortiesGps} sortie{sortiesGps > 1 ? 's' : ''} avec tracé sur {sorties}. Zone la plus fréquentée : {formaterCoordonnees(carte.sommet.lat, carte.sommet.lon)} ({carte.sommet.n} sortie
-            {carte.sommet.n > 1 ? 's' : ''}, cellules d'environ {carte.celluleM} m).
+            {carte.sommet.n > 1 ? 's' : ''}).
           </p>
           {lieux.length > 0 && (
             <>

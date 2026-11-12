@@ -11253,3 +11253,18 @@ time,
 .heatmap-sorties__echelle .heatmap-sorties__cellule--2 { background: color-mix(in srgb, var(--couleur-sport) 52%, transparent); }
 .heatmap-sorties__echelle .heatmap-sorties__cellule--3 { background: color-mix(in srgb, var(--couleur-sport) 78%, transparent); }
 .heatmap-sorties__echelle .heatmap-sorties__cellule--4 { background: var(--couleur-sport); }
+
+/* Carte des sorties : tracés superposés sur un fond OpenStreetMap */
+.heatmap-sorties__cadre { position: relative; overflow: hidden; border-radius: 12px; }
+.heatmap-sorties__cadre svg { border-radius: 0; }
+.heatmap-sorties__fond { fill: color-mix(in srgb, var(--couleur-sport) 8%, #eef2ee); }
+.heatmap-sorties__trace { fill: none; stroke: var(--couleur-sport); stroke-width: 3.5; stroke-opacity: 0.38; stroke-linecap: round; stroke-linejoin: round; }
+.heatmap-sorties__repere circle { fill: #fff; stroke: var(--couleur-sport); stroke-width: 2.5; }
+.heatmap-sorties__repere text { fill: var(--couleur-sport); font-size: 11px; font-weight: 800; }
+.heatmap-sorties__degrade { width: 4.5rem; height: 0.5rem; border-radius: 999px; background: linear-gradient(to right, color-mix(in srgb, var(--couleur-sport) 35%, transparent), var(--couleur-sport)); }
+.fond-carte__mention { position: absolute; right: 0; bottom: 0; padding: 1px 6px; border-radius: 6px 0 0 0; background: rgb(255 255 255 / 0.8); color: #333; font-size: 0.625rem; text-decoration: none; }
+.sorties__bandeau .fond-carte__mention { bottom: auto; top: 0; border-radius: 0 0 0 6px; }
+.sorties__bandeau-fond { fill: color-mix(in srgb, var(--couleur-sport) 14%, #eef2ee); }
+.sorties__bandeau-contour { stroke-width: 8; }
+.fond-carte { filter: grayscale(0.65) brightness(1.06); }
+.heatmap-sorties__trace { stroke-width: 4; stroke-opacity: 0.5; }
