@@ -55,23 +55,25 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   await contexteA.setOffline(true)
   await expect(page.getByTestId('sync-state')).toHaveText('hors ligne', { timeout: 30_000 })
 
-  const exercice = page.getByRole('article').first()
-  const formulaire = exercice.locator('form')
-  for (const [n, reps] of [[1, '10'], [2, '9'], [3, '8']] as const) {
-    await formulaire.getByLabel('Répétitions').fill(reps)
-    await formulaire.getByLabel('Charge (kg)').fill('17,5')
-    await formulaire.getByRole('button', { name: 'Valider la série' }).click()
-    await expect(exercice.getByRole('group', { name: `Série ${n}` })).toBeVisible()
+  // Tableau des séries du premier exercice : une ligne par série (« Série 1G, répétitions » pour un exercice unilatéral),
+  // validée par son bouton « Valider la série … » ; une série validée propose « Annuler la validation de la série … »
+  const tableau = page.getByRole('table').first()
+  const reps = tableau.getByLabel(/^Série \S+, répétitions$/)
+  const charges = tableau.getByLabel(/^Série \S+, charge en kilogrammes$/)
+  const validees = tableau.getByRole('button', { name: /^Annuler la validation de la série / })
+  for (const [i, valeur] of [[0, '10'], [1, '9'], [2, '8']] as const) {
+    await reps.nth(i).fill(valeur)
+    await charges.nth(i).fill('17,5')
+    await tableau.getByRole('button', { name: /^Valider la série / }).first().click()
+    await expect(validees).toHaveCount(i + 1)
   }
 
   // 4. Rechargement hors ligne : aucune série perdue, le chrono repart des horodatages stockés
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: SEANCE })).toBeVisible({ timeout: 30_000 })
-  const apres = page.getByRole('article').first()
-  for (const n of [1, 2, 3]) {
-    await expect(apres.getByRole('group', { name: `Série ${n}` })).toBeVisible()
-  }
-  await expect(apres.getByRole('group', { name: 'Série 3' }).getByLabel('Charge (kg)')).toHaveValue('17,5')
+  const apres = page.getByRole('table').first()
+  await expect(apres.getByRole('button', { name: /^Annuler la validation de la série / })).toHaveCount(3)
+  await expect(apres.getByLabel(/^Série \S+, charge en kilogrammes$/).nth(2)).toHaveValue('17,5')
   await expect(page.getByRole('timer')).not.toHaveText('00:00')
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
 
@@ -84,9 +86,8 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   await ignorerOnboarding(contexteB)
   const pageB = await contexteB.newPage()
   await seConnecter(pageB, new URL(urlSeance).pathname)
-  const exerciceB = pageB.getByRole('article').first()
-  await expect(exerciceB.getByRole('group', { name: 'Série 3' })).toBeVisible({ timeout: 60_000 })
-  await expect(exerciceB.getByRole('group', { name: 'Série 1' })).toBeVisible()
+  const tableauB = pageB.getByRole('table').first()
+  await expect(tableauB.getByRole('button', { name: /^Annuler la validation de la série / })).toHaveCount(3, { timeout: 60_000 })
 
   await contexteA.close()
   await contexteB.close()

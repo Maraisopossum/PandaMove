@@ -8,6 +8,8 @@ export default defineConfig({
   testDir: './e2e',
   // Seuls les *.spec.ts sont des tests Playwright ; les *.test.ts de e2e/ sont des tests Vitest
   testMatch: '**/*.spec.ts',
+  // Parcours avec synchro réelle (attentes jusqu'à 60 s, second appareil) : 30 s par défaut ne suffisent pas
+  timeout: 120_000,
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
     // Build de test : embarque l'écran /debug/write (voir src/app/routes.tsx), jamais présent dans le build déployé

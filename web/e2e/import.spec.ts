@@ -28,5 +28,6 @@ test("l'import d'un export v3.2 affiche l'aperçu puis le résumé", async ({ pa
 
   await page.getByRole('button', { name: "Confirmer l'import" }).click()
   await expect(page.getByRole('heading', { name: 'Import terminé' })).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByRole('status')).toContainText('2 séance(s)')
+  // Deux « status » à l'écran : l'état de synchro (barre du haut) et le résumé de l'import
+  await expect(page.getByRole('status').filter({ hasText: 'séance(s)' })).toContainText('2 séance(s)')
 })
