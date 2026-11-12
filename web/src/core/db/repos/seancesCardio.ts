@@ -174,6 +174,21 @@ export async function creer(db: Db | DbTx, genre: GenreCardio, saisie: SaisieSea
   return id
 }
 
+// Rétablit une séance supprimée (suppression logique levée) avec le contenu de `saisie`, non validée. Sert à l'import du
+// programme : une séance supprimée à la main ne revient pas à un import ordinaire, seulement à ce rétablissement explicite.
+export async function retablir(db: Db | DbTx, genre: GenreCardio, id: string, saisie: SaisieSeanceCardio): Promise<void> {
+  const table = tableDe(genre)
+  await db.execute(
+    `UPDATE ${table}
+        SET titre = ?, consigne = ?, detail = ?, date = ?, optionnelle = ?, jalon = ?, lien = ?, is_validated = 0, deleted_at = NULL, updated_at = ?
+      WHERE id = ? AND deleted_at IS NOT NULL`,
+    [
+      validerTitre(saisie.titre), validerFacultatif('consigne', saisie.consigne), validerFacultatif('detail', saisie.detail), validerDate(saisie.date),
+      saisie.optionnelle ? 1 : 0, validerFacultatif('jalon', saisie.jalon), validerFacultatif('lien', saisie.lien), new Date().toISOString(), id,
+    ],
+  )
+}
+
 // Relit la séance DANS la transaction d'écriture : un état arrivé entre-temps (validation reçue par synchro)
 // est ainsi vu au moment d'écrire, pas seulement à l'affichage.
 async function lireVivante(tx: DbLecture, table: string, id: string): Promise<{ is_validated: number | null }> {

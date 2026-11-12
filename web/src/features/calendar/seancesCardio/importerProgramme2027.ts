@@ -1,6 +1,6 @@
 import type { Db } from '../../../core/db/Db'
 import { deterministicId } from '../../../core/db/ids'
-import { creer, type GenreCardio, lireParId } from '../../../core/db/repos/seancesCardio'
+import { creer, type GenreCardio, lireParId, retablir } from '../../../core/db/repos/seancesCardio'
 import programme from './programme2027.json'
 
 // Une séance du programme 2027, telle que l'écrit scripts/extraire-programme-2027.mjs dans programme2027.json.
@@ -21,6 +21,8 @@ export interface ResultatImportProgramme {
   creees: number
   /** Séances dont l'identifiant existe déjà (y compris déplacées, validées ou supprimées) : laissées telles quelles. */
   dejaPresentes: number
+  /** Séances supprimées à la main, remises dans l'agenda (option `restaurer`). */
+  restaurees: number
 }
 
 // Même utilisateur et même clé donnent le même identifiant sur tous les appareils : réimporter ne crée pas de doublon.
@@ -32,16 +34,23 @@ export async function importerProgramme2027(
   db: Db,
   userId: string,
   entrees: EntreeProgramme[] = programme as EntreeProgramme[],
+  { restaurer = false }: { restaurer?: boolean } = {},
 ): Promise<ResultatImportProgramme> {
   if (!userId) throw new Error('Vous devez être connecté pour importer le programme.')
   return db.writeTransaction(async (tx) => {
     let creees = 0
     let dejaPresentes = 0
+    let restaurees = 0
     for (const e of entrees) {
       const id = idSeanceProgramme2027(userId, e.cle)
       // lireParId voit aussi les séances supprimées logiquement : une séance supprimée ne revient pas
-      if (await lireParId(tx, e.genre, id)) {
-        dejaPresentes += 1
+      const existante = await lireParId(tx, e.genre, id)
+      if (existante) {
+        // Une séance supprimée ne revient que sur demande explicite ; déplacée ou validée, elle reste telle quelle
+        if (restaurer && existante.supprimee) {
+          await retablir(tx, e.genre, id, { id, date: e.date, titre: e.titre, consigne: e.consigne, detail: e.detail, optionnelle: e.optionnelle, jalon: e.jalon })
+          restaurees += 1
+        } else dejaPresentes += 1
         continue
       }
       await creer(tx, e.genre, {
@@ -49,6 +58,6 @@ export async function importerProgramme2027(
       })
       creees += 1
     }
-    return { creees, dejaPresentes }
+    return { creees, dejaPresentes, restaurees }
   })
 }
