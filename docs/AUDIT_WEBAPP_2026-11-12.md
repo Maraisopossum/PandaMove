@@ -23,7 +23,7 @@ propriétaire. Aucun `innerHTML` ni `eval`, aucun TODO. Le plus gros fichier sou
 | 7 | Données conservées uniquement sur l'appareil (localStorage) : historique de mobilité, rappels, certains réglages | Basse | À décider : synchroniser ou assumer |
 | 8 | Scénarios e2e Playwright absents de la CI (`cardio-agenda` jamais lancé) | Moyenne | Ouvert |
 | 9 | `CLAUDE.md` et `docs/ai/` décrivent l'app Android | Basse | Corrigé : `CLAUDE.md` réécrit pour la WebApp, `web/README.md` à jour (migrations 0008 à 0011, Course/Vélo, Mobilité, en-têtes), `docs/ai/`, `AGENTS.md` et `DESIGN.md` racine marqués comme archive Android |
-| 10 | Bundle initial : `index` 120 Ko gzip + client 91 Ko gzip + schémas zod 93 Ko préchargés | Basse | Ouvert |
+| 10 | Bundle initial : `index` 120 Ko gzip + client 91 Ko gzip + schémas zod 93 Ko préchargés | Basse | En partie corrigé : l'installation du catalogue (catalogue JSON + zod) est chargée à la demande, JS au démarrage 248 → 215 Ko gzip. Reste : modules Supabase inutilisés (realtime, storage, ~25 Ko gzip), à retirer seulement avec un test de connexion réel |
 | 11 | 7 branches distantes fusionnées non supprimées | Ménage | À faire par Benoît |
 
 ## Points solides
