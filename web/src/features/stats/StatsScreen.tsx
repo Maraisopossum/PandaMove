@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { ChargeEntrainement } from '../endurance/ChargeEntrainement'
 import { StatsEndurance } from '../endurance/StatsEndurance'
 import { degradeEchelle } from './heatmapZones'
 import { MuscleHeatmap } from './MuscleHeatmap'
@@ -22,10 +23,11 @@ const VUES_STATS = [
   { id: 'renfo', libelle: 'Renforcement' },
   { id: 'course', libelle: 'Course' },
   { id: 'velo', libelle: 'Vélo' },
+  { id: 'charge', libelle: 'Forme' },
 ] as const
 
-// Écran Statistiques : trois vues, renforcement (séances jouées), course et vélo (sorties). Chaque vue garde ses propres
-// calculs : les sorties n'entrent jamais dans les statistiques de renforcement.
+// Écran Statistiques : quatre vues, renforcement (séances jouées), course et vélo (sorties) et forme (charge d'entraînement
+// des sorties). Chaque vue garde ses propres calculs : les sorties n'entrent jamais dans les statistiques de renforcement.
 export default function StatsScreen() {
   const [vue, setVue] = useState<(typeof VUES_STATS)[number]['id']>('renfo')
   return (
@@ -38,7 +40,7 @@ export default function StatsScreen() {
           </button>
         ))}
       </div>
-      {vue === 'renfo' ? <StatsRenforcement /> : <StatsEndurance key={vue} sport={vue} />}
+      {vue === 'renfo' ? <StatsRenforcement /> : vue === 'charge' ? <ChargeEntrainement /> : <StatsEndurance key={vue} sport={vue} />}
     </>
   )
 }
