@@ -1,114 +1,82 @@
 # CLAUDE.md
 
-## Build
+Seule la **WebApp PandaMove** (`web/`) évolue. L'application Android (Kotlin, racine du dépôt) est abandonnée depuis
+novembre 2026 : ne plus la modifier ni chercher la parité, sauf demande explicite (voir « Archive Android » en bas).
+
+## Commandes (depuis `web/`)
 
 ```bash
-./gradlew assembleDebug                        # APK debug
-./gradlew test                                 # Tests unitaires (tous modules)
-./gradlew :core:database:test                  # Tests unitaires d'un module seul
-./gradlew :core:database:test --tests "*ProgressionEngineTest"   # Une classe de test seule
-./gradlew installDebug                         # Déploiement device
-./gradlew :feature:strength:assembleDebug      # Build d'un module seul
-./gradlew lintDebug                            # Lint Android (exécuté par la CI)
+npm ci
+npm run dev          # http://localhost:5173 (sans service worker)
+npm run lint         # ESLint
+npm run typecheck    # tsc -b
+npm test             # Vitest : unitaires, écrans (jsdom), schéma + RLS sous PGlite
+npx vitest run src/features/mobilite          # un dossier
+npm run build        # dist/ (PWA, service worker)
+npm run preview      # sert dist/ (seul moyen de tester le hors-ligne)
+npm run images       # régénère les WebP du panda depuis assets/ (+ src/core/images/manifest.generated.ts)
+npm run test:e2e     # Playwright, vrai Supabase/PowerSync, comptes en variables E2E_* (hors CI)
 ```
-CI (`.github/workflows/ci.yml`, JDK 17) : `assembleDebug` → `test` → `lintDebug` sur chaque PR et push `main` / `sauvegarde-panda-stable`.
-Les tests unitaires existent surtout dans `core/database` (ProgressionEngine, EquipmentInventory, migrations, parsers FIT/GPX), plus `feature/calendar` et `feature/running`.
+CI (`.github/workflows/web-ci.yml`, Node 22) : `lint` → `typecheck` → `test` → `build` sur chaque PR touchant `web/`.
+La CI Android (`ci.yml`) ne tourne plus quand seuls `web/` ou `docs/` changent.
 
 ## Stack
-Kotlin 2.0 • Compose + Material3 • Hilt • Room (schema v27) • Navigation Compose • DataStore  
-OSMDroid 6.1.20 • play-services-location 21.3.0  
-minSdk 31 / targetSdk 35
+React 19 + TypeScript + Vite • React Router 8 • PowerSync (SQLite wa-sqlite dans le navigateur, hors ligne d'abord)
+• Supabase (Postgres + Auth + RLS) • zod 4 • vite-plugin-pwa (Workbox) • Vitest + Testing Library + PGlite • Playwright.
+Déploiement : Cloudflare Workers Builds (`web/wrangler.jsonc`, ressources statiques, repli SPA) à chaque fusion sur `main`.
 
-## Modules
+## Arborescence `web/`
 ```
-app/
-  service/       → ActiveSessionService, RunningTrackingService (ForegroundService GPS)
-  navigation/    → NavHost (PandaFitNavHost.kt), PandaFitDestination.kt, routes
-core/
-  database/      → Room (schema v27), DAOs, migrations 3→27, ActiveSessionManager
-                   catalog/ → GpsTrackingRepository (@Singleton, StateFlow<LiveTrackState>)
-                   catalog/ → EquipmentRepository (@Singleton, inventaire matériel + pas), EquipmentInventory.kt
-                   progression/ → ProgressionEngine (moteur pur, incrément qualitatif bible §4)
-  designsystem/  → PandaCard, PandaTopBar, AssignSessionDialogs, thème
-  common/        → utilitaires partagés (normalizeSearch)
-feature/
-  home | running | cycling | strength | warmup | calendar | stats | profile | timer | breathing | hiking
+src/app/        → AppShell, Drawer, routes.tsx, modules.ts (couleur + pastille par module), app.css (jetons :root)
+src/core/db/    → client.ts (getDb/getSupabase), Db.ts (interface testable), schema.ts (schéma PowerSync), repos/ (accès SQL)
+src/core/sync/  → connecteur Supabase (envoi de la file, rejets définitifs signalés), état de synchro
+src/core/       → auth, catalogue (exercices de base), progression (moteur), import / import-ia / export, images (panda)
+src/features/   → home, strength, endurance (course + vélo : sorties, import FIT, cartes), calendar (+ séances cardio
+                  planifiées), stats, respiration, mobilite, outils, profile, import, onboarding, demarrage
+supabase/migrations/ → 0001 à 0011 (SQL idempotent, appliqué à la main par Benoît)
+supabase/tests/      → schema-rls.test.ts (PGlite), rls.test.sql (pgTAP, manuel)
+powersync/sync-rules.yaml → Sync Streams (chaque utilisateur ne reçoit que ses lignes)
+public/         → icônes, panda/ (WebP générés), mobilite/ (illustrations par exercice, -male/-female), _headers (CSP)
 ```
-`build-logic/convention` : plugins Gradle partagés (convention plugins appliqués par chaque module).
-Les modules sont déclarés dans `settings.gradle.kts` : tout nouveau module `feature:*` doit y être ajouté. Les dossiers racine `breathing/`, `Pandamove Studio/`, `support/`, `node_modules/` et les dumps (`*.hprof`, `dump*.xml`) ne sont pas des modules Gradle.
-`AGENTS.md` est une copie ancienne de ce fichier (schéma v20) : ne pas s'y fier.
+Documentation détaillée : `web/README.md` (installation, Supabase, PowerSync, déploiement, comportements),
+READMEs de module (`src/features/calendar|respiration/README.md`), specs dans `docs/superpowers/specs/`.
 
-## Pattern
-MVVM + UDF — 1 `StateFlow<UiState>` par ViewModel — DAO → Room  
-`collectAsStateWithLifecycle()` uniquement — jamais de logique dans les Composables  
-Navigation : `NavHost → AppDrawerNav → Scaffold → composables` — args passés en `String` dans la route, lus via `SavedStateHandle` dans le ViewModel
-
-### Isolation template/instance (renforcement — critique)
-Une séance `strength` existe en deux formes dans les mêmes tables (`blocs_seance`, `exercices_seance`) :
-- **Template** : lignes où `instance_seance_id IS NULL`
-- **Instance** (séance jouée à une date) : au premier chargement, `InstanceExecuteViewModel` copie les blocs/exercices du template avec `instanceSeanceId = instanceId`
-- ⚠️ Toujours garder `filter { instanceSeanceId == null }` avant une copie — ne copier qu'une seule fois, sinon duplication silencieuse
+## Patterns
+- **Écran = composant de présentation + hook** (`useEcranAccueil`, `useSorties`, `useSeanceMobilite`…) : le hook lit/écrit
+  via les `repos/`, le composant ne fait qu'afficher et appeler. Pas de SQL ni de règle métier dans un composant.
+- **Accès aux données** : toujours par `src/core/db/repos/*`, qui prennent un `Db` en paramètre (tests sur SQLite en
+  mémoire via `src/test/sqliteDb.ts`, `vi.mock('../../core/db/client')`). Pas d'observation réactive : relire après chaque action.
+- **Identifiants UUID**, **suppression logique** (`deleted_at`, jamais de DELETE physique : refusé par la RLS),
+  `updated_at` maintenu par trigger, horodatages ISO UTC, durées en secondes en base.
+- **Isolation modèle / séance jouée (renforcement)** : un modèle a `instance_seance_id IS NULL` ; une séance jouée copie
+  ses blocs/exercices une seule fois avec `instance_seance_id` rempli. Toujours filtrer les lignes du modèle avant une
+  copie. Les modifications d'une séance jouée ne touchent jamais le modèle.
+- **Nouvelle table synchronisée** = 4 endroits à garder alignés : migration Supabase (table + RLS `<table>_proprietaire`,
+  droits, publication `powersync`), `schema.ts`, `sync-rules.yaml`, repo. `src/core/db/coherenceTables.test.ts` le vérifie.
+- **Migration** : nouveau fichier `00NN_*.sql`, idempotent, couvert par `schema-rls.test.ts`. Elle doit être appliquée
+  dans Supabase **avant** la fusion du client qui l'utilise (sinon PGRST204 et file d'envoi bloquée) : le signaler à Benoît.
+- **Préférences locales** (`localStorage`, clés `pandamove.*`) : seulement pour des réglages d'appareil ; elles ne sont pas
+  synchronisées (historique de mobilité, rappels, réglages de circuit/RPE…).
+- **Images du panda** : `useImagePanda(nom, { userId, taille })` + `PandaIllustration` ; variante male/female du profil
+  (`usePandaVariante`), repli sur l'autre variante. Ajouter une image = l'entrée dans `scripts/build-images.mjs` puis `npm run images`.
 
 ## Règles
-- Commentaires en **français**
-- Pas de logique dans les Composables (déléguer au ViewModel)
-- Timer autonome (`feature/timer`) ≠ timer renforcement — scopes séparés
-- Unité temps : secondes (`Int`) en base, ms (`Long`) en runtime
-- Navigation : `AppDrawerNav` (Drawer) — pas de BottomNav
-- Dialogs custom : `Dialog(usePlatformDefaultWidth=false)` + `Surface(RoundedCornerShape(28.dp))`
-- GPS : `RunningTrackingService` dans `app/service/` — inject `GpsTrackingRepository` via Hilt
-- Permis GPS : `ACCESS_FINE_LOCATION` + `FOREGROUND_SERVICE_LOCATION` (Android 14)
-- Migration Room : toujours `addMigrations(...)` dans `DatabaseModule` + incrémenter `version =` (dans `PandaFitDatabase.kt`) ; les schémas JSON exportés sont versionnés dans `core/database/schemas/` (à committer) et `PandaFitDatabaseMigrationTest` les utilise
-- MuscleGroup : 16 groupes (PECTORAUX, DOS, EPAULES, BICEPS, TRICEPS, QUADRICEPS, ISCHIO, FESSIERS, MOLLETS, ABDOMINAUX, TRAPEZES, LOMBAIRES, ADDUCTEURS, OBLIQUES + autres)
-- Dark mode : persisté via `ProfileViewModel.isDarkMode` → DataStore → `MainActivity`
-- Room `@Relation` ne garantit **pas** l'ordre des enfants → toujours `.sortedBy { position }` après récupération
-- Stats : les requêtes filtrent sur `scheduled_date`, pas `completed_at`
-- `RepsType.DURATION` : `repsRealisees` contient des secondes, pas des répétitions — à exclure des calculs de tonnage/reps
-- Affectation calendrier (icône 📅) : uniquement depuis les écrans **liste** (SeanceListScreen/RunningScreen/CyclingScreen), jamais Detail/Report
+- Code, commentaires, messages et textes d'interface en **français** ; réponses à Benoît en français.
+- Design : lire `web/DESIGN.md` (« PandaMove System ») avant tout travail visuel. Jetons dans `:root` de `app.css`,
+  couleur de barre par module dans `modules.ts`, contrastes AA testés (`contraste*.test.ts`), cibles tactiles ≥ 44 px.
+- `app.css` est un seul gros fichier : ajouter les styles d'un module dans sa section, ne pas recopier de blocs existants.
+- PWA : le précache ne contient que le shell (JS/CSS/HTML, polices, icônes, `wa-sqlite-async`) ; les images du panda et
+  de la mobilité sont en cache à la première vue. `pwa.config.test.ts` verrouille ces motifs.
+- CSP dans `public/_headers` : toute nouvelle origine externe (API, tuiles, polices) doit y être ajoutée.
+- Tests avec minuteries : attendre l'état visible (dialogue, ligne en base) plutôt qu'un nombre de tours fixe (CI lente).
 
-## Fichiers sensibles (ne jamais modifier)
-- `google-services.json`
-- `app/keystore/`
-- `gradle/libs.versions.toml` (sauf ajout de dépendance explicite)
+## Ce que Claude ne fait pas sans demande explicite
+- Fusionner une PR (`gh pr merge` seulement quand Benoît le demande).
+- Appliquer une migration ou déployer quoi que ce soit côté Supabase / PowerSync (Benoît le fait à la main).
+- Supprimer des branches distantes.
+- Toucher `google-services.json`, `app/keystore/`, `gradle/libs.versions.toml`, ou committer `web/.env.local`.
 
-## Design
-Lire `DESIGN.md` avant tout travail visuel. Direction : **Clean & Bold** (fond neutre, typographie forte, couleurs sport affirmées).
-- TopBar colorée par module sport (violet/vert/bleu/orange)
-- Cartes avec bande gauche 4dp + fond légèrement teinté
-- Chiffres-clés en `ExtraBold`, secondaire en `PandaSubtext`
-
-## Docs de référence
-- `docs/ai/CONTEXT_COMPACT.md` — **LIRE EN PREMIER** : contexte ultra-dense (remplace 5 fichiers)
-- `docs/ai/PROMPT_TEMPLATES.md` — templates de prompts par tâche (économise ~30% tokens)
-- `docs/ai/ARCHITECTURE.md` — patterns MVVM, Hilt, Room, Navigation (détail)
-- `docs/ai/AI_INDEX.md` — index fichiers par feature
-- `docs/ai/ROOM_SCHEMA_MIN.md` — schéma Room condensé (en retard : indique v26, la base est en v27 — se fier à `PandaFitDatabase.kt` et `core/database/schemas/`)
-- `docs/ai/RUNNING_FLOW.md` — flux running + GPS tracking
-- `docs/ai/STRENGTH_FLOW.md` — flux renforcement + isolation template/instance
-- `docs/ai/UI_CONVENTIONS.md` — conventions Compose
-- `docs/ai/KNOWN_BUGS.md` — pièges architecturaux (LIRE avant toute modif)
-
-## GPS Live Tracking (v20)
-`RunningTrackingService` → `FusedLocationProviderClient` (1s, précision < 30m) → `GpsTrackingRepository.addPoint()` → `StateFlow<LiveTrackState>`  
-`RunningWorkoutExecuteScreen` : carte OSMDroid 250dp fixée en haut, stats live (distance/durée/allure/vitesse), bouton Start/Stop GPS, permission launcher.  
-`RunningExecuteViewModel.finishWorkout()` : auto-remplit distance/durée/allure/dénivelé depuis le GPS si tracé > 0.
-
-## Surcharge progressive — incrément qualitatif (v23)
-`ProgressionEngine.calculerIncrementQualitatif()` : `max(pas_matériel, charge×%cible)`, plafonné +10% (bible §4.5).  
-Deux modes selon le matériel déclaré dans "Mon matériel" (`EquipmentRepository.inventaire`) :
-- **Inventaire structuré** (Haltères/Barre/Kettlebell/Câble) → snapping exact sur la charge réellement
-  composable (`EquipmentInventory.kt` : `DisquesConfig` combinatoire disques, `PlageConfig` min/max/pas,
-  `HalteresConfig` poids fixes + chargeables).
-- **Pas simple** (Machine, legacy) → arrondi au multiple de `incrementKg`/`pasMateriel` (comportement historique).  
-`TypeExercice` (COMPOSE_BAS|COMPOSE_HAUT|ISOLATION|MACHINE|PDC) sur `ExerciceSeanceEntity` détermine le %cible par défaut.  
-Deload (-10% après échecs répétés) : **proposé** via `ProgressionRecapDialog` (Oui/Non/Ajuster), jamais imposé silencieusement.
-
-## État
-✅ Fonctionne : home, running (+GPS live), cycling, strength, warmup, calendar, stats, profile, timer  
-✅ GPS live tracking running — RunningTrackingService + GpsTrackingRepository + OSMDroid map  
-✅ Export JSON v3.2 — DataExportManager / DataImportManager  
-✅ Catalogue exercices — 16 groupes musculaires, édition custom, encodeur HTML standalone  
-✅ Surcharge progressive — incrément qualitatif par inventaire matériel réel, deload proposé (pas imposé)  
-🔄 En cours : —  
-❌ Bugs connus : `docs/ai/KNOWN_BUGS.md`  
-🖼 Images manquantes : timer, stats, profil — voir `docs/ai/HOME_BANNER_IMAGES.md`
+## Archive Android
+Code Kotlin (`app/`, `core/`, `feature/`, `build-logic/`), Room schéma v27, documentation `docs/ai/` et `DESIGN.md` racine :
+**obsolètes**, conservés pour l'historique. `docs/ai/` décrit l'app Android, pas la WebApp. `AGENTS.md` pointe ici.
+Build Android si besoin : `./gradlew assembleDebug` (JDK 17).
