@@ -22,7 +22,7 @@ propriétaire. Aucun `innerHTML` ni `eval`, aucun TODO. Le plus gros fichier sou
 | 6 | CI Android lancée sur chaque PR alors que l'app est abandonnée | Basse | Corrigé : ignorée quand seuls `web/` ou `docs/` changent |
 | 7 | Données conservées uniquement sur l'appareil (localStorage) : historique de mobilité, rappels, certains réglages | Basse | À décider : synchroniser ou assumer |
 | 8 | Scénarios e2e Playwright absents de la CI (`cardio-agenda` jamais lancé) | Moyenne | Ouvert |
-| 9 | `CLAUDE.md` et `docs/ai/` décrivent l'app Android | Basse | Ouvert |
+| 9 | `CLAUDE.md` et `docs/ai/` décrivent l'app Android | Basse | Corrigé : `CLAUDE.md` réécrit pour la WebApp, `web/README.md` à jour (migrations 0008 à 0011, Course/Vélo, Mobilité, en-têtes), `docs/ai/`, `AGENTS.md` et `DESIGN.md` racine marqués comme archive Android |
 | 10 | Bundle initial : `index` 120 Ko gzip + client 91 Ko gzip + schémas zod 93 Ko préchargés | Basse | Ouvert |
 | 11 | 7 branches distantes fusionnées non supprimées | Ménage | À faire par Benoît |
 

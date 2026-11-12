@@ -1,3 +1,5 @@
+> **Archive Android.** Ce guide concerne l'application Android abandonnée. Pour la WebApp PandaMove, la source de vérité est [web/DESIGN.md](web/DESIGN.md).
+
 # DESIGN.md — Guide de design PandaFit pour Claude
 
 > Lire ce fichier en entier avant tout travail de design. Il est la source de vérité unique.
