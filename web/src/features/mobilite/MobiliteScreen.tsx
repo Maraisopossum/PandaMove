@@ -12,7 +12,7 @@ import { useChoixMobilite } from './useChoixMobilite'
 // séance et ouvre l'aperçu. La logique est dans useChoixMobilite et generer.ts.
 export default function MobiliteScreen() {
   const { session } = useAuth()
-  const panda = useImagePanda('pose_sitting', { userId: session?.user.id, taille: 'lg' })
+  const panda = useImagePanda('yoga', { userId: session?.user.id, taille: 'lg' })
   const navigate = useNavigate()
   const m = useChoixMobilite()
   const { choix } = m

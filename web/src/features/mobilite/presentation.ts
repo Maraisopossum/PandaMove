@@ -12,3 +12,6 @@ export function formaterChrono(secondes: number): string {
   const total = Math.max(0, Math.round(secondes))
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
+
+// Illustration d'un exercice (le panda qui exécute le mouvement) : public/mobilite/<id>-<variante>.webp, 384 px, fond transparent.
+export const urlExercice = (id: string, variante: 'male' | 'female') => `/mobilite/${id}-${variante}.webp`

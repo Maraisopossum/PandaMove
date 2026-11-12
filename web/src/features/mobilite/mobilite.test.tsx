@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../core/auth/AuthProvider', () => ({ useAuth: () => ({ session: { user: { id: 'u1' } } }) }))
-vi.mock('../../core/images/usePandaVariante', () => ({ useImagePanda: () => null }))
+vi.mock('../../core/images/usePandaVariante', () => ({ useImagePanda: () => null, usePandaVariante: () => 'female' }))
 
 import { SEANCES_TYPES } from './donnees'
 import { genererSeance } from './generer'

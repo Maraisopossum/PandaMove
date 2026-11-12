@@ -1,13 +1,17 @@
 import { Link, useNavigate } from 'react-router'
 import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
+import { useAuth } from '../../core/auth/AuthProvider'
+import { usePandaVariante } from '../../core/images/usePandaVariante'
 import { libelleZone, LIBELLE_POSTURE, LIBELLE_TYPE, MOMENTS } from './donnees'
 import { zonesCouvertes } from './generer'
-import { formaterMinutes } from './presentation'
+import { formaterMinutes, urlExercice } from './presentation'
 import { useApercuMobilite } from './useApercuMobilite'
 
 // Aperçu de la séance générée : exercices, durées et zones couvertes. On peut tirer une autre séance, remplacer ou retirer un
 // exercice, puis commencer. Sans séance préparée, on renvoie vers le choix.
 export default function ApercuMobiliteScreen() {
+  const { session } = useAuth()
+  const variante = usePandaVariante({ userId: session?.user.id })
   const a = useApercuMobilite()
   const navigate = useNavigate()
   const { plan } = a
@@ -45,6 +49,7 @@ export default function ApercuMobiliteScreen() {
               </p>
               <p className="mobilite__etape-zones">{x.exercice.zones.map(libelleZone).join(' · ')}</p>
             </div>
+            {variante && <img className="mobilite__etape-image" src={urlExercice(x.exercice.id, variante)} alt="" width={56} height={56} loading="lazy" decoding="async" />}
             <div className="mobilite__etape-actions">
               <button type="button" className="bouton" aria-label={`Remplacer ${x.exercice.nom}`} onClick={() => a.remplacer(i)}>
                 Remplacer

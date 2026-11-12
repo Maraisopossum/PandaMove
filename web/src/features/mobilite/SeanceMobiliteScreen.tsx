@@ -3,10 +3,10 @@ import { Link, Navigate } from 'react-router'
 import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
-import { useImagePanda } from '../../core/images/usePandaVariante'
+import { useImagePanda, usePandaVariante } from '../../core/images/usePandaVariante'
 import { libelleZone } from './donnees'
 import type { PlanSeance } from './generer'
-import { formaterChrono, formaterMinutes } from './presentation'
+import { formaterChrono, formaterMinutes, urlExercice } from './presentation'
 import { lirePlan } from './stockage'
 import { useSeanceMobilite } from './useSeanceMobilite'
 
@@ -21,6 +21,7 @@ export default function SeanceMobiliteScreen() {
 function Seance({ plan: lu }: { plan: PlanSeance }) {
   const { session } = useAuth()
   const panda = useImagePanda('joy', { userId: session?.user.id, taille: 'sm' })
+  const variante = usePandaVariante({ userId: session?.user.id })
   const s = useSeanceMobilite(lu)
 
   if (s.termine) {
@@ -69,6 +70,7 @@ function Seance({ plan: lu }: { plan: PlanSeance }) {
         <span style={{ width: `${Math.round(s.progression * 100)}%` }} />
       </div>
 
+      {(apercu ?? s.etape) && variante && <img className="mobilite__illustration" src={urlExercice((apercu ?? s.etape)!.exercice.id, variante ?? 'male')} alt="" width={144} height={144} decoding="async" />}
       <div className={`mobilite__cadran${enPreparation || enTransition ? ' mobilite__cadran--pause' : ''}`} role="timer" aria-label="Temps restant">
         <span className="mobilite__chrono">{formaterChrono(s.restantS)}</span>
       </div>
