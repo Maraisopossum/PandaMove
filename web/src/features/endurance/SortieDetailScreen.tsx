@@ -5,7 +5,9 @@ import { DialogueConfirmation } from '../strength/edition/DialogueConfirmation'
 import { lienValide } from '../calendar/seancesCardio/lienValide'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDate, formaterDuree, formaterRythme } from './presentation'
+import { BandeauSortie } from './BandeauSortie'
 import { TraceSortie } from './TraceSortie'
+import { useSeanceLiee } from './useSeanceLiee'
 import { useSortie } from './useSorties'
 
 // Détail d'une sortie (`/running/:id`, `/cycling/:id`) : métriques, notes, lien, modification et suppression.
@@ -14,6 +16,7 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
   const navigate = useNavigate()
   const { sortie: s, chargement, introuvable, erreur, supprimer } = useSortie(id)
   const [confirmer, setConfirmer] = useState(false)
+  const liee = useSeanceLiee(s)
   const chemin = CHEMIN_SPORT[sport]
 
   if (chargement) return <p role="status">Chargement…</p>
@@ -43,11 +46,7 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
 
   return (
     <div className={`sorties sorties--${sport}`}>
-      <p className="sorties__surtitre">
-        {formaterDate(s.date)}
-        {s.enSalle ? ' · en salle' : ''}
-      </p>
-      <h1 className="titre-ecran">{s.titre}</h1>
+      <BandeauSortie sortie={s} />
 
       {(s.distanceM !== null || s.dureeS !== null || rythme) && (
         <section className="sorties__principal" aria-label="Chiffres principaux">
@@ -90,6 +89,12 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
       </dl>
 
       <TraceSortie sortie={s} />
+
+      {liee && (
+        <p className="sorties__liee">
+          <strong>Liée à « {liee.titre} »</strong>, {formaterDate(liee.date)}. {liee.isValidated ? 'Séance validée.' : ''}
+        </p>
+      )}
 
       {s.notes && <p className="sorties__notes">{s.notes}</p>}
       {s.lien &&

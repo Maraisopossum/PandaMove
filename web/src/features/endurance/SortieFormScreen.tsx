@@ -150,7 +150,7 @@ export default function SortieFormScreen({ sport }: { sport: Sport }) {
           Annuler
         </Link>
         <button type="submit" className="sorties__principal-bouton" disabled={!form.peutEnregistrer}>
-          {id === undefined ? 'Enregistrer la sortie' : 'Enregistrer les modifications'}
+          {id === undefined ? 'Enregistrer' : 'Enregistrer les modifications'}
         </button>
       </div>
     </form>
