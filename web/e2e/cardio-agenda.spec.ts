@@ -55,8 +55,10 @@ test('séance de cardio : ajouter, valider, ne pas déplacer tant que validée, 
   const libelleJour = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(
     new Date(`${jourIso(2)}T12:00:00`),
   )
-  await page.getByRole('button', { name: new RegExp(`^${libelleJour}, \\d+ séances?$`) }).click()
-  const jour = page.getByRole('listitem').filter({ hasText: titre })
+  // Libellé du jour : « samedi 14 novembre 2026, 1 séance dont Course : <titre> »
+  await page.getByRole('button', { name: new RegExp(`^${libelleJour}, \\d+ séances?( dont |$)`) }).click()
+  // La séance du jour choisi (la section du jour précède « Prochaines séances », où elle réapparaît une fois dévalidée)
+  const jour = page.getByRole('listitem').filter({ hasText: titre }).first()
   await expect(jour.getByText('Validée')).toBeVisible()
   await jour.getByRole('button', { name: new RegExp(`^Changer la date de ${titre}`) }).click()
   // Le refus s'affiche tout de suite et le dialogue de date ne s'ouvre pas

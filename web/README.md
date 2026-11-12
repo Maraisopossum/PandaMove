@@ -107,7 +107,13 @@ Alternative Cloudflare Pages : build `npm run build`, sortie `dist`, répertoire
 
 ## Tests de bout en bout
 
-Les tests Playwright (`e2e/*.spec.ts`) visent un vrai Supabase et un vrai PowerSync ; ils ne tournent pas en CI (pas de Docker ni de comptes dans GitHub Actions). Lancement local, navigateur Playwright installé une fois (`npx playwright install chromium`) :
+Les tests Playwright (`e2e/*.spec.ts`) visent le vrai Supabase et le vrai PowerSync, avec deux comptes de test.
+
+**En CI** : workflow `.github/workflows/e2e.yml`, sur chaque PR qui touche `web/` et à la demande (Actions → E2E → Run workflow). Il lit 7 secrets GitHub (Settings → Secrets and variables → Actions) : `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_POWERSYNC_URL` (mêmes valeurs que `.env.local`) et `E2E_EMAIL`, `E2E_PASSWORD`, `E2E_EMAIL2`, `E2E_PASSWORD2` (deux comptes de **test** distincts, jamais un compte personnel). Sans eux, le job s'arrête avec un avertissement, sans échec. Avec eux, `E2E_REQUIRED=1` : tout manque fait échouer. Un seul worker et une seule exécution à la fois (comptes partagés). Le dépôt étant public, aucune trace ni rapport HTML n'est publié (ils contiendraient les mots de passe saisis) : seulement les captures d'écran des échecs.
+
+Le build des e2e est fait avec `VITE_E2E=1` (posé par `playwright.config.ts`) : il embarque l'écran `/debug/write` utilisé par `offline-sync` et `rls-live`, absent du build déployé.
+
+**En local**, navigateur Playwright installé une fois (`npx playwright install chromium`) :
 
 ```bash
 cd web
