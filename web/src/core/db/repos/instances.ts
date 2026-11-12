@@ -113,6 +113,18 @@ export async function majNoteExercice(db: Db | DbTx, instanceId: string, exercic
   ])
 }
 
+// Vrai si l'instance possède déjà ses propres blocs ou exercices (copie du modèle, import, ou lignes reçues par la
+// synchronisation depuis un autre appareil).
+export async function aSesLignes(db: DbLecture, instanceId: string): Promise<boolean> {
+  const ligne = await db.getOptional<{ one: number }>(
+    `SELECT 1 AS one FROM blocs_seance WHERE instance_seance_id = ? AND deleted_at IS NULL
+     UNION ALL
+     SELECT 1 AS one FROM exercices_seance WHERE instance_seance_id = ? AND deleted_at IS NULL`,
+    [instanceId, instanceId],
+  )
+  return ligne !== null
+}
+
 // Copie les blocs et exercices du modèle de la séance vers l'instance (équivalent web de la
 // copie « lazy » d'InstanceExecuteViewModel). Une seule transaction ; idempotente :
 // - garde : si l'instance possède déjà des lignes (copie précédente ou import), on ne fait rien ;
@@ -132,13 +144,7 @@ export async function copyTemplateToInstance(db: Db, instanceId: string): Promis
     ])
     if (!seance) throw new ErreurInstance("La séance de cette instance est introuvable ou supprimée")
 
-    const dejaCopie = await tx.getOptional<{ one: number }>(
-      `SELECT 1 AS one FROM blocs_seance WHERE instance_seance_id = ? AND deleted_at IS NULL
-       UNION ALL
-       SELECT 1 AS one FROM exercices_seance WHERE instance_seance_id = ? AND deleted_at IS NULL`,
-      [instanceId, instanceId],
-    )
-    if (dejaCopie) return
+    if (await aSesLignes(tx, instanceId)) return
 
     const blocs = await tx.getAll<Ligne>(
       'SELECT * FROM blocs_seance WHERE seance_id = ? AND instance_seance_id IS NULL AND deleted_at IS NULL ORDER BY position, id',

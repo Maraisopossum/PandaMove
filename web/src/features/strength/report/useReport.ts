@@ -8,6 +8,7 @@ import type { ExerciceSeance, InstanceSeance } from '../../../core/db/types'
 import type { PropositionProgression } from '../../../core/progression/engine'
 import type { DecisionEnregistree } from '../../../core/progression/marqueur'
 import { construireVue } from '../execute/vue'
+import { attendreSeanceSynchronisee } from '../seanceSynchronisee'
 import type { Decision } from '../progression/cible'
 import {
   appliquerDecision, evaluerEtAppliquerSilencieux, evaluerInstance, type EvaluationExercice,
@@ -263,7 +264,13 @@ export function useReport(instanceId: string, { db, userId, nowFn = Date.now }: 
     const cle = `${instanceId}#${userId ?? ''}`
     if (enCours.current?.cle !== cle) {
       decidees.current = new Set()
-      enCours.current = { cle, promesse: lire(base, instanceId, userId, nowFn()) }
+      // Appareil neuf : attendre la première synchronisation si la séance n'est pas encore complète en local (pas
+      // d'évaluation de progression sur des données partielles). Pas d'annulation : la lecture est partagée entre
+      // les deux montages du mode strict.
+      enCours.current = {
+        cle,
+        promesse: attendreSeanceSynchronisee(base, instanceId).then(() => lire(base, instanceId, userId, nowFn())),
+      }
     }
     enCours.current.promesse
       .then((d) => {
