@@ -264,7 +264,8 @@ describe('ReportScreen : récap de progression', () => {
     await seanceTerminee('r-focus-init')
     monter('r-focus-init')
     const dialogue = await screen.findByRole('dialog', { name: 'Progression' })
-    expect(document.activeElement).toBe(within(dialogue).getByRole('button', { name: 'Plus tard' }))
+    // Le focus est posé par un effet, juste après l'affichage du dialogue : on l'attend (CI chargée)
+    await waitFor(() => expect(document.activeElement).toBe(within(dialogue).getByRole('button', { name: 'Plus tard' })))
   })
 
   it('« Valider » avec Oui écrit le deload, ferme le récap et annonce le résultat', async () => {
@@ -380,7 +381,7 @@ describe('ReportScreen : récap de progression', () => {
     bouton.focus()
     fireEvent.click(bouton)
     const dialogue = await screen.findByRole('dialog', { name: 'Progression' })
-    expect(dialogue.contains(document.activeElement)).toBe(true)
+    await waitFor(() => expect(dialogue.contains(document.activeElement)).toBe(true))
     fireEvent.click(within(dialogue).getByRole('button', { name: 'Plus tard' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Voir le récap de progression' }))
@@ -390,6 +391,8 @@ describe('ReportScreen : récap de progression', () => {
     await seanceTerminee('r-piege')
     monter('r-piege')
     const dialogue = await screen.findByRole('dialog', { name: 'Progression' })
+    // Le piège (focus initial et écoute de Tab) est installé par le même effet : attendre qu'il soit en place
+    await waitFor(() => expect(dialogue.contains(document.activeElement)).toBe(true))
     const boutons = Array.from(dialogue.querySelectorAll<HTMLElement>('button, input'))
     boutons[boutons.length - 1].focus()
     fireEvent.keyDown(document, { key: 'Tab' })
