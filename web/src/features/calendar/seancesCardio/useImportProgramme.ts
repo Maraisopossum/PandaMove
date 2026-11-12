@@ -86,7 +86,8 @@ export function useImportProgramme({ db, userId, synchro }: DepsImportProgramme)
     setStatut('error')
   }, [])
 
-  const importer = useCallback((): Promise<void> => {
+  // `restaurer` : remet aussi dans l'agenda les séances du programme supprimées à la main.
+  const importer = useCallback((restaurer: boolean = false): Promise<void> => {
     if (enCours.current) return enCours.current
     setResultat(null)
     setErreur(null)
@@ -107,7 +108,7 @@ export function useImportProgramme({ db, userId, synchro }: DepsImportProgramme)
       const refus = raisonBlocage(premiereSynchro, etat, file === 0)
       if (refus) return echec(refus)
       try {
-        setResultat(await importerProgramme2027(db ?? getDb(), userId))
+        setResultat(await importerProgramme2027(db ?? getDb(), userId, undefined, { restaurer }))
         setStatut('done')
       } catch (e) {
         console.error("Échec de l'import du programme 2027", e)

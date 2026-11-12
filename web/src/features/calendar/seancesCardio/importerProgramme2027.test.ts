@@ -41,7 +41,7 @@ describe('importerProgramme2027', () => {
       entree('w1|e0'),
       entree('w1|e1', { genre: 'velo', date: '2027-06-06', titre: 'Lille-Hardelot', jalon: 'Lille-Hardelot', optionnelle: true, consigne: null, detail: null }),
     ])
-    expect(res).toEqual({ creees: 2, dejaPresentes: 0 })
+    expect(res).toEqual({ creees: 2, dejaPresentes: 0, restaurees: 0 })
     const c = await lireParId(db, 'course', idSeanceProgramme2027(USER, 'w1|e0'))
     expect(c).toMatchObject({ genre: 'course', date: '2026-11-03', titre: 'Footing facile', consigne: 'Facile.', detail: '40 min · Z1', optionnelle: false, jalon: null, isValidated: false })
     const v = await lireParId(db, 'velo', idSeanceProgramme2027(USER, 'w1|e1'))
@@ -54,14 +54,14 @@ describe('importerProgramme2027', () => {
     const entrees = [entree('w1|e0'), entree('w1|e1', { genre: 'velo' })]
     await importerProgramme2027(db, USER, entrees)
     const res = await importerProgramme2027(db, USER, entrees)
-    expect(res).toEqual({ creees: 0, dejaPresentes: 2 })
+    expect(res).toEqual({ creees: 0, dejaPresentes: 2, restaurees: 0 })
     expect(await compter()).toBe(2)
   })
 
   it('complète un import partiel : seules les séances absentes sont créées', async () => {
     await importerProgramme2027(db, USER, [entree('w1|e0')])
     const res = await importerProgramme2027(db, USER, [entree('w1|e0'), entree('w1|e1')])
-    expect(res).toEqual({ creees: 1, dejaPresentes: 1 })
+    expect(res).toEqual({ creees: 1, dejaPresentes: 1, restaurees: 0 })
   })
 
   it('ne remplace pas une séance déplacée', async () => {
@@ -85,8 +85,21 @@ describe('importerProgramme2027', () => {
     const id = idSeanceProgramme2027(USER, 'w1|e0')
     await supprimer(db, 'course', id)
     const res = await importerProgramme2027(db, USER, [entree('w1|e0')])
-    expect(res).toEqual({ creees: 0, dejaPresentes: 1 })
+    expect(res).toEqual({ creees: 0, dejaPresentes: 1, restaurees: 0 })
     expect(await lirePlage(db, 'course', '2026-01-01', '2027-12-31')).toHaveLength(0)
+  })
+
+  it('rétablit sur demande les séances supprimées, sans toucher aux déplacées ni aux validées', async () => {
+    await importerProgramme2027(db, USER, [entree('w1|e0'), entree('w1|e1'), entree('w1|e2')])
+    const [a, b, c] = ['w1|e0', 'w1|e1', 'w1|e2'].map((k) => idSeanceProgramme2027(USER, k))
+    await supprimer(db, 'course', a)
+    await supprimer(db, 'course', b)
+    await definirValidation(db, 'course', c, true)
+    const res = await importerProgramme2027(db, USER, [entree('w1|e0'), entree('w1|e1'), entree('w1|e2')], { restaurer: true })
+    expect(res).toEqual({ creees: 0, dejaPresentes: 1, restaurees: 2 })
+    expect(await lirePlage(db, 'course', '2026-01-01', '2027-12-31')).toHaveLength(3)
+    expect((await lireParId(db, 'course', a))).toMatchObject({ supprimee: false, isValidated: false, titre: 'Footing facile' })
+    expect((await lireParId(db, 'course', c))?.isValidated).toBe(true)
   })
 
   it('est atomique : une entrée refusée n’en laisse aucune autre', async () => {
@@ -103,9 +116,9 @@ describe('importerProgramme2027', () => {
   it('importe le programme versionné en entier, puis ne fait rien au second passage', async () => {
     const entrees = programme as EntreeProgramme[]
     const premier = await importerProgramme2027(db, USER)
-    expect(premier).toEqual({ creees: entrees.length, dejaPresentes: 0 })
+    expect(premier).toEqual({ creees: entrees.length, dejaPresentes: 0, restaurees: 0 })
     expect(await compter()).toBe(entrees.length)
-    expect(await importerProgramme2027(db, USER)).toEqual({ creees: 0, dejaPresentes: entrees.length })
+    expect(await importerProgramme2027(db, USER)).toEqual({ creees: 0, dejaPresentes: entrees.length, restaurees: 0 })
     expect(await compter()).toBe(entrees.length)
   })
 
