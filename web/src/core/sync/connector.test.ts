@@ -210,6 +210,19 @@ describe('SupabaseConnector.uploadData', () => {
     expect(complete).toHaveBeenCalledTimes(1)
   })
 
+  it('PGRST204 sur user_settings.rappels_json (migration 0012 absente) : renvoie sans la colonne, la file avance', async () => {
+    const avert = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { client, appels } = fauxSupabase([
+      { code: 'PGRST204', message: "Could not find the 'rappels_json' column of 'user_settings' in the schema cache" },
+      null,
+    ])
+    const { db, complete } = fausseBase([{ op: UpdateType.PATCH, table: 'user_settings', id: 'r1', opData: { rappels_json: '{}', dark_mode: 1 } }])
+    await new SupabaseConnector(() => client).uploadData(db)
+    expect(appels).toHaveLength(2)
+    expect(complete).toHaveBeenCalledTimes(1)
+    expect(String(avert.mock.calls[0][0])).toMatch(/0012/)
+  })
+
   it('sans session, lève une erreur (nouvel essai) et ne complète pas la transaction', async () => {
     const { client, appels } = fauxSupabase(null, null)
     const { db, complete } = fausseBase([{ op: UpdateType.PUT, table: 'seances', id: 's1', opData: {} }])
