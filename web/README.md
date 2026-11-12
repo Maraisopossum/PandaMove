@@ -199,7 +199,7 @@ Module repris de l'application Android : quatre méthodes intégrées (cohérenc
 
 - **Écran gardé allumé** pendant la séance (API Screen Wake Lock, quand le navigateur l'offre). Il n'y a pas de service d'arrière-plan comme sur Android : si l'onglet passe en arrière-plan, le temps continue de s'écouler mais les sons peuvent s'interrompre selon le navigateur.
 - **Données** : tables `methodes_respiration` et `seances_respiration` (migration `0009_respiration.sql`, à appliquer avant les règles PowerSync puis le client). Une séance n'est enregistrée que menée jusqu'au bout. Détail dans `src/features/respiration/README.md`.
-- La respiration est hors de l'export JSON de sauvegarde.
+- La respiration est dans la sauvegarde JSON (complément `pandamoveWeb`, voir « Sauvegarde »).
 
 ## Course et vélo (sorties)
 
@@ -222,7 +222,9 @@ Les données vivent dans Supabase et dans la base locale du navigateur. Pour ne 
 
 Contenu : export « PandaMoveExport » v3.2, le format de l'application Android, limité au renforcement (séances, séances jouées avec blocs, exercices et séries, exercices du catalogue, objectifs de progression, « Mon matériel »). Seules les lignes non supprimées sont exportées, sauf ce qui porte l'historique : une séance supprimée avec « Garder l'historique » (exportée archivée, sans blocs ni exercices) et un exercice supprimé encore utilisé par une séance. Les identifiants numériques du format sont dérivés des UUID de la base web (stables d'un export à l'autre). Chaque élément garde aussi son UUID et les champs propres au web (`uuid`, `isArchived`, `deletedAt`, `progressionJson`, `startedAt`, `pausedJson`, `validatedAt`, `updatedAt`, `nombreSeriesCible`, `isFavorite`, `isBodyweight`, et, seulement quand ils existent, `nom` d'une séance jouée renommée et `notes` d'un exercice), et le fichier porte l'identifiant du compte (`webUserId`).
 
-**Séances de cardio** : l'export ne les contient pas (course et vélo). Les séances importées se recréent depuis le fichier HTML du programme ; celles saisies à la main n'ont pas d'autre sauvegarde que la base synchronisée.
+**Complément web (`pandamoveWeb`)** : le fichier porte aussi ce que le format Android ne sait pas décrire : sorties de course et de vélo, séances de cardio planifiées (course et vélo), méthodes et séances de respiration, historique de mobilité et réglages des rappels (heures et choix veille / jour même ; l'interrupteur reste propre à l'appareil). Les lignes vivantes de chaque table y sont recopiées telles que la base les stocke, sans `user_id`. Ce champ est ignoré par l'import Android et par les anciennes versions du web : le fichier reste un export v3.2 valide.
+
+À l'import, dans la même transaction que le renforcement (tout ou rien) : même compte, ids conservés, une ligne supprimée depuis revient, réimporter ne crée aucun doublon ; autre compte, ids dérivés du compte et des ids d'origine (liens sortie → séance planifiée et séance de respiration → méthode recalculés), même absence de doublon. Une ligne invalide (colonne inconnue écartée, date ou valeur mal formée, id absent) est ignorée et comptée dans les remarques. Un fichier d'une version plus ancienne, sans ce champ, s'importe comme avant.
 
 **Réimporter** : Profil → « Importer des données », choisir le fichier, vérifier l'aperçu puis confirmer.
 

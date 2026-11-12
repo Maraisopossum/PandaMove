@@ -2,6 +2,7 @@ import { parseTimestamp } from '../common/parseTimestamp'
 import type { DbLecture } from '../db/Db'
 import type { Ligne } from '../db/repos/mappers'
 import { lireEquipementStocke } from '../import/equipment'
+import { lireComplementWeb } from './complementWeb'
 import { AllocateurIds } from './ids'
 import type {
   BlocExport,
@@ -18,7 +19,8 @@ import type {
 
 export type { PandaMoveExport } from './types'
 
-// Export JSON « PandaMoveExport » v3.2 (format de l'export Android, relu par l'import web et Android).
+// Export JSON « PandaMoveExport » v3.2 (format de l'export Android, relu par l'import web et Android), complété par le champ
+// `pandamoveWeb` pour ce que ce format ne porte pas (voir complementWeb.ts).
 // Lecture seule de la base locale ; seules les lignes vivantes (deleted_at IS NULL) sont exportées, avec
 // deux exceptions pour que l'historique reste importable : une séance supprimée dont des séances jouées
 // sont gardées (« Garder l'historique ») est exportée archivée, sans blocs ni exercices, avec deletedAt ;
@@ -347,5 +349,6 @@ export async function construireExport(db: DbLecture, maintenant: Date, userId?:
     customExercises: exercises.map(customExercise),
     objectifsProgression: objectifs.map(objectif),
     equipmentConfig: materiel(reglages?.equipment_json),
+    pandamoveWeb: await lireComplementWeb(db, userId),
   }
 }

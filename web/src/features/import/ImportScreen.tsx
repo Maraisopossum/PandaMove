@@ -1,5 +1,7 @@
 import { useEffect, useRef, type ChangeEvent } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { TABLES_COMPLEMENT } from '../../core/export/complementWeb'
+import { libelleComplement } from '../../core/import/complementWeb'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { useImagePanda } from '../../core/images/usePandaVariante'
 import ImportIaPanel from './ImportIaPanel'
@@ -78,7 +80,9 @@ export default function ImportScreen() {
           <PanneauProgramme userId={session?.user.id} />
         ) : (
           <>
-          <p className="import__intro">Importez un export JSON de l'application Android (séances, exercices, matériel).</p>
+          <p className="import__intro">
+            Importez une sauvegarde PandaMove (renforcement, sorties de course et de vélo, séances de cardio planifiées, respiration, mobilité, rappels) ou un export JSON de l'application Android (séances, exercices, matériel).
+          </p>
 
           <div className="import__carte">
             <div className="import__champ">
@@ -99,6 +103,7 @@ export default function ImportScreen() {
                   <p role="status">
                     {resultat.seances} séance(s), {resultat.instances} séance(s) jouée(s), {resultat.series} série(s),{' '}
                     {resultat.exercises} exercice(s) et {resultat.objectifs} objectif(s) de progression importés.
+                    {resultat.complement > 0 && ` ${resultat.complement} élément(s) d'endurance, de respiration ou de mobilité importés.`}
                   </p>
                   {resultat.ignores.length > 0 && (
                     <>
@@ -125,6 +130,13 @@ export default function ImportScreen() {
                   <li>{preview.instances} séance(s) jouée(s)</li>
                   <li>{preview.series} série(s)</li>
                   <li>{preview.exercises} exercice(s)</li>
+                  {preview.complement &&
+                    TABLES_COMPLEMENT.filter((t) => preview.complement!.resume[t] > 0).map((t) => (
+                      <li key={t}>
+                        {preview.complement!.resume[t]} {libelleComplement(t)}
+                      </li>
+                    ))}
+                  {preview.complement?.rappelsJson && <li>Réglages des rappels</li>}
                 </ul>
                 {preview.ignores.length > 0 && (
                   <>

@@ -35,6 +35,35 @@ describe('useImport', () => {
     expect(n.n).toBe(2)
   })
 
+  it('sauvegarde avec complément web : aperçu des sorties, import dans la même transaction', async () => {
+    const db = createTestDb()
+    const sauvegarde = {
+      ...exportV32,
+      webUserId: USER,
+      pandamoveWeb: {
+        version: 1,
+        tables: { sorties: [{ id: 's1', sport: 'course', date: '2026-11-12', created_at: '2026-11-12T09:00:00.000Z', titre: 'Course' }] },
+        rappelsJson: null,
+      },
+    }
+    const { result } = renderHook(() => useImport({ db, userId: USER }))
+    await act(() => result.current.load(fichier(sauvegarde)))
+    expect(result.current.status).toBe('ready')
+    expect(result.current.preview?.complement?.resume.sorties).toBe(1)
+    await act(async () => {
+      await result.current.confirm()
+    })
+    expect(result.current.resultat?.complement).toBe(1)
+    expect((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM sorties')).n).toBe(1)
+    expect((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM seances')).n).toBe(2)
+  })
+
+  it("un export Android n'a pas de complément web", async () => {
+    const { result } = renderHook(() => useImport({ db: createTestDb(), userId: USER }))
+    await act(() => result.current.load(fichier(exportV32)))
+    expect(result.current.preview?.complement).toBeNull()
+  })
+
   it('un catalogue passe par le même flux', async () => {
     const db = createTestDb()
     const { result } = renderHook(() => useImport({ db, userId: USER }))

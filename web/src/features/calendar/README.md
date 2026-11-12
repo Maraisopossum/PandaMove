@@ -13,7 +13,7 @@ Agenda de PandaMove : une grille mensuelle, le panneau du jour choisi et la list
 - **Invariants** :
   - Une séance de cardio validée est « terminée » et **ne se déplace pas** : il faut d'abord la dévalider (`peutDeplacer`, revérifié dans la transaction par `deplacer`).
   - Le cardio ne compte dans aucune statistique : `stats`, `demarrage` et `home` ne lisent jamais `seances_course` ni `seances_velo` (garde : `stats/exclusionCardio.test.ts` et `stats/statsInchangeesParCardio.test.ts`).
-  - Le cardio est hors de l'export JSON de sauvegarde.
+  - Le cardio planifié est dans la sauvegarde JSON (complément `pandamoveWeb`, tables `seances_course` et `seances_velo`).
   - « Optionnelle » et le jalon sont de simples mentions d'affichage, sans effet. Le jalon s'affiche avec un drapeau et son libellé en toutes lettres ; le genre, « Optionnelle » et « Validée » aussi : jamais la couleur seule.
   - `detail` est un texte « durée · zone » conservé tel quel, jamais découpé.
   - L'agenda n'importe jamais `features/strength` (le renforcement importe l'agenda) : le code partagé vit dans `core/` (`core/ui/usePiegeFocus` pour les dialogues, `core/common/dates` pour les dates). Garde : `independanceStrength.test.ts`.

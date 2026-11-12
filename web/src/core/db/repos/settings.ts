@@ -69,12 +69,15 @@ export async function lireRappelsJson(db: DbLecture, userId: string): Promise<st
   return (ligne?.rappels_json as string | null | undefined) ?? null
 }
 
+// Version transactionnelle (réutilisée par l'import de sauvegarde, qui regroupe tout dans une seule transaction).
+export async function saveRappelsJsonTx(tx: DbTx, userId: string, json: string): Promise<void> {
+  const id = idReglages(userId)
+  const existante = await tx.getOptional<Ligne>('SELECT id, deleted_at FROM user_settings WHERE id = ?', [id])
+  // Pas de ligne vivante : on la crée (ou la ressuscite) avec les valeurs par défaut, comme les autres réglages
+  if (!existante || existante.deleted_at !== null) await saveSettingsTx(tx, userId, {})
+  await tx.execute('UPDATE user_settings SET rappels_json = ?, updated_at = ? WHERE id = ?', [json, new Date().toISOString(), id])
+}
+
 export async function saveRappelsJson(db: Db, userId: string, json: string): Promise<void> {
-  await db.writeTransaction(async (tx) => {
-    const id = idReglages(userId)
-    const existante = await tx.getOptional<Ligne>('SELECT id, deleted_at FROM user_settings WHERE id = ?', [id])
-    // Pas de ligne vivante : on la crée (ou la ressuscite) avec les valeurs par défaut, comme les autres réglages
-    if (!existante || existante.deleted_at !== null) await saveSettingsTx(tx, userId, {})
-    await tx.execute('UPDATE user_settings SET rappels_json = ?, updated_at = ? WHERE id = ?', [json, new Date().toISOString(), id])
-  })
+  await db.writeTransaction((tx) => saveRappelsJsonTx(tx, userId, json))
 }
