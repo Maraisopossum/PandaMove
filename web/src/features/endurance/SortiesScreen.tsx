@@ -121,16 +121,16 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
                         {formaterDuree(s.dureeS)}
                       </span>
                     )}
-                    {s.fcMoy !== null && (
-                      <span>
-                        <span className="visuellement-cache">Fréquence cardiaque : </span>
-                        {s.fcMoy} bpm
-                      </span>
-                    )}
                     {rythme && (
                       <span>
                         <span className="visuellement-cache">{sport === 'course' ? 'Allure' : 'Vitesse'} : </span>
                         {rythme}
+                      </span>
+                    )}
+                    {s.fcMoy !== null && (
+                      <span>
+                        <span className="visuellement-cache">Fréquence cardiaque : </span>
+                        {s.fcMoy} bpm
                       </span>
                     )}
                   </span>
