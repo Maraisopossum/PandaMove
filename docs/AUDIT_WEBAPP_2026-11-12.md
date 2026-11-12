@@ -20,7 +20,7 @@ propriétaire. Aucun `innerHTML` ni `eval`, aucun TODO. Le plus gros fichier sou
 | 4 | Aucun en-tête de sécurité HTTP (CSP, framing, referrer) | Moyenne | Corrigé : `web/public/_headers`, vérifié sous `wrangler dev` (wasm, workers et page OK). La connexion réelle reste à vérifier en production |
 | 5 | Manifeste daté (« renforcement » seul, couleurs blanches provisoires) ; `index.html` sans description ni theme-color | Basse | Corrigé |
 | 6 | CI Android lancée sur chaque PR alors que l'app est abandonnée | Basse | Corrigé : ignorée quand seuls `web/` ou `docs/` changent |
-| 7 | Données conservées uniquement sur l'appareil (localStorage) : historique de mobilité, rappels, certains réglages | Basse | À décider : synchroniser ou assumer |
+| 7 | Données conservées uniquement sur l'appareil (localStorage) : historique de mobilité, rappels, certains réglages | Basse | Corrigé (migration 0012) : historique de mobilité et heures des rappels synchronisés ; l'interrupteur des rappels reste par appareil |
 | 8 | Scénarios e2e Playwright absents de la CI (`cardio-agenda` jamais lancé) | Moyenne | Ouvert |
 | 9 | `CLAUDE.md` et `docs/ai/` décrivent l'app Android | Basse | Corrigé : `CLAUDE.md` réécrit pour la WebApp, `web/README.md` à jour (migrations 0008 à 0011, Course/Vélo, Mobilité, en-têtes), `docs/ai/`, `AGENTS.md` et `DESIGN.md` racine marqués comme archive Android |
 | 10 | Bundle initial : `index` 120 Ko gzip + client 91 Ko gzip + schémas zod 93 Ko préchargés | Basse | En partie corrigé : l'installation du catalogue (catalogue JSON + zod) est chargée à la demande, JS au démarrage 248 → 215 Ko gzip. Reste : modules Supabase inutilisés (realtime, storage, ~25 Ko gzip), à retirer seulement avec un test de connexion réel |

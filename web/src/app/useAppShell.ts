@@ -21,7 +21,7 @@ export function useAppShell() {
     signOut: deconnecterSupabaseBrut,
   })
   useInstallationCatalogue(session?.user.id)
-  useRappelsActifs()
+  useRappelsActifs({ userId: session?.user.id })
   const { refBascule, refDrawer, ...drawer } = useDrawer()
   const sombre = useDarkMode({ userId: session?.user.id })
   const deconnexion = useDeconnexion(signOutSafely)

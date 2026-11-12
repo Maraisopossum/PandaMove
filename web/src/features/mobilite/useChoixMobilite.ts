@@ -1,15 +1,20 @@
 import { useCallback, useState } from 'react'
+import { useAuth } from '../../core/auth/AuthProvider'
+import type { Db } from '../../core/db/Db'
 import { SEANCES_TYPES, TOUTES_ZONES, type MomentSeance, type SportId, type ZoneCorps } from './donnees'
 import { genererSeance, type PlanSeance } from './generer'
-import { bilanSemaine, ecrireChoix, ecrirePlan, lireChoix, lireHistorique, type ChoixMobilite } from './stockage'
+import { bilanSemaine, ecrireChoix, ecrirePlan, lireChoix, type ChoixMobilite } from './stockage'
+import { useHistoriqueMobilite } from './useHistoriqueMobilite'
 
 const MAINTENANT = () => new Date()
 
-// Écran de choix : temps disponible, séance type (sport), zones à cibler et moment. Le choix est retenu par appareil.
+// Écran de choix : temps disponible, séance type (sport), zones à cibler et moment. Le choix est retenu par appareil ;
+// l'historique (bilan de la semaine, dernières séances) est synchronisé.
 // « Générer » prépare une séance, la garde pour l'aperçu et rend le plan.
-export function useChoixMobilite({ maintenant = MAINTENANT }: { maintenant?: () => Date } = {}) {
+export function useChoixMobilite({ maintenant = MAINTENANT, db }: { maintenant?: () => Date; db?: Db } = {}) {
+  const { session } = useAuth()
   const [choix, setChoix] = useState<ChoixMobilite>(lireChoix)
-  const [historique] = useState(lireHistorique)
+  const historique = useHistoriqueMobilite({ db, userId: session?.user.id })
 
   const modifier = useCallback((partiel: Partial<ChoixMobilite>) => {
     setChoix((c) => {

@@ -1,24 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { dateIsoLocale } from '../../core/common/dates'
+import { getDb } from '../../core/db/client'
+import type { Db } from '../../core/db/Db'
+import { enregistrerSeanceMobilite } from '../../core/db/repos/mobilite'
 import { useVeilleEcran } from '../respiration/useVeilleEcran'
 import { creerAudio, ecrireSonActif, lireSonActif, type AudioMobilite } from './audio'
 import { zonesCouvertes, type PlanSeance } from './generer'
 import { decouperEnPhases } from './phases'
-import { ajouterSeance, lireChoix } from './stockage'
+import { lireChoix } from './stockage'
 
 export interface DepsSeance {
   /** Horloge en millisecondes (défaut : Date.now). Remplaçable dans les tests. */
   maintenant?: () => number
   /** Intervalle de vérification du chronomètre, en ms. */
   intervalleMs?: number
+  /** Base où enregistrer la séance terminée (défaut : base de l'application). */
+  db?: Db
 }
 
 const HORLOGE = () => Date.now()
 
 // Séance en cours : chronomètre par phase fondé sur l'horloge (juste même si l'onglet ralentit), pause, passage à
-// l'exercice suivant ou précédent, sons, écran maintenu allumé. À la fin, la séance est ajoutée à l'historique de l'appareil
+// l'exercice suivant ou précédent, sons, écran maintenu allumé. À la fin, la séance est ajoutée à l'historique synchronisé
 // (une seule fois). Quitter avant la fin n'enregistre rien.
-export function useSeanceMobilite(plan: PlanSeance | null, { maintenant = HORLOGE, intervalleMs = 200 }: DepsSeance = {}) {
+export function useSeanceMobilite(plan: PlanSeance | null, { maintenant = HORLOGE, intervalleMs = 200, db }: DepsSeance = {}) {
   const phases = useMemo(() => (plan ? decouperEnPhases(plan) : []), [plan])
   const [index, setIndex] = useState(0)
   const [restantMs, setRestantMs] = useState(() => (phases[0]?.dureeS ?? 0) * 1000)
@@ -107,8 +112,14 @@ export function useSeanceMobilite(plan: PlanSeance | null, { maintenant = HORLOG
   useEffect(() => {
     if (!termine || enregistre.current || !plan) return
     enregistre.current = true
-    ajouterSeance({ date: dateIsoLocale(new Date()), dureeS: plan.dureeTotaleS, exercices: plan.etapes.length, zones: zonesCouvertes(plan.etapes), sport: lireChoix().sport })
-  }, [termine, plan])
+    enregistrerSeanceMobilite(db ?? getDb(), {
+      date: dateIsoLocale(new Date()),
+      dureeS: plan.dureeTotaleS,
+      exercices: plan.etapes.length,
+      zones: zonesCouvertes(plan.etapes),
+      sport: lireChoix().sport,
+    }).catch((e: unknown) => console.error('Enregistrement de la séance de mobilité impossible', e))
+  }, [termine, plan, db])
 
   useEffect(
     () => () => {

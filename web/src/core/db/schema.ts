@@ -50,6 +50,17 @@ const seanceRespiration = {
   created_at: t,
 }
 
+// Séances de mobilité menées jusqu'au bout (migration 0012). `zones` est un tableau JSON d'identifiants de zones.
+const seanceMobilite = {
+  ...sync,
+  date: t,
+  duree_sec: i,
+  exercices: i,
+  zones: t,
+  sport: t,
+  created_at: t,
+}
+
 // Sorties d'endurance réalisées, course et vélo (migration 0010). Distances en mètres, durées en secondes ; `date` et
 // `created_at` sont du texte ISO ; `en_salle` est un booléen 0/1 ; `tours`, `serie` et `trace` sont du texte JSON.
 const sortie = {
@@ -200,6 +211,8 @@ export const AppSchema = new Schema({
     equipment_json: t,
     panda_variant: t,
     dark_mode: i,
+    // Réglages des rappels (JSON, migration 0012) ; NULL = jamais réglés
+    rappels_json: t,
   }),
   // Une déclaration par table : sync-rules.test.ts lit ce fichier ligne à ligne (`  nom: new Table(`)
   seances_course: new Table(seanceCardio),
@@ -207,4 +220,5 @@ export const AppSchema = new Schema({
   methodes_respiration: new Table(methodeRespiration),
   seances_respiration: new Table(seanceRespiration),
   sorties: new Table(sortie),
+  seances_mobilite: new Table(seanceMobilite),
 })

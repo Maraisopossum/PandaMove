@@ -22,11 +22,12 @@ function envoyer(supabase: SupabaseClient, entry: Operation, opData: Record<stri
 
 // PGRST204 = colonne inconnue du cache de schéma PostgREST. Seules les colonnes ajoutées par une migration récente
 // sont tolérées (jamais une autre : une vraie erreur de schéma ne doit pas être masquée), table par table :
-// validated_at (migration 0006), instances_seance.nom et exercices_seance.notes (migration 0007).
+// validated_at (migration 0006), instances_seance.nom et exercices_seance.notes (migration 0007), user_settings.rappels_json (0012).
 const COLONNES_TOLEREES: Record<string, { colonne: string; migration: string }> = {
   series_realisees: { colonne: 'validated_at', migration: '0006' },
   instances_seance: { colonne: 'nom', migration: '0007' },
   exercices_seance: { colonne: 'notes', migration: '0007' },
+  user_settings: { colonne: 'rappels_json', migration: '0012' },
 }
 
 function colonneAbsenteTolerable(table: string, erreur: { code?: string; message?: string } | null): { colonne: string; migration: string } | null {

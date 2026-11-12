@@ -645,3 +645,67 @@ describe('0006 : durcissement', () => {
     expect(r.rows[0].n).toBe(TABLES.length)
   })
 })
+
+describe('0012 : historique de mobilité et réglages des rappels', () => {
+  const MOB = (n: number) => `d0000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+  const insererMobilite = (id: string, champs: Record<string, string | number | null> = {}) => {
+    const valeurs: Record<string, string | number | null> = { date: '2026-11-12', duree_sec: 600, exercices: 8, created_at: '2026-11-12T10:00:00.000Z', ...champs }
+    const sql = Object.values(valeurs).map((v) => (v === null ? 'null' : typeof v === 'number' ? String(v) : `'${v}'`)).join(', ')
+    return db.exec(`insert into seances_mobilite (id, ${Object.keys(valeurs).join(', ')}) values ('${id}', ${sql})`)
+  }
+
+  beforeAll(async () => {
+    await db.exec(migration('0012_mobilite_rappels.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0012_mobilite_rappels.sql'))
+  })
+
+  it('séance minimale : user_id = auth.uid(), zones à [] et sport NULL par défaut ; invisible pour un autre compte', async () => {
+    await commeUtilisateur(A, () => insererMobilite(MOB(1)))
+    const r = await commeUtilisateur(A, () => db.query(`select user_id, zones, sport from seances_mobilite where id = '${MOB(1)}'`))
+    expect(r.rows).toEqual([{ user_id: A, zones: '[]', sport: null }])
+    const b = await commeUtilisateur(B, () => db.query<{ n: number }>('select count(*)::int as n from seances_mobilite'))
+    expect(b.rows[0].n).toBe(0)
+    const u = await commeUtilisateur(B, () => db.query(`update seances_mobilite set duree_sec = 1 where id = '${MOB(1)}'`))
+    expect(u.affectedRows).toBe(0)
+  })
+
+  it.each([
+    ['date au mauvais format', { date: '12/11/2026' }],
+    ['durée nulle', { duree_sec: 0 }],
+    ['aucun exercice', { exercices: 0 }],
+    ['sport inconnu', { sport: 'golf' }],
+    ['zones trop longues', { zones: 'x'.repeat(1001) }],
+  ])('refuse : %s', async (_cas, champs) => {
+    await expect(commeUtilisateur(A, () => insererMobilite(MOB(100 + Object.keys(champs).length), champs))).rejects.toThrow(/check constraint|violates/)
+  })
+
+  it('accepte chaque séance type', async () => {
+    let n = 10
+    for (const sport of ['course', 'velo', 'renforcement', 'bureau']) await commeUtilisateur(A, () => insererMobilite(MOB(++n), { sport, zones: '["hanches"]' }))
+  })
+
+  it('droits : authenticated en SELECT / INSERT / UPDATE seulement, anon sans aucun droit, RLS active', async () => {
+    const r = await db.query<{ ins: boolean; del: boolean; anon: boolean; rls: boolean }>(
+      `select has_table_privilege('authenticated', 'public.seances_mobilite', 'INSERT') as ins,
+              has_table_privilege('authenticated', 'public.seances_mobilite', 'DELETE') as del,
+              has_table_privilege('anon', 'public.seances_mobilite', 'SELECT') as anon,
+              (select relrowsecurity from pg_class where relname = 'seances_mobilite') as rls`,
+    )
+    expect(r.rows[0]).toEqual({ ins: true, del: false, anon: false, rls: true })
+  })
+
+  it('user_settings.rappels_json : text nullable, 500 caractères au plus', async () => {
+    const c = await db.query(
+      `select data_type, is_nullable from information_schema.columns where table_name = 'user_settings' and column_name = 'rappels_json'`,
+    )
+    expect(c.rows).toEqual([{ data_type: 'text', is_nullable: 'YES' }])
+    // Compte neuf : une seule ligne user_settings vivante par compte (index unique de 0006)
+    const E = '00000000-0000-4000-8000-00000000000e'
+    const id = 'e0000000-0000-4000-8000-000000000001'
+    await commeUtilisateur(E, () => db.exec(`insert into user_settings (id, rappels_json) values ('${id}', '{"veille":true}')`))
+    await expect(
+      commeUtilisateur(E, () => db.exec(`update user_settings set rappels_json = '${'x'.repeat(501)}' where id = '${id}'`)),
+    ).rejects.toThrow(/check constraint|violates/)
+  })
+})

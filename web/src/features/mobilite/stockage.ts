@@ -2,14 +2,14 @@ import { dateIsoLocale } from '../../core/common/dates'
 import { DUREES_MIN, EXERCICES, MOMENTS, TOUTES_ZONES, type MomentSeance, type SportId, type ZoneCorps } from './donnees'
 import { dureeTotale, type Etape, type PlanSeance } from './generer'
 
-// Stockage local de la mobilité : dernier choix, séance en cours de préparation et historique des séances faites. Tout reste
-// sur l'appareil (localStorage / sessionStorage) : aucune table, aucune synchronisation. Toute lecture tolère un stockage absent
-// ou corrompu et revient à une valeur par défaut.
+// Stockage local de la mobilité : dernier choix et séance en cours de préparation, propres à l'appareil (localStorage /
+// sessionStorage). L'historique des séances faites est synchronisé (table seances_mobilite, migration 0012) : l'ancien
+// historique du navigateur n'est plus que relu, une fois, pour être repris en base (useHistoriqueMobilite), puis effacé.
+// Toute lecture tolère un stockage absent ou corrompu et revient à une valeur par défaut.
 
 const CLE_CHOIX = 'pandamove.mobilite.choix'
 const CLE_PLAN = 'pandamove.mobilite.plan'
 const CLE_HISTORIQUE = 'pandamove.mobilite.historique'
-const HISTORIQUE_MAX = 60
 
 export interface ChoixMobilite {
   minutes: number
@@ -105,10 +105,13 @@ export function lireHistorique(): SeanceFaite[] {
   )
 }
 
-export function ajouterSeance(s: SeanceFaite): SeanceFaite[] {
-  const suite = [s, ...lireHistorique()].slice(0, HISTORIQUE_MAX)
-  ecrire(local(), CLE_HISTORIQUE, suite)
-  return suite
+// Après la reprise en base : l'historique du navigateur n'a plus lieu d'être.
+export function effacerHistoriqueLocal(): void {
+  try {
+    local()?.removeItem(CLE_HISTORIQUE)
+  } catch {
+    // stockage bloqué : la reprise, rejouable sans doublon, sera simplement retentée
+  }
 }
 
 // Séances faites dans les 7 derniers jours (aujourd'hui compris) et total de minutes.

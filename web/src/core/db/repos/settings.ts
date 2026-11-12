@@ -61,3 +61,20 @@ export async function saveSettings(db: Db, userId: string, patch: Partial<UserSe
   await db.writeTransaction((tx) => saveSettingsTx(tx, userId, patch))
 }
 
+
+// Réglages des rappels (migration 0012), JSON brut validé par features/outils/rappels.ts. Colonne à part : les écritures
+// des autres réglages ne la touchent pas, et l'écrire ne modifie pas les autres réglages. null = jamais réglés.
+export async function lireRappelsJson(db: DbLecture, userId: string): Promise<string | null> {
+  const ligne = await db.getOptional<Ligne>('SELECT rappels_json FROM user_settings WHERE id = ? AND deleted_at IS NULL', [idReglages(userId)])
+  return (ligne?.rappels_json as string | null | undefined) ?? null
+}
+
+export async function saveRappelsJson(db: Db, userId: string, json: string): Promise<void> {
+  await db.writeTransaction(async (tx) => {
+    const id = idReglages(userId)
+    const existante = await tx.getOptional<Ligne>('SELECT id, deleted_at FROM user_settings WHERE id = ?', [id])
+    // Pas de ligne vivante : on la crée (ou la ressuscite) avec les valeurs par défaut, comme les autres réglages
+    if (!existante || existante.deleted_at !== null) await saveSettingsTx(tx, userId, {})
+    await tx.execute('UPDATE user_settings SET rappels_json = ?, updated_at = ? WHERE id = ?', [json, new Date().toISOString(), id])
+  })
+}

@@ -33,7 +33,7 @@ src/core/sync/  → connecteur Supabase (envoi de la file, rejets définitifs si
 src/core/       → auth, catalogue (exercices de base), progression (moteur), import / import-ia / export, images (panda)
 src/features/   → home, strength, endurance (course + vélo : sorties, import FIT, cartes), calendar (+ séances cardio
                   planifiées), stats, respiration, mobilite, outils, profile, import, onboarding, demarrage
-supabase/migrations/ → 0001 à 0011 (SQL idempotent, appliqué à la main par Benoît)
+supabase/migrations/ → 0001 à 0012 (SQL idempotent, appliqué à la main par Benoît)
 supabase/tests/      → schema-rls.test.ts (PGlite), rls.test.sql (pgTAP, manuel)
 powersync/sync-rules.yaml → Sync Streams (chaque utilisateur ne reçoit que ses lignes)
 public/         → icônes, panda/ (WebP générés), mobilite/ (illustrations par exercice, -male/-female), _headers (CSP)
@@ -55,8 +55,8 @@ READMEs de module (`src/features/calendar|respiration/README.md`), specs dans `d
   droits, publication `powersync`), `schema.ts`, `sync-rules.yaml`, repo. `src/core/db/coherenceTables.test.ts` le vérifie.
 - **Migration** : nouveau fichier `00NN_*.sql`, idempotent, couvert par `schema-rls.test.ts`. Elle doit être appliquée
   dans Supabase **avant** la fusion du client qui l'utilise (sinon PGRST204 et file d'envoi bloquée) : le signaler à Benoît.
-- **Préférences locales** (`localStorage`, clés `pandamove.*`) : seulement pour des réglages d'appareil ; elles ne sont pas
-  synchronisées (historique de mobilité, rappels, réglages de circuit/RPE…).
+- **Préférences locales** (`localStorage`, clés `pandamove.*`) : seulement pour des réglages d'appareil, non synchronisés
+  (interrupteur des rappels, dernier choix de mobilité, réglages de circuit/RPE…). Tout ce qui est un historique va en base.
 - **Images du panda** : `useImagePanda(nom, { userId, taille })` + `PandaIllustration` ; variante male/female du profil
   (`usePandaVariante`), repli sur l'autre variante. Ajouter une image = l'entrée dans `scripts/build-images.mjs` puis `npm run images`.
 
