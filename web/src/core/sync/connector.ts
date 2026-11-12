@@ -1,7 +1,7 @@
 import type { PowerSyncBackendConnector, PowerSyncCredentials, PowerSyncDatabase } from '@powersync/web'
 import { UpdateType } from '@powersync/web'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { getPowerSyncUrl, getSupabase } from '../db/client'
+import type { ClientSupabase } from '../db/clientSupabase'
 import { rejetsEnvoi } from './rejetsEnvoi'
 
 // Erreurs Postgres qui ne se résoudront jamais en réessayant (données invalides, contrainte,
@@ -11,7 +11,7 @@ const ERREUR_DEFINITIVE = /^(22\d{3}|23\d{3}|42501)$/
 type Operation = { op: UpdateType; table: string; id: string }
 
 // Une opération CRUD locale traduite en requête Supabase (payload fourni, pour pouvoir le réduire).
-function envoyer(supabase: SupabaseClient, entry: Operation, opData: Record<string, unknown> | undefined) {
+function envoyer(supabase: ClientSupabase, entry: Operation, opData: Record<string, unknown> | undefined) {
   const table = supabase.from(entry.table)
   if (entry.op === UpdateType.PUT) return table.upsert({ ...opData, id: entry.id })
   // opData est partiel : un upsert violerait les NOT NULL (23502), d'où un update ciblé
@@ -37,9 +37,9 @@ function colonneAbsenteTolerable(table: string, erreur: { code?: string; message
 }
 
 export class SupabaseConnector implements PowerSyncBackendConnector {
-  private readonly client: () => SupabaseClient
+  private readonly client: () => ClientSupabase
 
-  constructor(client: () => SupabaseClient = getSupabase) {
+  constructor(client: () => ClientSupabase = getSupabase) {
     this.client = client
   }
 
