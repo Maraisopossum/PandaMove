@@ -1,11 +1,10 @@
 import type { Sortie } from '../../core/db/repos/sorties'
+import type { Trace } from './mercatorCarte'
 import { lireTrace } from './statsSorties'
 
 // Heatmap des sorties d'endurance : où l'on passe le plus souvent. Fonctions pures sur les tracés enregistrés à l'import
 // (polylignes [latitude, longitude] réduites à 300 points). Aucune carte routière : un quadrillage de cellules colorées
 // selon le nombre de sorties qui les traversent, dessiné en SVG (hors ligne).
-
-export type Trace = [number, number][]
 
 const M_PAR_DEGRE = 111_320
 const CELLULE_MIN_M = 120

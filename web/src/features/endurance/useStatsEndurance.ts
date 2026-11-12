@@ -42,6 +42,7 @@ export function useStatsEndurance(sport: Sport, { db, maintenant = MAINTENANT }:
       stats: calculerStatsEndurance(sorties, sport, periode, now),
       carte: calculerCarte(tracesDe(dansLaPeriode)),
       lieux: lieuxFrequentes(dansLaPeriode),
+      traces: tracesDe(dansLaPeriode),
       sortiesGps: tracesDe(dansLaPeriode).length,
     }
   }, [sorties, sport, periode, maintenant])
@@ -54,6 +55,6 @@ export function useStatsEndurance(sport: Sport, { db, maintenant = MAINTENANT }:
       setPeriode(p)
       ecrirePeriode(p)
     },
-    ...(calculs ?? { stats: null, carte: null, lieux: [], sortiesGps: 0 }),
+    ...(calculs ?? { stats: null, carte: null, lieux: [], traces: [], sortiesGps: 0 }),
   }
 }

@@ -144,7 +144,7 @@ export function StatsEndurance({ sport }: { sport: Sport }) {
             </dl>
           </section>
 
-          <HeatmapSorties carte={e.carte} lieux={e.lieux} sortiesGps={e.sortiesGps} sorties={st.nombre} sport={sport} />
+          <HeatmapSorties carte={e.carte} traces={e.traces} lieux={e.lieux} sortiesGps={e.sortiesGps} sorties={st.nombre} sport={sport} />
         </>
       )}
     </div>
