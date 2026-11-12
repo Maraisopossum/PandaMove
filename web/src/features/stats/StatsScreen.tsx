@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
+import { StatsEndurance } from '../endurance/StatsEndurance'
 import { degradeEchelle } from './heatmapZones'
 import { MuscleHeatmap } from './MuscleHeatmap'
 import { PERIODES } from './periode'
@@ -14,17 +16,40 @@ const LIEU = { face: 'face', dos: 'dos', liste: 'hors figure' } as const
 
 const pluriel = (n: number, mot: string) => `${mot}${n > 1 ? 's' : ''}`
 
+const VUES_STATS = [
+  { id: 'renfo', libelle: 'Renforcement' },
+  { id: 'course', libelle: 'Course' },
+  { id: 'velo', libelle: 'Vélo' },
+] as const
+
+// Écran Statistiques : trois vues, renforcement (séances jouées), course et vélo (sorties). Chaque vue garde ses propres
+// calculs : les sorties n'entrent jamais dans les statistiques de renforcement.
+export default function StatsScreen() {
+  const [vue, setVue] = useState<(typeof VUES_STATS)[number]['id']>('renfo')
+  return (
+    <>
+      <h1 className="titre-ecran">Statistiques</h1>
+      <div role="group" aria-label="Type de statistiques" className="stats__vues">
+        {VUES_STATS.map((v) => (
+          <button key={v.id} type="button" className="stats__vue" aria-pressed={vue === v.id} onClick={() => setVue(v.id)}>
+            {v.libelle}
+          </button>
+        ))}
+      </div>
+      {vue === 'renfo' ? <StatsRenforcement /> : <StatsEndurance key={vue} sport={vue} />}
+    </>
+  )
+}
+
 // Statistiques renforcement : période, résumé, heatmap musculaire et historique d'un exercice.
 // La logique vit dans useStats / presentation : ce composant ne fait qu'afficher.
-export default function StatsScreen() {
+function StatsRenforcement() {
   const { session } = useAuth()
   const s = useStats({ userId: session?.user.id })
   const g = s.graphique
 
   return (
     <>
-      <h1 className="titre-ecran">Statistiques</h1>
-
       <div role="group" aria-label="Période" className="formulaire__ligne stats__periodes">
         {PERIODES.map((p) => (
           <button key={p.id} type="button" className="bouton" aria-pressed={s.periode === p.id} onClick={() => s.choisirPeriode(p.id)}>
