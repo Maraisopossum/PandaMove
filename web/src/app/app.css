@@ -1673,8 +1673,10 @@ time,
   padding-bottom: calc(6rem + env(safe-area-inset-bottom));
 }
 
+/* `contents` : l'en-tête ne forme plus de boîte, donc le bloc collant (chrono, repos) est contenu dans tout l'écran
+   et reste fixé en défilant ; dans la boîte du <header> il disparaissait avec lui */
 .execution__entete {
-  margin-bottom: 0.5rem;
+  display: contents;
 }
 
 /* « Séance active » : surtitre en capitales au violet du module */
@@ -1693,6 +1695,7 @@ time,
   position: sticky;
   top: calc(var(--hauteur-barre) + env(safe-area-inset-top));
   z-index: 5;
+  margin-bottom: 0.5rem;
   padding-bottom: 0.25rem;
   background: var(--fond);
 }
