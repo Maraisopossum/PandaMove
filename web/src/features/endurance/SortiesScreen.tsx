@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import type { Sport } from '../../core/db/repos/sorties'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDateCourte, formaterDuree, formaterRythme } from './presentation'
+import { StatsSortiesBloc } from './StatsSortiesBloc'
 import { useImportFit } from './importFit/useImportFit'
 import { useSorties } from './useSorties'
 
@@ -47,6 +48,8 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
           ))}
         </ul>
       )}
+
+      {charge && !erreur && <StatsSortiesBloc sorties={sorties} sport={sport} />}
 
       {erreur && <p role="alert">{erreur}</p>}
       {!charge && !erreur && <p role="status">Chargement…</p>}

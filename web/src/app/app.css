@@ -11119,3 +11119,22 @@ time,
 .outils__hausse {
   color: #2e7d32;
 }
+
+/* Statistiques et tracé des sorties */
+.sorties__stats { display: grid; gap: 0.75rem; margin: 0.75rem 0; }
+.sorties__stats-grille { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0; }
+.sorties__stats-grille > div { display: grid; gap: 0.125rem; padding: 0.625rem 0.75rem; border-radius: var(--radius-carte); background: color-mix(in srgb, var(--texte) 5%, var(--surface)); }
+.sorties__stats-grille dt { color: var(--texte-secondaire); font-size: var(--taille-petit); }
+.sorties__stats-grille dd { margin: 0; font-size: 1.125rem; font-weight: 800; }
+.sorties__stats-grille dd.outils__chiffre-detail { font-size: var(--taille-petit); font-weight: 400; }
+.sorties__semaines, .sorties__courbe { margin: 0; }
+.sorties__semaines svg, .sorties__trace svg { width: 100%; height: auto; }
+.sorties--course { --couleur-sport: #2e7d32; }
+.sorties--velo { --couleur-sport: #0277bd; }
+.sorties__barre { fill: var(--couleur-sport); }
+.sorties__trace { display: grid; gap: 0.75rem; margin: 0.75rem 0; }
+.sorties__trace-ligne, .sorties__courbe-ligne { fill: none; stroke: var(--couleur-sport); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sorties__courbe-ligne { stroke-width: 2; }
+.sorties__trace-depart { fill: #2e7d32; }
+.sorties__trace-arrivee { fill: #c62828; }
+.sorties__courbe figcaption { font-size: var(--taille-petit); font-weight: 600; }
