@@ -98,7 +98,12 @@ afterEach(() => {
   delete (navigator as unknown as Record<string, unknown>).wakeLock
 })
 
-const lancerCircuit = () => fireEvent.click(screen.getByRole('button', { name: /Démarrer le circuit|Reprendre le circuit/ }))
+// Le démarrage écrit d'abord en base (asynchrone, plus lent sur la CI) : on attend que le dialogue du circuit
+// soit affiché, sans avancer l'horloge, plutôt qu'un nombre de tours fixe
+async function lancerCircuit() {
+  fireEvent.click(screen.getByRole('button', { name: /Démarrer le circuit|Reprendre le circuit/ }))
+  for (let i = 0; i < 50 && !screen.queryByRole('dialog'); i++) await viderFile()
+}
 
 describe('circuit créé à l’édition puis exécuté automatiquement', () => {
   it('affiche le rappel des réglages et le bouton dans le bloc, avant tout démarrage', async () => {
@@ -115,7 +120,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
   it('décompte, quatre séries validées dans l’ordre (durée, valeurs), repos, fin et annonce', async () => {
     const id = await creerCircuit()
     await ouvrir(id)
-    lancerCircuit()
+    await lancerCircuit()
     await passer(0)
     const d = screen.getByRole('dialog', { name: 'Squat sauté' })
     expect(within(d).getByRole('timer').textContent).toBe('3')
@@ -146,7 +151,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     const id = await creerCircuit()
     await ouvrir(id)
     fireEvent.change(screen.getByLabelText('Série 1, durée en secondes'), { target: { value: '6' } })
-    lancerCircuit()
+    await lancerCircuit()
     await passer(3)
     expect(within(screen.getByRole('dialog')).getByRole('timer').textContent).toBe('00:06')
     await passer(6)
@@ -159,7 +164,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
   it('arrêt manuel : ce qui est validé est conservé, plus rien n’est écrit ensuite', async () => {
     const id = await creerCircuit()
     await ouvrir(id)
-    lancerCircuit()
+    await lancerCircuit()
     await passer(8)
     expect(await series(id)).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Arrêter le circuit' }))
@@ -173,7 +178,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
   it('rechargement en plein circuit : aucune série perdue ni dupliquée, le circuit reprend où il en était', async () => {
     const id = await creerCircuit()
     const premier = await ouvrir(id)
-    lancerCircuit()
+    await lancerCircuit()
     await passer(8)
     expect(await series(id)).toHaveLength(1)
     premier.unmount()
@@ -181,7 +186,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     await ouvrir(id)
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(await series(id)).toHaveLength(1)
-    lancerCircuit()
+    await lancerCircuit()
     await passer(40)
     const fin = await series(id)
     expect(fin).toHaveLength(4)
@@ -191,7 +196,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
   it('onglet masqué puis de retour : tout est rattrapé depuis les horodatages, sans doublon', async () => {
     const id = await creerCircuit()
     await ouvrir(id)
-    lancerCircuit()
+    await lancerCircuit()
     await passer(0)
     // l'onglet dort 40 s : aucune minuterie ne tourne, l'horloge avance
     vi.setSystemTime(Date.now() + 40_000)
@@ -216,7 +221,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     const id = await creerCircuit()
     await ouvrir(id)
     expect(request).not.toHaveBeenCalled()
-    lancerCircuit()
+    await lancerCircuit()
     await passer(0)
     expect(request).toHaveBeenCalledWith('screen')
   })

@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+
+// Plusieurs tests démarrent leur propre instance PGlite (~1 s chacun, beaucoup plus quand la suite complète
+// tourne en parallèle) : délai propre à ce fichier, plus large que les 20 s communs, pour éviter les faux échecs.
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 })
 
 // Vérification exécutable (PGlite) du schéma et de la RLS, en complément du test pgTAP
 // `rls.test.sql` qui, lui, nécessite `supabase test db` (Docker).

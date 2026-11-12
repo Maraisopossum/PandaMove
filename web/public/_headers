@@ -1,0 +1,13 @@
+# En-têtes de sécurité servis par Cloudflare (ressources statiques Workers) sur toutes les réponses.
+# CSP : scripts et workers de l'application uniquement (+ wasm de SQLite), styles inline React,
+# tuiles OpenStreetMap pour les cartes, connexions vers Supabase et PowerSync.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.powersync.journeyapps.com wss://*.powersync.journeyapps.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=(), usb=()
+
+# Le service worker doit toujours être revalidé pour que les mises à jour arrivent
+/sw.js
+  Cache-Control: no-cache
