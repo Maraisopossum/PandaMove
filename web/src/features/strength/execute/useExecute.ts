@@ -9,6 +9,7 @@ import { getSeanceTree, lireNomSeance } from '../../../core/db/repos/seances'
 import { addSerie, changerSeriesPrevues, listSeries, supprimerSeriesNumeros, updateSerie } from '../../../core/db/repos/series'
 import type { InstanceSeance, RepsType } from '../../../core/db/types'
 import { lireGroupes } from '../catalog/filtreCatalogue'
+import { attendreSeanceSynchronisee } from '../seanceSynchronisee'
 import { lireListeEquipement } from '../progression/cible'
 import type { PropositionProgression } from '../../../core/progression/engine'
 import { calculerApercus } from '../progression/apercu'
@@ -129,10 +130,15 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
 
   // Ouverture : copie du modèle UNIQUEMENT pour une instance non terminée (parité Android) ;
   // la copie est idempotente, une réouverture ne duplique rien.
+  // Sur un appareil neuf, la séance peut arriver après l'ouverture : l'écran reste « Chargement… » jusqu'à la fin
+  // de la première synchronisation, puis relit (jamais de copie du modèle avant, voir seanceSynchronisee).
   useEffect(() => {
     let annule = false
+    const annulation = new AbortController()
     const base = db ?? getDb()
     ;(async () => {
+      await attendreSeanceSynchronisee(base, instanceId, annulation.signal)
+      if (annule) return
       const existante = await getInstance(base, instanceId)
       if (existante && !existante.isCompleted) {
         await copyTemplateToInstance(base, instanceId)
@@ -157,6 +163,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
       })
     return () => {
       annule = true
+      annulation.abort()
     }
   }, [db, instanceId, rafraichir, userId])
 
