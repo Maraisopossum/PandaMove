@@ -1,6 +1,6 @@
 import type { PowerSyncDatabase, CrudEntry, CrudTransaction } from '@powersync/web'
 import { UpdateType } from '@powersync/web'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ClientSupabase } from '../db/clientSupabase'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SupabaseConnector } from './connector'
 import { rejetsEnvoi } from './rejetsEnvoi'
@@ -30,7 +30,7 @@ function fauxSupabase(erreurs: Erreur | Erreur[] = null, session: object | null 
       }
     },
   }
-  return { client: client as unknown as SupabaseClient, appels }
+  return { client: client as unknown as ClientSupabase, appels }
 }
 
 function fausseBase(crud: Partial<CrudEntry>[]) {
@@ -244,7 +244,7 @@ describe('SupabaseConnector.fetchCredentials', () => {
   afterEach(() => vi.unstubAllEnvs())
 
   const clientAvec = (resultat: object) =>
-    ({ auth: { getSession: () => Promise.resolve(resultat) } }) as unknown as SupabaseClient
+    ({ auth: { getSession: () => Promise.resolve(resultat) } }) as unknown as ClientSupabase
 
   it('renvoie null sans session', async () => {
     const c = new SupabaseConnector(() => clientAvec({ data: { session: null }, error: null }))

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- le contexte et son hook vivent ensemble */
-import type { Session } from '@supabase/supabase-js'
+import type { Session } from '@supabase/auth-js'
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getSupabase } from '../db/client'
 

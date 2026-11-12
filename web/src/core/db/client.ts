@@ -1,5 +1,5 @@
 import { PowerSyncDatabase } from '@powersync/web'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { creerClientSupabase, type ClientSupabase } from './clientSupabase'
 import { AppSchema } from './schema'
 
 // Les clients sont créés à la demande (et non à l'import) pour que les tests et le build
@@ -12,11 +12,11 @@ function variable(nom: 'VITE_SUPABASE_URL' | 'VITE_SUPABASE_ANON_KEY' | 'VITE_PO
   return valeur
 }
 
-let supabase: SupabaseClient | undefined
+let supabase: ClientSupabase | undefined
 let db: PowerSyncDatabase | undefined
 
-export function getSupabase(): SupabaseClient {
-  supabase ??= createClient(variable('VITE_SUPABASE_URL'), variable('VITE_SUPABASE_ANON_KEY'))
+export function getSupabase(): ClientSupabase {
+  supabase ??= creerClientSupabase(variable('VITE_SUPABASE_URL'), variable('VITE_SUPABASE_ANON_KEY'))
   return supabase
 }
 
