@@ -3,6 +3,7 @@ import type { Sport } from '../../core/db/repos/sorties'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDateCourte, formaterDuree, formaterRythme } from './presentation'
 import { StatsSortiesBloc } from './StatsSortiesBloc'
+import { MiniTrace } from './MiniTrace'
 import { LienSeanceImport } from './importFit/LienSeanceImport'
 import { useImportFit } from './importFit/useImportFit'
 import { useSorties } from './useSorties'
@@ -18,27 +19,32 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
   return (
     <div className={`sorties sorties--${sport}`}>
       <h1 className="titre-ecran">{sport === 'course' ? 'Course à pied' : 'Vélo'}</h1>
-      <Link to={`${chemin}/new`} className="sorties__ajout">
-        <svg width="18" height="18" viewBox="0 0 24 24" {...trace} strokeWidth={2.4} aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        Ajouter une sortie
-      </Link>
-
-      <label className="sorties__import">
-        <input
-          type="file"
-          accept=".fit,.zip"
-          multiple
-          disabled={importFit.enCours}
-          onChange={(e) => {
-            const fichiers = Array.from(e.target.files ?? [])
-            e.target.value = ''
-            if (fichiers.length > 0) void importFit.importer(fichiers)
-          }}
-        />
-        <span>{importFit.enCours ? 'Import en cours…' : 'Importer des fichiers FIT ou zip (Suunto, Garmin, MyWoosh)'}</span>
-      </label>
+      <div className="sorties__actions-haut">
+        <Link to={`${chemin}/new`} className="sorties__ajout">
+          <svg width="18" height="18" viewBox="0 0 24 24" {...trace} strokeWidth={2.4} aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Ajouter une sortie
+        </Link>
+        <label className="sorties__import">
+          <input
+            type="file"
+            accept=".fit,.zip"
+            multiple
+            disabled={importFit.enCours}
+            aria-label="Importer des fichiers FIT ou zip (Suunto, Garmin, MyWoosh)"
+            onChange={(e) => {
+              const fichiers = Array.from(e.target.files ?? [])
+              e.target.value = ''
+              if (fichiers.length > 0) void importFit.importer(fichiers)
+            }}
+          />
+          <svg width="18" height="18" viewBox="0 0 24 24" {...trace} strokeWidth={2.2} aria-hidden="true">
+            <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+          </svg>
+          <span>{importFit.enCours ? 'Import…' : 'Importer'}</span>
+        </label>
+      </div>
       {importFit.erreurLien && <p role="alert">{importFit.erreurLien}</p>}
       {importFit.resultats.length > 0 && (
         <ul className="sorties__import-resultats">
@@ -54,7 +60,7 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
         </ul>
       )}
 
-      {charge && !erreur && <StatsSortiesBloc sorties={sorties} sport={sport} />}
+      {charge && !erreur && <StatsSortiesBloc sorties={sorties} />}
 
       {erreur && <p role="alert">{erreur}</p>}
       {!charge && !erreur && <p role="status">Chargement…</p>}
@@ -82,6 +88,8 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
           return (
             <li key={s.id}>
               <Link to={`${chemin}/${s.id}`} className="sorties__carte">
+                <MiniTrace sortie={s} />
+                <span className="sorties__corps">
                 <span className="sorties__ligne">
                   <span className="sorties__titre">{s.titre}</span>
                   <span className="sorties__date">{formaterDateCourte(s.date)}</span>
@@ -105,6 +113,12 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
                         {formaterDuree(s.dureeS)}
                       </span>
                     )}
+                    {s.fcMoy !== null && (
+                      <span>
+                        <span className="visuellement-cache">Fréquence cardiaque : </span>
+                        {s.fcMoy} bpm
+                      </span>
+                    )}
                     {rythme && (
                       <span>
                         <span className="visuellement-cache">{sport === 'course' ? 'Allure' : 'Vitesse'} : </span>
@@ -113,7 +127,7 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
                     )}
                   </span>
                 </span>
-                {s.enSalle && <span className="sorties__etiquette">En salle</span>}
+                </span>
               </Link>
             </li>
           )
