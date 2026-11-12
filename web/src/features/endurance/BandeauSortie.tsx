@@ -23,7 +23,7 @@ export function BandeauSortie({ sortie }: { sortie: Pick<Sortie, 'trace' | 'titr
   }
   return (
     <header className="sorties__bandeau">
-      <svg viewBox={`0 0 ${L} ${H}`} role="img" aria-label="Tracé du parcours" preserveAspectRatio="xMidYMid slice">
+      <svg viewBox={`0 0 ${L} ${H}`} role="img" aria-label="Tracé du parcours" >
         <path d="M0 50 Q90 34 160 60 T390 44" className="sorties__bandeau-repere sorties__bandeau-repere--large" />
         <path d="M0 170 Q120 142 200 176 T390 150" className="sorties__bandeau-repere" />
         <path d="M120 0 Q140 110 110 220" className="sorties__bandeau-repere" />
