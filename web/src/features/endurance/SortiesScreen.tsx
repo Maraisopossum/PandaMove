@@ -3,6 +3,7 @@ import type { Sport } from '../../core/db/repos/sorties'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDateCourte, formaterDuree, formaterRythme } from './presentation'
 import { StatsSortiesBloc } from './StatsSortiesBloc'
+import { LienSeanceImport } from './importFit/LienSeanceImport'
 import { useImportFit } from './importFit/useImportFit'
 import { useSorties } from './useSorties'
 
@@ -38,12 +39,16 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
         />
         <span>{importFit.enCours ? 'Import en cours…' : 'Importer des fichiers FIT ou zip (Suunto, Garmin, MyWoosh)'}</span>
       </label>
+      {importFit.erreurLien && <p role="alert">{importFit.erreurLien}</p>}
       {importFit.resultats.length > 0 && (
-        <ul className="sorties__import-resultats" role="status">
+        <ul className="sorties__import-resultats">
           {importFit.resultats.map((r) => (
             <li key={r.nom} className={`sorties__import-resultat sorties__import-resultat--${r.etat}`}>
-              <strong>{r.nom}</strong> : {r.message}
-              {r.etat === 'importee' && r.sport !== undefined && r.sport !== sport && ' (dans l’autre sport)'}
+              <p role="status" className="sorties__import-message">
+                <strong>{r.nom}</strong> : {r.message}
+                {r.etat === 'importee' && r.sport !== undefined && r.sport !== sport && ' (dans l’autre sport)'}
+              </p>
+              <LienSeanceImport resultat={r} onLier={importFit.lier} />
             </li>
           ))}
         </ul>

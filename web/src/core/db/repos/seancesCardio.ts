@@ -235,6 +235,32 @@ export async function definirValidation(db: Db, genre: GenreCardio, id: string, 
   })
 }
 
+// Nombre de séances de cardio programmées, c'est-à-dire vivantes et non validées (course et vélo, toutes dates).
+export async function compterProgrammees(db: DbLecture): Promise<number> {
+  let total = 0
+  for (const genre of ['course', 'velo'] as const) {
+    const l = await db.getOptional<{ n: number }>(`SELECT COUNT(*) AS n FROM ${tableDe(genre)} WHERE deleted_at IS NULL AND is_validated = 0`)
+    total += Number(l?.n ?? 0)
+  }
+  return total
+}
+
+// Supprime (suppression logique) toutes les séances de cardio programmées, course et vélo, en une transaction.
+// Les séances validées (faites) sont conservées. Renvoie le nombre de séances supprimées.
+export async function supprimerProgrammees(db: Db): Promise<number> {
+  return db.writeTransaction(async (tx) => {
+    const maintenant = new Date().toISOString()
+    let total = 0
+    for (const genre of ['course', 'velo'] as const) {
+      const table = tableDe(genre)
+      const l = await tx.getOptional<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} WHERE deleted_at IS NULL AND is_validated = 0`)
+      total += Number(l?.n ?? 0)
+      await tx.execute(`UPDATE ${table} SET deleted_at = ?, updated_at = ? WHERE deleted_at IS NULL AND is_validated = 0`, [maintenant, maintenant])
+    }
+    return total
+  })
+}
+
 // Suppression logique (tombstone synchronisable), jamais un DELETE. Une séance validée peut être supprimée.
 export async function supprimer(db: Db, genre: GenreCardio, id: string): Promise<void> {
   const table = tableDe(genre)

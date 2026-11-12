@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
+import { compterProgrammees, supprimerProgrammees } from '../../core/db/repos/seancesCardio'
 import type { ChampsSeanceCardio, GenreCardio, SaisieSeanceCardio } from '../../core/db/repos/seancesCardio'
 import {
   creerSeanceCardio, deplacerEvenement, ErreurCalendrier, lireEvenementsPlage, lireEvenementsProchains, modifierSeanceCardio,
@@ -105,6 +106,12 @@ export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
     (evenement: EvenementAgenda) => agir((base) => supprimerEvenement(base, evenement), 'La suppression de la séance a échoué.'),
     [agir],
   )
+  // Séances de cardio programmées (toutes dates) : décompte pour la confirmation, puis suppression en une transaction.
+  const compterCardioProgrammees = useCallback(() => compterProgrammees(db ?? getDb()), [db])
+  const supprimerCardioProgrammees = useCallback(
+    () => agir((base) => supprimerProgrammees(base), 'La suppression des séances programmées a échoué.'),
+    [agir],
+  )
   const validerCardio = useCallback(
     (evenement: EvenementAgenda) => agir((base) => validerEvenement(base, evenement, true), 'La validation de la séance a échoué.'),
     [agir],
@@ -150,6 +157,6 @@ export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
 
   return {
     chargement, erreur, jours, prochaines: donnees.prochaines, filtre, setFiltre,
-    deplacer, supprimer, validerCardio, devaliderCardio, creerCardio, modifierCardio, verifierDeplacement, effacerErreur,
+    deplacer, supprimer, compterCardioProgrammees, supprimerCardioProgrammees, validerCardio, devaliderCardio, creerCardio, modifierCardio, verifierDeplacement, effacerErreur,
   }
 }

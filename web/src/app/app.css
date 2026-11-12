@@ -11138,3 +11138,10 @@ time,
 .sorties__trace-depart { fill: #2e7d32; }
 .sorties__trace-arrivee { fill: #c62828; }
 .sorties__courbe figcaption { font-size: var(--taille-petit); font-weight: 600; }
+
+/* Lien d'une sortie importée à une séance du calendrier */
+.sorties__import-message { margin: 0; }
+.sorties__import-lien { display: grid; gap: 0.5rem; margin: 0.5rem 0 0; font-size: var(--taille-petit); }
+.sorties__import-lien .bouton { min-height: var(--hauteur-controle); }
+
+.calendrier__effacer { width: 100%; min-height: var(--hauteur-controle); margin: 0.75rem 0; color: #c62828; }

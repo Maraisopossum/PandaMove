@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import type { ResultatImportProgramme } from '../calendar/seancesCardio/importerProgramme2027'
 import { useImportProgramme, type DepsImportProgramme } from '../calendar/seancesCardio/useImportProgramme'
+import { formaterDate } from '../endurance/presentation'
 
 const pluriel = (n: number, un: string, plusieurs: string) => `${n} ${n > 1 ? plusieurs : un}`
 
@@ -14,7 +15,7 @@ function messageResultat({ creees, dejaPresentes }: ResultatImportProgramme): st
 // Onglet « Programme 2027 » : ajoute à l'agenda les séances de cardio du programme (course et vélo). La logique est
 // dans useImportProgramme et importerProgramme2027 ; ce composant affiche l'état.
 export default function ImportProgrammePanel(props: DepsImportProgramme) {
-  const { statut, resultat, erreur, importer, nbSeances, nbJalons, peutImporter, raisonBlocage } = useImportProgramme(props)
+  const { statut, resultat, erreur, importer, nbSeances, nbJalons, debut, fin, peutImporter, raisonBlocage } = useImportProgramme(props)
   const zoneResultat = useRef<HTMLDivElement>(null)
   const enCours = statut === 'importing'
 
@@ -26,7 +27,7 @@ export default function ImportProgrammePanel(props: DepsImportProgramme) {
   return (
     <>
       <p className="import__intro">
-        Ajoutez à l'agenda les {nbSeances} séances de cardio du programme 2027 (course et vélo), du 3 novembre 2026 au 6 juin 2027, dont {nbJalons} jalons.
+        Ajoutez à l'agenda les {nbSeances} séances de cardio du programme 2027 (course et vélo), du {formaterDate(debut)} au {formaterDate(fin)}, dont {nbJalons} jalons.
       </p>
 
       <div className="import__carte">
