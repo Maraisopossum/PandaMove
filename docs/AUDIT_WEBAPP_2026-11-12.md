@@ -4,8 +4,8 @@ Périmètre : code de `web/` sur `main` après la fusion des PR 34 (Mobilité) e
 Non couvert au moment de l'audit : parcours de l'app connectée écran par écran (pas d'accès au compte), Lighthouse,
 scénarios Playwright (jamais lancés).
 
-**État au soir du 12 novembre : les 11 constats sont traités** (PR 36 à 46, toutes fusionnées). Un seul point reste à
-vérifier à la main : la politique de sécurité (CSP) sur le site déployé (constat 4).
+**État au soir du 12 novembre : les 11 constats sont traités et vérifiés** (PR 36 à 46, toutes fusionnées). La politique de
+sécurité (CSP) a été contrôlée sur le site déployé (constat 4).
 
 ## Bilan
 
@@ -28,7 +28,7 @@ fichier source fait 562 lignes.
 | 1 | `app.css` : 3 271 lignes (29 %) recopiées à l'identique, donc une retouche dans la 1re copie était écrasée par la 2e | Haute (maintenance) | Corrigé : 1re copie retirée, sans effet sur le rendu (la 2e l'emportait déjà). Le CSS livré ne baisse que de 0,7 Ko, car le minifieur dédoublonnait déjà | 36 |
 | 2 | Précache PWA de 10,3 Mo, dont les 4 variantes du wasm SQLite alors que seule `wa-sqlite-async` est chargée (VFS IndexedDB, sans chiffrement) | Haute (installation, mises à jour) | Corrigé : 5,4 Mo. Images du panda et de la mobilité mises en cache à la première vue (hors ligne ensuite) | 36 |
 | 3 | Tests instables : `ExecuteCircuit` en CI, `schema-rls` proche de la limite de 20 s | Moyenne | Corrigé : les tests du circuit attendent le démarrage et les écritures en base ; `schema-rls` a un délai de 60 s. Le test du récap de progression, devenu instable après la PR 43, attend désormais le focus et le piège du dialogue | 36, 42, 46, 47 |
-| 4 | Aucun en-tête de sécurité HTTP (CSP, framing, referrer) | Moyenne | Corrigé : `web/public/_headers`, vérifié sous `wrangler dev` (wasm, workers et page OK). **À vérifier sur le site déployé** : les e2e tournent sur `vite preview`, qui ne sert pas `_headers`, donc ils ne testent pas la CSP | 36 |
+| 4 | Aucun en-tête de sécurité HTTP (CSP, framing, referrer) | Moyenne | Corrigé : `web/public/_headers`. Vérifié sur le site déployé le 12 novembre : les 5 en-têtes sont servis ; session conservée, synchro « en ligne », tuiles OpenStreetMap et heatmap affichées, aucune violation dans la console ; Supabase autorisé, origine non listée bloquée. Les e2e tournent sur `vite preview`, qui ne sert pas `_headers` : ils ne couvrent pas la CSP | 36 |
 | 5 | Manifeste daté (« renforcement » seul, couleurs blanches provisoires) ; `index.html` sans description ni theme-color | Basse | Corrigé | 36 |
 | 6 | CI Android lancée sur chaque PR alors que l'app est abandonnée | Basse | Corrigé : ignorée quand seuls `web/` ou `docs/` changent ; branche `sauvegarde-panda-stable` retirée de ses déclencheurs | 36, 41 |
 | 7 | Données conservées uniquement sur l'appareil (localStorage) : historique de mobilité, rappels, certains réglages | Basse | Corrigé (migration 0012, appliquée) : historique de mobilité (table `seances_mobilite`, reprise unique de l'ancien historique) et heures des rappels synchronisés. L'interrupteur des rappels reste par appareil (l'autorisation de notifier se donne appareil par appareil) | 40 |
