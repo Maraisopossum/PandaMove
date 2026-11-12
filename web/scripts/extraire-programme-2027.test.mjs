@@ -203,8 +203,5 @@ describe.skipIf(!existsSync(source))('fichier réel du programme 2027', () => {
     expect(e.filter((x) => x.optionnelle)).toHaveLength(7)
   })
 
-  it('le JSON versionné est à jour (relancer le script s’il diffère)', () => {
-    const versionne = JSON.parse(readFileSync(join(racineWeb, 'src', 'features', 'calendar', 'seancesCardio', 'programme2027.json'), 'utf8'))
-    expect(versionne).toEqual(entrees())
-  })
+  // Le JSON versionné n'est plus produit par ce script : c'est la version 2 (intervals.icu), voir programme2027.test.ts.
 })

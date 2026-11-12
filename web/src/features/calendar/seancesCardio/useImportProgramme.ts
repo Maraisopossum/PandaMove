@@ -124,6 +124,7 @@ export function useImportProgramme({ db, userId, synchro }: DepsImportProgramme)
   return {
     statut, resultat, erreur, importer,
     nbSeances: programme.length, nbJalons: programme.filter((e) => e.jalon).length,
+    debut: programme[0]?.date ?? '', fin: programme[programme.length - 1]?.date ?? '',
     peutImporter: blocage === null && statut !== 'importing',
     raisonBlocage: blocage,
   }

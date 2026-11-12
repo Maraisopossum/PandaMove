@@ -43,6 +43,8 @@ export function useEcranCalendrier(deps: DepsCalendrier = {}) {
   const [dateSaisie, setDateSaisie] = useState('')
   const [cibleSuppression, setCibleSuppression] = useState<EvenementAgenda | null>(null)
   const [enCours, setEnCours] = useState(false)
+  // Suppression de toutes les séances de cardio programmées : nombre à confirmer (null : dialogue fermé)
+  const [nbAEffacer, setNbAEffacer] = useState<number | null>(null)
 
   // Un événement qui ne peut pas bouger (séance de cardio validée) n'ouvre pas le dialogue : le message s'affiche à la place.
   const ouvrirDate = (e: EvenementAgenda) => {
@@ -134,6 +136,25 @@ export function useEcranCalendrier(deps: DepsCalendrier = {}) {
     }
   }
 
+  const { compterCardioProgrammees, supprimerCardioProgrammees } = cal
+  const ouvrirEffacerProgrammees = async () => {
+    try {
+      setNbAEffacer(await compterCardioProgrammees())
+    } catch (e) {
+      console.error('Décompte des séances programmées impossible', e)
+    }
+  }
+  const confirmerEffacerProgrammees = async () => {
+    if (enCours) return
+    setEnCours(true)
+    try {
+      await supprimerCardioProgrammees()
+      setNbAEffacer(null)
+    } finally {
+      setEnCours(false)
+    }
+  }
+
   const nbEvenementsMois = cal.jours.filter((j) => j.dansLeMois).reduce((n, j) => n + j.evenements.length, 0)
 
   return {
@@ -152,5 +173,6 @@ export function useEcranCalendrier(deps: DepsCalendrier = {}) {
     cibleSuppression, ouvrirSuppression: setCibleSuppression, fermerSuppression, confirmerSuppression,
     saisie, ouvrirAjout, ouvrirEdition, changerBrouillon, fermerSaisie, enregistrer,
     enCours,
+    nbAEffacer, ouvrirEffacerProgrammees, fermerEffacerProgrammees: () => setNbAEffacer(null), confirmerEffacerProgrammees,
   }
 }

@@ -6,6 +6,7 @@ import { JOURS_SEMAINE, formaterJourCourt, formaterJourLong } from './grille'
 import { FeuilleSeanceCardio } from './seancesCardio/FeuilleSeanceCardio'
 import { LigneCardio } from './seancesCardio/LigneCardio'
 import { SupprimerInstanceDialog } from './SupprimerInstanceDialog'
+import { SupprimerProgrammeesDialog } from './SupprimerProgrammeesDialog'
 import type { EvenementAgenda, InstanceVue, StatutFiltre } from './types'
 import { useEcranCalendrier } from './useEcranCalendrier'
 
@@ -253,7 +254,19 @@ export default function CalendarScreen() {
               </ul>
             )}
           </section>
+          <button type="button" className="bouton calendrier__effacer" onClick={() => void c.ouvrirEffacerProgrammees()}>
+            Supprimer toutes les séances de cardio programmées
+          </button>
         </>
+      )}
+
+      {c.nbAEffacer !== null && (
+        <SupprimerProgrammeesDialog
+          nombre={c.nbAEffacer}
+          enCours={c.enCours}
+          onConfirmer={() => void c.confirmerEffacerProgrammees()}
+          onFermer={c.fermerEffacerProgrammees}
+        />
       )}
 
       {c.cibleDate && (

@@ -156,3 +156,24 @@ describe('useImportFit', () => {
     expect(relu).toBe(1)
   })
 })
+
+describe('lien avec une séance du calendrier', () => {
+  it('propose les séances programmées proches du même sport, la plus proche d\'abord, puis lie et valide', async () => {
+    const db = createTestDb()
+    const { creer: creerCardio, lireParId } = await import('../../../core/db/repos/seancesCardio')
+    await creerCardio(db, 'course', { id: 'c-loin', date: '2026-11-09', titre: 'Loin', consigne: null, detail: null, optionnelle: false, jalon: null })
+    await creerCardio(db, 'course', { id: 'c-jour', date: '2026-11-05', titre: 'Du jour', consigne: null, detail: null, optionnelle: false, jalon: null })
+    await creerCardio(db, 'course', { id: 'c-trop', date: '2026-11-20', titre: 'Trop loin', consigne: null, detail: null, optionnelle: false, jalon: null })
+    await creerCardio(db, 'velo', { id: 'v-jour', date: '2026-11-05', titre: 'Vélo', consigne: null, detail: null, optionnelle: false, jalon: null })
+    const { result } = renderHook(() => useImportFit({ db, lire: async () => suunto() }))
+    await act(() => result.current.importer([new File(['x'], 'a.fit')]))
+    const r = result.current.resultats[0]
+    expect(r.candidats?.map((s) => s.id)).toEqual(['c-jour', 'c-loin'])
+
+    await act(() => result.current.lier(r.sortieId as string, 'c-jour'))
+    expect(result.current.resultats[0].liee?.id).toBe('c-jour')
+    expect((await lireParId(db, 'course', 'c-jour'))?.isValidated).toBe(true)
+    expect((await lireParId(db, 'course', 'c-loin'))?.isValidated).toBe(false)
+    expect((await lireSorties(db))[0].seanceId).toBe('c-jour')
+  })
+})

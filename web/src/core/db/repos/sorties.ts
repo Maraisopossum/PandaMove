@@ -295,6 +295,16 @@ export async function modifierSortie(db: Db, id: string, saisie: SaisieSortie): 
   })
 }
 
+// Lie une sortie à une séance planifiée du même sport (ou la délie avec null). La validation de la séance se fait à part.
+export async function lierSeance(db: Db, id: string, seanceId: string | null): Promise<void> {
+  await db.writeTransaction(async (tx) => {
+    const s = await lireSortie(tx, id)
+    if (!s) throw new ErreurSortie('introuvable', 'Sortie introuvable.')
+    const colonne = s.sport === 'course' ? 'seance_course_id' : 'seance_velo_id'
+    await tx.execute(`UPDATE sorties SET ${colonne} = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`, [seanceId, new Date().toISOString(), id])
+  })
+}
+
 // Suppression logique (tombstone synchronisable), jamais un DELETE.
 export async function supprimerSortie(db: Db, id: string): Promise<void> {
   await db.writeTransaction(async (tx) => {
