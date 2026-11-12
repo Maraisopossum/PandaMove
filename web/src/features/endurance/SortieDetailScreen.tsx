@@ -5,6 +5,7 @@ import { DialogueConfirmation } from '../strength/edition/DialogueConfirmation'
 import { lienValide } from '../calendar/seancesCardio/lienValide'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDate, formaterDuree, formaterRythme } from './presentation'
+import { TraceSortie } from './TraceSortie'
 import { useSortie } from './useSorties'
 
 // Détail d'une sortie (`/running/:id`, `/cycling/:id`) : métriques, notes, lien, modification et suppression.
@@ -87,6 +88,8 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
             </div>
           ))}
       </dl>
+
+      <TraceSortie sortie={s} />
 
       {s.notes && <p className="sorties__notes">{s.notes}</p>}
       {s.lien &&

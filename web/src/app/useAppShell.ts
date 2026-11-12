@@ -6,6 +6,7 @@ import { MODULES, moduleActif } from './modules'
 import { useDarkMode } from './theme'
 import { useDeconnexion } from './useDeconnexion'
 import { useDrawer } from './useDrawer'
+import { useRappelsActifs } from '../features/outils/useRappels'
 import { useInstallationCatalogue } from './useInstallationCatalogue'
 
 const CONFIRMATION_ABANDON =
@@ -20,6 +21,7 @@ export function useAppShell() {
     signOut: deconnecterSupabaseBrut,
   })
   useInstallationCatalogue(session?.user.id)
+  useRappelsActifs()
   const { refBascule, refDrawer, ...drawer } = useDrawer()
   const sombre = useDarkMode({ userId: session?.user.id })
   const deconnexion = useDeconnexion(signOutSafely)

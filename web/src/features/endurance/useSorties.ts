@@ -36,7 +36,7 @@ export function useSorties(sport: Sport, { db }: DepsSorties = {}) {
     }
   }, [lire])
 
-  return { sorties, charge, erreur }
+  return { sorties, charge, erreur, recharger: lire }
 }
 
 // Une sortie (écran de détail) : chargement, introuvable, suppression. `supprimer` renvoie true si la sortie est supprimée.

@@ -17,6 +17,8 @@ export interface DepsExport {
   maintenant?: () => Date
 }
 
+export const CLE_DERNIERE_SAUVEGARDE = 'pandamove.derniereSauvegarde'
+
 export const ERREUR_EXPORT = "L'export a échoué : aucun fichier n'a été créé. Réessayez."
 
 // Sauvegarde : génère l'export JSON v3.2 de la base locale et le télécharge. Un seul export à la fois.
@@ -35,6 +37,11 @@ export function useExport({ db, userId, telecharger = telechargerJson, maintenan
       const contenu = JSON.stringify(await construireExport(db ?? getDb(), date, userId), null, 2)
       const nom = nomFichierExport(date)
       telecharger(nom, contenu)
+      try {
+        globalThis.localStorage?.setItem(CLE_DERNIERE_SAUVEGARDE, date.toISOString())
+      } catch {
+        // stockage indisponible : la date de dernière sauvegarde n'est simplement pas retenue
+      }
       setNomFichier(nom)
       setStatut('termine')
     } catch (e) {

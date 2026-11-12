@@ -33,7 +33,7 @@ describe('Drawer', () => {
     for (const { label } of Object.values(MODULES)) {
       expect(nav.textContent).toContain(label)
     }
-    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length + 4)
+    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length + 4 + 3)
     // Sous-menus toujours visibles, en liste sémantique, même hors du module
     const sousMenus = screen.getByRole('list', { name: 'Renforcement' })
     expect(within(sousMenus).getAllByRole('link').map((l) => [l.textContent, l.getAttribute('href')])).toEqual([

@@ -1,4 +1,4 @@
-export type ModuleId = 'home' | 'strength' | 'running' | 'cycling' | 'calendar' | 'stats' | 'breathing' | 'profile' | 'import'
+export type ModuleId = 'home' | 'strength' | 'running' | 'cycling' | 'calendar' | 'stats' | 'breathing' | 'tools' | 'profile' | 'import'
 
 export interface SousLien {
   path: string
@@ -40,6 +40,18 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C', icone: 'stats' },
   // Teal : texte blanc 6,5:1 (contraste.test.ts)
   breathing: { path: '/breathing', label: 'Respiration', color: '#00695C', icone: 'souffle' },
+  // Menu à part des modules sportifs : sauvegarde, rappels, progression. Gris-bleu : texte blanc >= 4,5:1 (contraste.test.ts)
+  tools: {
+    path: '/outils',
+    label: 'Outils',
+    color: '#455A64',
+    icone: 'materiel',
+    sousLiens: [
+      { path: '/outils/donnees', label: 'Mes données' },
+      { path: '/outils/rappels', label: 'Rappels' },
+      { path: '/outils/progression', label: 'Progression' },
+    ],
+  },
   profile: { path: '/profile', label: 'Profil', color: '#576746', icone: 'profil' },
   import: { path: '/import', label: 'Import', color: '#1565C0', icone: 'import' },
 }

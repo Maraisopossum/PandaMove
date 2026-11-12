@@ -3,14 +3,14 @@ import type { Db, DbLecture } from '../Db'
 import { newId } from '../ids'
 import type { Ligne } from './mappers'
 
-// Sorties d'endurance RÉALISÉES, course et vélo (migration 0010). Distinct des séances PLANIFIÉES (seancesCardio.ts) :
+// Sorties d'endurance RÉALISÉES, course et vélo (migrations 0010 et 0011). Distinct des séances PLANIFIÉES (seancesCardio.ts) :
 // les statistiques d'endurance se calculent ici, jamais sur les séances planifiées. Aucune statistique de renforcement
 // ne lit cette table.
 
 export const TABLE_SORTIES = 'sorties'
 
 export type Sport = 'course' | 'velo'
-export type SourceSortie = 'manuel' | 'suunto' | 'mywoosh'
+export type SourceSortie = 'manuel' | 'suunto' | 'mywoosh' | 'garmin'
 
 // Mêmes bornes que les contraintes SQL de la migration 0010 (un rejet SQL 23514 est classé « définitif » par le
 // connecteur de synchro : la ligne locale serait abandonnée en silence, d'où la validation côté client).
@@ -56,6 +56,10 @@ export interface Sortie {
   empreinte: string | null
   /** Séance planifiée (du même sport) dont cette sortie est le résultat. */
   seanceId: string | null
+  /** JSON texte : tours, échantillons réduits, polyligne réduite (null pour une saisie manuelle). */
+  tours: string | null
+  serie: string | null
+  trace: string | null
   createdAt: string
 }
 
@@ -86,6 +90,10 @@ export interface SaisieSortie {
   source?: SourceSortie
   empreinte?: string | null
   seanceId?: string | null
+  /** JSON simplifié (import de fichier) : tours / kilomètres, échantillons réduits, polyligne réduite. */
+  tours?: string | null
+  serie?: string | null
+  trace?: string | null
 }
 
 export type CodeErreurSortie = 'introuvable' | 'invalide'
@@ -103,6 +111,8 @@ export class ErreurSortie extends Error {
 const invalide = (message: string): never => {
   throw new ErreurSortie('invalide', message)
 }
+
+export const SOURCES: readonly SourceSortie[] = ['manuel', 'suunto', 'mywoosh', 'garmin']
 
 export const TITRE_PAR_DEFAUT: Record<Sport, string> = { course: 'Course', velo: 'Sortie vélo' }
 
@@ -146,7 +156,7 @@ function valider(saisie: SaisieSortie): Required<Omit<SaisieSortie, 'id'>> {
     return invalide('La durée en mouvement dépasse la durée totale.')
   }
   const source = saisie.source ?? 'manuel'
-  if (source !== 'manuel' && source !== 'suunto' && source !== 'mywoosh') return invalide('Source inconnue.')
+  if (!SOURCES.includes(source)) return invalide('Source inconnue.')
   return {
     sport: saisie.sport,
     date: saisie.date,
@@ -170,6 +180,9 @@ function valider(saisie: SaisieSortie): Required<Omit<SaisieSortie, 'id'>> {
     source,
     empreinte: textePlafonne("L'empreinte", saisie.empreinte, 200),
     seanceId: nettoyer(saisie.seanceId),
+    tours: nettoyer(saisie.tours),
+    serie: nettoyer(saisie.serie),
+    trace: nettoyer(saisie.trace),
   }
 }
 
@@ -199,9 +212,12 @@ function mapSortie(l: Ligne): Sortie {
     enSalle: l.en_salle === 1,
     notes: txt(l.notes),
     lien: txt(l.lien),
-    source: l.source === 'suunto' || l.source === 'mywoosh' ? l.source : 'manuel',
+    source: SOURCES.find((x) => x === l.source) ?? 'manuel',
     empreinte: txt(l.empreinte),
     seanceId: txt(sport === 'course' ? l.seance_course_id : l.seance_velo_id),
+    tours: txt(l.tours),
+    serie: txt(l.serie),
+    trace: txt(l.trace),
     createdAt: String(l.created_at ?? ''),
   }
 }
@@ -210,7 +226,7 @@ function mapSortie(l: Ligne): Sortie {
 const COLONNES = [
   'sport', 'date', 'debut_at', 'duree_s', 'duree_deplacement_s', 'distance_m', 'denivele_pos_m', 'denivele_neg_m',
   'fc_moy', 'fc_max', 'rpe', 'puissance_moy_w', 'puissance_max_w', 'puissance_norm_w', 'cadence_moy', 'en_salle',
-  'titre', 'notes', 'lien', 'source', 'empreinte', 'seance_course_id', 'seance_velo_id',
+  'titre', 'notes', 'lien', 'source', 'empreinte', 'seance_course_id', 'seance_velo_id', 'tours', 'serie', 'trace',
 ] as const
 
 function valeurs(v: ReturnType<typeof valider>): unknown[] {
@@ -220,6 +236,7 @@ function valeurs(v: ReturnType<typeof valider>): unknown[] {
     v.titre, v.notes, v.lien, v.source, v.empreinte,
     v.sport === 'course' ? v.seanceId : null,
     v.sport === 'velo' ? v.seanceId : null,
+    v.tours, v.serie, v.trace,
   ]
 }
 
