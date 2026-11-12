@@ -1,11 +1,20 @@
 name: CI
 
+# App Android abandonnée (seule la WebApp évolue) : la CI Gradle ne tourne plus quand seuls web/ ou docs/ changent.
 on:
   pull_request:
+    paths-ignore:
+      - 'web/**'
+      - 'docs/**'
+      - '.github/workflows/web-ci.yml'
   push:
     branches:
       - main
       - sauvegarde-panda-stable
+    paths-ignore:
+      - 'web/**'
+      - 'docs/**'
+      - '.github/workflows/web-ci.yml'
 
 # Annule le run précédent d'une même PR/branche si un nouveau push arrive pendant qu'il tourne.
 concurrency:
