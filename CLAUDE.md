@@ -15,10 +15,11 @@ npx vitest run src/features/mobilite          # un dossier
 npm run build        # dist/ (PWA, service worker)
 npm run preview      # sert dist/ (seul moyen de tester le hors-ligne)
 npm run images       # régénère les WebP du panda depuis assets/ (+ src/core/images/manifest.generated.ts)
-npm run test:e2e     # Playwright, vrai Supabase/PowerSync, comptes en variables E2E_* (hors CI)
+npm run test:e2e     # Playwright, vrai Supabase/PowerSync, comptes en variables E2E_* (CI : e2e.yml, secrets GitHub)
 ```
 CI (`.github/workflows/web-ci.yml`, Node 22) : `lint` → `typecheck` → `test` → `build` sur chaque PR touchant `web/`.
-La CI Android (`ci.yml`) ne tourne plus quand seuls `web/` ou `docs/` changent.
+E2E (`e2e.yml`) : Playwright sur chaque PR `web/`, si les secrets des comptes de test existent ; jamais de trace publiée
+(dépôt public). La CI Android (`ci.yml`) ne tourne plus quand seuls `web/` ou `docs/` changent.
 
 ## Stack
 React 19 + TypeScript + Vite • React Router 8 • PowerSync (SQLite wa-sqlite dans le navigateur, hors ligne d'abord)

@@ -100,6 +100,16 @@ afterEach(() => {
 
 // Le démarrage écrit d'abord en base (asynchrone, plus lent sur la CI) : on attend que le dialogue du circuit
 // soit affiché, sans avancer l'horloge, plutôt qu'un nombre de tours fixe
+// Attend que `n` séries soient écrites en base (écritures asynchrones, plus lentes quand la suite complète tourne)
+async function attendreSeries(instanceId: string, n: number) {
+  let lignes = await series(instanceId)
+  for (let i = 0; i < 50 && lignes.length < n; i++) {
+    await viderFile()
+    lignes = await series(instanceId)
+  }
+  return lignes
+}
+
 async function lancerCircuit() {
   fireEvent.click(screen.getByRole('button', { name: /Démarrer le circuit|Reprendre le circuit/ }))
   for (let i = 0; i < 50 && !screen.queryByRole('dialog'); i++) await viderFile()
@@ -180,7 +190,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     const premier = await ouvrir(id)
     await lancerCircuit()
     await passer(8)
-    expect(await series(id)).toHaveLength(1)
+    expect(await attendreSeries(id, 1)).toHaveLength(1)
     premier.unmount()
     vi.useRealTimers()
     await ouvrir(id)
@@ -188,7 +198,7 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     expect(await series(id)).toHaveLength(1)
     await lancerCircuit()
     await passer(40)
-    const fin = await series(id)
+    const fin = await attendreSeries(id, 4)
     expect(fin).toHaveLength(4)
     expect(new Set(fin.map((s) => `${s.exercice_seance_id}#${s.numero_serie}`)).size).toBe(4)
   })

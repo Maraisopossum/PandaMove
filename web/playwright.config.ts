@@ -10,10 +10,13 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+    // Build de test : embarque l'écran /debug/write (voir src/app/routes.tsx), jamais présent dans le build déployé
+    env: { VITE_E2E: '1' },
     url: URL_PREVIEW,
     reuseExistingServer: true,
     // Build complet (tsc + vite + PWA) avant le premier test
     timeout: 300_000,
   },
-  use: { baseURL: URL_PREVIEW },
+  // Capture d'écran à l'échec seulement ; jamais de trace (elle contiendrait les mots de passe saisis)
+  use: { baseURL: URL_PREVIEW, screenshot: 'only-on-failure', trace: 'off' },
 })

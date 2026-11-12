@@ -12,6 +12,10 @@ describe('playwright.config', () => {
     expect(serveur?.url).toBe('http://localhost:4173')
   })
 
+  it('construit avec VITE_E2E=1 (écran de debug des scénarios hors ligne et RLS)', () => {
+    expect(serveur?.env).toMatchObject({ VITE_E2E: '1' })
+  })
+
   it("l'URL de base pointe sur le serveur de preview", () => {
     expect(config.use?.baseURL).toBe('http://localhost:4173')
   })

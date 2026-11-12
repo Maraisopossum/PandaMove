@@ -40,7 +40,7 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   // 2. Affectation depuis la liste (seul écran portant le 📅), puis ouverture de la séance
   await page.goto('/strength')
   const carte = page.getByRole('listitem').filter({ hasText: SEANCE })
-  await carte.getByRole('button', { name: 'Affecter à une date' }).click()
+  await carte.getByRole('button', { name: `Affecter ${SEANCE} au calendrier` }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmer' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'est affectée' })).toBeVisible()
   await page.getByRole('link', { name: 'Ouvrir la séance' }).click()

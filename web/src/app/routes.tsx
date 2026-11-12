@@ -9,8 +9,10 @@ import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
 
 // L'import dynamique est gardé par `import.meta.env.DEV` : Vite le remplace par `false` en production,
-// donc le chunk de l'écran de debug n'est jamais émis dans le build.
-const chargerDebug = import.meta.env.DEV ? () => import('../features/debug/DebugWriteScreen') : null
+// donc le chunk de l'écran de debug n'est jamais émis dans le build déployé. Seul le build des tests de bout en bout
+// (VITE_E2E=1, posé par playwright.config.ts) l'embarque : les scénarios offline-sync et rls-live s'en servent.
+const AVEC_DEBUG = import.meta.env.DEV || import.meta.env.VITE_E2E === '1'
+const chargerDebug = AVEC_DEBUG ? () => import('../features/debug/DebugWriteScreen') : null
 const DebugWriteScreen = chargerDebug ? lazy(chargerDebug) : null
 
 // Écrans chargés à la demande : un seul fallback commun
@@ -18,7 +20,7 @@ const chargement = (ecran: ReactNode) => <Suspense fallback={<p>Chargement…</p
 
 // Table de routes : `coque` est le layout commun (drawer, barre du haut, <Outlet />).
 // `dev` est paramétrable pour tester l'absence de la route de debug hors développement.
-export function construireRoutes(coque: ReactNode, dev: boolean = import.meta.env.DEV): RouteObject[] {
+export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): RouteObject[] {
   const enfants: RouteObject[] = [
     { index: true, element: chargement(<HomeScreen />) },
     { path: 'strength', element: chargement(<SeanceListScreen />) },

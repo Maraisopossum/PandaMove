@@ -1,0 +1,82 @@
+# Tests de bout en bout (Playwright) de la WebApp, sur le VRAI Supabase et le vrai PowerSync, avec deux comptes de test.
+# Distinct de web-ci.yml (lint, types, Vitest, build) : plus lent, dépend du réseau et de secrets.
+#
+# Secrets à créer dans GitHub (Settings → Secrets and variables → Actions), jamais dans un fichier versionné :
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_POWERSYNC_URL : mêmes valeurs que web/.env.local ;
+#   E2E_EMAIL / E2E_PASSWORD et E2E_EMAIL2 / E2E_PASSWORD2 : deux comptes de TEST distincts (Supabase → Authentication → Users),
+#   jamais un compte personnel (les scénarios importent et créent des séances dans le compte).
+# Sans ces secrets, le job s'arrête proprement avec un avertissement (aucun test lancé, aucun échec).
+name: E2E
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/e2e.yml'
+  workflow_dispatch:
+
+# Les scénarios partagent les mêmes comptes de test : jamais deux exécutions en même temps.
+concurrency:
+  group: e2e-comptes-de-test
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: web
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_POWERSYNC_URL: ${{ secrets.VITE_POWERSYNC_URL }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_EMAIL2: ${{ secrets.E2E_EMAIL2 }}
+      E2E_PASSWORD2: ${{ secrets.E2E_PASSWORD2 }}
+    steps:
+      - name: Secrets présents ?
+        id: secrets
+        working-directory: .
+        run: |
+          manquants=""
+          for n in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY VITE_POWERSYNC_URL E2E_EMAIL E2E_PASSWORD E2E_EMAIL2 E2E_PASSWORD2; do
+            [ -z "${!n}" ] && manquants="$manquants $n"
+          done
+          if [ -n "$manquants" ]; then
+            echo "::warning::Tests de bout en bout non lancés, secrets absents :$manquants (voir l'en-tête de .github/workflows/e2e.yml)"
+            echo "pret=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.pret == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.pret == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        if: steps.secrets.outputs.pret == 'true'
+      - name: Navigateur Playwright (Chromium)
+        if: steps.secrets.outputs.pret == 'true'
+        run: npx playwright install --with-deps chromium
+      # E2E_REQUIRED=1 : une variable manquante fait échouer au lieu de sauter. Un seul worker : comptes partagés.
+      - name: Scénarios
+        if: steps.secrets.outputs.pret == 'true'
+        env:
+          E2E_REQUIRED: '1'
+        # Ni trace ni rapport HTML : ils contiendraient les valeurs saisies (mots de passe des comptes de test) et le
+        # dépôt est public. Les journaux, eux, masquent les secrets. Captures d'écran en cas d'échec seulement.
+        run: npx playwright test --workers=1 --reporter=list
+      - name: Captures d'écran (en cas d'échec)
+        if: failure() && steps.secrets.outputs.pret == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-e2e
+          path: web/test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 7
