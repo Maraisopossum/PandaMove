@@ -10,26 +10,31 @@ debut = src.index('// Zones de la heatmap musculaire')
 fin = src.index('export type VueHeatmap')
 entete = '''// Zones de la heatmap musculaire, superposées aux fonds public/panda/heatmap-{variante}-{vue}.webp
 // (600 × 900, générés par scripts/build-images.mjs depuis assets/11_Heatmaps ; taille unique, fixée par ces tracés).
-// Tracés des muscles DESSINÉS : contours obtenus par segmentation de chaque image (Gemini), puis nettoyés (remplissage,
-// lissage, découpe sur la silhouette du personnage, aucun chevauchement entre muscles) et simplifiés en chemins M / L / Z.
+// Tracés repassés sur les contours DESSINÉS : les traits sombres de l'image délimitent des zones fermées, numérotées ; chaque
+// zone est affectée à un groupe (classification Gemini, corrigée à la main dans scripts/heatmap/corrections.py), puis les zones
+// d'un même muscle sont réunies et simplifiées en chemins M / L / Z (aucun chevauchement entre muscles).
 // Chaque variante a son propre tracé (silhouettes male et female différentes). Les muscles pairs ont leurs deux côtés dans
-// le même chemin. Chaque groupe apparaît UNE fois : sur la vue où il se voit le mieux, ou dans la « liste » (barres sous
-// la figure) quand aucune vue ne le montre (adducteurs couverts par le short, « Autre »).
-// Pour refaire les tracés (nouvelle illustration) : segmenter à nouveau les quatre images et régénérer ce fichier.
+// le même chemin. Un groupe peut être tracé sur les deux vues (ex. triceps vus de face) ; sa vue « principale » sert à la
+// liste sous la figure. Sans aucun tracé, il est seulement dans la « liste » (adducteurs couverts par le short, « Autre »).
+// Pour corriger ou refaire les tracés : scripts/heatmap/README.md (ce fichier est régénéré par ecrire_ts.py).
 
 '''
 src = src[:debut] + entete + src[fin:]
 
-a = src.index('const face = ')
+a = src.index('const zone = ') if 'const zone = ' in src else src.index('const face = ')
 b = src.index('export const HEATMAP_ZONES')
-src = src[:a] + '''const face = (svgPath: string): ZoneHeatmap => ({ vue: 'face', svgPath })
-const dos = (svgPath: string): ZoneHeatmap => ({ vue: 'dos', svgPath })
-const LISTE: ZoneHeatmap = { vue: 'liste', svgPath: null }
+def zone(z):
+    if z['vue'] == 'liste':
+        return 'LISTE'
+    traces = ', '.join(f"{vue}: '{z['traces'][vue]}'" for vue in ('face', 'dos') if vue in z['traces'])
+    return f"zone('{z['vue']}', {{ {traces} }})"
+
+
+src = src[:a] + '''const zone = (vue: VueHeatmap, traces: Partial<Record<VueHeatmap, string>>): ZoneHeatmap => ({ vue, traces })
+const LISTE: ZoneHeatmap = { vue: 'liste', traces: {} }
 
 ''' + ''.join(
-    f'const {nom}: Record<MuscleGroup, ZoneHeatmap> = {{\n' + ''.join(
-        f"  {g}: " + ('LISTE' if zones[v][g]['svgPath'] is None else f"{zones[v][g]['vue']}('{zones[v][g]['svgPath']}')") + ',\n'
-        for g in ORDRE) + '}\n\n'
+    f'const {nom}: Record<MuscleGroup, ZoneHeatmap> = {{\n' + ''.join(f"  {g}: {zone(zones[v][g])},\n" for g in ORDRE) + '}\n\n'
     for nom, v in (('MALE', 'male'), ('FEMALE', 'female'))) + src[b:]
 open(CIBLE, 'w', encoding='utf-8').write(src)
 print('ok')

@@ -5,7 +5,8 @@ Régénèrent `src/features/stats/heatmapZones.ts` et les légendes (`assets/11_
 ## Principe
 
 1. `classer.py <variante> <vue>` : détecte les traits sombres de l'image, en tire les zones fermées (`etiq_*.npy`), les numérote (`ids_*.png`) puis demande à Gemini à quel muscle correspond chaque numéro (`classes_*.json`).
-2. `corrections.py` : corrections manuelles (numéro de zone → groupe, limites en hauteur).
+2. `corrections.py` : corrections manuelles (numéro de zone → groupe, limites en hauteur, découpes en largeur).
+   Les fichiers `etiq_*.npy` ne sont pas versionnés : sans eux, relancer la seule partie détection de `classer.py` (la numérotation est déterministe ; les `classes_*.json` versionnés sont dans `assets/11_Heatmaps/legendes/`).
 3. `assembler.py` : réunit les zones d'un même muscle et écrit les contours (`zones_trace.json`, `trace_*.png` de contrôle).
 4. `ecrire_ts.py` : réécrit `heatmapZones.ts` depuis `zones_trace.json`.
 5. `legendes.py <dossier>` : produit les planches de légende numérotées.

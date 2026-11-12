@@ -12,7 +12,9 @@ const VUES = [
   { id: 'dos', libelle: 'Dos' },
 ] as const
 
-const LIEU = { face: 'face', dos: 'dos', liste: 'hors figure' } as const
+// Où voir le groupe sur la figure : une vue, les deux, ou aucune
+const lieu = (traces: { face?: string; dos?: string }) =>
+  traces.face && traces.dos ? 'face et dos' : traces.face ? 'face' : traces.dos ? 'dos' : 'hors figure'
 
 const pluriel = (n: number, mot: string) => `${mot}${n > 1 ? 's' : ''}`
 
@@ -119,7 +121,7 @@ function StatsRenforcement() {
               {s.groupes.map((m) => (
                 <li key={m.groupe} className="stats__barre">
                   <span className="stats__barre-nom">
-                    {m.libelle} <span className="stats__barre-lieu">({LIEU[m.vue]})</span>
+                    {m.libelle} <span className="stats__barre-lieu">({lieu(m.traces)})</span>
                   </span>
                   <span className="stats__barre-piste" aria-hidden="true">
                     <span className="stats__barre-remplie" style={{ width: `${Math.round(m.ratio * 100)}%`, background: m.couleur ?? 'transparent' }} />

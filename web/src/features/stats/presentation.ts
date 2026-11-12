@@ -29,9 +29,10 @@ export interface GroupeVue {
   niveau: number
   libelleNiveau: string
   couleur: string | null
-  /** Vue de la figure où se trouve la zone (« liste » : barre seule sous la figure) */
+  /** Vue principale de la zone (« liste » : barre seule sous la figure) */
   vue: VueHeatmap | 'liste'
-  svgPath: string | null
+  /** Tracé sur chaque vue où le groupe figure (une ou deux vues, aucune pour « liste ») */
+  traces: Partial<Record<VueHeatmap, string>>
 }
 
 // Les 16 groupes, du plus travaillé au moins travaillé (puis ordre du catalogue).
@@ -45,7 +46,7 @@ export function groupesVue(volume: Record<MuscleGroup, number>, variante: PandaV
     const zone = HEATMAP_ZONES[variante][groupe]
     return {
       groupe, libelle: LIBELLES_GROUPE[groupe], series, ratio, niveau, libelleNiveau: LIBELLES_NIVEAU[niveau],
-      couleur: COULEURS_NIVEAU[niveau], vue: zone.vue, svgPath: zone.svgPath,
+      couleur: COULEURS_NIVEAU[niveau], vue: zone.vue, traces: zone.traces,
     }
   }).sort((a, b) => b.series - a.series || rang(a.groupe) - rang(b.groupe))
 }

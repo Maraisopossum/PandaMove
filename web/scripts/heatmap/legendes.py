@@ -31,7 +31,9 @@ for v in ('male', 'female'):
         fond.alpha_composite(im)
         base = np.array(fond.convert('RGB'))
         etiq = np.load(os.path.join(SP, f'etiq_{v}_{vue}.npy'))
-        classes = {int(k): g for k, g in json.load(open(os.path.join(SP, f'classes_{v}_{vue}.json'), encoding='utf-8')).items()}
+        # Même alias que assembler.py : l'arrière des épaules (vue de dos) compte comme épaules
+        classes = {int(k): {'EPAULES_ARRIERE': 'EPAULES'}.get(g, g)
+                   for k, g in json.load(open(os.path.join(SP, f'classes_{v}_{vue}.json'), encoding='utf-8')).items()}
         classes.update(CORRECTIONS.get((v, vue), {}))
         ymax = LIMITES_Y.get((v, vue), {})
         calque = base.copy()

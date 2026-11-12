@@ -20,18 +20,19 @@ export function MuscleHeatmap({ image, vue, zones }: Props) {
       <div className="heatmap__cadre">
         <img className="heatmap__image" src={image} alt="" width={largeur} height={hauteur} decoding="async" />
         <svg className="heatmap__calque" viewBox={`0 0 ${largeur} ${hauteur}`} preserveAspectRatio="xMidYMid meet" role="group" aria-label={`Zones musculaires, vue ${NOM_VUE[vue]}`}>
-          {zones.map((z) =>
-            z.svgPath ? (
+          {zones.map((z) => {
+            const trace = z.traces[vue]
+            return trace ? (
               <path
                 key={z.groupe}
-                d={lisserTrace(z.svgPath)}
+                d={lisserTrace(trace)}
                 className={z.couleur ? 'heatmap__zone' : 'heatmap__zone heatmap__zone--vide'}
                 fill={z.couleur ?? 'transparent'}
               >
                 <title>{`${z.libelle} : ${libelleSeries(z.series)} (${z.libelleNiveau.toLowerCase()})`}</title>
               </path>
-            ) : null,
-          )}
+            ) : null
+          })}
         </svg>
       </div>
       <figcaption className="heatmap__legende">Séries par muscle principal sur la période, vue {NOM_VUE[vue]}.</figcaption>
