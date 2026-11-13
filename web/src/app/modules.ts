@@ -36,12 +36,12 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
   // Vert (course) et bleu (vélo) : texte blanc >= 4,5:1 (contraste.test.ts)
   running: { path: '/running', label: 'Course', color: '#2E7D32', icone: 'course' },
   cycling: { path: '/cycling', label: 'Vélo', color: '#0277BD', icone: 'velo' },
-  calendar: { path: '/calendar', label: 'Calendrier', color: '#D24700', icone: 'calendrier' },
-  stats: { path: '/stats', label: 'Statistiques', color: '#BF360C', icone: 'stats' },
   // Teal : texte blanc 6,5:1 (contraste.test.ts)
   breathing: { path: '/breathing', label: 'Respiration', color: '#00695C', icone: 'souffle' },
   // Rose framboise : texte blanc >= 4,5:1 (contraste.test.ts)
   mobility: { path: '/mobility', label: 'Mobilité', color: '#AD1457', icone: 'mobilite' },
+  calendar: { path: '/calendar', label: 'Calendrier', color: '#D24700', icone: 'calendrier' },
+  stats: { path: '/stats', label: 'Statistiques', color: '#BF360C', icone: 'stats' },
   // Menu à part des modules sportifs : sauvegarde, rappels, progression. Gris-bleu : texte blanc >= 4,5:1 (contraste.test.ts)
   tools: {
     path: '/outils',

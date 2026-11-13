@@ -14,3 +14,5 @@ Noms : `accueil`, `halteres` (renforcement), `course`, `velo`, `calendrier`, `st
 Associer une pastille à un module : champ `icone` de `MODULES` (`web/src/app/modules.ts`). Un test vérifie que chaque fichier référencé existe.
 
 Pour en refaire une : relancer `icone.py` avec la même consigne de style, puis `detourer.py`, et copier le résultat dans `web/public/icons/menu/`.
+
+**Vélo** : le cadre a du blanc enclavé qui doit rester transparent (le détourage classique ne retire que le fond relié aux bords). `detourer_velo.py <source> <sortie.webp> <aperçu.png>` retire aussi les zones blanches enclavées dont le pourtour est sombre, hors des roues (dont les cellules entre rayons restent blanches), puis écrit l'aperçu sur fond blanc, bleu et sombre.
