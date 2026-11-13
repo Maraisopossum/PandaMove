@@ -709,3 +709,80 @@ describe('0012 : historique de mobilité et réglages des rappels', () => {
     ).rejects.toThrow(/check constraint|violates/)
   })
 })
+
+describe('0013 : rappels par notification push', () => {
+  const ENDPOINT_A = 'https://fcm.googleapis.com/fcm/send/abonnement-de-a-0123456789'
+  const abonner = (endpoint: string, fuseau = 'Europe/Paris') =>
+    db.exec(`insert into push_abonnements (endpoint, cle_p256dh, cle_auth, fuseau) values ('${endpoint}', 'cle-p256dh', 'cle-auth', '${fuseau}')`)
+
+  beforeAll(async () => {
+    await db.exec(migration('0013_rappels_push.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0013_rappels_push.sql'))
+  })
+
+  it('un abonnement appartient à son compte (user_id = auth.uid()) ; un autre compte ne le voit ni ne le modifie', async () => {
+    await commeUtilisateur(A, () => abonner(ENDPOINT_A))
+    const a = await commeUtilisateur(A, () => db.query<{ user_id: string; fuseau: string }>('select user_id, fuseau from push_abonnements'))
+    expect(a.rows).toEqual([{ user_id: A, fuseau: 'Europe/Paris' }])
+    const b = await commeUtilisateur(B, () => db.query<{ n: number }>('select count(*)::int as n from push_abonnements'))
+    expect(b.rows[0].n).toBe(0)
+    const maj = await commeUtilisateur(B, () => db.query(`update push_abonnements set fuseau = 'UTC' where endpoint = '${ENDPOINT_A}'`))
+    expect(maj.affectedRows).toBe(0)
+    const sup = await commeUtilisateur(B, () => db.query(`delete from push_abonnements where endpoint = '${ENDPOINT_A}'`))
+    expect(sup.affectedRows).toBe(0)
+  })
+
+  it('un appareil = une ligne : endpoint unique, même pour un autre compte', async () => {
+    await expect(commeUtilisateur(A, () => abonner(ENDPOINT_A))).rejects.toThrow(/duplicate key|unique/i)
+    await expect(commeUtilisateur(B, () => abonner(ENDPOINT_A))).rejects.toThrow(/duplicate key|unique/i)
+  })
+
+  it('le propriétaire peut se désabonner (suppression physique accordée)', async () => {
+    const endpoint = 'https://fcm.googleapis.com/fcm/send/abonnement-a-supprimer-01'
+    await commeUtilisateur(B, () => abonner(endpoint))
+    const sup = await commeUtilisateur(B, () => db.query(`delete from push_abonnements where endpoint = '${endpoint}'`))
+    expect(sup.affectedRows).toBe(1)
+  })
+
+  it.each([
+    ['endpoint trop court', "insert into push_abonnements (endpoint, cle_p256dh, cle_auth) values ('https://x', 'k', 'a')"],
+    ['clé vide', "insert into push_abonnements (endpoint, cle_p256dh, cle_auth) values ('https://fcm.googleapis.com/fcm/send/clevide0123456789', '', 'a')"],
+    ['fuseau de plus de 64 caractères', `insert into push_abonnements (endpoint, cle_p256dh, cle_auth, fuseau) values ('https://fcm.googleapis.com/fcm/send/fuseaulong012345', 'k', 'a', '${'x'.repeat(65)}')`],
+  ])('refuse : %s', async (_cas, sql) => {
+    await expect(commeUtilisateur(A, () => db.exec(sql))).rejects.toThrow(/check constraint|violates/)
+  })
+
+  it('anon n’a aucun droit sur les deux tables ; authenticated n’a aucun accès à la mémoire anti-doublon', async () => {
+    for (const table of ['push_abonnements', 'rappels_push_envoyes']) {
+      const r = await db.query<{ ok: boolean }>(`select has_table_privilege('anon', 'public.${table}', 'SELECT, INSERT, UPDATE, DELETE') as ok`)
+      expect(r.rows[0].ok, table).toBe(false)
+    }
+    await expect(commeUtilisateur(A, () => db.query('select * from rappels_push_envoyes'))).rejects.toThrow(/permission denied/)
+    await expect(
+      commeUtilisateur(A, () => db.exec(`insert into rappels_push_envoyes (user_id, cle) values ('${A}', 'x')`)),
+    ).rejects.toThrow(/permission denied/)
+    const rls = await db.query<{ relname: string; relrowsecurity: boolean }>(
+      `select relname, relrowsecurity from pg_class where relname in ('push_abonnements', 'rappels_push_envoyes') order by relname`,
+    )
+    expect(rls.rows).toEqual([
+      { relname: 'push_abonnements', relrowsecurity: true },
+      { relname: 'rappels_push_envoyes', relrowsecurity: true },
+    ])
+  })
+
+  it('la mémoire anti-doublon est lisible et écrite par le rôle de service, une clé n’y figure qu’une fois par compte', async () => {
+    await db.exec(`insert into rappels_push_envoyes (user_id, cle) values ('${A}', 'abo|s1|2026-11-13|veille')`)
+    await expect(db.exec(`insert into rappels_push_envoyes (user_id, cle) values ('${A}', 'abo|s1|2026-11-13|veille')`)).rejects.toThrow(/duplicate key/)
+    await db.exec(`insert into rappels_push_envoyes (user_id, cle) values ('${B}', 'abo|s1|2026-11-13|veille')`)
+  })
+
+  it('ces tables ne sont pas synchronisées : absentes des règles PowerSync et du schéma local', () => {
+    const regles = readFileSync(resolve(import.meta.dirname, '../../powersync/sync-rules.yaml'), 'utf8')
+    const schema = readFileSync(resolve(import.meta.dirname, '../../src/core/db/schema.ts'), 'utf8')
+    for (const t of ['push_abonnements', 'rappels_push_envoyes']) {
+      expect(regles).not.toContain(t)
+      expect(schema).not.toContain(t)
+    }
+  })
+})

@@ -34,7 +34,8 @@ src/core/sync/  → connecteur Supabase (envoi de la file, rejets définitifs si
 src/core/       → auth, catalogue (exercices de base), progression (moteur), import / import-ia / export, images (panda)
 src/features/   → home, strength, endurance (course + vélo : sorties, import FIT, cartes), calendar (+ séances cardio
                   planifiées), stats, respiration, mobilite, outils, profile, import, onboarding, demarrage
-supabase/migrations/ → 0001 à 0012 (SQL idempotent, appliqué à la main par Benoît)
+supabase/migrations/ → 0001 à 0013 (SQL idempotent, appliqué à la main par Benoît)
+supabase/functions/ → fonction `envoyer-rappels` (push, Deno ; déployée à la main, voir son README)
 supabase/tests/      → schema-rls.test.ts (PGlite), rls.test.sql (pgTAP, manuel)
 powersync/sync-rules.yaml → Sync Streams (chaque utilisateur ne reçoit que ses lignes)
 public/         → icônes, panda/ (WebP générés), mobilite/ (illustrations par exercice, -male/-female), _headers (CSP)
@@ -73,7 +74,7 @@ READMEs de module (`src/features/calendar|respiration/README.md`), specs dans `d
 
 ## Ce que Claude ne fait pas sans demande explicite
 - Fusionner une PR (`gh pr merge` seulement quand Benoît le demande).
-- Appliquer une migration ou déployer quoi que ce soit côté Supabase / PowerSync (Benoît le fait à la main).
+- Appliquer une migration ou déployer quoi que ce soit côté Supabase / PowerSync (Benoît le fait à la main) : migrations, règles de synchro, fonctions Edge, secrets (clés VAPID, CRON_SECRET), tâches `pg_cron`.
 - Supprimer des branches distantes.
 - Toucher `google-services.json`, `app/keystore/`, `gradle/libs.versions.toml`, ou committer `web/.env.local`.
 

@@ -15,6 +15,10 @@ shadow_port = 54320
 # Version majeure de Postgres : 17 par défaut (à aligner sur la version du projet hébergé)
 major_version = 17
 
+# Rappels push : appelée par une tâche planifiée avec un secret partagé (CRON_SECRET), pas par un utilisateur connecté
+[functions.envoyer-rappels]
+verify_jwt = false
+
 [studio]
 enabled = true
 port = 54323

@@ -4,6 +4,7 @@ import { useAuth } from '../../core/auth/AuthProvider'
 import { getDb } from '../../core/db/client'
 import type { Db, DbLecture } from '../../core/db/Db'
 import { lireRappelsJson, saveRappelsJson } from '../../core/db/repos/settings'
+import { CLE_PUSH_ACTIF } from './push'
 import { lireEvenementsPlage } from '../calendar/calendrier'
 import {
   CLE_RAPPELS_ENVOYES,
@@ -134,6 +135,8 @@ export function useRappelsActifs({ db, userId, maintenant = MAINTENANT, envoyer 
   useEffect(() => {
     const verifier = async () => {
       if (enCours.current || typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+      // Rappels par push activés sur cet appareil : le serveur s'en charge, le planificateur local ferait doublon
+      if (window.localStorage.getItem(CLE_PUSH_ACTIF) === '1') return
       const locaux = lireReglagesStockes()
       if (!locaux.actif) return
       enCours.current = true

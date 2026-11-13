@@ -55,6 +55,7 @@ Exécuter les migrations **dans l'ordre**, une seule fois chacune, dans l'édite
 10. `supabase/migrations/0010_sorties.sql` : table `sorties` (activités de course et de vélo réellement faites, import de fichiers)
 11. `supabase/migrations/0011_sorties_source_garmin.sql` : accepte la source `garmin` pour une sortie
 12. `supabase/migrations/0012_mobilite_rappels.sql` : table `seances_mobilite` (historique de mobilité) et colonne `user_settings.rappels_json` (réglages des rappels)
+13. `supabase/migrations/0013_rappels_push.sql` : tables `push_abonnements` et `rappels_push_envoyes` (rappels par notification push). **Hors synchronisation PowerSync** : rien à changer dans les règles. Facultative : sans elle et sans la fonction, l'application fonctionne comme avant.
 
 Toutes sont idempotentes. Règle générale : une migration s'applique **avant** la fusion sur `main` du client qui l'utilise, puis les règles PowerSync (`powersync/sync-rules.yaml`) sont redéployées si de nouvelles tables apparaissent.
 
@@ -200,6 +201,15 @@ Module repris de l'application Android : quatre méthodes intégrées (cohérenc
 - **Écran gardé allumé** pendant la séance (API Screen Wake Lock, quand le navigateur l'offre). Il n'y a pas de service d'arrière-plan comme sur Android : si l'onglet passe en arrière-plan, le temps continue de s'écouler mais les sons peuvent s'interrompre selon le navigateur.
 - **Données** : tables `methodes_respiration` et `seances_respiration` (migration `0009_respiration.sql`, à appliquer avant les règles PowerSync puis le client). Une séance n'est enregistrée que menée jusqu'au bout. Détail dans `src/features/respiration/README.md`.
 - La respiration est dans la sauvegarde JSON (complément `pandamoveWeb`, voir « Sauvegarde »).
+
+## Rappels de séance
+
+Écran Outils → Rappels : rappel la veille et le jour même, heures au choix (synchronisées entre appareils, voir la migration 0012 ; l'interrupteur reste propre à chaque appareil). Deux modes :
+
+- **Notifications locales** (par défaut) : le planificateur de l'application vérifie chaque minute et notifie tant que PandaMove est ouvert ou en arrière-plan ; un rappel dû est envoyé à la prochaine ouverture.
+- **Notifications push, application fermée** (option « Aussi quand l'application est fermée ») : le serveur envoie le rappel à l'heure locale de l'appareil, même application fermée. Il faut déployer une fonction Supabase et une tâche planifiée à la main : guide complet dans `supabase/functions/envoyer-rappels/README.md` (migration 0013, clés VAPID, secrets, `supabase functions deploy`, `pg_cron`, variable de build `VITE_VAPID_PUBLIC_KEY`). Sans cette variable, l'option n'est pas proposée. Quand le push est actif sur un appareil (drapeau local `pandamove.push.actif`), le planificateur local s'y met en retrait pour ne pas doubler la notification. Sur iPhone / iPad : iOS 16.4 ou plus, application installée sur l'écran d'accueil.
+
+Les gestionnaires `push` et `notificationclick` sont dans `public/push-sw.js`, chargé par le service worker principal (`workbox.importScripts`). Le message est du JSON produit par notre serveur ; toute autre forme est ignorée.
 
 ## Course et vélo (sorties)
 
