@@ -16,6 +16,8 @@ self.addEventListener('push', (evenement) => {
     // Même identifiant que la notification locale : un rappel déjà affiché est remplacé, pas doublé
     tag: typeof message.cle === 'string' ? message.cle : undefined,
     icon: '/icons/icon-192.png',
+    // Petite icône de la barre d'état Android (silhouette de panda, blanc + transparence) : sans elle, Android affiche une cloche
+    badge: '/icons/badge-96.png',
   }
   evenement.waitUntil(self.registration.showNotification(message.titre, options))
 })
