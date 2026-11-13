@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import type { ComplementWeb } from './complementWeb'
 import type {
   BlocDtoSchema,
   CustomExerciseDtoSchema,
@@ -89,4 +90,6 @@ export interface PandaMoveExport {
   customExercises: CustomExerciseExport[]
   objectifsProgression: ObjectifExport[]
   equipmentConfig: EquipmentConfigExport | null
+  /** Complément web : sorties, cardio planifié, respiration, mobilité, rappels (ignoré par l'import Android). */
+  pandamoveWeb: ComplementWeb
 }

@@ -46,6 +46,7 @@ describe('applyImportPlan', () => {
       series: p.rows.series_realisees.length,
       exercises: p.rows.exercises.length,
       objectifs: p.rows.objectifs_progression.length,
+      complement: 0,
       ignores: p.report.ignores,
     })
     expect(comptes.seances).toBeGreaterThan(0)

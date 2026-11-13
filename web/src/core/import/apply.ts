@@ -1,6 +1,7 @@
 import type { Db, DbTx } from '../db/Db'
 import { getSettings, saveSettingsTx } from '../db/repos/settings'
 import { upsertRow } from '../db/upsert'
+import { appliquerComplement, totalComplement, type PlanComplement } from './complementWeb'
 import { mergeEquipment, type ImportPlan, type TableName } from './plan'
 
 export interface ImportReport {
@@ -9,6 +10,8 @@ export interface ImportReport {
   series: number
   exercises: number
   objectifs: number
+  /** Lignes du complément web écrites (sorties, cardio planifié, respiration, mobilité) ; 0 sans complément. */
+  complement: number
   ignores: string[]
 }
 
@@ -89,7 +92,7 @@ async function remplacerCopiesEnCollision(tx: DbTx, plan: ImportPlan): Promise<s
 // et est relancée. « L'export gagne » : une ligne complète remplace la ligne locale de même id
 // (réimporter deux fois donne les mêmes comptes). Les exercices minimaux (créés pour une référence
 // absente du fichier) ne sont insérés que s'ils n'existent pas, pour ne jamais écraser une fiche.
-export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportReport> {
+export async function applyImportPlan(db: Db, plan: ImportPlan, complement: PlanComplement | null = null): Promise<ImportReport> {
   const minimaux = new Set(plan.exercisesMinimauxIds)
   return db.writeTransaction(async (tx) => {
     // AVANT les upserts : PowerSync rejoue les écritures dans l'ordre d'exécution. Les copies web
@@ -118,13 +121,17 @@ export async function applyImportPlan(db: Db, plan: ImportPlan): Promise<ImportR
       await saveSettingsTx(tx, plan.userId, { equipmentJson: JSON.stringify(fusion) })
     }
 
+    // Complément web (sorties, respiration, mobilité, rappels) : dans la même transaction, tout ou rien
+    if (complement) await appliquerComplement(tx, complement, plan.userId)
+
     return {
       seances: ecrites.seances ?? 0,
       instances: ecrites.instances_seance ?? 0,
       series: ecrites.series_realisees ?? 0,
       exercises: ecrites.exercises ?? 0,
       objectifs: ecrites.objectifs_progression ?? 0,
-      ignores: [...plan.report.ignores, ...rattachements],
+      complement: complement ? totalComplement(complement) : 0,
+      ignores: [...plan.report.ignores, ...rattachements, ...(complement?.remarques ?? [])],
     }
   })
 }

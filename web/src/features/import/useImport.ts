@@ -2,13 +2,18 @@ import { useCallback, useRef, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
 import { applyImportPlan, type ImportReport } from '../../core/import/apply'
+import { extraireComplement, type PlanComplement } from '../../core/import/complementWeb'
 import { parseImportFile } from '../../core/import/parseFile'
 import { buildImportPlan, ImportError, type ImportPlan } from '../../core/import/plan'
 
 export const TAILLE_MAX_OCTETS = 20 * 1024 * 1024
 
 export type StatutImport = 'idle' | 'ready' | 'importing' | 'done' | 'error'
-export type ApercuImport = ImportPlan['report'] & { ignores: string[] }
+export type ApercuImport = ImportPlan['report'] & {
+  ignores: string[]
+  /** Complément web du fichier (sorties, cardio planifié, respiration, mobilité) ; absent d'un export Android. */
+  complement: PlanComplement | null
+}
 
 export interface DepsImport {
   /** Base à utiliser (défaut : base de l'application, résolue au moment de l'écriture). */
@@ -38,11 +43,13 @@ export function useImport(deps: DepsImport = {}) {
   const [erreur, setErreur] = useState<string | null>(null)
   const [resultat, setResultat] = useState<ImportReport | null>(null)
   const plan = useRef<ImportPlan | null>(null)
+  const complement = useRef<PlanComplement | null>(null)
   // Promesse de l'import en cours : un second confirm() la réutilise au lieu d'écrire deux fois.
   const enCours = useRef<Promise<ImportReport> | null>(null)
 
   const reset = useCallback(() => {
     plan.current = null
+    complement.current = null
     setStatut('idle')
     setApercu(null)
     setErreur(null)
@@ -51,6 +58,7 @@ export function useImport(deps: DepsImport = {}) {
 
   const echec = useCallback((message: string) => {
     plan.current = null
+    complement.current = null
     setApercu(null)
     setResultat(null)
     setErreur(message)
@@ -61,6 +69,7 @@ export function useImport(deps: DepsImport = {}) {
     async (fichier: File) => {
       if (enCours.current) return
       plan.current = null
+      complement.current = null
       setApercu(null)
       setResultat(null)
       setErreur(null)
@@ -72,7 +81,12 @@ export function useImport(deps: DepsImport = {}) {
         const { data } = parseImportFile(await fichier.text())
         const construit = buildImportPlan(data, userId, now ? { now: now() } : undefined)
         plan.current = construit
-        setApercu({ ...construit.report, ignores: construit.report.ignores })
+        complement.current = extraireComplement(data, userId)
+        setApercu({
+          ...construit.report,
+          ignores: [...construit.report.ignores, ...(complement.current?.remarques ?? [])],
+          complement: complement.current,
+        })
         setStatut('ready')
       } catch (e) {
         echec(messagePour(e))
@@ -87,7 +101,7 @@ export function useImport(deps: DepsImport = {}) {
     if (!aImporter) return Promise.reject(new Error("Aucun fichier à importer : chargez d'abord un fichier"))
     setStatut('importing')
     setErreur(null)
-    const promesse = applyImportPlan(db ?? getDb(), aImporter).then(
+    const promesse = applyImportPlan(db ?? getDb(), aImporter, complement.current).then(
       (rapport) => {
         setResultat(rapport)
         setStatut('done')

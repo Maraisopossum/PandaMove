@@ -12,7 +12,7 @@ export interface ComptesDonnees {
 }
 
 // Effectifs de ce que contient la base locale (lignes vivantes). Renforcement : modèles de séance non archivés et séances
-// terminées. Les sorties et les méthodes de respiration ne sont PAS dans l'export JSON (format Android : renforcement seul).
+// terminées. Les sorties et les méthodes de respiration sont aussi dans l'export JSON (champ pandamoveWeb).
 export async function compterDonnees(db: DbLecture): Promise<ComptesDonnees> {
   const n = async (sql: string) => Number((await db.getOptional<{ n: number }>(sql))?.n ?? 0)
   const [seances, seancesJouees, sorties, methodes] = await Promise.all([
