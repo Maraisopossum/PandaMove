@@ -98,21 +98,31 @@ afterEach(() => {
   delete (navigator as unknown as Record<string, unknown>).wakeLock
 })
 
-// Le démarrage écrit d'abord en base (asynchrone, plus lent sur la CI) : on attend que le dialogue du circuit
-// soit affiché, sans avancer l'horloge, plutôt qu'un nombre de tours fixe
-// Attend que `n` séries soient écrites en base (écritures asynchrones, plus lentes quand la suite complète tourne)
-async function attendreSeries(instanceId: string, n: number) {
-  let lignes = await series(instanceId)
-  for (let i = 0; i < 50 && lignes.length < n; i++) {
-    await viderFile()
-    lignes = await series(instanceId)
-  }
-  return lignes
+// Délai réel (l'horloge de l'application est simulée, performance.now() ne l'est pas) : sur une machine lente, un nombre de
+// tours fixe s'épuisait avant la fin des écritures asynchrones
+const DELAI_ATTENTE_MS = 10_000
+async function jusqua(condition: () => boolean | Promise<boolean>) {
+  const limite = performance.now() + DELAI_ATTENTE_MS
+  while (!(await condition()) && performance.now() < limite) await viderFile()
 }
 
+// Attend que `n` séries soient écrites en base (écritures asynchrones, plus lentes quand la suite complète tourne)
+async function attendreSeries(instanceId: string, n: number) {
+  await jusqua(async () => (await series(instanceId)).length >= n)
+  return series(instanceId)
+}
+
+// Lance le circuit et attend le dialogue, sans avancer l'horloge. Sur une machine chargée, un clic peut être traité avant que le
+// hook ait reçu ses exercices : le lancement est alors refusé (message d'erreur) et rien ne le relance. Comme `lancer` ne fait
+// rien quand le circuit tourne déjà, on reclique tant que le dialogue n'est pas là.
 async function lancerCircuit() {
-  fireEvent.click(screen.getByRole('button', { name: /Démarrer le circuit|Reprendre le circuit/ }))
-  for (let i = 0; i < 50 && !screen.queryByRole('dialog'); i++) await viderFile()
+  const limite = performance.now() + DELAI_ATTENTE_MS
+  while (performance.now() < limite) {
+    const bouton = screen.queryByRole('button', { name: /Démarrer le circuit|Reprendre le circuit/ })
+    if (bouton) fireEvent.click(bouton)
+    for (let i = 0; i < 10 && !screen.queryByRole('dialog'); i++) await viderFile()
+    if (screen.queryByRole('dialog')) return
+  }
 }
 
 describe('circuit créé à l’édition puis exécuté automatiquement', () => {
@@ -215,11 +225,11 @@ describe('circuit créé à l’édition puis exécuté automatiquement', () => 
     })
     // Le rattrapage écrit en base de façon asynchrone : on attend le résultat plutôt qu'un nombre de tours fixe
     // (la CI chargée en demande davantage)
-    let fin = await series(id)
-    for (let i = 0; i < 60 && fin.length < 4; i++) {
+    await jusqua(async () => {
       await passer(0)
-      fin = await series(id)
-    }
+      return (await series(id)).length >= 4
+    })
+    const fin = await series(id)
     expect(fin).toHaveLength(4)
     expect(new Set(fin.map((s) => `${s.exercice_seance_id}#${s.numero_serie}`)).size).toBe(4)
     expect(screen.queryByRole('dialog')).toBeNull()
