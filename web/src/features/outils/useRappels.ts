@@ -108,7 +108,8 @@ export function useReglagesRappels({ db }: { db?: Db } = {}) {
 }
 
 async function notifier(titre: string, corps: string, cle: string): Promise<void> {
-  const options = { body: corps, tag: cle, icon: '/icons/icon-192.png' }
+  // badge : silhouette de panda de la barre d'état Android (sans elle, une cloche générique)
+  const options = { body: corps, tag: cle, icon: '/icons/icon-192.png', badge: '/icons/badge-96.png' }
   const enregistrement = await navigator.serviceWorker?.getRegistration?.()
   if (enregistrement) await enregistrement.showNotification(titre, options)
   else new Notification(titre, options)

@@ -36,7 +36,9 @@ describe('push-sw.js', () => {
     const { evenement, attentes } = evenementPush({ titre: 'Séance demain', corps: 'Pull', cle: 's1|2026-11-13|veille' })
     ecouteurs.get('push')!(evenement)
     await Promise.all(attentes)
-    expect(showNotification).toHaveBeenCalledWith('Séance demain', { body: 'Pull', tag: 's1|2026-11-13|veille', icon: '/icons/icon-192.png' })
+    expect(showNotification).toHaveBeenCalledWith('Séance demain', {
+      body: 'Pull', tag: 's1|2026-11-13|veille', icon: '/icons/icon-192.png', badge: '/icons/badge-96.png',
+    })
   })
 
   it('ignore un message sans titre, un JSON illisible ou sans données (aucune notification vide)', () => {
@@ -54,7 +56,7 @@ describe('push-sw.js', () => {
     const { evenement, attentes } = evenementPush({ titre: 'Titre', corps: { html: '<img src=x onerror=alert(1)>' }, cle: 7 })
     ecouteurs.get('push')!(evenement)
     await Promise.all(attentes)
-    expect(showNotification).toHaveBeenCalledWith('Titre', { body: '', tag: undefined, icon: '/icons/icon-192.png' })
+    expect(showNotification).toHaveBeenCalledWith('Titre', { body: '', tag: undefined, icon: '/icons/icon-192.png', badge: '/icons/badge-96.png' })
   })
 
   it('toucher la notification la ferme et ramène la fenêtre ouverte au premier plan', async () => {

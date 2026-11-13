@@ -19,6 +19,8 @@ export const pwaOptions: Partial<VitePWAOptions> = {
       { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
       { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      // Silhouette blanche : icônes thématiques d'Android et petite icône des notifications de l'application installée
+      { src: 'icons/icon-monochrome-512.png', sizes: '512x512', type: 'image/png', purpose: 'monochrome' },
     ],
   },
   workbox: {

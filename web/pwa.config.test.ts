@@ -60,6 +60,36 @@ describe('configuration PWA', () => {
     expect(code).not.toMatch(/innerHTML|eval\(|openWindow\(\s*message/)
   })
 
+  it('chaque icône du manifeste a bien la taille déclarée ; la maskable et la monochrome existent', () => {
+    // Largeur et hauteur lues dans l'en-tête PNG (octets 16 à 23 : IHDR)
+    const dimensions = (fichier: string) => {
+      const png = readFileSync(join(__dirname, 'public', fichier))
+      return { largeur: png.readUInt32BE(16), hauteur: png.readUInt32BE(20) }
+    }
+    for (const icone of manifest.icons) {
+      const [l, h] = icone.sizes.split('x').map(Number)
+      expect(dimensions(icone.src), icone.src).toEqual({ largeur: l, hauteur: h })
+    }
+    expect(manifest.icons.some((i) => i.purpose === 'maskable')).toBe(true)
+    expect(manifest.icons.some((i) => i.purpose === 'monochrome')).toBe(true)
+  })
+
+  it('petite icône des notifications : 96 × 96, RGBA (blanc + transparence), précachée avec les autres icônes', () => {
+    const png = readFileSync(join(__dirname, 'public', 'icons', 'badge-96.png'))
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([96, 96])
+    expect(png[25], 'type de couleur PNG 6 = RGBA').toBe(6)
+    expect(pwaOptions.workbox?.globPatterns).toContain('icons/*.png')
+    // Les gestionnaires du service worker et la notification locale l'utilisent
+    expect(readFileSync(join(__dirname, 'public', 'push-sw.js'), 'utf8')).toContain('/icons/badge-96.png')
+    expect(readFileSync(join(__dirname, 'src', 'features', 'outils', 'useRappels.ts'), 'utf8')).toContain('/icons/badge-96.png')
+  })
+
+  it('icône d’écran d’accueil iOS : 180 × 180, référencée par index.html', () => {
+    const png = readFileSync(join(__dirname, 'public', 'icons', 'apple-touch-icon.png'))
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([180, 180])
+    expect(readFileSync(join(__dirname, 'index.html'), 'utf8')).toContain('href="/icons/apple-touch-icon.png"')
+  })
+
   it('icônes légères (précachées à l’installation) : chacune < 150 Ko', () => {
     for (const icone of manifest.icons) {
       const taille = statSync(join(import.meta.dirname, 'public', icone.src)).size

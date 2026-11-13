@@ -157,6 +157,20 @@ Dans l'écran d'exécution d'une séance : un bloc **Circuit** (au moins un exer
 - **Couleurs des groupes musculaires** : les couleurs de l'Android servent de repère (liseré, teinte de la puce choisie) dans le sélecteur d'exercices ; le texte garde la couleur du thème (contrastes AA vérifiés).
 - **Export du rapport** : texte copiable, fichier HTML autonome, image PNG (dessinée sur un canvas, sans bibliothèque), partage natif.
 
+## Icônes de l'application et des notifications
+
+`public/icons/` (générées par `scripts/icones/generer.py`, à relancer à la main si une illustration change : commande dans l'en-tête du script) :
+
+| Fichier | Rôle |
+|---|---|
+| `icon-192.png`, `icon-512.png` | icône « any » : disque du panda à casquette sur carré arrondi aux coins **transparents** (onglets, installation, grande icône des notifications) |
+| `icon-maskable-512.png` | icône adaptative d'Android : fond plein jusqu'aux bords, disque dans la zone de sécurité (80 %) ; sans elle, le lanceur pose l'icône sur une plaque blanche |
+| `icon-monochrome-512.png` | silhouette blanche du panda : icônes thématiques d'Android |
+| `badge-96.png` | petite icône de la barre d'état des notifications (blanc + transparence, Android la teinte) ; sans elle, Android affiche une cloche générique |
+| `apple-touch-icon.png` | écran d'accueil iOS (180 px, fond plein) |
+
+Une application déjà installée garde son ancienne icône jusqu'à ce que Chrome mette à jour l'APK web (à l'ouverture, en général sous 24 h) ; désinstaller puis réinstaller force le changement.
+
 ## Design
 
 La source de vérité visuelle est `web/DESIGN.md` (design system « PandaMove System » issu de Stitch) et `web/DESIGN.tokens.json`. Les jetons vivent dans `:root` de `src/app/app.css` : rayons (carte 16 px, bouton 12 px, grande carte 24 px, pilule), hauteurs (contrôle 48 px, cellule 44 px, barre 52 px), ombres, couleurs de module, accents d'écran.
