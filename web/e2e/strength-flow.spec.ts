@@ -44,7 +44,8 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmer' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'est affectée' })).toBeVisible()
   await page.getByRole('link', { name: 'Ouvrir la séance' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: SEANCE })).toBeVisible()
+  // La séance attend la fin de la première synchro quand elle n'est pas encore complète en local (PR 43) : plus de 5 s possible
+  await expect(page.getByRole('heading', { level: 1, name: SEANCE })).toBeVisible({ timeout: 30_000 })
   const urlSeance = page.url()
 
   // 3. Démarrer, couper le réseau, saisir 3 séries sur le premier exercice
