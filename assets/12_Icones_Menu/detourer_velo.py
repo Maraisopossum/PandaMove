@@ -21,10 +21,21 @@ def cercle(ids):
 
 
 roues = [cercle([i for i in cellules if cent[i][0] < 512]), cercle([i for i in cellules if cent[i][0] >= 512])]
+PEDALIER = (473, 690)  # centre du plateau sur la source 1024 px
+COINS_TUBE_DE_SELLE = [(389, 503), (359, 428)]
 vide = np.isin(etiq, list(bords))
 for i in enclaves:
     cx, cy = cent[i]
-    if any(((cx - c[0]) ** 2 + (cy - c[1]) ** 2) ** 0.5 < c[2] * 0.97 for c in roues):
+    coin_selle = any(((cx - x) ** 2 + (cy - y) ** 2) ** 0.5 < 15 for x, y in COINS_TUBE_DE_SELLE)
+    if i in cellules and not coin_selle:
+        continue
+    # Pédalier : ses ajours restent blancs (on voit la roue derrière)
+    if ((cx - PEDALIER[0]) ** 2 + (cy - PEDALIER[1]) ** 2) ** 0.5 < 90:
+        continue
+    # Intérieur d'une roue (entre les rayons, jusqu'au pneu) : blanc, sauf les deux coins entre le tube de selle et le pneu arrière
+    # (centroïdes relevés sur la source 1024 px) : transparents
+    dans_roue = any(((cx - c[0]) ** 2 + (cy - c[1]) ** 2) ** 0.5 < c[2] * 0.97 for c in roues)
+    if dans_roue and not coin_selle:
         continue
     m = (etiq == i).astype(np.uint8)
     anneau = cv2.dilate(m, np.ones((7, 7), np.uint8)) & (1 - m)
