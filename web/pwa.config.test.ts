@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { pwaOptions } from './pwa.config.ts'
@@ -49,6 +49,15 @@ describe('configuration PWA', () => {
     const motifs = (pwaOptions.workbox?.globPatterns ?? []).join(',')
     expect(motifs).toMatch(/woff2/)
     expect(motifs).not.toMatch(/woff[^2]|ttf|otf|eot/)
+  })
+
+  it('charge public/push-sw.js dans le service worker : gestionnaires push et clic sur la notification', () => {
+    expect(pwaOptions.workbox?.importScripts).toEqual(['push-sw.js'])
+    const code = readFileSync(join(__dirname, 'public', 'push-sw.js'), 'utf8')
+    expect(code).toContain("addEventListener('push'")
+    expect(code).toContain("addEventListener('notificationclick'")
+    // Message JSON de notre serveur seulement : jamais de HTML ni d'adresse venue du message
+    expect(code).not.toMatch(/innerHTML|eval\(|openWindow\(\s*message/)
   })
 
   it('icônes légères (précachées à l’installation) : chacune < 150 Ko', () => {

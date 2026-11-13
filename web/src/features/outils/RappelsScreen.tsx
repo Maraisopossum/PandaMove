@@ -1,17 +1,42 @@
+import { usePushRappels } from './usePushRappels'
 import { useReglagesRappels } from './useRappels'
 
 // Rappels de séance : interrupteur général, rappel la veille et le jour même, heures au choix. Logique dans useReglagesRappels.
 export default function RappelsScreen() {
   const r = useReglagesRappels()
+  const push = usePushRappels()
   const { reglages } = r
   return (
     <div className="outils">
       <h1 className="titre-ecran">Rappels</h1>
       <label className="outils__interrupteur">
-        <input type="checkbox" checked={reglages.actif} onChange={(e) => void r.basculer(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={reglages.actif}
+          onChange={(e) => {
+            void r.basculer(e.target.checked)
+            // Rappels coupés : l'abonnement push de cet appareil est retiré aussi
+            if (!e.target.checked && push.actif) void push.desactiver()
+          }}
+        />
         <span>Rappeler mes séances programmées</span>
       </label>
       {r.message && <p role="alert">{r.message}</p>}
+
+      {push.disponible && (
+        <>
+          <label className="outils__interrupteur">
+            <input
+              type="checkbox"
+              checked={push.actif}
+              disabled={!reglages.actif || push.enCours}
+              onChange={(e) => void (e.target.checked ? push.activer() : push.desactiver())}
+            />
+            <span>Aussi quand l'application est fermée</span>
+          </label>
+          {push.message && <p role="alert">{push.message}</p>}
+        </>
+      )}
 
       <fieldset className="outils__rappel" disabled={!reglages.actif}>
         <legend>La veille</legend>
@@ -38,8 +63,9 @@ export default function RappelsScreen() {
       </fieldset>
 
       <p className="aide">
-        Les rappels sont des notifications de l'appareil, sans compte tiers. Ils partent tant que PandaMove est ouvert, y compris en arrière-plan sur
-        le téléphone. Une application web ne peut pas réveiller l'appareil quand elle est fermée : un rappel dû est alors envoyé à la prochaine ouverture.
+        {push.disponible
+          ? "Avec « Aussi quand l'application est fermée », les rappels sont envoyés par le serveur de PandaMove, aux heures ci-dessus (heure de cet appareil) : ils arrivent même si l'application est fermée. Cet appareil est alors enregistré auprès du service de notifications de votre navigateur. Sans cette option, les rappels sont des notifications de l'appareil qui partent tant que PandaMove est ouvert, y compris en arrière-plan : un rappel dû est envoyé à la prochaine ouverture."
+          : "Les rappels sont des notifications de l'appareil, sans compte tiers. Ils partent tant que PandaMove est ouvert, y compris en arrière-plan sur le téléphone. Une application web ne peut pas réveiller l'appareil quand elle est fermée : un rappel dû est alors envoyé à la prochaine ouverture."}
       </p>
     </div>
   )

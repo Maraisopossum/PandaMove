@@ -32,6 +32,9 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     globPatterns: ['**/*.{js,css,html,woff2}', 'assets/wa-sqlite-async-*.wasm', 'icons/*.png', 'icons/menu/*.webp', 'panda/splash-*.webp'],
     // Le wasm de wa-sqlite dépasse la limite par défaut (2 Mio)
     maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+    // Notifications push (rappels application fermée) : gestionnaires `push` et `notificationclick` de public/push-sw.js,
+    // exécutés dans le service worker principal
+    importScripts: ['push-sw.js'],
     // Repli SPA : toute navigation hors ligne sert index.html
     navigateFallback: '/index.html',
     // Images du panda et illustrations de mobilité : mises en cache à la première vue (non précachées),
