@@ -51,6 +51,17 @@ export function bornesPeriode(periode: PeriodeId, maintenant: Date): { from: str
   }
 }
 
+// Période de même durée qui précède immédiatement celle-ci (comparaison des tendances). `tout` n'a pas de précédente.
+export function bornesPeriodePrecedente(periode: PeriodeId, maintenant: Date): { from: string; to: string } | null {
+  if (periode === 'tout') return null
+  const { from, to } = bornesPeriode(periode, maintenant)
+  const jour = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10))
+  const duree = Math.round((jour(to) - jour(from)) / 86_400_000) + 1
+  const finPrecedente = new Date(jour(from) - 86_400_000)
+  const debutPrecedent = new Date(jour(from) - duree * 86_400_000)
+  return { from: debutPrecedent.toISOString().slice(0, 10), to: finPrecedente.toISOString().slice(0, 10) }
+}
+
 const estPeriode = (v: unknown): v is PeriodeId => PERIODES.some((p) => p.id === v)
 
 // Lecture tolérante : stockage bloqué ou valeur inconnue -> période par défaut.

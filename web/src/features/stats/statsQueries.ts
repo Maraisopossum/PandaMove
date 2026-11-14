@@ -3,6 +3,8 @@ import { normalizeSearch } from '../../core/common/normalizeSearch'
 import { muscleToGroup } from '../../core/catalogue/muscleToGroup'
 import type { DbLecture } from '../../core/db/Db'
 import { MUSCLE_GROUPS, type MuscleGroup } from '../../core/db/types'
+import { ajouterJours } from '../endurance/calculCharge'
+import { lundiDe } from '../home/semaine'
 
 // Statistiques renforcement, portage de StatsViewModel.buildStrengthDetail (Android) :
 // - seules les instances TERMINÉES comptent, choisies par leur date planifiée `date` (jamais completed_at) ;
@@ -27,6 +29,10 @@ export interface PointHistorique {
   reps: number
   /** Exercice DURATION : `reps` contient des secondes */
   enSecondes: boolean
+  /** Tonnage de la séance pour cet exercice (Σ reps × charge ; 0 pour une durée). */
+  volumeKg: number
+  /** Meilleur 1RM estimé (Epley) de la séance, 0 sans série chargée avec reps. */
+  rmEstimeKg: number
 }
 
 export interface ExerciceHistorique {
@@ -48,6 +54,7 @@ interface LigneSerie {
   exercise_id: string | null
   muscle_groups: string | null
   muscle_primary: string | null
+  exercise_nom: string | null
 }
 
 // Une seule lecture : toutes les séries vivantes des instances terminées de la plage, avec le type de
@@ -58,7 +65,7 @@ interface LigneSerie {
 const SQL_SERIES = `
   SELECT sr.id, sr.instance_seance_id, sr.exercice_seance_id, sr.numero_serie, sr.reps_realisees,
          sr.charge_kg, sr.is_completed, sr.updated_at, i.date AS date, es.reps_type AS reps_type,
-         e.id AS exercise_id, e.muscle_groups AS muscle_groups, e.muscle_primary AS muscle_primary
+         e.id AS exercise_id, e.name AS exercise_nom, e.muscle_groups AS muscle_groups, e.muscle_primary AS muscle_primary
   FROM series_realisees sr
   JOIN instances_seance i ON i.id = sr.instance_seance_id
   LEFT JOIN exercices_seance es ON es.id = sr.exercice_seance_id
@@ -141,6 +148,12 @@ export async function volumeParMuscle(db: DbLecture, from: string, to: string): 
   return volume
 }
 
+// 1RM estimé (formule d'Epley) : charge × (1 + reps / 30). Une répétition = la charge elle-même. 0 sans charge ni reps.
+export function rmEstime(chargeKg: number, reps: number): number {
+  if (chargeKg <= 0 || reps <= 0) return 0
+  return arrondi(reps === 1 ? chargeKg : chargeKg * (1 + reps / 30))
+}
+
 // Historique d'un exercice (toutes dates) : un point par date de séance, charge max et reps de la série
 // la plus lourde (à charge égale, la plus longue). Android ne retient que les séries chargées ; ici une
 // séance au poids du corps donne charge 0 et ses meilleures reps, pour ne pas laisser l'historique vide.
@@ -150,12 +163,73 @@ export async function historiqueExercice(db: DbLecture, exerciseId: string): Pro
   for (const l of seriesRetenues(lignes)) {
     const charge = l.charge_kg ?? 0
     const reps = l.reps_realisees ?? 0
-    const point = parDate.get(l.date)
-    if (!point || charge > point.maxChargeKg || (charge === point.maxChargeKg && reps > point.reps)) {
-      parDate.set(l.date, { dateIso: l.date, maxChargeKg: arrondi(charge), reps, enSecondes: estDuree(l) })
+    const duree = estDuree(l)
+    const existant = parDate.get(l.date)
+    const point: PointHistorique = existant ?? { dateIso: l.date, maxChargeKg: 0, reps: 0, enSecondes: duree, volumeKg: 0, rmEstimeKg: 0 }
+    if (!existant || charge > point.maxChargeKg || (charge === point.maxChargeKg && reps > point.reps)) {
+      point.maxChargeKg = arrondi(charge)
+      point.reps = reps
+      point.enSecondes = duree
     }
+    if (!duree) {
+      point.volumeKg = arrondi(point.volumeKg + reps * charge)
+      point.rmEstimeKg = Math.max(point.rmEstimeKg, rmEstime(charge, reps))
+    }
+    parDate.set(l.date, point)
   }
   return [...parDate.values()].sort((a, b) => a.dateIso.localeCompare(b.dateIso))
+}
+
+export interface Record1RM {
+  exerciseId: string
+  nom: string
+  /** Meilleure série par 1RM estimé : charge, répétitions, jour. */
+  chargeKg: number
+  reps: number
+  dateIso: string
+  rmEstimeKg: number
+  /** Record établi dans les 14 derniers jours : « nouveau record ». */
+  recent: boolean
+}
+
+const JOURS_RECORD_RECENT = 14
+
+const joursEntre = (de: string, a: string) =>
+  Math.round((Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10)) - Date.UTC(+de.slice(0, 4), +de.slice(5, 7) - 1, +de.slice(8, 10))) / 86_400_000)
+
+// Records personnels : pour chaque exercice chargé, la meilleure série par 1RM estimé (toutes dates, séries terminées). À 1RM
+// égal, la plus récente. Les records récents d'abord, puis par 1RM décroissant ; `limite` entrées.
+export async function recordsPersonnels(db: DbLecture, aujourdhuiIso: string, limite = 4): Promise<Record1RM[]> {
+  const meilleurs = new Map<string, Record1RM>()
+  for (const l of seriesRetenues(await db.getAll<LigneSerie>(SQL_SERIES))) {
+    if (l.exercise_id === null || estDuree(l) || l.date > aujourdhuiIso) continue
+    const rm = rmEstime(l.charge_kg ?? 0, l.reps_realisees ?? 0)
+    if (rm <= 0) continue
+    const actuel = meilleurs.get(l.exercise_id)
+    if (!actuel || rm > actuel.rmEstimeKg || (rm === actuel.rmEstimeKg && l.date > actuel.dateIso)) {
+      meilleurs.set(l.exercise_id, {
+        exerciseId: l.exercise_id, nom: l.exercise_nom ?? 'Exercice', chargeKg: arrondi(l.charge_kg ?? 0), reps: l.reps_realisees ?? 0,
+        dateIso: l.date, rmEstimeKg: rm, recent: joursEntre(l.date, aujourdhuiIso) <= JOURS_RECORD_RECENT,
+      })
+    }
+  }
+  return [...meilleurs.values()]
+    .sort((a, b) => Number(b.recent) - Number(a.recent) || (a.recent ? b.dateIso.localeCompare(a.dateIso) : b.rmEstimeKg - a.rmEstimeKg))
+    .slice(0, limite)
+}
+
+export interface TonnageSemaine {
+  /** Lundi de la semaine (yyyy-MM-dd). */
+  debut: string
+  tonnageKg: number
+}
+
+// Tonnage des `n` dernières semaines (lundi au dimanche, la semaine en cours comprise), de la plus ancienne à la plus récente.
+export async function tonnageParSemaine(db: DbLecture, aujourdhuiIso: string, n = 4): Promise<TonnageSemaine[]> {
+  const lundiCourant = lundiDe(aujourdhuiIso)
+  const debuts = Array.from({ length: n }, (_, i) => ajouterJours(lundiCourant, -7 * (n - 1 - i)))
+  const series = await lireSeriesPlage(db, debuts[0], aujourdhuiIso)
+  return debuts.map((debut) => ({ debut, tonnageKg: tonnage(series.filter((l) => lundiDe(l.date) === debut)) }))
 }
 
 // Exercices présents dans au moins une séance terminée (choix de l'historique), triés par nom normalisé.
