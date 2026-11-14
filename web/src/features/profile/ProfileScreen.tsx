@@ -7,6 +7,9 @@ import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
 import { useReglageRpe } from '../strength/execute/reglageRpe'
 import { SEMAINES_DECHARGE_MAX, useReglageDecharge } from '../strength/progression/reglageDecharge'
 import { MotDePasseSection } from './MotDePasseSection'
+import { ObjectifsSection } from './ObjectifsSection'
+import { PoidsSection } from './PoidsSection'
+import { ReglagesAppareilSection } from './ReglagesAppareilSection'
 import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
@@ -41,6 +44,9 @@ export default function ProfileScreen() {
           {session?.user.email && <p className="profil__identite-mail">{session.user.email}</p>}
         </div>
       </div>
+
+      <ObjectifsSection />
+      <PoidsSection />
 
       <h2 className="profil__rubrique">Apparence</h2>
 
@@ -124,6 +130,8 @@ export default function ProfileScreen() {
         <p className="aide">Retours du circuit automatique et du minuteur d’exercice, mémorisés sur cet appareil.</p>
         <ReglagesRetours />
       </section>
+
+      <ReglagesAppareilSection />
 
       <h2 className="profil__rubrique">Compte et données</h2>
 
