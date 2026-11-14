@@ -15,7 +15,7 @@ export interface JourGrille {
 }
 
 /** Nombre de jours consécutifs avec au moins une séance, en comptant jusqu'à aujourd'hui, ou jusqu'à hier si aujourd'hui n'est pas encore fait. */
-export function serieJours(historique: readonly SeanceFaite[], aujourdhuiIso: string): number {
+export function serieJours(historique: readonly { date: string }[], aujourdhuiIso: string): number {
   const jours = new Set(historique.map((s) => s.date))
   let courant = jours.has(aujourdhuiIso) ? aujourdhuiIso : ajouterJours(aujourdhuiIso, -1)
   let n = 0

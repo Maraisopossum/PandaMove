@@ -6,6 +6,7 @@ import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { useImagePanda } from '../../core/images/usePandaVariante'
 import { usePiegeFocus } from '../../core/ui/usePiegeFocus'
 import { preparerAudio } from './audio'
+import { CarteRegularite } from './CarteRegularite'
 import type { Methode } from './methodes'
 import { formaterDateHistorique, formaterDuree } from './presentation'
 import { useChoixDuree } from './useChoixDuree'
@@ -54,9 +55,14 @@ interface CarteProps {
   onSupprimer: () => void
   choix: ReturnType<typeof useChoixDuree>
   onDemarrer: () => void
+  /** Méthode favorite (affichée en premier) et bascule. */
+  favorite: boolean
+  onFavorite: () => void
+  /** « 11 séances en 30 jours », ou null sans historique. */
+  usage: string | null
 }
 
-function CarteMethode({ methode, ouverte, onBasculer, onSupprimer, choix, onDemarrer }: CarteProps) {
+function CarteMethode({ methode, ouverte, onBasculer, onSupprimer, choix, onDemarrer, favorite, onFavorite, usage }: CarteProps) {
   const idPanneau = useId()
   const valeur = choix.valeurDe(methode)
   const unite = choix.mode === 'cycles' ? 'cycles' : 'min'
@@ -68,12 +74,27 @@ function CarteMethode({ methode, ouverte, onBasculer, onSupprimer, choix, onDema
             {methode.emoji}
           </span>
           <span className="respiration__texte">
-            <span className="respiration__nom">{methode.nom}</span>
+            <span className="respiration__nom">
+              {methode.nom}
+              {favorite && <span className="respiration__favorite">Favorite</span>}
+            </span>
             <span className="respiration__description">{methode.description}</span>
+            {usage && <span className="respiration__usage">{usage}</span>}
           </span>
           <span className="respiration__chevron" aria-hidden="true">
             {ouverte ? '▴' : '▾'}
           </span>
+        </button>
+        <button
+          type="button"
+          className="respiration__etoile"
+          aria-pressed={favorite}
+          aria-label={favorite ? `Retirer ${methode.nom} des favoris` : `Mettre ${methode.nom} en favori`}
+          onClick={onFavorite}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true" focusable="false">
+            <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9L3.5 9.7l5.9-.8z" />
+          </svg>
         </button>
         {methode.personnalisee && (
           <span className="respiration__actions">
@@ -121,6 +142,14 @@ export default function RespirationScreen() {
   const [suppressionEnCours, setSuppressionEnCours] = useState(false)
   const idHistorique = useId()
 
+  // « Votre préférée : 11 séances en 30 jours » pour la méthode la plus pratiquée (3 séances au moins), sinon le nombre de séances
+  const usageDe = (id: string): string | null => {
+    if (data.toutes.length === 0) return null
+    const n = data.usage.get(id) ?? 0
+    const texte = n === 0 ? 'Aucune séance en 30 jours' : `${n} séance${n > 1 ? 's' : ''} en 30 jours`
+    return data.preferee?.methodeId === id ? `Votre préférée : ${texte.toLowerCase()}` : texte
+  }
+
   const demarrer = (m: Methode) => {
     // Geste de l'utilisateur : c'est le moment d'autoriser le son (la session démarre ensuite sur un autre écran)
     preparerAudio()
@@ -152,6 +181,8 @@ export default function RespirationScreen() {
         </p>
       )}
 
+      {data.toutes.length > 0 && <CarteRegularite bilan={data.regularite.semaine} serie={data.regularite.serie} objectif={data.objectif} onObjectif={data.definirObjectif} />}
+
       <div className="respiration__ligne-titre">
         <h2 className="respiration__titre">Choisissez une méthode</h2>
         <div className="respiration__mode" role="group" aria-label="Durée">
@@ -173,6 +204,9 @@ export default function RespirationScreen() {
             onBasculer={() => choix.basculer(m.id)}
             onSupprimer={() => setASupprimer({ type: 'methode', id: m.id, libelle: `« ${m.nom} »` })}
             onDemarrer={() => demarrer(m)}
+            favorite={data.favorite === m.id}
+            onFavorite={() => data.definirFavorite(data.favorite === m.id ? null : m.id)}
+            usage={usageDe(m.id)}
           />
         ))}
       </ul>

@@ -8603,6 +8603,63 @@ time,
 .sorties__echelle-moyenne { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--texte); }
 .sorties__echelle-sortie { position: absolute; top: -3px; width: 16px; height: 16px; margin-left: -8px; box-sizing: border-box; border: 3px solid var(--surface); border-radius: 50%; background: var(--couleur-sport); }
 
+/* Respiration : régularité, favorite, statistiques */
+.respiration__regularite, .respiration-stats__carte { display: grid; gap: 0.75rem; padding: 0.875rem 1rem; border: 1px solid var(--bord); border-radius: var(--radius-carte); background: var(--surface); }
+.respiration__regularite h2, .respiration-stats__carte h2 { margin: 0; font-family: var(--police-titres); font-size: var(--taille-titre-3); }
+.respiration__regularite-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.respiration__lien { display: inline-flex; align-items: center; min-height: var(--hauteur-cellule); padding: 0; border: 0; background: transparent; color: var(--couleur-respiration); font: inherit; font-size: var(--taille-petit); font-weight: 600; text-decoration: none; }
+.respiration__lien:focus-visible, .respiration__etoile:focus-visible, .respiration-stats__periode:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.respiration__retour { margin: 0; }
+.respiration__trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
+.respiration__trio > div { display: grid; gap: 0.125rem; align-content: start; padding: 0.625rem 0.75rem; border-radius: var(--radius-bouton); background: var(--fond); }
+.respiration__trio dd { margin: 0; font-family: var(--police-titres); font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.respiration__trio dt { order: 1; color: var(--texte-secondaire); font-size: var(--taille-micro); }
+.respiration__trio dd.respiration__ecart { order: 2; font-family: var(--police-texte); font-size: var(--taille-micro); font-weight: 600; }
+.respiration__ecart--hausse { color: var(--couleur-succes-texte); }
+.respiration__ecart--baisse { color: #b42318; }
+.respiration__ecart--stable { color: var(--texte-secondaire); }
+.respiration__objectif { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.respiration__objectif p { margin: 0; font-size: var(--taille-petit); font-weight: 600; }
+.respiration__lien--bouton { cursor: pointer; }
+.respiration__objectif-form { display: grid; gap: 0.5rem; padding: 0.75rem; border-radius: var(--radius-bouton); background: var(--fond); }
+.respiration__objectif-form label { display: grid; gap: 0.25rem; font-size: var(--taille-petit); font-weight: 600; }
+.respiration__objectif-form input { min-height: var(--hauteur-controle); padding: 0 0.75rem; border: 1px solid var(--bord); border-radius: var(--radius-bouton); font: inherit; }
+.respiration__jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
+.respiration__jour-colonne { display: grid; justify-items: center; gap: 0.25rem; }
+.respiration__jour-lettre { color: var(--texte-secondaire); font-size: var(--taille-micro); font-weight: 600; }
+.respiration__jour { display: grid; place-items: center; box-sizing: border-box; width: 2rem; height: 2rem; border: 1.5px solid var(--bord); border-radius: 50%; background: var(--surface); font-size: var(--taille-micro); font-weight: 700; }
+.respiration__jour--atteint { border-color: var(--couleur-respiration); background: var(--couleur-respiration); color: #fff; }
+.respiration__jour--partiel { border-color: color-mix(in srgb, var(--couleur-respiration) 35%, var(--surface)); background: color-mix(in srgb, var(--couleur-respiration) 22%, var(--surface)); color: #004d40; }
+.respiration__jour--aujourdhui { border: 1.5px dashed var(--couleur-respiration); color: var(--couleur-respiration); }
+.respiration__jour--avenir { background: var(--fond-discret); border-color: transparent; }
+.respiration__etoile { display: grid; flex: none; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; background: transparent; color: var(--texte-secondaire); cursor: pointer; }
+.respiration__etoile[aria-pressed='true'] { color: var(--couleur-respiration); }
+.respiration__favorite { margin-left: 0.5rem; padding: 0.125rem 0.5rem; border-radius: var(--radius-pilule); background: color-mix(in srgb, var(--couleur-respiration) 14%, var(--surface)); color: #004d40; font-size: var(--taille-micro); font-weight: 700; vertical-align: middle; }
+.respiration__usage { display: block; color: var(--texte-secondaire); font-size: var(--taille-micro); }
+.respiration-stats { display: grid; gap: 0.875rem; max-width: 40rem; margin: 0 auto; }
+.respiration-stats__periodes { display: flex; gap: 0.5rem; overflow-x: auto; }
+.respiration-stats__periode { flex: none; min-height: var(--hauteur-cellule); padding: 0 1rem; border: 1px solid var(--bord); border-radius: var(--radius-pilule); background: var(--surface); color: var(--texte); font: inherit; font-size: var(--taille-petit); font-weight: 600; }
+.respiration-stats__periode[aria-pressed='true'] { border-color: var(--couleur-respiration); background: color-mix(in srgb, var(--couleur-respiration) 12%, var(--surface)); color: #004d40; }
+.respiration-stats__haut { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
+.respiration-stats__grand { display: grid; gap: 0.125rem; margin: 0; }
+.respiration-stats__valeur { color: var(--couleur-respiration); font-family: var(--police-titres); font-size: 2.25rem; font-weight: 800; line-height: 1.05; }
+.respiration-stats__pilule { margin: 0; padding: 0.25rem 0.625rem; border-radius: var(--radius-pilule); background: var(--fond-discret); font-size: var(--taille-petit); font-weight: 700; }
+.respiration-stats__graphique { display: block; width: 100%; height: auto; }
+.respiration-stats__barre { fill: color-mix(in srgb, var(--couleur-respiration) 28%, var(--surface)); }
+.respiration-stats__barre--courante { fill: var(--couleur-respiration); }
+.respiration-stats__objectif { stroke: var(--couleur-respiration); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.respiration-stats__objectif-texte { fill: #004d40; font-family: var(--police-texte); font-size: 11px; font-weight: 600; }
+.respiration-stats__methodes { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.respiration-stats__methodes li { display: grid; gap: 0.3125rem; }
+.respiration-stats__ligne { display: flex; justify-content: space-between; gap: 0.5rem; font-size: var(--taille-corps); }
+.respiration-stats__piste { height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--couleur-respiration) 12%, var(--surface)); overflow: hidden; }
+.respiration-stats__piste span { display: block; height: 100%; border-radius: 999px; background: var(--couleur-respiration); }
+.respiration-stats__moments { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin: 0; padding: 0; list-style: none; text-align: center; }
+.respiration-stats__moment { display: grid; gap: 0.125rem; padding: 0.625rem 0.25rem; border-radius: var(--radius-bouton); background: color-mix(in srgb, var(--couleur-respiration) 9%, var(--surface)); }
+.respiration-stats__moment--fort { background: color-mix(in srgb, var(--couleur-respiration) 24%, var(--surface)); }
+.respiration-stats__moment strong { font-family: var(--police-titres); font-size: 1.125rem; font-weight: 800; }
+.respiration-stats__moment span { color: var(--texte-secondaire); font-size: var(--taille-micro); }
+
 /* Forme : charge d'entraînement (course et vélo) */
 .charge { --couleur-sport: var(--couleur-stats); display: grid; gap: 0.875rem; --charge-forme: #1565c0; --charge-fatigue: #e65100; --charge-fraicheur: #6a1b9a; }
 :root[data-theme='dark'] .charge { --charge-forme: #64b5f6; --charge-fatigue: #ffb74d; --charge-fraicheur: #ce93d8; }

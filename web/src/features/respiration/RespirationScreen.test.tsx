@@ -57,7 +57,7 @@ describe('écran Respiration', () => {
 
   it('règle la durée en cycles puis en minutes et lance la séance', async () => {
     const routeur = monter()
-    fireEvent.click(await screen.findByRole('button', { name: /4-7-8/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^4-7-8/ }))
     expect(screen.getByRole('status', { name: '4 cycles' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Augmenter' }))
     expect(screen.getByRole('status', { name: '5 cycles' })).toBeTruthy()
