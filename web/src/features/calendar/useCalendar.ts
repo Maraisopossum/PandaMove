@@ -157,6 +157,8 @@ export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
 
   return {
     chargement, erreur, jours, prochaines: donnees.prochaines, filtre, setFiltre,
+    /** Tous les événements de la grille (filtre de statut non appliqué) et premier jour de la grille : charge estimée. */
+    evenements: donnees.evenements, debutGrille: debut,
     deplacer, supprimer, compterCardioProgrammees, supprimerCardioProgrammees, validerCardio, devaliderCardio, creerCardio, modifierCardio, verifierDeplacement, effacerErreur,
   }
 }

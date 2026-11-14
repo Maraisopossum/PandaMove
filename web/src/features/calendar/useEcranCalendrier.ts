@@ -1,12 +1,17 @@
 import { useCallback, useRef, useState } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { useImagePanda } from '../../core/images/usePandaVariante'
-import { moisDe, moisPrecedent, moisSuivant, formaterJourLong, formaterMois, isoDepuisParties, type Mois } from './grille'
+import { lundiDe } from './chargeCalendrier'
+import { ajouterJours, moisDe, moisPrecedent, moisSuivant, formaterJourLong, formaterMois, isoDepuisParties, type Mois } from './grille'
 import {
   brouillonDepuis, brouillonVide, type BrouillonSeanceCardio, type ChampBrouillon, type ErreursSaisie, validerBrouillon,
 } from './seancesCardio/saisieCardio'
 import type { EvenementAgenda, EvenementCardio } from './types'
 import { useCalendar, type DepsCalendrier } from './useCalendar'
+import { useChargeCalendrier } from './useChargeCalendrier'
+
+// « mardi 17 » : jour de la semaine et numéro, pour l'annonce d'un déplacement
+const nomDuJour = (iso: string) => formaterJourLong(iso).split(' ').slice(0, 2).join(' ')
 
 /** Dialogue de saisie d'une séance de cardio : création, ou modification d'une séance existante. */
 export interface EtatSaisie {
@@ -155,6 +160,34 @@ export function useEcranCalendrier(deps: DepsCalendrier = {}) {
     }
   }
 
+  // ── Vue (mois ou semaine), charge estimée et déplacement avec annulation ──
+  const [vue, setVue] = useState<'mois' | 'semaine'>('mois')
+  const chargeDe = useChargeCalendrier(cal.evenements, cal.debutGrille, { db: deps.db })
+  // Jour de référence de la semaine affichée : le jour choisi, sinon aujourd'hui s'il est dans la grille, sinon le premier jour du mois
+  const premierDuMois = cal.jours.find((j) => j.dansLeMois)?.dateIso ?? cal.jours[0]?.dateIso ?? aujourdhui
+  const jourDeReference = jourSelectionne ?? (cal.jours.some((j) => j.dateIso === aujourdhui) ? aujourdhui : premierDuMois)
+  const lundiAffiche = lundiDe(jourDeReference)
+  const semaineAffichee = cal.jours.filter((j) => j.dateIso >= lundiAffiche && j.dateIso <= ajouterJours(lundiAffiche, 6))
+  const chargeAffichee = chargeDe(lundiAffiche)
+  const aller7 = (n: number) => {
+    const cible = ajouterJours(jourDeReference, 7 * n)
+    const dansLaGrille = cal.jours.some((j) => j.dateIso === cible)
+    if (!dansLaGrille) setMois(moisDe(cible))
+    setJourChoisi(cible)
+  }
+  const [annonce, setAnnonce] = useState<{ texte: string; evenement: EvenementAgenda; de: string } | null>(null)
+  // Déplace une séance et propose d'annuler : la séance revient à son jour d'origine
+  const deplacerAvecAnnulation = async (e: EvenementAgenda, dateIso: string) => {
+    const de = e.dateIso
+    if (await deplacer(e, dateIso)) setAnnonce({ texte: `« ${e.titre} » déplacée de ${nomDuJour(de)} à ${nomDuJour(dateIso)}.`, evenement: { ...e, dateIso }, de })
+  }
+  const annulerDeplacement = async () => {
+    if (!annonce) return
+    const { evenement, de } = annonce
+    setAnnonce(null)
+    await deplacer(evenement, de)
+  }
+
   const nbEvenementsMois = cal.jours.filter((j) => j.dansLeMois).reduce((n, j) => n + j.evenements.length, 0)
 
   return {
@@ -170,6 +203,8 @@ export function useEcranCalendrier(deps: DepsCalendrier = {}) {
     aucuneSeanceCeMois: nbEvenementsMois === 0,
     pandaRepos,
     cibleDate, dateSaisie, setDateSaisie, ouvrirDate, fermerDate, confirmerDate,
+    vue, setVue, chargeDe, lundiAffiche, semaineAffichee, chargeAffichee, semainePrecedente: () => aller7(-1), semaineSuivante: () => aller7(1),
+    annonce, fermerAnnonce: () => setAnnonce(null), deplacerAvecAnnulation, annulerDeplacement,
     cibleSuppression, ouvrirSuppression: setCibleSuppression, fermerSuppression, confirmerSuppression,
     saisie, ouvrirAjout, ouvrirEdition, changerBrouillon, fermerSaisie, enregistrer,
     enCours,
