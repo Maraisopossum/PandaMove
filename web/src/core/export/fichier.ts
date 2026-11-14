@@ -15,7 +15,12 @@ export function nomFichierExport(maintenant: Date): string {
 
 /** Télécharge `contenu` sous le nom `nom` (Blob JSON + lien <a download> temporaire). */
 export function telechargerJson(nom: string, contenu: string): void {
-  const url = URL.createObjectURL(new Blob([contenu], { type: 'application/json' }))
+  telechargerFichier(nom, contenu, 'application/json')
+}
+
+/** Télécharge `contenu` du type `type` sous le nom `nom` (Blob + lien <a download> temporaire). */
+export function telechargerFichier(nom: string, contenu: string, type: string): void {
+  const url = URL.createObjectURL(new Blob([contenu], { type }))
   const lien = document.createElement('a')
   lien.href = url
   lien.download = nom
