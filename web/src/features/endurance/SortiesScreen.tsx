@@ -1,26 +1,50 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
+import { dateIsoLocale } from '../../core/common/dates'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { useImagePanda } from '../../core/images/usePandaVariante'
 import type { Sport } from '../../core/db/repos/sorties'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDateCourte, formaterDuree, formaterRythme } from './presentation'
+import { BandeauRecords } from './BandeauRecords'
+import { CarteSemaine } from './CarteSemaine'
 import { StatsSortiesBloc } from './StatsSortiesBloc'
 import { MiniTrace } from './MiniTrace'
 import { LienSeanceImport } from './importFit/LienSeanceImport'
 import { useImportFit } from './importFit/useImportFit'
+import { lundiDe } from '../home/semaine'
+import { useRecordsSorties } from './useRecordsSorties'
 import { useSorties } from './useSorties'
+
+type Filtre = 'tout' | 'semaine' | 'mois' | 'records'
+const FILTRES: { id: Filtre; libelle: string }[] = [
+  { id: 'tout', libelle: 'Tout' },
+  { id: 'semaine', libelle: 'Cette semaine' },
+  { id: 'mois', libelle: 'Ce mois' },
+  { id: 'records', libelle: 'Records' },
+]
+const MAINTENANT = () => new Date()
 
 const trace = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 
 // Liste des sorties d'un sport (`/running` ou `/cycling`), les plus récentes d'abord. Chaque carte : titre et date, puis
 // la distance en grand, la durée et le rythme (allure ou vitesse) ; le reste est dans le détail.
-export default function SortiesScreen({ sport }: { sport: Sport }) {
+export default function SortiesScreen({ sport, maintenant = MAINTENANT }: { sport: Sport; maintenant?: () => Date }) {
   const { session } = useAuth()
   const panda = useImagePanda(sport === 'course' ? 'course' : 'velo', { userId: session?.user.id, taille: 'lg' })
   const { sorties, charge, erreur, recharger } = useSorties(sport)
   const importFit = useImportFit({ apres: () => void recharger() })
   const chemin = CHEMIN_SPORT[sport]
+  const { records, badges } = useRecordsSorties(sorties, sport)
+  const [filtre, setFiltre] = useState<Filtre>('tout')
+  const aujourdhui = dateIsoLocale(maintenant())
+  const visibles = sorties.filter((s) =>
+    filtre === 'semaine' ? s.date >= lundiDe(aujourdhui) && s.date <= aujourdhui
+    : filtre === 'mois' ? s.date.startsWith(aujourdhui.slice(0, 7)) && s.date <= aujourdhui
+    : filtre === 'records' ? (badges[s.id]?.length ?? 0) > 0
+    : true,
+  )
   return (
     <div className={`sorties sorties--${sport}`}>
       <header className="sorties__hero">
@@ -68,6 +92,8 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
         </ul>
       )}
 
+      {charge && !erreur && sorties.length > 0 && <CarteSemaine sport={sport} sorties={sorties} maintenant={maintenant} />}
+      {charge && !erreur && <BandeauRecords sport={sport} records={records} chemin={chemin} />}
       {charge && !erreur && <StatsSortiesBloc sorties={sorties} />}
 
       {erreur && <p role="alert">{erreur}</p>}
@@ -90,8 +116,23 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
         </div>
       )}
 
+      {charge && !erreur && sorties.length > 0 && (
+        <div role="group" aria-label="Sorties affichées" className="sorties__filtres">
+          {FILTRES.map((f) => (
+            <button key={f.id} type="button" className="sorties__filtre" aria-pressed={filtre === f.id} onClick={() => setFiltre(f.id)}>
+              {f.libelle}
+            </button>
+          ))}
+        </div>
+      )}
+      {charge && !erreur && sorties.length > 0 && visibles.length === 0 && (
+        <p role="status" className="aide">
+          {filtre === 'records' ? 'Aucune sortie ne détient de record pour l’instant.' : 'Aucune sortie dans cette sélection.'}
+        </p>
+      )}
+
       <ul className="sorties__liste">
-        {sorties.map((s) => {
+        {visibles.map((s) => {
           const rythme = formaterRythme(s)
           return (
             <li key={s.id}>
@@ -135,6 +176,15 @@ export default function SortiesScreen({ sport }: { sport: Sport }) {
                     )}
                   </span>
                 </span>
+                {badges[s.id] && (
+                  <span className="sorties__badges">
+                    {badges[s.id].map((b) => (
+                      <span key={b} className="sorties__badge">
+                        {b}
+                      </span>
+                    ))}
+                  </span>
+                )}
                 </span>
               </Link>
             </li>

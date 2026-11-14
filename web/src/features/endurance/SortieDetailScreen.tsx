@@ -5,9 +5,11 @@ import { DialogueConfirmation } from '../strength/edition/DialogueConfirmation'
 import { lienValide } from '../calendar/seancesCardio/lienValide'
 import { CHEMIN_SPORT } from './chemins'
 import { distanceKm, formaterDate, formaterDuree, formaterRythme } from './presentation'
+import { AnalyseSortieBloc } from './AnalyseSortieBloc'
 import { BandeauSortie } from './BandeauSortie'
 import { TraceSortie } from './TraceSortie'
 import { useSeanceLiee } from './useSeanceLiee'
+import { useToutesLesSorties } from './useRecordsSorties'
 import { useSortie } from './useSorties'
 
 // Détail d'une sortie (`/running/:id`, `/cycling/:id`) : métriques, notes, lien, modification et suppression.
@@ -17,6 +19,8 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
   const { sortie: s, chargement, introuvable, erreur, supprimer } = useSortie(id)
   const [confirmer, setConfirmer] = useState(false)
   const liee = useSeanceLiee(s)
+  // Toutes les sorties : comparaison avec les précédentes, records, FTP et FC max estimées
+  const { sorties: toutes, charge: toutesChargees } = useToutesLesSorties()
   const chemin = CHEMIN_SPORT[sport]
 
   if (chargement) return <p role="status">Chargement…</p>
@@ -89,6 +93,8 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
       </dl>
 
       <TraceSortie sortie={s} />
+
+      {toutesChargees && <AnalyseSortieBloc sortie={s} toutes={toutes} />}
 
       {liee && (
         <p className="sorties__liee">
