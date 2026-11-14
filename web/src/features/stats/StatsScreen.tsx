@@ -89,6 +89,8 @@ export default function StatsScreen() {
 function StatsRenforcement() {
   const { session } = useAuth()
   const s = useStats({ userId: session?.user.id })
+  // Détail par muscle replié par défaut : la figure suffit en un coup d'œil, la liste ne s'ouvre que sur demande
+  const [musclesOuverts, setMusclesOuverts] = useState(false)
   const g = s.graphique
   const synthese = syntheseExercice(s.historique)
 
@@ -200,7 +202,18 @@ function StatsRenforcement() {
               <span className="heatmap__echelle-barre" style={{ background: degradeEchelle() }} aria-hidden="true" />
               <span className="heatmap__echelle-borne heatmap__echelle-borne--fin">Intense</span>
             </div>
-            <ul className="stats__barres" aria-label="Séries par groupe musculaire">
+            <button type="button" className="stats__bascule" aria-expanded={musclesOuverts} aria-controls="stats-detail-muscles" onClick={() => setMusclesOuverts((o) => !o)}>
+              <span>
+                Détail par muscle <span className="stats__bascule-compte">({s.groupes.length})</span>
+              </span>
+              <span aria-hidden="true">{musclesOuverts ? '▴' : '▾'}</span>
+            </button>
+            {!musclesOuverts && (
+              <p className="stats__apercu-muscles">
+                {s.groupes.filter((m) => m.series > 0).slice(0, 3).map((m) => `${m.libelle} ${m.series}`).join(' · ')}
+              </p>
+            )}
+            <ul id="stats-detail-muscles" className="stats__barres" aria-label="Séries par groupe musculaire" hidden={!musclesOuverts}>
               {s.groupes.map((m) => (
                 <li key={m.groupe} className="stats__barre">
                   <span className="stats__barre-nom">
@@ -218,7 +231,7 @@ function StatsRenforcement() {
       )}
 
       {s.pret && (
-        <section aria-labelledby="stats-historique" className="stats__section stats__section--carte">
+        <section aria-labelledby="stats-historique" className="stats__section stats__section--carte stats__section--grille">
           <h2 id="stats-historique">Historique d'un exercice</h2>
           {s.erreurHistorique && (
             <p role="alert" className="import__erreur">
