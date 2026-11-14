@@ -3,7 +3,7 @@ import type { RouteObject } from 'react-router'
 import {
   CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
@@ -48,6 +48,8 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'cycling/:id', element: chargement(<SortieDetailScreen sport="velo" />) },
     { path: 'cycling/:id/edit', element: chargement(<SortieFormScreen sport="velo" />) },
     { path: 'calendar', element: chargement(<CalendarScreen />) },
+    { path: 'plans', element: chargement(<PlansScreen />) },
+    { path: 'plans/reglages', element: chargement(<ReglagesPlansScreen />) },
     { path: 'stats', element: chargement(<StatsScreen />) },
     { path: 'breathing', element: chargement(<RespirationScreen />) },
     // Chemins statiques (new, session/…) avant :id/edit
