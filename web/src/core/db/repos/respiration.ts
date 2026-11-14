@@ -176,6 +176,21 @@ export async function lireSeances(db: DbLecture, limite: number): Promise<Seance
   return lignes.map(mapSeance)
 }
 
+/** Séance avec son instant d'enregistrement (fin de séance), pour les moments de la journée des statistiques. */
+export interface SeanceRespirationDatee extends SeanceRespiration {
+  /** Horodatage brut de création (ISO client ou format Postgres) ; peut être vide. */
+  creeLe: string
+}
+
+/** Séances vivantes dont le jour est `depuis` (yyyy-MM-dd) ou plus tard, les plus récentes d'abord. */
+export async function lireSeancesDepuis(db: DbLecture, depuis: string): Promise<SeanceRespirationDatee[]> {
+  const lignes = await db.getAll<Ligne>(
+    'SELECT * FROM seances_respiration WHERE deleted_at IS NULL AND date >= ? ORDER BY date DESC, created_at DESC, id DESC',
+    [depuis],
+  )
+  return lignes.map((l) => ({ ...mapSeance(l), creeLe: String(l.created_at ?? '') }))
+}
+
 export async function enregistrerSeance(db: Db, saisie: SaisieSeanceRespiration): Promise<string> {
   const methodeId = texteBorne("L'identifiant de la méthode", saisie.methodeId, 100)
   const methodeNom = texteBorne('Le nom de la méthode', saisie.methodeNom, LIMITES_RESPIRATION.nom)
