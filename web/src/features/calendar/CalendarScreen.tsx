@@ -1,5 +1,7 @@
+import { Fragment } from 'react'
 import { Link } from 'react-router'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { libelleSemaine, formaterMinutes, lundiDe as lundiDeSemaine, type ChargeSemaine } from './chargeCalendrier'
 import { DateDialog } from './DateDialog'
 import { exhaustif, LIBELLE_GENRE } from './evenements'
 import { JOURS_SEMAINE, formaterJourCourt, formaterJourLong } from './grille'
@@ -7,6 +9,7 @@ import { FeuilleSeanceCardio } from './seancesCardio/FeuilleSeanceCardio'
 import { LigneCardio } from './seancesCardio/LigneCardio'
 import { SupprimerInstanceDialog } from './SupprimerInstanceDialog'
 import { SupprimerProgrammeesDialog } from './SupprimerProgrammeesDialog'
+import { AlerteSemaine, VueSemaine } from './VueSemaine'
 import type { EvenementAgenda, InstanceVue, StatutFiltre } from './types'
 import { useEcranCalendrier } from './useEcranCalendrier'
 
@@ -112,6 +115,17 @@ function LigneEvenement({ evenement, avecDate, actions }: LigneEvenementProps) {
   }
 }
 
+// Barre de charge de la semaine (durée prévue), dans la colonne de droite de la grille du mois : le niveau est dit en toutes
+// lettres, pas par la couleur seule.
+function ChargeSemaineCellule({ charge }: { charge: ChargeSemaine }) {
+  const NOMS = { bas: 'légère', moyen: 'soutenue', haut: 'élevée' } as const
+  return (
+    <span className="calendrier__charge" role="img" aria-label={`Semaine du ${libelleSemaine(charge.debut)} : charge ${NOMS[charge.niveau]}, ${formaterMinutes(charge.minutes)} prévues`}>
+      <span className={`calendrier__charge-barre calendrier__charge-barre--${charge.niveau}`} style={{ height: `${Math.min(100, Math.max(charge.minutes > 0 ? 8 : 0, Math.round((charge.minutes / 600) * 100)))}%` }} />
+    </span>
+  )
+}
+
 // Calendrier : grille du mois, filtre, séances du jour choisi et prochaines séances.
 export default function CalendarScreen() {
   const c = useEcranCalendrier()
@@ -121,17 +135,26 @@ export default function CalendarScreen() {
       <h1 className="titre-ecran">Calendrier</h1>
 
       <div className="calendrier__entete">
-        <button type="button" className="bouton calendrier__nav" aria-label="Mois précédent" onClick={c.precedent}>
+        <button type="button" className="bouton calendrier__nav" aria-label={c.vue === 'mois' ? 'Mois précédent' : 'Semaine précédente'} onClick={c.vue === 'mois' ? c.precedent : c.semainePrecedente}>
           <span aria-hidden="true">‹</span>
         </button>
         <h2 className="calendrier__mois" aria-live="polite">
-          {c.titreMois}
+          {c.vue === 'mois' ? c.titreMois : libelleSemaine(c.lundiAffiche)}
         </h2>
-        <button type="button" className="bouton calendrier__nav" aria-label="Mois suivant" onClick={c.suivant}>
+        <button type="button" className="bouton calendrier__nav" aria-label={c.vue === 'mois' ? 'Mois suivant' : 'Semaine suivante'} onClick={c.vue === 'mois' ? c.suivant : c.semaineSuivante}>
           <span aria-hidden="true">›</span>
         </button>
         <button type="button" className="bouton calendrier__auj" onClick={c.auj}>
           Aujourd'hui
+        </button>
+      </div>
+
+      <div role="group" aria-label="Affichage" className="segmente">
+        <button type="button" className="bouton" aria-pressed={c.vue === 'mois'} onClick={() => c.setVue('mois')}>
+          Mois
+        </button>
+        <button type="button" className="bouton" aria-pressed={c.vue === 'semaine'} onClick={() => c.setVue('semaine')}>
+          Semaine
         </button>
       </div>
 
@@ -159,13 +182,24 @@ export default function CalendarScreen() {
         <p>Chargement…</p>
       ) : (
         <>
-          <div className="calendrier__grille" aria-label={`Jours de ${c.titreMois}`}>
+          {c.vue === 'semaine' && (
+            <>
+              <AlerteSemaine charge={c.chargeAffichee} />
+              <VueSemaine jours={c.semaineAffichee} charge={c.chargeAffichee} onDeplacer={(e, d) => void c.deplacerAvecAnnulation(e, d)} onAutreDate={c.ouvrirDate} />
+            </>
+          )}
+          {c.vue === 'mois' && (
+          <div className="calendrier__grille calendrier__grille--charge" aria-label={`Jours de ${c.titreMois}`}>
             {JOURS_SEMAINE.map((j) => (
               <span key={j} className="calendrier__semaine" aria-hidden="true">
                 {j}
               </span>
             ))}
-            {c.jours.map((j) => (
+            <span className="calendrier__semaine" aria-hidden="true">
+              Charge
+            </span>
+            {c.jours.map((j, i) => (
+              <Fragment key={j.dateIso}>
               <button
                 key={j.dateIso}
                 type="button"
@@ -189,8 +223,13 @@ export default function CalendarScreen() {
                   </span>
                 )}
               </button>
+              {i % 7 === 6 && <ChargeSemaineCellule charge={c.chargeDe(lundiDeSemaine(j.dateIso))} />}
+              </Fragment>
             ))}
           </div>
+          )}
+
+          {c.vue === 'mois' && c.detail && <AlerteSemaine charge={c.chargeDe(lundiDeSemaine(c.detail.dateIso))} />}
 
           <ul className="calendrier__legende" aria-hidden="true">
             <li>
@@ -218,7 +257,7 @@ export default function CalendarScreen() {
             </div>
           )}
 
-          {c.detail && (
+          {c.vue === 'mois' && c.detail && (
             <section aria-labelledby="calendrier-detail" className="calendrier__section">
               <h2 id="calendrier-detail">{c.titreDetail}</h2>
               {c.detail.evenements.length === 0 ? (
@@ -258,6 +297,15 @@ export default function CalendarScreen() {
             Supprimer toutes les séances de cardio programmées
           </button>
         </>
+      )}
+
+      {c.annonce && (
+        <div role="status" className="calendrier__annonce">
+          <span>{c.annonce.texte}</span>
+          <button type="button" className="bouton" onClick={() => void c.annulerDeplacement()}>
+            Annuler
+          </button>
+        </div>
       )}
 
       {c.nbAEffacer !== null && (

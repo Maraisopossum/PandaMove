@@ -2975,6 +2975,48 @@ time,
   }
 }
 
+/* Charge estimée : colonne de droite de la grille du mois, vue semaine, alerte, annonce de déplacement */
+.calendrier__grille--charge { grid-template-columns: repeat(7, minmax(0, 1fr)) 2.25rem; }
+.calendrier__charge { display: flex; align-items: flex-end; min-height: var(--hauteur-cellule); border-radius: 8px; background: var(--fond-discret); overflow: hidden; }
+.calendrier__charge-barre { display: block; width: 100%; }
+.calendrier__charge-barre--bas { background: #9ccc9c; }
+.calendrier__charge-barre--moyen { background: #f59e0b; }
+.calendrier__charge-barre--haut { background: #c2410c; }
+.calendrier__alerte { display: grid; gap: 0.375rem; margin: 0.75rem 0; padding: 0.75rem 1rem; border: 1px solid #fed7aa; border-radius: var(--radius-carte); background: #fff7ed; }
+.calendrier__alerte h2 { margin: 0; color: #9a3412; font-family: var(--police-titres); font-size: var(--taille-corps); }
+.calendrier__alerte p { margin: 0; color: #3a1c0c; font-size: var(--taille-petit); line-height: 1.45; }
+.calendrier__alerte .aide { color: #7a4a2a; }
+.calendrier__repartition { display: grid; gap: 0.5rem; margin: 0.75rem 0; padding: 0.75rem 1rem; border: 1px solid var(--bord); border-radius: var(--radius-carte); background: var(--surface); }
+.calendrier__repartition h2 { margin: 0; font-family: var(--police-titres); font-size: var(--taille-corps); }
+.calendrier__repartition p { margin: 0; }
+.calendrier__repartition-liste { display: grid; gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
+.calendrier__repartition-liste li { display: grid; grid-template-columns: 1.375rem minmax(0, 1fr) 3.5rem; align-items: center; gap: 0.5rem; font-size: var(--taille-micro); }
+.calendrier__repartition-jour { color: var(--texte-secondaire); font-weight: 600; }
+.calendrier__repartition-piste { height: 10px; border-radius: 999px; background: var(--fond-discret); overflow: hidden; }
+.calendrier__repartition-barre { display: block; height: 100%; border-radius: 999px; }
+.calendrier__repartition-barre--bas { background: #9ccc9c; }
+.calendrier__repartition-barre--moyen { background: #f59e0b; }
+.calendrier__repartition-barre--haut { background: #c2410c; }
+.calendrier__repartition-duree { color: var(--texte-secondaire); text-align: right; font-variant-numeric: tabular-nums; }
+.calendrier__section-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.calendrier__jours-semaine { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.calendrier__jour-semaine { display: grid; gap: 0.5rem; padding: 0.625rem 0.75rem; border: 1px solid var(--bord); border-radius: var(--radius-carte); background: var(--surface); }
+.calendrier__jour-semaine--libre { border: 1.5px dashed var(--couleur-succes); background: var(--couleur-succes-fond); }
+.calendrier__jour-semaine--survol { outline: 2px dashed var(--calendrier-bouton, #c2410c); outline-offset: 2px; }
+.calendrier__jour-semaine-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; font-size: var(--taille-petit); }
+.calendrier__jour-etat { color: var(--texte-secondaire); font-size: var(--taille-micro); font-weight: 600; }
+.calendrier__jour-etat--libre { color: var(--couleur-succes-texte); font-weight: 700; }
+.calendrier__jour-seances { display: grid; gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
+.calendrier__seance-semaine { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.625rem; border-left: 4px solid var(--couleur-renforcement); border-radius: 10px; background: color-mix(in srgb, var(--couleur-renforcement) 8%, var(--surface)); }
+.calendrier__seance-semaine--course { border-left-color: #2e7d32; background: color-mix(in srgb, #2e7d32 8%, var(--surface)); }
+.calendrier__seance-semaine--velo { border-left-color: #0277bd; background: color-mix(in srgb, #0277bd 8%, var(--surface)); }
+.calendrier__seance-semaine[draggable='true'] { cursor: grab; }
+.calendrier__seance-texte { display: grid; flex: 1; gap: 0.0625rem; min-width: 0; }
+.calendrier__seance-texte strong { font-size: var(--taille-corps); }
+.calendrier__choix-jour { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: 0.375rem; }
+.calendrier__annonce { position: sticky; bottom: 4.5rem; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-bouton); background: var(--texte); color: var(--surface); font-size: var(--taille-petit); }
+.calendrier__annonce .bouton { flex: none; }
+
 .calendrier__semaine {
   padding: 0.25rem 0;
   text-align: center;
