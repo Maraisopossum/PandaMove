@@ -3,7 +3,7 @@ import type { RouteObject } from 'react-router'
 import {
   CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, DonneesScreen, RappelsScreen, ProgressionScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, DonneesScreen, RappelsScreen, ProgressionScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
@@ -38,10 +38,12 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'strength/instance/:id/report', element: chargement(<ReportScreen />) },
     // Sorties d'endurance : chemins statiques (new) avant :id
     { path: 'running', element: chargement(<SortiesScreen sport="course" />) },
+    { path: 'running/records', element: chargement(<RecordsSortiesScreen sport="course" />) },
     { path: 'running/new', element: chargement(<SortieFormScreen sport="course" />) },
     { path: 'running/:id', element: chargement(<SortieDetailScreen sport="course" />) },
     { path: 'running/:id/edit', element: chargement(<SortieFormScreen sport="course" />) },
     { path: 'cycling', element: chargement(<SortiesScreen sport="velo" />) },
+    { path: 'cycling/records', element: chargement(<RecordsSortiesScreen sport="velo" />) },
     { path: 'cycling/new', element: chargement(<SortieFormScreen sport="velo" />) },
     { path: 'cycling/:id', element: chargement(<SortieDetailScreen sport="velo" />) },
     { path: 'cycling/:id/edit', element: chargement(<SortieFormScreen sport="velo" />) },
