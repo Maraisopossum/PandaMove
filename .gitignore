@@ -37,3 +37,5 @@ plan_attaque.html
 plan_attaque_gen.js
 assets/*.docx
 assets/PandaMove_Asset_Catalog.csv
+# Fichiers temporaires du CLI Supabase (lien de projet local)
+web/supabase/.temp/
