@@ -3,7 +3,9 @@ import { dateIsoLocale } from '../../core/common/dates'
 import { getDb } from '../../core/db/client'
 import type { Db, DbLecture } from '../../core/db/Db'
 import { definirValidation, lirePlage, type GenreCardio } from '../../core/db/repos/seancesCardio'
+import { lireObjectifsPlan, type ObjectifPlan } from '../../core/db/repos/objectifsPlan'
 import { lierSeance, lireSorties, type Sortie } from '../../core/db/repos/sorties'
+import { construireEcheances, type Echeance } from './echeances'
 import { construirePlan, joursEntre, realisationJusquA, semaineCourante, type Plan, type Realisation } from './plan'
 import { chargerReglagesPlans, enregistrerReglagesPlans, retablirReglagesPlans, type ReglagesPlans } from './reglagesPlans'
 
@@ -12,13 +14,15 @@ export interface EtatPlans {
   erreur: string
   plan: Plan | null
   sorties: Sortie[]
+  objectifs: ObjectifPlan[]
+  echeances: Echeance[]
   /** Indice de la semaine en cours ; -1 avant le plan, nombre de semaines après. */
   courante: number
   realisation: Realisation | null
   prochainJalon: { nom: string; date: string; jours: number } | null
 }
 
-const VIDE: EtatPlans = { pret: false, erreur: '', plan: null, sorties: [], courante: -1, realisation: null, prochainJalon: null }
+const VIDE: EtatPlans = { pret: false, erreur: '', plan: null, sorties: [], objectifs: [], echeances: [], courante: -1, realisation: null, prochainJalon: null }
 
 /** Plan d'endurance (frise, phases, réalisation) dérivé des séances de course et de vélo de l'agenda et des sorties réalisées. */
 export function usePlans({ db, aujourdhui = dateIsoLocale(new Date()) }: { db?: Db; aujourdhui?: string } = {}) {
@@ -30,21 +34,22 @@ export function usePlans({ db, aujourdhui = dateIsoLocale(new Date()) }: { db?: 
   useEffect(() => {
     let annule = false
     const base: DbLecture = db ?? getDb()
-    Promise.all([lirePlage(base, 'course', '0000-01-01', '9999-12-31'), lirePlage(base, 'velo', '0000-01-01', '9999-12-31'), lireSorties(base)])
-      .then(([course, velo, sorties]) => {
+    Promise.all([lirePlage(base, 'course', '0000-01-01', '9999-12-31'), lirePlage(base, 'velo', '0000-01-01', '9999-12-31'), lireSorties(base), lireObjectifsPlan(base)])
+      .then(([course, velo, sorties, objectifs]) => {
         if (annule) return
         const plan = construirePlan([...course, ...velo], sorties, {
           parametres: { reductionAffutagePct: reglages.reductionAffutagePct, allegeePct: reglages.allegeePct },
           dureeMinPct: reglages.dureeMinPct, autrementPct: reglages.autrementPct, aujourdhui,
         })
+        const echeances = construireEcheances(plan, objectifs)
         if (!plan) {
-          setEtat({ ...VIDE, pret: true })
+          setEtat({ ...VIDE, pret: true, objectifs, echeances })
           return
         }
         const courante = semaineCourante(plan, aujourdhui)
-        const prochain = plan.jalons.find((j) => j.date >= aujourdhui) ?? null
+        const prochain = echeances.find((e) => e.statut === 'prevu' && e.date >= aujourdhui) ?? null
         setEtat({
-          pret: true, erreur: '', plan, sorties, courante,
+          pret: true, erreur: '', plan, sorties, objectifs, echeances, courante,
           realisation: courante >= 0 ? realisationJusquA(plan, courante, reglages.mesure) : null,
           prochainJalon: prochain ? { nom: prochain.nom, date: prochain.date, jours: joursEntre(aujourdhui, prochain.date) } : null,
         })
@@ -66,6 +71,7 @@ export function usePlans({ db, aujourdhui = dateIsoLocale(new Date()) }: { db?: 
   }, [])
 
   const retablir = useCallback(() => setReglages(retablirReglagesPlans()), [])
+  const recharger = useCallback(() => setVersion((v) => v + 1), [])
 
   // Rattache une sortie à une séance prévue du même sport et valide la séance, comme l'import de fichier.
   const rattacher = useCallback(
@@ -84,5 +90,5 @@ export function usePlans({ db, aujourdhui = dateIsoLocale(new Date()) }: { db?: 
     [db],
   )
 
-  return { ...etat, reglages, changer, retablir, rattacher, erreurAction }
+  return { ...etat, reglages, changer, retablir, rattacher, recharger, erreurAction }
 }

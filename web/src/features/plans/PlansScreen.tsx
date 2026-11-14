@@ -3,6 +3,7 @@ import { formaterMinutes } from '../calendar/chargeCalendrier'
 import { COULEUR_PHASE } from './couleursPhases'
 import { LIBELLE_PHASE, regrouperPhases } from './phases'
 import type { Plan } from './plan'
+import { conflitsEntreEcheances } from './echeances'
 import { definitionMesure } from './reglagesPlans'
 import { usePlans } from './usePlans'
 
@@ -56,6 +57,7 @@ export default function PlansScreen() {
   const phasesPresentes = plan ? [...new Set(plan.semaines.map((s) => s.phase))] : []
   const blocs = plan ? regrouperPhases(plan.semaines.map((s) => s.phase)) : []
   const r = p.realisation
+  const conflits = reglages.alerteJalons ? conflitsEntreEcheances(p.echeances) : []
   return (
     <div className="plans">
       <h1 className="titre-ecran">Plans</h1>
@@ -116,6 +118,7 @@ export default function PlansScreen() {
           <nav className="plans__acces" aria-label="Autres écrans du plan">
             <Link className="bouton" to="/plans/semaine">Semaine du plan</Link>
             <Link className="bouton" to="/plans/evolution">Évolution</Link>
+            <Link className="bouton" to="/plans/ajuster">Ajuster le plan</Link>
           </nav>
 
           <section className="plans__carte" aria-labelledby="plans-phases">
@@ -143,22 +146,35 @@ export default function PlansScreen() {
             </ul>
           </section>
 
-          <section className="plans__carte" aria-labelledby="plans-jalons">
-            <h2 id="plans-jalons" className="plans__titre">Jalons</h2>
+        </>
+      )}
+
+      {(plan || p.echeances.length > 0) && (
+        <section className="plans__carte" aria-labelledby="plans-jalons">
+          <h2 id="plans-jalons" className="plans__titre">Jalons et objectifs</h2>
+          {p.echeances.length === 0 ? (
+            <p>Aucun jalon pour le moment.</p>
+          ) : (
             <ul className="plans__phases">
-              {plan.jalons.map((j) => (
-                <li key={j.seanceId}>
-                  <span className="plans__phase-texte">
-                    <strong>{j.nom}</strong>
+              {p.echeances.map((e) => (
+                <li key={e.cle}>
+                  <Link className="plans__phase-texte plans__phase-lien" to={`/plans/jalon/${e.cle}`}>
+                    <strong>{e.nom}{e.statut === 'fait' ? ' · fait' : e.statut === 'abandonne' ? ' · abandonné' : ''}</strong>
                     <span className="plans__phase-detail">
-                      {jour(j.date)} · semaine {j.semaine + 1} · {j.genre === 'course' ? 'course' : 'vélo'}
+                      {jour(e.date)}{e.semaine !== null ? ` · semaine ${e.semaine + 1}` : ''} · {e.discipline === 'course' ? 'course' : e.discipline === 'velo' ? 'vélo' : 'Hyrox'} · priorité {e.priorite}
                     </span>
-                  </span>
+                  </Link>
                 </li>
               ))}
             </ul>
-          </section>
-        </>
+          )}
+          {conflits.map((c) => (
+            <p key={`${c.a.cle}-${c.b.cle}`} className="plans__conflit" role="alert">
+              <strong>Échéances trop proches</strong> : {c.a.nom} et {c.b.nom} ({c.jours === 0 ? 'le même jour' : `${c.jours} jour${c.jours > 1 ? 's' : ''} d’écart`}). Leurs affûtages sont incompatibles.
+            </p>
+          ))}
+          <Link className="bouton plans__bouton-lien" to="/plans/objectif">Nouvel objectif</Link>
+        </section>
       )}
 
       <section className="plans__carte" aria-labelledby="plans-regles">

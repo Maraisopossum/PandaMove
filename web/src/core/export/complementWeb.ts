@@ -20,6 +20,7 @@ export const TABLES_COMPLEMENT = [
   'methodes_respiration',
   'seances_respiration',
   'seances_mobilite',
+  'objectifs_plan',
 ] as const
 
 export type TableComplement = (typeof TABLES_COMPLEMENT)[number]
