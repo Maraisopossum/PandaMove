@@ -3,7 +3,7 @@ import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
 import { lireSeancesMobilite, reprendreHistoriqueLocal } from '../../core/db/repos/mobilite'
 import { TOUTES_ZONES, type ZoneCorps } from './donnees'
-import { effacerHistoriqueLocal, lireHistorique, type SeanceFaite } from './stockage'
+import { effacerHistoriqueLocal, lireHistorique, sportEnregistre, type SeanceFaite } from './stockage'
 
 export interface DepsHistorique {
   /** Base à utiliser (défaut : base de l'application, résolue à l'usage). */
@@ -23,7 +23,7 @@ export function useHistoriqueMobilite({ db, userId }: DepsHistorique = {}) {
     const base = db ?? getDb()
     const anciennes = lireHistorique()
     if (userId && anciennes.length > 0) {
-      await reprendreHistoriqueLocal(base, userId, anciennes)
+      await reprendreHistoriqueLocal(base, userId, anciennes.map((s) => ({ ...s, sport: sportEnregistre(s.sport) })))
       effacerHistoriqueLocal()
     }
     const seances = await lireSeancesMobilite(base)

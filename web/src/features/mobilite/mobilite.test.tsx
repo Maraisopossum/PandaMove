@@ -58,11 +58,12 @@ describe('phases', () => {
 
 describe('stockage', () => {
   it('relit le choix, corrige les valeurs invalides', () => {
-    expect(lireChoix()).toEqual({ minutes: 10, zones: [], moment: 'libre', sport: null })
-    ecrireChoix({ minutes: 20, zones: ['cou', 'hanches'], moment: 'avant', sport: 'velo' })
-    expect(lireChoix()).toEqual({ minutes: 20, zones: ['cou', 'hanches'], moment: 'avant', sport: 'velo' })
-    localStorage.setItem('pandamove.mobilite.choix', JSON.stringify({ minutes: 9999, zones: ['x', 'cou'], moment: 'nimporte', sport: 'golf' }))
-    expect(lireChoix()).toEqual({ minutes: 10, zones: ['cou'], moment: 'libre', sport: null })
+    const tous = ['mobilite', 'activation', 'etirement']
+    expect(lireChoix()).toEqual({ minutes: 10, zones: [], moment: 'libre', sport: null, types: tous })
+    ecrireChoix({ minutes: 20, zones: ['cou', 'hanches'], moment: 'avant', sport: 'velo', types: ['activation'] })
+    expect(lireChoix()).toEqual({ minutes: 20, zones: ['cou', 'hanches'], moment: 'avant', sport: 'velo', types: ['activation'] })
+    localStorage.setItem('pandamove.mobilite.choix', JSON.stringify({ minutes: 9999, zones: ['x', 'cou'], moment: 'nimporte', sport: 'golf', types: ['x'] }))
+    expect(lireChoix()).toEqual({ minutes: 10, zones: ['cou'], moment: 'libre', sport: null, types: tous })
     localStorage.setItem('pandamove.mobilite.choix', 'pas du json')
     expect(lireChoix().minutes).toBe(10)
   })

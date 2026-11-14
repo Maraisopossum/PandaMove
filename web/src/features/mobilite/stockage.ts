@@ -1,5 +1,5 @@
 import { dateIsoLocale } from '../../core/common/dates'
-import { DUREES_MIN, EXERCICES, MOMENTS, TOUTES_ZONES, type MomentSeance, type SportId, type ZoneCorps } from './donnees'
+import { DUREES_MIN, EXERCICES, MOMENTS, TOUS_TYPES, TOUTES_ZONES, type MomentSeance, type SportId, type TypeExercice, type ZoneCorps } from './donnees'
 import { dureeTotale, type Etape, type PlanSeance } from './generer'
 
 // Stockage local de la mobilité : dernier choix et séance en cours de préparation, propres à l'appareil (localStorage /
@@ -16,9 +16,11 @@ export interface ChoixMobilite {
   zones: ZoneCorps[]
   moment: MomentSeance
   sport: SportId | null
+  /** Types d'exercices admis (au moins un). */
+  types: TypeExercice[]
 }
 
-export const CHOIX_PAR_DEFAUT: ChoixMobilite = { minutes: 10, zones: [], moment: 'libre', sport: null }
+export const CHOIX_PAR_DEFAUT: ChoixMobilite = { minutes: 10, zones: [], moment: 'libre', sport: null, types: TOUS_TYPES }
 
 function lireJson(stockage: Storage | undefined, cle: string): unknown {
   try {
@@ -41,17 +43,27 @@ const session = () => (typeof sessionStorage === 'undefined' ? undefined : sessi
 
 const estMoment = (v: unknown): v is MomentSeance => MOMENTS.some((m) => m.id === v)
 const estZone = (v: unknown): v is ZoneCorps => TOUTES_ZONES.includes(v as ZoneCorps)
-const estSport = (v: unknown): v is SportId => v === 'course' || v === 'velo' || v === 'renforcement' || v === 'bureau'
+const estSport = (v: unknown): v is SportId => v === 'seule' || v === 'course' || v === 'velo' || v === 'renforcement' || v === 'bureau'
+const estType = (v: unknown): v is TypeExercice => TOUS_TYPES.includes(v as TypeExercice)
 
-export function lireChoix(): ChoixMobilite {
-  const v = lireJson(local(), CLE_CHOIX) as Partial<ChoixMobilite> | null
+// Choix lu dans un stockage ou une routine : toute valeur inconnue revient à la valeur par défaut, et les types gardent au moins un élément.
+export function normaliserChoix(brut: unknown): ChoixMobilite {
+  const v = (brut && typeof brut === 'object' ? brut : null) as Partial<ChoixMobilite> | null
+  const demandes: unknown[] = Array.isArray(v?.types) ? v.types : []
+  const types = TOUS_TYPES.filter((t) => demandes.includes(t))
   return {
     minutes: typeof v?.minutes === 'number' && v.minutes >= 1 && v.minutes <= 120 ? Math.round(v.minutes) : CHOIX_PAR_DEFAUT.minutes,
     zones: Array.isArray(v?.zones) ? v.zones.filter(estZone) : [],
     moment: estMoment(v?.moment) ? v.moment : CHOIX_PAR_DEFAUT.moment,
     sport: estSport(v?.sport) ? v.sport : null,
+    types: types.length > 0 ? types : TOUS_TYPES,
   }
 }
+
+export const lireChoix = (): ChoixMobilite => normaliserChoix(lireJson(local(), CLE_CHOIX))
+
+// La base n'accepte que les quatre sports d'origine (contrainte de la migration 0012) : « Mobilité seule » s'enregistre sans sport.
+export const sportEnregistre = (sport: SportId | null): Exclude<SportId, 'seule'> | null => (sport === 'seule' ? null : sport)
 
 export const ecrireChoix = (c: ChoixMobilite) => ecrire(local(), CLE_CHOIX, c)
 
@@ -61,12 +73,13 @@ interface PlanStocke {
   minutes: number
   zones: ZoneCorps[]
   moment: MomentSeance
+  types?: TypeExercice[]
   graine: number
   etapes: { id: string; dureeS: number }[]
 }
 
 export const ecrirePlan = (p: PlanSeance) =>
-  ecrire(session(), CLE_PLAN, { minutes: p.minutes, zones: p.zones, moment: p.moment, graine: p.graine, etapes: p.etapes.map((x) => ({ id: x.exercice.id, dureeS: x.dureeS })) } satisfies PlanStocke)
+  ecrire(session(), CLE_PLAN, { minutes: p.minutes, zones: p.zones, moment: p.moment, types: p.types, graine: p.graine, etapes: p.etapes.map((x) => ({ id: x.exercice.id, dureeS: x.dureeS })) } satisfies PlanStocke)
 
 export function lirePlan(): PlanSeance | null {
   const v = lireJson(session(), CLE_PLAN) as Partial<PlanStocke> | null
@@ -80,6 +93,7 @@ export function lirePlan(): PlanSeance | null {
     minutes: typeof v.minutes === 'number' ? v.minutes : DUREES_MIN[1],
     zones: Array.isArray(v.zones) ? v.zones.filter(estZone) : [],
     moment: estMoment(v.moment) ? v.moment : 'libre',
+    types: Array.isArray(v.types) ? v.types.filter(estType) : undefined,
     graine: typeof v.graine === 'number' ? v.graine : 1,
     etapes,
     dureeTotaleS: dureeTotale(etapes),
