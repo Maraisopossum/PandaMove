@@ -8767,6 +8767,41 @@ time,
 .bilan__retour-calme p { margin: 0.125rem 0 0.5rem; color: #0b2b27; font-size: var(--taille-petit); line-height: 1.4; }
 .bilan__retour-calme .bouton { background: #00695c; border-color: #00695c; color: #fff; }
 
+/* Profil : objectifs, poids, réglages d'appareil */
+.profil__carte { display: grid; gap: 0.75rem; margin: 0.75rem 0; padding: 1rem; border: 1px solid var(--bord); border-radius: var(--radius-carte); background: var(--surface); }
+.profil__carte h2 { margin: 0; font-family: var(--police-titres); font-size: var(--taille-titre-3); }
+.profil__carte p { margin: 0; }
+.profil__carte-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.profil__lien-texte-bouton { min-height: var(--hauteur-cellule); padding: 0; border: 0; background: transparent; color: var(--profil-accent); font: inherit; font-size: var(--taille-petit); font-weight: 600; cursor: pointer; }
+.profil__lien-texte-bouton--alerte { justify-self: start; color: #b42318; }
+.profil__lien-texte-bouton:focus-visible, .profil__reglage:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.profil__objectifs { display: grid; gap: 0.875rem; margin: 0; padding: 0; list-style: none; }
+.profil__objectifs li { display: grid; gap: 0.375rem; }
+.profil__objectif-ligne { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.profil__objectif-nom { display: inline-flex; align-items: center; gap: 0.5rem; font-size: var(--taille-corps); font-weight: 600; }
+.profil__objectif-nom img { object-fit: contain; }
+.profil__objectif-valeur { color: var(--texte-secondaire); font-size: var(--taille-petit); font-variant-numeric: tabular-nums; }
+.profil__objectif-piste { display: block; height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--profil-accent) 14%, var(--surface)); overflow: hidden; }
+.profil__objectif-barre { display: block; height: 100%; border-radius: 999px; background: var(--profil-accent); }
+.profil__objectif-barre--atteint { background: var(--couleur-succes); }
+.profil__objectifs-form { display: grid; gap: 0.75rem; padding: 0.75rem; border-radius: var(--radius-bouton); background: var(--fond); }
+.profil__poids-haut { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
+.profil__poids-valeur { display: grid; gap: 0.125rem; }
+.profil__poids-valeur strong { font-family: var(--police-titres); font-size: 1.875rem; font-weight: 800; line-height: 1; }
+.profil__poids-ecart { padding: 0.25rem 0.625rem; border-radius: var(--radius-pilule); background: var(--fond-discret); font-size: var(--taille-petit); font-weight: 600; }
+.profil__poids-courbe { display: block; width: 100%; height: auto; }
+.profil__poids-trace { fill: none; stroke: var(--profil-accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.profil__poids-point { fill: var(--profil-accent); }
+.profil__poids-objectif { stroke: var(--couleur-respiration); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.profil__pesees summary { min-height: var(--hauteur-cellule); display: flex; align-items: center; font-size: var(--taille-petit); font-weight: 600; cursor: pointer; }
+.profil__pesees ul { display: grid; gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
+.profil__pesees li { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: var(--taille-petit); }
+.profil__reglages { margin: 0; padding: 0; list-style: none; }
+.profil__reglage { display: flex; align-items: center; gap: 0.625rem; min-height: 3.5rem; border-top: 1px solid var(--bord); color: var(--texte); text-decoration: none; }
+.profil__reglage-texte { display: grid; flex: 1; gap: 0.0625rem; min-width: 0; }
+.profil__reglage-nom { font-size: var(--taille-corps); font-weight: 600; }
+.profil__reglage-valeur { color: var(--texte-secondaire); font-size: var(--taille-petit); font-weight: 600; font-variant-numeric: tabular-nums; }
+
 /* Forme : charge d'entraînement (course et vélo) */
 .charge { --couleur-sport: var(--couleur-stats); display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.875rem; --charge-forme: #1565c0; --charge-fatigue: #e65100; --charge-fraicheur: #6a1b9a; }
 :root[data-theme='dark'] .charge { --charge-forme: #64b5f6; --charge-fatigue: #ffb74d; --charge-fraicheur: #ce93d8; }
