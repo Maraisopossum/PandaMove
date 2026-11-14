@@ -65,7 +65,7 @@ describe('réglages et purge', () => {
 })
 
 describe('progression', () => {
-  const pt = (dateIso: string, maxChargeKg: number): PointHistorique => ({ dateIso, maxChargeKg, reps: 5, enSecondes: false })
+  const pt = (dateIso: string, maxChargeKg: number): PointHistorique => ({ dateIso, maxChargeKg, reps: 5, enSecondes: false, volumeKg: 0, rmEstimeKg: 0 })
   const points = [pt('2026-01-10', 60), pt('2026-09-01', 70), pt('2026-10-15', 80), pt('2026-11-05', 77.5)]
   it('filtre par période et calcule record et évolution', () => {
     const dans3Mois = pointsDeLaPeriode(points, '3m', new Date(2026, 10, 11))

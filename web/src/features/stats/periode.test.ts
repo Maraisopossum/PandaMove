@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { CLE_PERIODE, PERIODES, PERIODE_DEFAUT, bornesPeriode, ecrirePeriode, lirePeriode } from './periode'
+import { CLE_PERIODE, PERIODES, PERIODE_DEFAUT, bornesPeriode, bornesPeriodePrecedente, ecrirePeriode, lirePeriode } from './periode'
 
 const jour = (y: number, m: number, d: number) => new Date(y, m - 1, d, 23, 30)
 
@@ -61,5 +61,27 @@ describe('persistance de la période', () => {
     })
     expect(lirePeriode()).toBe('30j')
     expect(() => ecrirePeriode('7j')).not.toThrow()
+  })
+})
+
+describe('bornesPeriodePrecedente', () => {
+  const jour = new Date(2026, 9, 24, 15, 0) // 24 octobre 2026
+  it('7 jours : les 8 jours qui précèdent, de même durée', () => {
+    // 7j = du 17 au 24 oct. (8 jours, bornes incluses) -> du 9 au 16 oct.
+    expect(bornesPeriodePrecedente('7j', jour)).toEqual({ from: '2026-10-09', to: '2026-10-16' })
+  })
+  it('1 mois : 24 sept. – 24 oct. (31 jours) -> 24 août – 23 sept.', () => {
+    expect(bornesPeriodePrecedente('30j', jour)).toEqual({ from: '2026-08-24', to: '2026-09-23' })
+  })
+  it('« Tout » n’a pas de période précédente', () => {
+    expect(bornesPeriodePrecedente('tout', jour)).toBeNull()
+  })
+  it('la précédente finit la veille du début de la période et ne la chevauche jamais', () => {
+    for (const id of ['7j', '30j', '3m', '12m'] as const) {
+      const { from } = bornesPeriode(id, jour)
+      const prec = bornesPeriodePrecedente(id, jour)!
+      expect(prec.to < from).toBe(true)
+      expect(new Date(from).getTime() - new Date(prec.to).getTime()).toBe(86_400_000)
+    }
   })
 })

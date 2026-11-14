@@ -4,11 +4,13 @@ import type { Db } from '../../core/db/Db'
 import type { MuscleGroup } from '../../core/db/types'
 import { usePandaVariante } from '../../core/images/usePandaVariante'
 import { imageHeatmap, type VueHeatmap } from './heatmapZones'
-import { bornesPeriode, ecrirePeriode, lirePeriode, type PeriodeId } from './periode'
-import { construireGraphique, groupesVue } from './presentation'
+import { ecrireExerciceDefaut, lireExerciceDefaut } from './exerciceDefaut'
+import { bornesPeriode, bornesPeriodePrecedente, ecrirePeriode, lirePeriode, type PeriodeId } from './periode'
+import { construireGraphique, groupesVue, type MesureHistorique } from './presentation'
+import { dateIsoLocale } from '../../core/common/dates'
 import {
-  exercicesAvecHistorique, historiqueExercice, resumePeriode, volumeParMuscle, volumeVide,
-  type ExerciceHistorique, type PointHistorique, type ResumePeriode,
+  exercicesAvecHistorique, historiqueExercice, recordsPersonnels, resumePeriode, tonnageParSemaine, volumeParMuscle, volumeVide,
+  type ExerciceHistorique, type PointHistorique, type Record1RM, type ResumePeriode, type TonnageSemaine,
 } from './statsQueries'
 
 export interface DepsStats {
@@ -22,6 +24,8 @@ export interface DepsStats {
 
 interface DonneesPeriode {
   resume: ResumePeriode
+  /** Période de même durée juste avant (comparaison des tendances) ; null pour « Tout ». */
+  precedent: ResumePeriode | null
   volume: Record<MuscleGroup, number>
 }
 
@@ -36,7 +40,7 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
   const [vue, setVue] = useState<VueHeatmap>('face')
   // Variante du panda (lecture partagée avec les autres écrans) ; male pendant la lecture
   const variante = usePandaVariante({ db, userId }) ?? 'male'
-  const [donnees, setDonnees] = useState<DonneesPeriode>({ resume: RESUME_VIDE, volume: volumeVide() })
+  const [donnees, setDonnees] = useState<DonneesPeriode>({ resume: RESUME_VIDE, precedent: null, volume: volumeVide() })
   const [cleChargee, setCleChargee] = useState<string | null>(null)
   // Erreur rattachée à la plage qui l'a produite : un nouveau chargement (autre plage) la masque d'office,
   // et un chargement réussi l'efface
@@ -48,7 +52,9 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
   const [historique, setHistorique] = useState<{ id: string; points: PointHistorique[] } | null>(null)
   const sequence = useRef(0)
 
-  const { from, to } = bornesPeriode(periode, (nowFn ?? (() => new Date()))())
+  const maintenant = (nowFn ?? (() => new Date()))()
+  const { from, to } = bornesPeriode(periode, maintenant)
+  const precedente = bornesPeriodePrecedente(periode, maintenant)
   const cle = `${from}|${to}`
   const chargement = cleChargee !== cle
 
@@ -57,10 +63,14 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     let annule = false
     const numero = ++sequence.current
     const base = db ?? getDb()
-    Promise.all([resumePeriode(base, from, to), volumeParMuscle(base, from, to)])
-      .then(([resume, volume]) => {
+    Promise.all([
+      resumePeriode(base, from, to),
+      volumeParMuscle(base, from, to),
+      precedente ? resumePeriode(base, precedente.from, precedente.to) : Promise.resolve(null),
+    ])
+      .then(([resume, volume, precedent]) => {
         if (annule || numero !== sequence.current) return
-        setDonnees({ resume, volume })
+        setDonnees({ resume, precedent, volume })
         setErreurPeriode(null)
       })
       .catch((e: unknown) => {
@@ -75,6 +85,8 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     return () => {
       annule = true
     }
+    // `precedente` découle de la période et de la date du jour, comme from et to
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db, from, to])
 
   // Exercices disponibles pour l'historique (toutes dates)
@@ -94,9 +106,36 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     }
   }, [db])
 
-  // Sans choix explicite (ou choix disparu), le premier exercice de la liste
-  const exerciceId =
-    exerciceChoisi && exercices.some((e) => e.id === exerciceChoisi) ? exerciceChoisi : (exercices[0]?.id ?? null)
+  // Records et tonnage des dernières semaines : indépendants de la période choisie
+  const [records, setRecords] = useState<Record1RM[]>([])
+  const [semaines, setSemaines] = useState<TonnageSemaine[]>([])
+  useEffect(() => {
+    let annule = false
+    const base = db ?? getDb()
+    const aujourdhui = dateIsoLocale((nowFn ?? (() => new Date()))())
+    Promise.all([recordsPersonnels(base, aujourdhui), tonnageParSemaine(base, aujourdhui, 4)])
+      .then(([r, s]) => {
+        if (annule) return
+        setRecords(r)
+        setSemaines(s)
+      })
+      .catch((e: unknown) => console.error('Chargement des records impossible', e))
+    return () => {
+      annule = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [db])
+
+  // Exercice montré en premier : réglage d'appareil. Ordre de priorité : choix de la session, exercice défini par défaut
+  // (s'il existe encore), puis le premier de la liste.
+  const [exerciceDefaut, setExerciceDefautEtat] = useState<string | null>(lireExerciceDefaut)
+  const existe = (id: string | null) => id !== null && exercices.some((e) => e.id === id)
+  const exerciceId = existe(exerciceChoisi) ? exerciceChoisi : existe(exerciceDefaut) ? exerciceDefaut : (exercices[0]?.id ?? null)
+  const definirExerciceDefaut = useCallback((id: string | null) => {
+    ecrireExerciceDefaut(id)
+    setExerciceDefautEtat(id)
+  }, [])
+  const [mesure, choisirMesure] = useState<MesureHistorique>('charge')
 
   useEffect(() => {
     if (!exerciceId) return
@@ -123,7 +162,7 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
 
   const groupes = useMemo(() => groupesVue(donnees.volume, variante), [donnees.volume, variante])
   const historiqueAffiche = historique && historique.id === exerciceId ? historique.points : AUCUN_POINT
-  const graphique = useMemo(() => construireGraphique(historiqueAffiche), [historiqueAffiche])
+  const graphique = useMemo(() => construireGraphique(historiqueAffiche, mesure), [historiqueAffiche, mesure])
 
   const erreur = erreurPeriode && erreurPeriode.cle === cle ? erreurPeriode.message : null
 
@@ -132,6 +171,10 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     // Vrai dès la première lecture terminée : ensuite les chiffres restent affichés pendant un rechargement
     pret: cleChargee !== null,
     resume: donnees.resume,
+    precedent: donnees.precedent,
+    precedente,
+    from, to,
+    records, semaines,
     // Jamais « vide » sur une erreur : le résumé à 0 n'est alors pas une donnée lue
     vide: !chargement && erreur === null && donnees.resume.seancesTerminees === 0,
     groupes,
@@ -139,6 +182,7 @@ export function useStats({ db, nowFn, userId }: DepsStats = {}) {
     zonesVue: groupes.filter((g) => g.traces[vue] !== undefined),
     vue, setVue, variante, image: imageHeatmap(variante, vue),
     exercices, exerciceId, choisirExercice: setExerciceChoisi,
+    exerciceDefaut, definirExerciceDefaut, mesure, choisirMesure,
     historique: historiqueAffiche, graphique,
   }
 }

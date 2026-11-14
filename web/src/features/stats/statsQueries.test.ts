@@ -4,7 +4,7 @@ import { MUSCLE_GROUPS } from '../../core/db/types'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
 import {
-  exercicesAvecHistorique, historiqueExercice, resumePeriode, tonnagePeriode, volumeParMuscle,
+  exercicesAvecHistorique, historiqueExercice, recordsPersonnels, resumePeriode, rmEstime, tonnageParSemaine, tonnagePeriode, volumeParMuscle,
 } from './statsQueries'
 
 const b = { user_id: 'u1', updated_at: '2026-01-01T00:00:00Z', deleted_at: null }
@@ -187,14 +187,14 @@ describe('statsQueries', () => {
 
   it('historique : max de charge et reps associées par date de séance, de la plus ancienne à la plus récente', async () => {
     expect(await historiqueExercice(db, 'ex-dc')).toEqual([
-      { dateIso: '2026-09-28', maxChargeKg: 65, reps: 8, enSecondes: false },
-      { dateIso: '2026-10-10', maxChargeKg: 75, reps: 8, enSecondes: false },
+      { dateIso: '2026-09-28', maxChargeKg: 65, reps: 8, enSecondes: false, volumeKg: 1120, rmEstimeKg: 82.33 },
+      { dateIso: '2026-10-10', maxChargeKg: 75, reps: 8, enSecondes: false, volumeKg: 1248, rmEstimeKg: 95 },
     ])
   })
 
   it('historique : poids du corps -> charge 0 et meilleures reps ; DURATION -> secondes', async () => {
-    expect(await historiqueExercice(db, 'ex-tr')).toEqual([{ dateIso: '2026-10-10', maxChargeKg: 0, reps: 8, enSecondes: false }])
-    expect(await historiqueExercice(db, 'ex-gain')).toEqual([{ dateIso: '2026-10-10', maxChargeKg: 10, reps: 60, enSecondes: true }])
+    expect(await historiqueExercice(db, 'ex-tr')).toEqual([{ dateIso: '2026-10-10', maxChargeKg: 0, reps: 8, enSecondes: false, volumeKg: 0, rmEstimeKg: 0 }])
+    expect(await historiqueExercice(db, 'ex-gain')).toEqual([{ dateIso: '2026-10-10', maxChargeKg: 10, reps: 60, enSecondes: true, volumeKg: 0, rmEstimeKg: 0 }])
   })
 
   it('exercices avec historique : ceux des séances terminées, triés par nom', async () => {
@@ -204,6 +204,30 @@ describe('statsQueries', () => {
       { id: 'ex-sq', nom: 'Squat' },
       { id: 'ex-tr', nom: 'Tractions' },
     ])
+  })
+  it('rmEstime : Epley, une répétition = la charge, 0 sans charge ni reps', () => {
+    expect(rmEstime(100, 5)).toBe(116.67)
+    expect(rmEstime(120, 1)).toBe(120)
+    expect(rmEstime(0, 8)).toBe(0)
+    expect(rmEstime(50, 0)).toBe(0)
+  })
+
+  it('records : meilleure série par 1RM de chaque exercice chargé, sans durée ni poids du corps, récents d’abord', async () => {
+    // « Aujourd'hui » = 12 oct. : la séance du 10 oct. est récente (≤ 14 j), celle du 28 sept. ne l'est plus (14 jours exactement : récente)
+    const records = await recordsPersonnels(db, '2026-10-12')
+    expect(records.map((r) => [r.nom, r.chargeKg, r.reps, r.dateIso, r.rmEstimeKg, r.recent])).toEqual([
+      ['Développé couché', 75, 8, '2026-10-10', 95, true],
+      ['Squat', 100, 5, '2026-10-10', 116.67, true],
+    ])
+    expect((await recordsPersonnels(db, '2026-12-01')).every((r) => !r.recent)).toBe(true)
+    expect(await recordsPersonnels(db, '2026-10-12', 1)).toHaveLength(1)
+  })
+
+  it('tonnage par semaine : quatre semaines du lundi au dimanche, la plus ancienne d’abord', async () => {
+    // 12 oct. 2026 est un lundi : semaines du 21 sept., 28 sept., 5 oct. et 12 oct.
+    const semaines = await tonnageParSemaine(db, '2026-10-12', 4)
+    expect(semaines.map((s) => s.debut)).toEqual(['2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12'])
+    expect(semaines.map((s) => s.tonnageKg)).toEqual([0, 1120, 1248 + 500, 0])
   })
 })
 
