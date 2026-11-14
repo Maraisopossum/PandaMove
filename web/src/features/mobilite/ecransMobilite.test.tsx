@@ -102,7 +102,10 @@ describe('Mobilité : types d’exercices et programme annoncé', () => {
 describe('Mobilité : routines enregistrées', () => {
   it('enregistre le réglage sous un nom proposé et modifiable, puis le propose en tête d’écran', () => {
     monter()
-    expect(screen.queryByRole('heading', { name: 'Mes routines' })).toBeNull()
+    // Sans routine, la section reste visible : elle explique comment en créer et mène à la page Routines (régularité, suggestion)
+    const vide = screen.getByRole('region', { name: 'Mes routines' })
+    expect(vide.textContent).toContain('Aucune routine pour l’instant')
+    expect(within(vide).getByRole('link', { name: 'Régularité' }).getAttribute('href')).toBe('/mobility/routines')
     fireEvent.click(screen.getByRole('button', { name: /Mobilité seule/ }))
     fireEvent.click(screen.getByRole('button', { name: '5 minutes' }))
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
