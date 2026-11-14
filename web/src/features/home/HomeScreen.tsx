@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { MODULES, urlIcone } from '../../app/modules'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { CarteDemarrage } from '../demarrage/CarteDemarrage'
+import { ObjectifsAccueil, PropositionsDuJour } from './CartesAccueil'
 import { LIBELLE_GENRE } from '../calendar/evenements'
 import type { EvenementAgenda } from '../calendar/types'
 import { libelleJour } from './semaine'
@@ -43,7 +44,7 @@ function CourbeForme({ serie }: { serie: number[] }) {
 // activité locale » : aucune donnée de dernière séance n'est exposée à l'accueil, il n'est donc pas affiché
 // (la reprise d'une séance en cours se fait par le bandeau « Séance en cours » de la coque).
 export default function HomeScreen() {
-  const { panda, prochaine, semaine, date, indicateurs, forme, derniere } = useEcranAccueil()
+  const { panda, prochaine, semaine, date, indicateurs, forme, derniere, propositions, objectifs } = useEcranAccueil()
   return (
     <div className="accueil">
       <h1 className="visuellement-cache">Accueil</h1>
@@ -83,6 +84,7 @@ export default function HomeScreen() {
         </div>
         <PandaIllustration image={panda} sizes="118px" className="accueil__panda" />
       </section>
+      <PropositionsDuJour propositions={propositions} />
       {(semaine || indicateurs) && (
         <section className="accueil__carte" aria-labelledby="accueil-semaine">
           <div className="accueil__carte-tete">
@@ -128,6 +130,7 @@ export default function HomeScreen() {
           )}
         </section>
       )}
+      <ObjectifsAccueil objectifs={objectifs} />
       {forme && (
         <section className="accueil__carte" aria-labelledby="accueil-forme">
           <div className="accueil__carte-tete">

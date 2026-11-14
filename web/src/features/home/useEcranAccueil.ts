@@ -8,7 +8,9 @@ import { lireEvenementsPlage, lireEvenementsProchains } from '../calendar/calend
 import type { EvenementAgenda } from '../calendar/types'
 import { lireSorties } from '../../core/db/repos/sorties'
 import { lireReglagesCharge } from '../endurance/useChargeEntrainement'
+import { lireProgressionObjectifs, type ProgressionObjectif } from '../profile/objectifs'
 import { fenetresBilan, indicateursBilan, lireBilan, type Indicateur } from './bilanSemaine'
+import { lirePropositions, type Proposition } from './propositionsDuJour'
 import { calculerFormeJour, lireDerniereActivite, type DerniereActivite, type FormeJour } from './donneesAccueil'
 import { bornesSemaine, construireSemaine, libelleJour, type Semaine } from './semaine'
 
@@ -41,6 +43,8 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
   const [indicateurs, setIndicateurs] = useState<Indicateur[] | null>(null)
   const [forme, setForme] = useState<FormeJour | null>(null)
   const [derniere, setDerniere] = useState<DerniereActivite | null>(null)
+  const [propositions, setPropositions] = useState<Proposition[]>([])
+  const [objectifs, setObjectifs] = useState<ProgressionObjectif[]>([])
   const [date] = useState(() => dateLongue(maintenant()))
 
   useEffect(() => {
@@ -79,6 +83,16 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
         if (!annule) setForme(calculerFormeJour(sorties, lireReglagesCharge(), aujourdhui))
       })
       .catch((e: unknown) => console.error('Forme du jour impossible', e))
+    void lirePropositions(base, maintenant())
+      .then((p) => {
+        if (!annule) setPropositions(p)
+      })
+      .catch((e: unknown) => console.error('Propositions du jour impossibles', e))
+    void lireProgressionObjectifs(base, maintenant())
+      .then((o) => {
+        if (!annule) setObjectifs(o)
+      })
+      .catch((e: unknown) => console.error('Objectifs de la semaine impossibles', e))
     void lireDerniereActivite(base, aujourdhui)
       .then((d) => {
         if (!annule) setDerniere(d)
@@ -90,5 +104,5 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db])
 
-  return { panda, prochaine, semaine, date, indicateurs, forme, derniere }
+  return { panda, prochaine, semaine, date, indicateurs, forme, derniere, propositions, objectifs }
 }
