@@ -8273,6 +8273,55 @@ time,
   gap: 0.5rem;
 }
 
+/* Mes données : sections, rappel de sauvegarde et groupes de choix de l'export ciblé */
+.donnees__section {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--surface);
+}
+
+.donnees__section h2 {
+  margin: 0;
+  font-size: var(--taille-corps);
+}
+
+.donnees__rappel {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-bouton);
+  background: color-mix(in srgb, #b43c00 12%, var(--surface));
+  color: var(--texte);
+  font-size: var(--taille-petit);
+  font-weight: 600;
+}
+
+.donnees__choix {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.donnees__choix legend {
+  padding: 0;
+  font-size: var(--taille-petit);
+  font-weight: 700;
+}
+
+.donnees__choix .outils__periodes {
+  flex-wrap: wrap;
+}
+
+.donnees__choix .outils__periode {
+  min-height: var(--hauteur-controle);
+}
+
 .outils__periode {
   min-height: 2.5rem;
   padding: 0 1rem;
