@@ -56,6 +56,13 @@ describe('StatsScreen', () => {
     expect(texte(resume)).toMatch(/1\s*séance terminée/)
     expect(screen.getByRole('button', { name: '1 mois' }).getAttribute('aria-pressed')).toBe('true')
 
+    // Le détail par muscle est replié par défaut : un aperçu des trois premiers, la liste s'ouvre sur demande
+    const bascule = screen.getByRole('button', { name: /Détail par muscle/ })
+    expect(bascule.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('list', { name: 'Séries par groupe musculaire' })).toBeNull()
+    expect(texte(screen.getByRole('region', { name: 'Muscles travaillés' }))).toContain('Pectoraux 1')
+    fireEvent.click(bascule)
+    expect(bascule.getAttribute('aria-expanded')).toBe('true')
     const liste = screen.getByRole('list', { name: 'Séries par groupe musculaire' })
     expect(within(liste).getAllByRole('listitem')).toHaveLength(MUSCLE_GROUPS.length)
     expect(texte(within(liste).getAllByRole('listitem')[0])).toMatch(/Pectoraux.*1 série/)
