@@ -245,3 +245,114 @@ export async function exercicesAvecHistorique(db: DbLecture): Promise<ExerciceHi
   )
   return lignes.sort((a, b) => normalizeSearch(a.nom).localeCompare(normalizeSearch(b.nom)))
 }
+
+// ── Suggestions du renforcement : charge récente, résumés de séances jouées, bilan d'une séance ───────────────────────────────
+
+export interface BlocTonnage {
+  /** Premier et dernier jour (yyyy-MM-dd) du bloc de 7 jours. */
+  debut: string
+  fin: string
+  tonnageKg: number
+}
+
+// Tonnage de `n` blocs de 7 jours consécutifs terminant aujourd'hui (le dernier = les 7 derniers jours, aujourd'hui compris),
+// du plus ancien au plus récent. Des blocs glissants plutôt que des semaines civiles : le début de semaine ne fausse pas la comparaison.
+export async function tonnageBlocs7Jours(db: DbLecture, aujourdhuiIso: string, n = 5): Promise<BlocTonnage[]> {
+  const debutTotal = ajouterJours(aujourdhuiIso, -(7 * n - 1))
+  const series = await lireSeriesPlage(db, debutTotal, aujourdhuiIso)
+  return Array.from({ length: n }, (_, i) => {
+    const fin = ajouterJours(aujourdhuiIso, -7 * (n - 1 - i))
+    const debut = ajouterJours(fin, -6)
+    return { debut, fin, tonnageKg: tonnage(series.filter((l) => l.date >= debut && l.date <= fin)) }
+  })
+}
+
+export interface ResumeInstanceJouee {
+  instanceId: string
+  seanceId: string
+  date: string
+  tonnageKg: number
+  series: number
+  dureeS: number
+}
+
+interface LigneInstance {
+  id: string
+  seance_id: string
+  date: string
+  duration_seconds: number | null
+}
+
+function resumeDe(l: LigneInstance, series: LigneSerie[]): ResumeInstanceJouee {
+  return { instanceId: l.id, seanceId: l.seance_id, date: l.date, tonnageKg: tonnage(series), series: series.length, dureeS: l.duration_seconds ?? 0 }
+}
+
+// Séances jouées terminées entre deux jours, avec leur tonnage et leur nombre de séries (dédoublonnage et règles de tonnage des
+// statistiques). Les plus récentes d'abord.
+export async function resumesInstancesTerminees(db: DbLecture, depuisIso: string, jusquaIso = '9999-12-31'): Promise<ResumeInstanceJouee[]> {
+  const [instances, series] = await Promise.all([
+    db.getAll<LigneInstance>(
+      'SELECT id, seance_id, date, duration_seconds FROM instances_seance WHERE is_completed = 1 AND deleted_at IS NULL AND date BETWEEN ? AND ? ORDER BY date DESC, id DESC',
+      [depuisIso, jusquaIso],
+    ),
+    lireSeriesPlage(db, depuisIso, jusquaIso),
+  ])
+  const parInstance = new Map<string, LigneSerie[]>()
+  for (const l of series) parInstance.set(l.instance_seance_id, [...(parInstance.get(l.instance_seance_id) ?? []), l])
+  return instances.map((i) => resumeDe(i, parInstance.get(i.id) ?? []))
+}
+
+export interface BilanInstance {
+  courante: ResumeInstanceJouee
+  /** Séance précédente du même modèle (jour antérieur), ou null. */
+  precedente: ResumeInstanceJouee | null
+  /** Records battus : meilleur 1RM estimé de la séance supérieur à celui de toutes les séances antérieures (au moins une avec cet exercice). */
+  records: { exerciseId: string; nom: string; chargeKg: number; reps: number; rmKg: number; ancienRmKg: number }[]
+}
+
+// Comparaison d'une séance terminée avec la précédente du même modèle, et records de la séance. null si la séance n'est pas terminée.
+export async function bilanInstance(db: DbLecture, instanceId: string): Promise<BilanInstance | null> {
+  const inst = await db.getOptional<LigneInstance>(
+    'SELECT id, seance_id, date, duration_seconds FROM instances_seance WHERE id = ? AND is_completed = 1 AND deleted_at IS NULL',
+    [instanceId],
+  )
+  if (!inst) return null
+  const seriesDe = async (id: string) => seriesRetenues(await db.getAll<LigneSerie>(`${SQL_SERIES} AND sr.instance_seance_id = ?`, [id]))
+  const [seriesCourante, precedenteLigne] = await Promise.all([
+    seriesDe(inst.id),
+    db.getOptional<LigneInstance>(
+      `SELECT id, seance_id, date, duration_seconds FROM instances_seance
+       WHERE seance_id = ? AND is_completed = 1 AND deleted_at IS NULL AND date < ? ORDER BY date DESC, id DESC LIMIT 1`,
+      [inst.seance_id, inst.date],
+    ),
+  ])
+  const precedente = precedenteLigne ? resumeDe(precedenteLigne, await seriesDe(precedenteLigne.id)) : null
+
+  // Meilleure série (par 1RM estimé) de chaque exercice catalogue de la séance
+  const meilleurs = new Map<string, { nom: string; chargeKg: number; reps: number; rmKg: number }>()
+  for (const l of seriesCourante) {
+    if (l.exercise_id === null || estDuree(l)) continue
+    const rm = rmEstime(l.charge_kg ?? 0, l.reps_realisees ?? 0)
+    if (rm <= 0) continue
+    const m = meilleurs.get(l.exercise_id)
+    if (!m || rm > m.rmKg) meilleurs.set(l.exercise_id, { nom: l.exercise_nom ?? 'Exercice', chargeKg: arrondi(l.charge_kg ?? 0), reps: l.reps_realisees ?? 0, rmKg: rm })
+  }
+  const records: BilanInstance['records'] = []
+  if (meilleurs.size > 0) {
+    const ids = [...meilleurs.keys()]
+    const avant = seriesRetenues(
+      await db.getAll<LigneSerie>(`${SQL_SERIES} AND i.date < ? AND e.id IN (${ids.map(() => '?').join(', ')})`, [inst.date, ...ids]),
+    )
+    const ancien = new Map<string, number>()
+    for (const l of avant) {
+      if (l.exercise_id === null || estDuree(l)) continue
+      ancien.set(l.exercise_id, Math.max(ancien.get(l.exercise_id) ?? 0, rmEstime(l.charge_kg ?? 0, l.reps_realisees ?? 0)))
+    }
+    for (const [exerciseId, m] of meilleurs) {
+      const a = ancien.get(exerciseId) ?? 0
+      if (a > 0 && m.rmKg > a) records.push({ exerciseId, ...m, ancienRmKg: a })
+    }
+    records.sort((x, y) => y.rmKg - y.ancienRmKg - (x.rmKg - x.ancienRmKg))
+  }
+  return { courante: resumeDe(inst, seriesCourante), precedente, records }
+}

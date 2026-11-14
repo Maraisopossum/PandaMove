@@ -2,7 +2,10 @@ import { useId, type CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { SupprimerInstanceDialog } from '../calendar/SupprimerInstanceDialog'
 import type { BlocDetail, ExerciceDetail, InstanceDetail } from './detailSeance'
+import { EchauffementConseille } from './EchauffementConseille'
+import type { InfoExercice } from './infoExercice'
 import { useDetailSeance } from './useDetailSeance'
+import { useEnrichissementDetail } from './useEnrichissementDetail'
 
 const ETATS: Record<InstanceDetail['etat'], { libelle: string; icone: string }> = {
   planifiee: { libelle: 'Programmée', icone: '▶' },
@@ -10,7 +13,7 @@ const ETATS: Record<InstanceDetail['etat'], { libelle: string; icone: string }> 
   terminee: { libelle: 'Terminée', icone: '✓' },
 }
 
-function CarteExercice({ e, dense }: { e: ExerciceDetail; dense?: boolean }) {
+function CarteExercice({ e, dense, info }: { e: ExerciceDetail; dense?: boolean; info?: InfoExercice }) {
   return (
     <li className={`detail__exo${e.progression ? ' detail__exo--progression' : ''}${dense ? ' detail__exo--dense' : ''}`}>
       <p className="detail__exo-tete">
@@ -33,6 +36,14 @@ function CarteExercice({ e, dense }: { e: ExerciceDetail; dense?: boolean }) {
         {e.charge && <span> @ {e.charge}</span>}
         {e.repos && <span className="detail__repos">repos {e.repos}</span>}
       </p>
+      {info?.derniere && (
+        <p className="detail__derniere">
+          <span className="detail__derniere-valeur">
+            Dernière fois : {info.derniere}
+          </span>
+          {info.etiquette && <span className={`detail__etiquette${info.etiquette.record ? ' detail__etiquette--record' : ''}`}>{info.etiquette.texte}</span>}
+        </p>
+      )}
       {e.avertissement && (
         <p className="detail__avertissement">
           <span aria-hidden="true">⚠️ </span>
@@ -51,7 +62,7 @@ function CarteExercice({ e, dense }: { e: ExerciceDetail; dense?: boolean }) {
   )
 }
 
-function CadreBloc({ b }: { b: BlocDetail }) {
+function CadreBloc({ b, infos }: { b: BlocDetail; infos: Map<string, InfoExercice> }) {
   const idTitre = useId()
   const style = { '--bloc-clair': b.couleurClair, '--bloc-sombre': b.couleurSombre } as CSSProperties
   return (
@@ -67,7 +78,7 @@ function CadreBloc({ b }: { b: BlocDetail }) {
         </div>
         <ul className="detail__exos">
           {b.exercices.map((e) => (
-            <CarteExercice key={e.id} e={e} dense />
+            <CarteExercice key={e.id} e={e} dense info={infos.get(e.id)} />
           ))}
         </ul>
       </section>
@@ -83,6 +94,7 @@ export default function SeanceDetailScreen() {
   const m = e.lancement
   const idComposition = useId()
   const idHistorique = useId()
+  const enrichi = useEnrichissementDetail(e.detail)
 
   if (e.chargement) return <p>Chargement…</p>
   if (!e.detail) {
@@ -141,6 +153,8 @@ export default function SeanceDetailScreen() {
         </Link>
       </div>
 
+      {!d.directe && !d.archivee && <EchauffementConseille zones={enrichi.zones} />}
+
       {m.erreur && (
         <p role="alert" className="import__erreur">
           {m.erreur}
@@ -162,9 +176,9 @@ export default function SeanceDetailScreen() {
           <ul className="detail__exos">
             {d.entrees.map((entree) =>
               entree.kind === 'libre' ? (
-                <CarteExercice key={entree.exercice.id} e={entree.exercice} />
+                <CarteExercice key={entree.exercice.id} e={entree.exercice} info={enrichi.infos.get(entree.exercice.id)} />
               ) : (
-                <CadreBloc key={entree.bloc.id} b={entree.bloc} />
+                <CadreBloc key={entree.bloc.id} b={entree.bloc} infos={enrichi.infos} />
               ),
             )}
           </ul>

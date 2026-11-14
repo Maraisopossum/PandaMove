@@ -26,6 +26,11 @@ export function formatRepos(secondes: number): string {
   return reste === 0 ? `${secondes / 60} min` : `${Math.floor(secondes / 60)} min ${reste} s`
 }
 
+const nombrePositif = (texte: string): number | null => {
+  const v = Number(texte.trim().replace(',', '.'))
+  return texte.trim() !== '' && Number.isFinite(v) && v > 0 ? v : null
+}
+
 const decimal = (n: number) => String(chargeLisible(n)).replace('.', ',')
 
 /** Répétitions (ou durée) cibles : objectif de progression, sinon fourchette de progression, sinon cible saisie. */
@@ -64,6 +69,8 @@ export function libelleSysteme(systeme: string | null): string | null {
 
 export interface ExerciceDetail {
   id: string
+  /** Exercice du catalogue (historique et records) ; la ligne du modèle porte l'id ci-dessus. */
+  exerciseId: string
   nom: string
   supersetGroupe: string | null
   equipement: string
@@ -78,6 +85,9 @@ export interface ExerciceDetail {
   bilateral: boolean
   systeme: string | null
   increment: string | null
+  /** Cibles numériques (objectif de progression, sinon cible saisie) ; null pour le poids du corps, une durée ou une fourchette. */
+  chargeKg: number | null
+  reps: number | null
 }
 
 export interface BlocDetail {
@@ -123,8 +133,10 @@ const typeBloc = (t: string): TypeBloc => (TYPES_BLOC_CONNUS.includes(t) ? (t as
 
 function versExerciceDetail(e: ExerciceSeance, nom: string, objectif: ObjectifProgression | null, dansBlocRepos: boolean): ExerciceDetail {
   const charge = libelleCharge(e, objectif)
+  const enReps = !e.isBodyweight && e.repsType !== 'DURATION'
   return {
     id: e.id,
+    exerciseId: e.exerciseId,
     nom,
     supersetGroupe: e.supersetGroupe,
     equipement: e.equipement.trim(),
@@ -136,6 +148,8 @@ function versExerciceDetail(e: ExerciceSeance, nom: string, objectif: ObjectifPr
     bilateral: e.isBilateral,
     systeme: e.progressionActivee ? libelleSysteme(e.systemeProgression) : null,
     increment: e.progressionActivee ? libelleIncrement(e) : null,
+    chargeKg: enReps ? (objectif?.chargeCible ?? nombrePositif(e.chargeCible)) : null,
+    reps: e.repsType === 'DURATION' ? null : (objectif?.repsCible ?? (/^\d+$/.test(e.repsCibles.trim()) ? Number(e.repsCibles.trim()) : null)),
   }
 }
 
