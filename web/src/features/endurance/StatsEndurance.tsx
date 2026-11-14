@@ -74,12 +74,13 @@ export function StatsEndurance({ sport }: { sport: Sport }) {
 
           <section aria-labelledby="se-mois" className="stats-endurance__carte">
             <h2 id="se-mois">Distance par mois</h2>
-            <ul className="stats-endurance__barres" aria-label="Distance par mois">
+            <ul className="stats-endurance__barres stats-endurance__barres--mois" aria-label="Distance par mois">
               {st.mois.map((m) => (
                 <li key={m.mois}>
                   <span className="stats-endurance__barre-valeur">{m.distanceM > 0 ? Math.round(m.distanceM / 1000) : ''}</span>
                   <span className="stats-endurance__barre" style={{ height: `${Math.max(4, (m.distanceM / maxMois) * 100)}%` }} title={`${libelleMois(m.mois)} : ${distanceKm(m.distanceM)} km, ${pluriel(m.sorties, 'sortie')}`} />
-                  <span className="stats-endurance__barre-nom">{libelleMois(m.mois)}</span>
+                  <span className="stats-endurance__barre-nom" aria-hidden="true">{libelleMois(m.mois).charAt(0).toUpperCase()}</span>
+                  <span className="visuellement-cache">{libelleMois(m.mois)}</span>
                 </li>
               ))}
             </ul>

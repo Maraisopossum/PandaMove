@@ -195,7 +195,7 @@ export default function CalendarScreen() {
                 {j}
               </span>
             ))}
-            <span className="calendrier__semaine" aria-hidden="true">
+            <span className="calendrier__semaine calendrier__semaine--charge" aria-hidden="true">
               Charge
             </span>
             {c.jours.map((j, i) => (
