@@ -60,7 +60,7 @@ describe('écran Plans', () => {
     monter(<PlansScreen />)
     const etat = await screen.findByRole('region', { name: 'Où j’en suis' })
     await waitFor(() => expect(within(etat).getByText(/séances faites ÷ séances prévues/)).toBeTruthy())
-    expect(within(etat).getByText(/séances? faites? sur \d+ prévues?/)).toBeTruthy()
+    expect(within(etat).getByText(/faites? sur \d+ échues?/)).toBeTruthy()
   })
 
   it('ne compte pas les séances facultatives dans le taux', async () => {
@@ -68,7 +68,7 @@ describe('écran Plans', () => {
     await creer(base, 'course', { date: '2026-11-12', titre: 'Bonus', detail: '30 min', optionnelle: true })
     monter(<PlansScreen />)
     const etat = await screen.findByRole('region', { name: 'Où j’en suis' })
-    expect(await within(etat).findByText(/0 séance faite sur 1 prévue/)).toBeTruthy()
+    expect(await within(etat).findByText(/0 séance faite sur 1 échue/)).toBeTruthy()
   })
 })
 
