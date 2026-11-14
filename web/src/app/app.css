@@ -8969,3 +8969,27 @@ time,
 .plans__niveau[data-niveau='bon'] { background: color-mix(in srgb, #2e7d32 14%, var(--surface)); }
 .plans__niveau[data-niveau='bas'] { background: color-mix(in srgb, #b3261e 12%, var(--surface)); }
 .plans__interrupteur span { display: grid; gap: 0.125rem; }
+.plans__acces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.plans__acces .bouton { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.plans__semaines { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.plans__semaine-titre { display: grid; gap: 0.125rem; text-align: center; min-width: 0; }
+.plans__seances { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.plans__seances li { display: flex; align-items: center; gap: 0.625rem; min-height: 3rem; padding: 0.375rem 0.625rem; border-radius: var(--radius-bouton); background: color-mix(in srgb, var(--texte) 5%, var(--surface)); }
+.plans__seances .plans__phase-texte { flex: 1; }
+.plans__jour { min-width: 3.5rem; font-size: var(--taille-petit); }
+.plans__etat { padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; background: color-mix(in srgb, var(--texte) 10%, var(--surface)); }
+.plans__etat[data-niveau='bon'] { background: color-mix(in srgb, #2e7d32 18%, var(--surface)); }
+.plans__etat[data-niveau='moyen'] { background: color-mix(in srgb, #b45309 18%, var(--surface)); }
+.plans__etat[data-niveau='bas'] { background: color-mix(in srgb, #b3261e 16%, var(--surface)); }
+.plans__proposition { display: grid; gap: 0.5rem; padding: 0.625rem; border-radius: var(--radius-bouton); background: color-mix(in srgb, #2e7d32 8%, var(--surface)); }
+.plans__proposition p { margin: 0; font-size: 0.875rem; line-height: 1.45; }
+.plans__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.plans__grand { margin: 0; font-size: 2rem; font-weight: 800; }
+.plans__barres { display: flex; align-items: flex-end; gap: 0.375rem; height: 8rem; margin: 0; padding: 0; list-style: none; }
+.plans__barres li { position: relative; display: flex; flex: 1; align-items: flex-end; justify-content: center; gap: 2px; height: 100%; min-width: 0; padding-bottom: 1rem; }
+.plans__barre { display: block; flex: 1; max-width: 0.75rem; border-radius: 3px 3px 0 0; }
+.plans__barre--prevu { background: #c9c9d1; }
+.plans__barre--realise { background: #2e7d32; }
+.plans__barre-rang { position: absolute; bottom: 0; font-size: 0.6875rem; color: var(--texte-secondaire); }
+.plans__legende-ligne { display: flex; align-items: center; gap: 0.375rem; margin: 0; font-size: var(--taille-petit); }
+.plans__progression { width: 100%; height: 0.75rem; accent-color: #1565c0; }

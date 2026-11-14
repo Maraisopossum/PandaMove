@@ -7,6 +7,7 @@ import { definitionMesure } from './reglagesPlans'
 import { usePlans } from './usePlans'
 
 const jour = (iso: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8), 12))
+const nombre = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',')
 const heures = (min: number) => formaterMinutes(Math.round(min))
 
 function Frise({ plan, courante }: { plan: Plan; courante: number }) {
@@ -102,15 +103,20 @@ export default function PlansScreen() {
             </div>
             {r && r.prevues > 0 && (
               <p className="aide">
-                {r.faites} séance{r.faites > 1 ? 's' : ''} faite{r.faites > 1 ? 's' : ''} sur {r.prevues} prévue{r.prevues > 1 ? 's' : ''} jusqu’ici ({heures(r.realiseMin)} réalisées sur {heures(r.prevuMin)} prévues). Les séances facultatives ne comptent pas.
+                {nombre(r.faites)} séance{r.faites >= 2 ? 's' : ''} faite{r.faites >= 2 ? 's' : ''} sur {r.prevues} échue{r.prevues > 1 ? 's' : ''} jusqu’ici ({heures(r.realiseMin)} réalisées sur {heures(r.prevuMin)} prévues). Les séances facultatives ne comptent pas.
               </p>
             )}
-            {p.reglages.seuilBonPct > 0 && r && r.tauxPct !== null && (
+            {r && r.tauxPct !== null && (
               <p className="plans__niveau" data-niveau={r.tauxPct >= reglages.seuilBonPct ? 'bon' : r.tauxPct >= reglages.seuilSurveillerPct ? 'moyen' : 'bas'}>
                 {r.tauxPct >= reglages.seuilBonPct ? 'Réalisation bonne' : r.tauxPct >= reglages.seuilSurveillerPct ? 'Réalisation correcte' : 'Réalisation à surveiller'}
               </p>
             )}
           </section>
+
+          <nav className="plans__acces" aria-label="Autres écrans du plan">
+            <Link className="bouton" to="/plans/semaine">Semaine du plan</Link>
+            <Link className="bouton" to="/plans/evolution">Évolution</Link>
+          </nav>
 
           <section className="plans__carte" aria-labelledby="plans-phases">
             <h2 id="plans-phases" className="plans__titre">

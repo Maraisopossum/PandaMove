@@ -3,7 +3,8 @@ import type { SeanceCardio } from '../../core/db/repos/seancesCardio'
 import programme from '../calendar/seancesCardio/programme2027.json'
 import type { EntreeProgramme } from '../calendar/seancesCardio/importerProgramme2027'
 import { deduirePhases, regrouperPhases } from './phases'
-import { construirePlan, realisationJusquA, semaineCourante } from './plan'
+import type { Sortie } from '../../core/db/repos/sorties'
+import { construirePlan, etatSeance, proposerRattachements, realisationJusquA, semaineCourante, semainesSousSeuil, tauxGlissant } from './plan'
 import { definitionMesure, lireReglagesPlans, REGLAGES_PLANS_DEFAUT } from './reglagesPlans'
 
 const seancesProgramme = (): SeanceCardio[] =>
@@ -76,25 +77,98 @@ describe('plan du programme 2027', () => {
   })
 })
 
-describe('réalisation', () => {
-  it('calcule le taux selon la mesure choisie', () => {
-    const s = seancesProgramme()
-    const premiereSemaine = s.filter((x) => x.date < '2026-11-09' && !x.optionnelle)
-    premiereSemaine.forEach((x) => (x.isValidated = true))
-    const plan = construirePlan(s)!
-    expect(realisationJusquA(plan, 0, 'seances').tauxPct).toBe(100)
-    expect(realisationJusquA(plan, 1, 'seances').tauxPct).toBeLessThan(100)
-    expect(realisationJusquA(plan, 0, 'duree').tauxPct).toBe(100)
-    expect(realisationJusquA(plan, 0, 'les-deux').tauxPct).toBe(100)
+const sortie = (id: string, sport: 'course' | 'velo', date: string, dureeMin: number | null, seanceId: string | null = null): Sortie =>
+  ({ id, sport, date, titre: 'Sortie', dureeS: dureeMin === null ? null : dureeMin * 60, seanceId }) as Sortie
+
+const seance = (id: string, genre: 'course' | 'velo', date: string, detail: string, extra: Partial<SeanceCardio> = {}): SeanceCardio =>
+  ({ id, genre, date, titre: `Séance ${id}`, consigne: null, detail, optionnelle: false, jalon: null, lien: null, isValidated: false, supprimee: false, createdAt: '', ...extra })
+
+describe('état des séances', () => {
+  const o = { aujourdhui: '2026-11-14' }
+  it('faite quand validée sans sortie, ou avec une sortie assez longue', () => {
+    expect(etatSeance(seance('a', 'course', '2026-11-10', '60 min', { isValidated: true }), null, o)).toBe('faite')
+    expect(etatSeance(seance('a', 'course', '2026-11-10', '60 min', { isValidated: true }), sortie('s', 'course', '2026-11-10', 50, 'a'), o)).toBe('faite')
   })
 
-  it('renvoie null sans séance prévue', () => {
-    const plan = construirePlan(seancesProgramme())!
-    expect(realisationJusquA({ ...plan, semaines: [{ ...plan.semaines[0], prevues: 0, prevuMin: 0, faites: 0, realiseMin: 0 }] }, 0, 'seances').tauxPct).toBeNull()
+  it('faite autrement quand la sortie est sous le seuil de durée réglé', () => {
+    const s = seance('a', 'course', '2026-11-10', '60 min', { isValidated: true })
+    expect(etatSeance(s, sortie('s', 'course', '2026-11-10', 40, 'a'), o)).toBe('autrement')
+    expect(etatSeance(s, sortie('s', 'course', '2026-11-10', 40, 'a'), { ...o, dureeMinPct: 60 })).toBe('faite')
+  })
+
+  it('manquée seulement quand le jour est passé ; facultative jamais manquée ; la séance du jour est à venir', () => {
+    expect(etatSeance(seance('a', 'course', '2026-11-10', '60 min'), null, o)).toBe('manquee')
+    expect(etatSeance(seance('a', 'course', '2026-11-14', '60 min'), null, o)).toBe('aVenir')
+    expect(etatSeance(seance('a', 'course', '2026-11-10', '60 min', { optionnelle: true }), null, o)).toBe('facultative')
+    expect(etatSeance(seance('a', 'course', '2026-11-10', '60 min'), null, {})).toBe('aVenir')
+  })
+})
+
+describe('réalisation', () => {
+  const o = { aujourdhui: '2026-11-14' }
+  const base = () => [
+    seance('a', 'course', '2026-11-10', '60 min', { isValidated: true }),
+    seance('b', 'velo', '2026-11-11', '60 min', { isValidated: true }),
+    seance('c', 'course', '2026-11-12', '60 min'),
+    seance('d', 'course', '2026-11-13', '60 min', { optionnelle: true }),
+    seance('e', 'course', '2026-11-20', '60 min'),
+  ]
+
+  it('compte les séances échues : faite = 1, manquée = 0, facultative et à venir ignorées', () => {
+    const plan = construirePlan(base(), [], o)!
+    const r = realisationJusquA(plan, 0, 'seances')
+    expect(r.prevues).toBe(3)
+    expect(r.faites).toBe(2)
+    expect(r.tauxPct).toBe(67)
+    expect(realisationJusquA(plan, 0, 'duree').tauxPct).toBe(67)
+    expect(realisationJusquA(plan, 0, 'les-deux').tauxPct).toBe(67)
+  })
+
+  it('compte une séance faite autrement pour la part réglée', () => {
+    const s = base()
+    s[0] = { ...s[0] }
+    const plan = construirePlan(s, [sortie('x', 'course', '2026-11-10', 20, 'a')], { ...o, autrementPct: 50 })!
+    expect(realisationJusquA(plan, 0, 'seances').faites).toBe(1.5)
+    expect(realisationJusquA(plan, 0, 'duree').tauxPct).toBe(Math.round(((20 + 60) / 180) * 100))
+  })
+
+  it('renvoie null sans séance échue', () => {
+    const plan = construirePlan([seance('e', 'course', '2026-11-20', '60 min')], [], o)!
+    expect(realisationJusquA(plan, 0, 'seances').tauxPct).toBeNull()
   })
 
   it('un plan sans séance n’existe pas', () => {
     expect(construirePlan([])).toBeNull()
+  })
+
+  it('taux glissant et semaines de suite sous le seuil', () => {
+    const s = [
+      seance('a', 'course', '2026-11-02', '60 min', { isValidated: true }),
+      seance('b', 'course', '2026-11-09', '60 min'),
+      seance('c', 'course', '2026-11-16', '60 min'),
+      seance('d', 'course', '2026-11-23', '60 min'),
+      seance('e', 'course', '2026-11-30', '60 min'),
+    ]
+    const plan = construirePlan(s, [], { aujourdhui: '2026-12-02' })!
+    expect(tauxGlissant(plan, 4, 'seances').map((x) => x.tauxPct)).toEqual([100, 50, 33, 25, 0])
+    expect(semainesSousSeuil(plan, 4, 'seances', 70)).toBe(4)
+    expect(semainesSousSeuil(plan, 0, 'seances', 70)).toBe(0)
+  })
+})
+
+describe('propositions de rattachement', () => {
+  const o = { aujourdhui: '2026-11-14' }
+  it('propose la séance non faite du même sport, du même jour, et une seule fois par séance', () => {
+    const plan = construirePlan([seance('c', 'course', '2026-11-12', '45 min'), seance('v', 'velo', '2026-11-12', '60 min')], [], o)!
+    const prop = proposerRattachements(plan.semaines[0], [sortie('s1', 'course', '2026-11-12', 40), sortie('s2', 'course', '2026-11-12', 42)])
+    expect(prop.map((x) => [x.sortie.id, x.seance.id])).toEqual([['s1', 'c']])
+  })
+
+  it('ne propose rien pour une sortie déjà rattachée, trop éloignée ou d’un autre sport', () => {
+    const plan = construirePlan([seance('c', 'course', '2026-11-12', '45 min')], [], o)!
+    expect(proposerRattachements(plan.semaines[0], [sortie('s1', 'course', '2026-11-12', 40, 'z')])).toEqual([])
+    expect(proposerRattachements(plan.semaines[0], [sortie('s1', 'course', '2026-11-15', 40)])).toEqual([])
+    expect(proposerRattachements(plan.semaines[0], [sortie('s1', 'velo', '2026-11-12', 40)])).toEqual([])
   })
 })
 
