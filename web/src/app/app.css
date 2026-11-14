@@ -3694,34 +3694,6 @@ time,
   line-height: 1.5;
 }
 
-.accueil__stockage {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin: 0;
-  color: var(--texte-secondaire);
-  font-size: 0.75rem;
-}
-
-.accueil__chip {
-  padding: 0.25rem 0.625rem;
-  border-radius: 6px;
-  background: var(--puce-fond);
-  color: var(--puce-texte);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.accueil__section {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 0 0 -0.75rem;
-}
-
 .accueil__libelle {
   margin: 0;
   color: var(--texte-secondaire);
@@ -3731,12 +3703,6 @@ time,
   letter-spacing: 0.08em;
   line-height: 1.5;
   text-transform: uppercase;
-}
-
-.accueil__version {
-  color: var(--renforcement-texte);
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 
 /* Prochaine séance : carte teintée du violet du module, action pleine largeur */
@@ -3807,36 +3773,11 @@ time,
 }
 
 /* Rythme de la semaine : sept ronds, L à D */
-.accueil__semaine {
-  margin: 0.75rem 0;
-}
-
-.accueil__semaine-tete {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.accueil__semaine-compte {
-  margin: 0;
-  color: var(--texte-secondaire);
-  font-size: var(--taille-petit);
-  font-variant-numeric: tabular-nums;
-}
-
-.accueil__semaine-compte strong {
-  color: var(--texte);
-}
-
 .accueil__jours {
   display: flex;
   justify-content: space-between;
-  margin: 0.5rem 0 0;
-  padding: 0.75rem 0.875rem;
-  border: 1px solid var(--bord);
-  border-radius: var(--radius-carte);
-  background: var(--surface);
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
@@ -3892,6 +3833,203 @@ time,
 }
 
 /* Accès rapides : grille de trois colonnes, une tuile par module avec sa pastille illustrée */
+/* Cartes de l'accueil : cette semaine (jours + bilan chiffré), forme du jour, dernière activité */
+.accueil__libelle--section {
+  margin-top: 0.25rem;
+}
+
+.accueil__carte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin: 0.75rem 0;
+  padding: 1rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-carte);
+  background: var(--surface);
+}
+
+.accueil__carte-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.accueil__carte-titre {
+  margin: 0;
+  font-family: var(--police-titres);
+  font-size: var(--taille-titre-3);
+  font-weight: 700;
+}
+
+.accueil__carte-lien {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hauteur-cellule);
+  color: var(--renforcement-texte);
+  font-size: var(--taille-petit);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.accueil__kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.accueil__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-bouton);
+  background: var(--fond);
+}
+
+.accueil__kpi-valeur {
+  font-family: var(--police-titres);
+  font-size: var(--taille-kpi);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.accueil__kpi-libelle {
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+}
+
+.accueil__ecart {
+  font-size: var(--taille-micro);
+  font-weight: 600;
+}
+
+.accueil__ecart--hausse {
+  color: var(--couleur-succes-texte);
+}
+
+.accueil__ecart--baisse {
+  color: #b42318;
+}
+
+.accueil__ecart--stable {
+  color: var(--texte-secondaire);
+}
+
+.accueil__forme {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.accueil__forme-rond {
+  display: grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 84px;
+  height: 84px;
+  margin: 0;
+  border: 6px solid var(--couleur-succes);
+  border-radius: 50%;
+  background: var(--couleur-succes-fond);
+  color: var(--couleur-succes-texte);
+  font-family: var(--police-titres);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.accueil__forme-rond--attention {
+  border-color: #b45309;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.accueil__forme-etat {
+  margin: 0;
+  font-size: var(--taille-corps);
+  font-weight: 600;
+}
+
+.accueil__forme-aide {
+  margin: 0.25rem 0 0;
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+}
+
+.accueil__forme-courbe {
+  display: block;
+  width: 100%;
+  height: 56px;
+}
+
+.accueil__forme-zero {
+  stroke: var(--bord);
+  stroke-dasharray: 3 4;
+}
+
+.accueil__forme-trace {
+  fill: none;
+  stroke: var(--couleur-renforcement);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.accueil__forme-point {
+  fill: var(--couleur-renforcement);
+}
+
+.accueil__derniere {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 56px;
+  color: var(--texte);
+  text-decoration: none;
+}
+
+.accueil__derniere-puce {
+  box-sizing: content-box;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--couleur-renforcement) 12%, var(--surface));
+  object-fit: contain;
+}
+
+.accueil__derniere-texte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.accueil__derniere-titre {
+  font-size: var(--taille-corps);
+  font-weight: 600;
+}
+
+.accueil__derniere-detail {
+  color: var(--texte-secondaire);
+  font-size: var(--taille-petit);
+}
+
+.accueil__derniere:focus-visible,
+.accueil__carte-lien:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .accueil__tuiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

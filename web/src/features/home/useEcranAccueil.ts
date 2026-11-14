@@ -6,6 +6,10 @@ import type { DbLecture } from '../../core/db/Db'
 import { useImagePanda } from '../../core/images/usePandaVariante'
 import { lireEvenementsPlage, lireEvenementsProchains } from '../calendar/calendrier'
 import type { EvenementAgenda } from '../calendar/types'
+import { lireSorties } from '../../core/db/repos/sorties'
+import { lireReglagesCharge } from '../endurance/useChargeEntrainement'
+import { fenetresBilan, indicateursBilan, lireBilan, type Indicateur } from './bilanSemaine'
+import { calculerFormeJour, lireDerniereActivite, type DerniereActivite, type FormeJour } from './donneesAccueil'
 import { bornesSemaine, construireSemaine, libelleJour, type Semaine } from './semaine'
 
 export interface ProchaineSeance {
@@ -34,6 +38,9 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
   const panda = useImagePanda('joy', { userId: session?.user.id, taille: 'sm' })
   const [prochaine, setProchaine] = useState<ProchaineSeance | null>(null)
   const [semaine, setSemaine] = useState<Semaine | null>(null)
+  const [indicateurs, setIndicateurs] = useState<Indicateur[] | null>(null)
+  const [forme, setForme] = useState<FormeJour | null>(null)
+  const [derniere, setDerniere] = useState<DerniereActivite | null>(null)
   const [date] = useState(() => dateLongue(maintenant()))
 
   useEffect(() => {
@@ -56,5 +63,32 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db])
 
-  return { panda, prochaine, semaine, date }
+  // Bilan chiffré, forme et dernière activité : chaque carte se masque seule si sa lecture échoue
+  useEffect(() => {
+    let annule = false
+    const aujourdhui = dateIsoLocale(maintenant())
+    const base = db ?? getDb()
+    const { courante, precedente } = fenetresBilan(aujourdhui)
+    void Promise.all([lireBilan(base, courante), lireBilan(base, precedente), lireEvenementsPlage(base, bornesSemaine(aujourdhui).debut, bornesSemaine(aujourdhui).fin)])
+      .then(([c, p, evenements]) => {
+        if (!annule) setIndicateurs(indicateursBilan(c, p, evenements.length))
+      })
+      .catch((e: unknown) => console.error('Bilan de la semaine impossible', e))
+    void lireSorties(base)
+      .then((sorties) => {
+        if (!annule) setForme(calculerFormeJour(sorties, lireReglagesCharge(), aujourdhui))
+      })
+      .catch((e: unknown) => console.error('Forme du jour impossible', e))
+    void lireDerniereActivite(base, aujourdhui)
+      .then((d) => {
+        if (!annule) setDerniere(d)
+      })
+      .catch((e: unknown) => console.error('Dernière activité impossible', e))
+    return () => {
+      annule = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [db])
+
+  return { panda, prochaine, semaine, date, indicateurs, forme, derniere }
 }

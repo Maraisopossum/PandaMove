@@ -29,12 +29,11 @@ describe('HomeScreen', () => {
     expect(panda.getAttribute('loading')).toBe('lazy')
     expect([panda.getAttribute('width'), panda.getAttribute('height')]).toEqual(['320', '480'])
     expect(screen.getByRole('link', { name: 'Renforcement' }).getAttribute('href')).toBe('/strength')
-    expect(screen.getByRole('link', { name: 'Calendrier' }).getAttribute('href')).toBe('/calendar')
-    // Les six modules sont accessibles depuis l'accueil, chacun avec sa pastille décorative
+    // Six accès rapides, chacun avec sa pastille décorative ; Statistiques passe par les cartes « Cette semaine » et « Forme »
     const acces = screen.getByRole('navigation', { name: 'Accès rapides' })
     expect(within(acces).getAllByRole('link').map((l) => [l.getAttribute('aria-label'), l.getAttribute('href')])).toEqual([
       ['Renforcement', '/strength'], ['Course', '/running'], ['Vélo', '/cycling'],
-      ['Calendrier', '/calendar'], ['Statistiques', '/stats'], ['Respiration', '/breathing'],
+      ['Mobilité', '/mobility'], ['Respiration', '/breathing'], ['Calendrier', '/calendar'],
     ])
     for (const img of acces.querySelectorAll('img')) expect(img.getAttribute('alt')).toBe('')
   })
@@ -86,12 +85,45 @@ describe('HomeScreen', () => {
       expect(within(section).getByRole('link', { name: /Commencer/ }).getAttribute('href')).toBe('/strength/instance/du-jour')
 
       const semaine = screen.getByRole('region', { name: 'Cette semaine' })
-      const jours = within(semaine).getAllByRole('listitem')
+      const jours = Array.from(semaine.querySelectorAll('ol > li'))
       expect(jours).toHaveLength(7)
       expect(jours[0].textContent).toContain('séance terminée')
       expect(jours[3].textContent).toContain('séance prévue')
       expect(jours[3].className).toContain('accueil__jour--auj')
-      expect(semaine.textContent).toContain('1 terminée sur 2')
+      // Bilan chiffré (base partagée entre les tests) : une séance terminée sur deux prévues (+1 sur la semaine précédente vide), 50 min de renforcement
+      const kpis = within(within(semaine).getByRole('list', { name: /Bilan de la semaine/ })).getAllByRole('listitem')
+      expect(kpis.map((k) => k.textContent)).toEqual([
+        '1 sur 2séance terminée+1 par rapport à la semaine précédente',
+        '50 minde sport+50 min par rapport à la semaine précédente',
+        '0 kmcourse et véloIdentique par rapport à la semaine précédente',
+        '0 kgtonnageIdentique par rapport à la semaine précédente',
+      ])
+    })
+
+    it('forme du jour, dernière activité et distance de la semaine viennent des sorties', async () => {
+      const sortie = { ...b, created_at: 'c', source: 'manuel', en_salle: 0 }
+      await inserer(base, 'sorties', { ...sortie, id: 'v1', sport: 'velo', date: '2026-11-04', titre: 'Sortie vélo', duree_s: 5880, distance_m: 42100 })
+      await inserer(base, 'sorties', { ...sortie, id: 'c0', sport: 'course', date: '2026-10-28', titre: 'Footing', duree_s: 3000, distance_m: 10000 })
+      monter()
+      const derniere = await screen.findByRole('region', { name: 'Dernière activité' })
+      expect(derniere.textContent).toContain('Sortie vélo · 4 nov.')
+      expect(derniere.textContent).toContain('42,1 km · 1 h 38')
+      expect(within(derniere).getByRole('link').getAttribute('href')).toBe('/cycling/v1')
+      const forme = await screen.findByRole('region', { name: 'Forme du jour' })
+      expect(within(forme).getByRole('link', { name: 'Détail' }).getAttribute('href')).toBe('/stats')
+      expect(forme.textContent).toMatch(/Charge sur 7 jours \d+ · sur 6 semaines \d+/)
+      const semaine = await screen.findByRole('region', { name: 'Cette semaine' })
+      expect(semaine.textContent).toContain('42,1 km')
+      expect(semaine.textContent).toContain('+32,1 km')
+    })
+
+    it('un rendez-vous de course ou de vélo mène à la saisie de la sortie', async () => {
+      // La séance de renforcement du jour (test précédent) est mise de côté : la course devient la prochaine séance
+      await base.execute("UPDATE instances_seance SET deleted_at = 'x' WHERE id = 'du-jour'")
+      await inserer(base, 'seances_course', { ...b, id: 'sc1', date: '2026-11-06', titre: 'Sortie longue', created_at: 'c', is_validated: 0, optionnelle: 0 })
+      monter()
+      const section = await screen.findByRole('region', { name: 'Prochaine séance' })
+      expect(within(section).getByRole('link', { name: /Enregistrer la sortie/ }).getAttribute('href')).toBe('/running/new')
     })
   })
 })
