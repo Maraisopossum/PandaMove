@@ -28,6 +28,9 @@ export type TypeExercice = 'mobilite' | 'etirement' | 'activation'
 export type Posture = 'debout' | 'assis' | 'sol'
 
 export const LIBELLE_TYPE: Record<TypeExercice, string> = { mobilite: 'Mobilité', etirement: 'Étirement', activation: 'Activation' }
+
+/** Ordre d'affichage du filtre : de l'échauffement à la récupération. */
+export const TOUS_TYPES: TypeExercice[] = ['mobilite', 'activation', 'etirement']
 export const LIBELLE_POSTURE: Record<Posture, string> = { debout: 'Debout', assis: 'Assis', sol: 'Au sol' }
 
 export interface Exercice {
@@ -121,7 +124,7 @@ export const MOMENTS: { id: MomentSeance; libelle: string; aide: string }[] = [
   { id: 'libre', libelle: 'Libre', aide: 'Un mélange de tout.' },
 ]
 
-export type SportId = 'course' | 'velo' | 'renforcement' | 'bureau'
+export type SportId = 'seule' | 'course' | 'velo' | 'renforcement' | 'bureau'
 
 export interface SeanceType {
   id: SportId
@@ -129,12 +132,15 @@ export interface SeanceType {
   texte: string
   zones: ZoneCorps[]
   moment: MomentSeance
+  /** Types d'exercices de la séance type ; absent : les trois. */
+  types?: TypeExercice[]
   /** Pastille du menu (public/icons/menu/<icone>.webp). */
   icone: string
 }
 
 // Séances types : zones habituellement sollicitées par chaque pratique. Elles pré-remplissent le choix, qui reste modifiable.
 export const SEANCES_TYPES: SeanceType[] = [
+  { id: 'seule', libelle: 'Mobilité seule', texte: 'S’échauffer ou se délier, sans aucun étirement tenu.', zones: [], moment: 'avant', types: ['mobilite', 'activation'], icone: 'mobilite' },
   { id: 'course', libelle: 'Course à pied', texte: 'Hanches, cuisses, ischios, mollets et chevilles.', zones: ['hanches', 'quadriceps', 'ischios', 'mollets', 'chevilles', 'fessiers'], moment: 'apres', icone: 'course' },
   { id: 'velo', libelle: 'Vélo', texte: 'Fléchisseurs de hanche, bas du dos, cuisses, cou et épaules.', zones: ['hanches', 'bas_dos', 'quadriceps', 'ischios', 'cou', 'epaules', 'poitrine'], moment: 'apres', icone: 'velo' },
   { id: 'renforcement', libelle: 'Renforcement', texte: 'Épaules, dos, hanches et chevilles pour bien bouger sous la charge.', zones: ['epaules', 'haut_dos', 'hanches', 'chevilles', 'poitrine'], moment: 'avant', icone: 'halteres' },

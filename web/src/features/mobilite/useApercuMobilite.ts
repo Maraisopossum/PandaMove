@@ -13,7 +13,7 @@ export function useApercuMobilite() {
   }, [])
 
   const autreTirage = useCallback(() => {
-    if (plan) appliquer(genererSeance({ minutes: plan.minutes, zones: plan.zones, moment: plan.moment, graine: plan.graine + 1 + Math.floor(Math.random() * 1000) }))
+    if (plan) appliquer(genererSeance({ minutes: plan.minutes, zones: plan.zones, moment: plan.moment, types: plan.types, graine: plan.graine + 1 + Math.floor(Math.random() * 1000) }))
   }, [plan, appliquer])
 
   const remplacer = useCallback((index: number) => plan && appliquer(remplacerEtape(plan, index)), [plan, appliquer])

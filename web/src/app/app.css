@@ -8471,6 +8471,45 @@ time,
 .mobilite .bouton--principal { background: var(--couleur-mobilite); border-color: var(--couleur-mobilite); color: #fff; }
 .mobilite .mobilite__quitter { display: flex; align-items: center; justify-content: center; }
 
+/* Mobilité : routines, types d'exercices, programme annoncé, régularité */
+.mobilite__section-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.mobilite__lien { display: inline-flex; align-items: center; min-height: var(--hauteur-cellule); color: var(--couleur-mobilite); font-size: var(--taille-petit); font-weight: 600; text-decoration: none; }
+.mobilite__retour { margin: 0; }
+.mobilite__routines { display: flex; gap: 0.625rem; margin: 0; padding: 0 0 0.125rem; overflow-x: auto; list-style: none; }
+.mobilite__routine { display: grid; gap: 0.25rem; width: 10rem; min-height: 5.5rem; padding: 0.75rem; border: 1px solid color-mix(in srgb, var(--couleur-mobilite) 25%, var(--surface)); border-radius: var(--radius-carte); background: var(--surface); color: var(--texte); font: inherit; text-align: left; }
+.mobilite__routine-nom { margin: 0; font-weight: 700; font-size: var(--taille-corps); }
+.mobilite__routine-detail { margin: 0; color: var(--texte-secondaire); font-size: var(--taille-petit); }
+.mobilite__routine-action { align-self: end; color: var(--couleur-mobilite); font-size: var(--taille-petit); font-weight: 700; }
+.mobilite__types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.375rem; }
+.mobilite__type { display: grid; place-items: center; gap: 0.125rem; min-height: 3.25rem; padding: 0.5rem 0.25rem; border: 1px solid var(--bord); border-radius: var(--radius-bouton); background: var(--surface); color: var(--texte); font: inherit; font-size: var(--taille-petit); }
+.mobilite__type span { color: var(--texte-secondaire); font-size: var(--taille-micro); }
+.mobilite__programme { padding: 0.875rem 1rem; border: 1px solid color-mix(in srgb, var(--couleur-mobilite) 25%, var(--surface)); border-radius: var(--radius-carte); background: var(--surface); }
+.mobilite__programme p { margin: 0; }
+.mobilite__enregistrer { display: grid; gap: 0.625rem; padding: 0.875rem 1rem; border: 1px solid var(--bord); border-radius: var(--radius-carte); background: var(--surface); }
+.mobilite__enregistrer label { display: grid; gap: 0.25rem; font-size: var(--taille-petit); font-weight: 600; }
+.mobilite__enregistrer input { min-height: var(--hauteur-controle); padding: 0 0.75rem; border: 1px solid var(--bord); border-radius: var(--radius-bouton); font: inherit; }
+.mobilite__carte { display: grid; gap: 0.625rem; padding: 0.875rem 1rem; border: 1px solid var(--bord); border-radius: var(--radius-carte); background: var(--surface); }
+.mobilite__carte p { margin: 0; }
+.mobilite__regularite { display: flex; align-items: center; gap: 1rem; }
+.mobilite__serie { display: grid; flex: none; }
+.mobilite__serie strong { color: var(--couleur-mobilite); font-family: var(--police-titres); font-size: 2.125rem; font-weight: 800; line-height: 1; }
+.mobilite__serie span { color: var(--texte-secondaire); font-size: var(--taille-petit); }
+.mobilite__grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
+.mobilite__jour { height: 2.25rem; border-radius: 8px; background: var(--fond-discret); }
+.mobilite__jour--fait { background: var(--couleur-mobilite); }
+.mobilite__jour--avenir { background: transparent; border: 1px dashed var(--bord); }
+.mobilite__legende { display: flex; align-items: center; gap: 0.375rem; margin: 0; color: var(--texte-secondaire); font-size: var(--taille-micro); }
+.mobilite__pastille { width: 0.75rem; height: 0.75rem; margin-left: 0.5rem; border-radius: 4px; background: var(--fond-discret); }
+.mobilite__pastille--fait { margin-left: 0; background: var(--couleur-mobilite); }
+.mobilite__suggestion { display: grid; gap: 0.5rem; padding: 0.875rem 1rem; border: 1px solid color-mix(in srgb, var(--couleur-mobilite) 30%, var(--surface)); border-radius: var(--radius-carte); background: color-mix(in srgb, var(--couleur-mobilite) 9%, var(--surface)); }
+.mobilite__suggestion h2 { margin: 0; color: #880e4f; font-size: var(--taille-corps); }
+.mobilite__suggestion p { margin: 0; }
+.mobilite__suggestion .bouton { justify-self: start; }
+.mobilite__routines-liste { display: grid; gap: 0.625rem; margin: 0; padding: 0; list-style: none; }
+.mobilite__etiquettes { display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
+.mobilite__etiquettes li { padding: 0.125rem 0.625rem; border-radius: var(--radius-pilule); background: color-mix(in srgb, var(--couleur-mobilite) 10%, var(--surface)); color: #880e4f; font-size: var(--taille-micro); font-weight: 600; }
+.mobilite__routine:focus-visible, .mobilite__lien:focus-visible, .mobilite__type:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
 /* Course / Vélo : en-tête teinté du sport avec le panda à droite */
 /* Le panda reste dans la carte (plus de débord au-dessus), centré verticalement avec le titre */
 .sorties__hero { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; padding: 0.5rem 0.75rem 0.5rem 1rem; border: 1px solid color-mix(in srgb, var(--couleur-sport) 20%, var(--surface)); border-radius: var(--radius-grande); background: color-mix(in srgb, var(--couleur-sport) 7%, var(--surface)); }

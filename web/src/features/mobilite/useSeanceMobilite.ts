@@ -7,7 +7,7 @@ import { useVeilleEcran } from '../respiration/useVeilleEcran'
 import { creerAudio, ecrireSonActif, lireSonActif, type AudioMobilite } from './audio'
 import { zonesCouvertes, type PlanSeance } from './generer'
 import { decouperEnPhases } from './phases'
-import { lireChoix } from './stockage'
+import { lireChoix, sportEnregistre } from './stockage'
 
 export interface DepsSeance {
   /** Horloge en millisecondes (défaut : Date.now). Remplaçable dans les tests. */
@@ -117,7 +117,7 @@ export function useSeanceMobilite(plan: PlanSeance | null, { maintenant = HORLOG
       dureeS: plan.dureeTotaleS,
       exercices: plan.etapes.length,
       zones: zonesCouvertes(plan.etapes),
-      sport: lireChoix().sport,
+      sport: sportEnregistre(lireChoix().sport),
     }).catch((e: unknown) => console.error('Enregistrement de la séance de mobilité impossible', e))
   }, [termine, plan, db])
 

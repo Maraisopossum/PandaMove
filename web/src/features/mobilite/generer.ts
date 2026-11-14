@@ -1,4 +1,4 @@
-import { EXERCICES, rangZone, TOUTES_ZONES, type Exercice, type MomentSeance, type Posture, type ZoneCorps } from './donnees'
+import { EXERCICES, rangZone, TOUS_TYPES, TOUTES_ZONES, type Exercice, type MomentSeance, type Posture, type TypeExercice, type ZoneCorps } from './donnees'
 
 // Générateur de séances de mobilité : à partir du temps disponible, des zones à cibler et du moment (avant / après le sport),
 // choisit des exercices qui couvrent les zones à tour de rôle, ajuste leurs durées pour remplir le temps, puis les ordonne
@@ -21,6 +21,8 @@ export interface DemandeSeance {
   /** Zones à cibler ; vide : tout le corps. */
   zones: ZoneCorps[]
   moment: MomentSeance
+  /** Types d'exercices admis ; absent ou vide : les trois. */
+  types?: TypeExercice[]
   graine: number
 }
 
@@ -78,7 +80,8 @@ export function genererSeance(demande: DemandeSeance, exclus: readonly string[] 
   const cibles = demande.zones.length > 0 ? demande.zones : TOUTES_ZONES
   const budgetS = Math.max(60, demande.minutes * 60)
   const alea = aleatoire(demande.graine)
-  const disponibles = EXERCICES.filter((ex) => !exclus.includes(ex.id) && ex.zones.some((z) => cibles.includes(z)))
+  const types = demande.types && demande.types.length > 0 ? demande.types : TOUS_TYPES
+  const disponibles = EXERCICES.filter((ex) => !exclus.includes(ex.id) && types.includes(ex.type) && ex.zones.some((z) => cibles.includes(z)))
 
   const choisis: Exercice[] = []
   const epuisees = new Set<ZoneCorps>()
@@ -114,7 +117,8 @@ export function remplacerEtape(plan: PlanSeance, index: number): PlanSeance {
   const dejaLa = new Set(plan.etapes.map((x) => x.exercice.id))
   const zone = actuelle.exercice.zones.find((z) => cibles.includes(z)) ?? actuelle.exercice.zones[0]
   const alea = aleatoire(plan.graine + index + 1)
-  const candidats = EXERCICES.filter((ex) => !dejaLa.has(ex.id) && ex.zones.includes(zone))
+  const types = plan.types && plan.types.length > 0 ? plan.types : TOUS_TYPES
+  const candidats = EXERCICES.filter((ex) => !dejaLa.has(ex.id) && types.includes(ex.type) && ex.zones.includes(zone))
   if (candidats.length === 0) return plan
   const nouveau = candidats.map((ex) => ({ ex, s: score(ex, zone, cibles, plan.moment, alea) })).sort((a, b) => b.s - a.s)[0].ex
   const dureeCible = tempsEtape(actuelle) - TRANSITION_S

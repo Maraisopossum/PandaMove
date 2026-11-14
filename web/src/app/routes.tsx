@@ -3,7 +3,7 @@ import type { RouteObject } from 'react-router'
 import {
   CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, DonneesScreen, RappelsScreen, ProgressionScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, DonneesScreen, RappelsScreen, ProgressionScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
@@ -59,6 +59,7 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'mobility', element: chargement(<MobiliteScreen />) },
     { path: 'mobility/apercu', element: chargement(<ApercuMobiliteScreen />) },
     { path: 'mobility/seance', element: chargement(<SeanceMobiliteScreen />) },
+    { path: 'mobility/routines', element: chargement(<RoutinesMobiliteScreen />) },
     { path: 'outils', element: chargement(<OutilsScreen />) },
     { path: 'outils/donnees', element: chargement(<DonneesScreen />) },
     { path: 'outils/rappels', element: chargement(<RappelsScreen />) },
