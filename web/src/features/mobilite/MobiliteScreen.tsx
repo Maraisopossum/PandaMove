@@ -46,14 +46,16 @@ export default function MobiliteScreen() {
         </p>
       )}
 
-      {m.routines.length > 0 && (
-        <section aria-labelledby="mob-routines" className="mobilite__section">
-          <div className="mobilite__section-tete">
-            <h2 id="mob-routines">Mes routines</h2>
-            <Link to="/mobility/routines" className="mobilite__lien">
-              Gérer
-            </Link>
-          </div>
+      <section aria-labelledby="mob-routines" className="mobilite__section">
+        <div className="mobilite__section-tete">
+          <h2 id="mob-routines">Mes routines</h2>
+          <Link to="/mobility/routines" className="mobilite__lien">
+            {m.routines.length > 0 ? 'Gérer' : 'Régularité'}
+          </Link>
+        </div>
+        {m.routines.length === 0 ? (
+          <p className="aide">Aucune routine pour l’instant. Réglez une séance ci-dessous, puis touchez « Enregistrer » pour la relancer en un geste.</p>
+        ) : (
           <ul className="mobilite__routines">
             {m.routines.map((r) => (
               <li key={r.id}>
@@ -72,8 +74,8 @@ export default function MobiliteScreen() {
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
 
       <section aria-labelledby="mob-temps" className="mobilite__section">
         <h2 id="mob-temps">Temps disponible</h2>
