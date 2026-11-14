@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 import { PandaIllustration } from '../../../core/images/PandaIllustration'
+import { BilanPlus } from './BilanPlus'
 import { ProgressionRecapDialog } from './ProgressionRecapDialog'
 import { useEcranBilan } from './useEcranBilan'
 
@@ -66,6 +67,8 @@ export default function ReportScreen() {
               </div>
             </dl>
           </section>
+
+          <BilanPlus instanceId={id} />
 
           <section aria-labelledby="bilan-exercices">
             <h2 id="bilan-exercices">Exercices</h2>

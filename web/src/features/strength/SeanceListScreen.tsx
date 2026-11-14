@@ -9,9 +9,29 @@ import { CarteSelectionnable } from './CarteSelectionnable'
 import { MenuActions } from './MenuActions'
 import { OngletsSeances } from './OngletsSeances'
 import { SeanceDirecteDialog } from './SeanceDirecteDialog'
+import { AlerteChargeCarte, SuggestionJour } from './SuggestionJour'
+import { libelleDernierePratique } from './suggestionsRenfo'
 import { SupprimerDialog } from './SupprimerDialog'
 import { SupprimerSelectionDialog } from './SupprimerSelectionDialog'
 import { useListeSeancesEcran } from './useListeSeancesEcran'
+import { useSuggestionsRenfo } from './useSuggestionsRenfo'
+
+// Dernière fois et tendance de tonnage d'une séance type (« Hier · ↑ +4 % de tonnage »), ou « Jamais faite » : rien tant que les
+// séances jouées ne sont pas lues.
+function DernierePratique({ id, resumes, aujourdhui }: { id: string; resumes: ReturnType<typeof useSuggestionsRenfo>['resumes']; aujourdhui: string }) {
+  const r = resumes.get(id)
+  if (!r) return null
+  return (
+    <span className="seance__derniere">
+      {libelleDernierePratique(r.derniere, aujourdhui)}
+      {r.tendance !== null && r.tendance !== 0 && (
+        <span className={r.tendance > 0 ? 'seance__tendance seance__tendance--hausse' : 'seance__tendance seance__tendance--baisse'}>
+          {` · ${r.tendance > 0 ? '↑ +' : '↓ −'}${Math.abs(r.tendance)} % de tonnage`}
+        </span>
+      )}
+    </span>
+  )
+}
 
 // Écran « Renforcement » à sections, comme l'Android : séances types, séances programmées, séances terminées
 // (5 + « Voir les N autres »), séances archivées. Une seule sélection (appui long / « Sélectionner ») porte sur toutes
@@ -20,6 +40,7 @@ import { useListeSeancesEcran } from './useListeSeancesEcran'
 // détail ni le bilan (règle CLAUDE.md). Aucune logique ici : cartes, textes et états viennent de useListeSeancesEcran.
 export default function SeanceListScreen() {
   const l = useListeSeancesEcran()
+  const aide = useSuggestionsRenfo()
   const a = l.affectation
   const d = l.suppression
   const m = l.lancement
@@ -30,6 +51,8 @@ export default function SeanceListScreen() {
   const fin = l.terminees
   const aDeplacer = prog.aDeplacer ?? fin.aDeplacer
   const erreur = l.erreur ?? m.erreur ?? l.erreurInstances
+  // Séance suggérée : seulement si elle est visible dans la liste (active, hors recherche en cours)
+  const carteSuggeree = aide.suggestion && l.requete.trim() === '' ? l.cartes.find((c) => c.seance.id === aide.suggestion!.seanceId) : undefined
 
   return (
     <>
@@ -100,6 +123,19 @@ export default function SeanceListScreen() {
         </div>
       ) : (
         <>
+          {carteSuggeree && aide.suggestion && !sel.mode && (
+            <SuggestionJour
+              suggestion={aide.suggestion}
+              nom={carteSuggeree.seance.nom}
+              detail={carteSuggeree.details}
+              nombre={aide.nombreSuggestions}
+              enCours={m.enCours}
+              onLancer={() => void m.lancer(carteSuggeree.seance)}
+              onAutreIdee={aide.autreIdee}
+            />
+          )}
+          {aide.alerte && !sel.mode && <AlerteChargeCarte alerte={aide.alerte} />}
+
           {(l.aTypes || l.aucuneActive) && (
             <section aria-labelledby="titre-types">
               <h2 id="titre-types">Séances types</h2>
@@ -150,6 +186,7 @@ export default function SeanceListScreen() {
                         <span className="seance__nom">{s.nom}</span>
                         <span className="seance__details">{details}</span>
                         {notes && <span className="seance__notes">{notes}</span>}
+                        <DernierePratique id={s.id} resumes={aide.resumes} aujourdhui={aide.aujourdhui} />
                       </CarteSelectionnable>
                     ))}
                   </ul>
