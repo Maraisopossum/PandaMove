@@ -12,5 +12,5 @@ aucun accès au contenu (séances, poids, sorties, traces, notes restent protég
 - **Battement** (`core/admin/useBattement.ts`) : à l'ouverture puis après une synchro réussie (au plus toutes les 15 minutes), l'application envoie sa
   version (empreinte du commit, `__APP_VERSION__` de `vite.config.ts`) et l'heure. Rien d'autre. Annoncé dans le profil (« Confidentialité »).
 - **Écrans** (chargés à la demande, redirigés sans rôle) : `/admin` (compteurs, versions), `/admin/comptes` (liste filtrable), `/admin/journal`.
-- **Pas encore fait** : actions (inviter, suspendre, réinitialiser, supprimer avec export préalable) via une Edge Function à clé de service ;
-  santé de la synchro ; MFA pour le compte administrateur.
+- **Actions** (`/admin/comptes`) : inviter, suspendre, rétablir, lien de réinitialisation, supprimer (adresse retapée). Elles passent par la fonction `supabase/functions/admin-comptes` (clé de service, rôle admin vérifié, garde-fous, journal d'audit) : voir son README pour le déploiement manuel.
+- **Pas encore fait** : santé de la synchro ; MFA pour le compte administrateur ; déconnexion forcée immédiate (la suspension coupe la connexion au plus tard à l'expiration du jeton).

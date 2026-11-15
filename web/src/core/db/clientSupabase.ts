@@ -15,6 +15,8 @@ export interface ClientSupabase {
   from: (table: string) => ReturnType<PostgrestClient['from']>
   /** Appel d'une fonction Postgres (administration, battement). */
   rpc: (fonction: string, args?: Record<string, unknown>) => ReturnType<PostgrestClient['rpc']>
+  /** Appel d'une Edge Function (POST JSON) avec le jeton de la session : actions d'administration. */
+  appelerFonction: (nom: string, corps: unknown) => Promise<Response>
 }
 
 /** Clé localStorage de la session, identique à supabase-js (`sb-<premier segment de l'hôte>-auth-token`). */
@@ -62,5 +64,5 @@ export function creerClientSupabase(url: string, clePublique: string, options: O
   }
 
   const rest = new PostgrestClient(new URL('rest/v1', base).href, { schema: 'public', fetch: fetchAvecSession })
-  return { auth, from: (table: string) => rest.from(table), rpc: (fonction: string, args?: Record<string, unknown>) => rest.rpc(fonction, args) }
+  return { auth, from: (table: string) => rest.from(table), rpc: (fonction: string, args?: Record<string, unknown>) => rest.rpc(fonction, args), appelerFonction: (nom: string, corps: unknown) => fetchAvecSession(new URL(`functions/v1/${nom}`, base).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) }) }
 }
