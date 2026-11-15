@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { getSupabase } from '../db/client'
 import { useSyncStatus } from '../sync/useSyncStatus'
+import { rejetsEnvoi } from '../sync/rejetsEnvoi'
 import { envoyerBattement } from './admin'
 
 /** Version de l'application envoyée avec le battement : empreinte du commit du build (vite.config.ts), « dev » en local. */
@@ -17,7 +18,13 @@ export function useBattement({ userId, envoyer }: { userId: string | undefined; 
   const { state } = useSyncStatus()
   const dernier = useRef(0)
   const ouvert = useRef<string | null>(null)
-  const emettre = envoyer ?? ((synchro: boolean) => envoyerBattement(getSupabase(), VERSION_APPLICATION, synchro))
+  const emettre =
+    envoyer ??
+    (async (synchro: boolean) => {
+      // Les rejets comptés depuis le dernier battement partent avec lui ; en cas d'échec, ils sont restitués pour le suivant
+      const rejets = rejetsEnvoi.prelever()
+      if (!(await envoyerBattement(getSupabase(), VERSION_APPLICATION, synchro, rejets))) rejetsEnvoi.restituer(rejets)
+    })
 
   useEffect(() => {
     if (!userId || ouvert.current === userId) return

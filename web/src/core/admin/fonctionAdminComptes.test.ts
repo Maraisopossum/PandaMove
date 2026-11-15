@@ -15,6 +15,10 @@ function ports(comptes: CompteCible[] = [{ id: CIBLE, email: 'bob@exemple.fr', a
     bannir: vi.fn(async (_id: string, banni: boolean) => void appels.push(banni ? 'bannir' : 'debannir')),
     marquerStatut: vi.fn(async (_id: string, s: string) => void appels.push(`statut:${s}`)),
     envoyerReinitialisation: vi.fn(async () => void appels.push('reinit')),
+    revoquerSessions: vi.fn(async () => {
+      appels.push('revoquer')
+      return 2
+    }),
     viderTables: vi.fn(async () => void appels.push('vider')),
     supprimerUtilisateur: vi.fn(async () => void appels.push('supprimer')),
     journaliser: vi.fn(async (a: string) => void appels.push(`journal:${a}`)),
@@ -30,7 +34,7 @@ describe('lecture de la demande', () => {
 
   it.each([
     [null], ['texte'], [{}], [{ action: 'detruire' }], [{ action: 'inviter' }], [{ action: 'inviter', email: 'pas-un-mail' }],
-    [{ action: 'suspendre' }], [{ action: 'supprimer', userId: 'x; drop table' }], [{ action: 'retablir', userId: 12 }],
+    [{ action: 'suspendre' }], [{ action: 'deconnecter' }], [{ action: 'supprimer', userId: 'x; drop table' }], [{ action: 'retablir', userId: 12 }],
   ])('refuse %j', (brut) => {
     expect(() => lireDemande(brut)).toThrow(ErreurAdmin)
     try {
@@ -61,6 +65,18 @@ describe('actions', () => {
     expect(appels).toEqual(['reinit', 'journal:reinitialisation_mot_de_passe'])
     const sans = ports([{ id: CIBLE, email: null, admin: false }])
     await expect(executer({ action: 'reinitialiser', userId: CIBLE }, sans.p)).rejects.toMatchObject({ statut: 400 })
+  })
+
+  it('déconnecte un compte (sessions coupées, journal) mais jamais son propre compte', async () => {
+    const { p, appels } = ports()
+    expect((await executer({ action: 'deconnecter', userId: CIBLE }, p)).message).toMatch(/reconnecter/)
+    expect(appels).toEqual(['revoquer', 'journal:deconnexion_forcee'])
+    const seul = ports()
+    await expect(executer({ action: 'deconnecter', userId: ADMIN }, seul.p)).rejects.toMatchObject({ statut: 403 })
+    expect(seul.appels).toEqual([])
+    const aucune = ports()
+    aucune.p.revoquerSessions.mockResolvedValueOnce(0)
+    expect((await executer({ action: 'deconnecter', userId: CIBLE }, aucune.p)).message).toMatch(/Aucune session/)
   })
 
   it('supprime après confirmation : journal d’abord, puis les lignes, puis le compte', async () => {

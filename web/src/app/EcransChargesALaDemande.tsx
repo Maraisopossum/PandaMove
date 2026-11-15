@@ -50,3 +50,4 @@ export const PlanHyroxScreen = lazy(() => import('../features/hyrox/PlanHyroxScr
 export const AdminTableauScreen = lazy(() => import('../features/admin/AdminTableauScreen'))
 export const AdminComptesScreen = lazy(() => import('../features/admin/AdminComptesScreen'))
 export const AdminJournalScreen = lazy(() => import('../features/admin/AdminJournalScreen'))
+export const AdminSanteScreen = lazy(() => import('../features/admin/AdminSanteScreen'))

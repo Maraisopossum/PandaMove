@@ -116,9 +116,9 @@ describe('battement', () => {
   it('envoie la version et le drapeau de synchro, et ignore les échecs', async () => {
     const c = faux({})
     await envoyerBattement(c, 'abc1234', true)
-    expect(c.rpc).toHaveBeenCalledWith('enregistrer_battement', { p_version: 'abc1234', p_synchro: true })
+    expect(c.rpc).toHaveBeenCalledWith('enregistrer_battement', { p_version: 'abc1234', p_synchro: true, p_rejets: [] })
     const casse = { auth: {}, from: vi.fn(), rpc: vi.fn(() => { throw new Error('hors ligne') }) } as unknown as ClientSupabase
-    await expect(envoyerBattement(casse, 'x')).resolves.toBeUndefined()
+    await expect(envoyerBattement(casse, 'x')).resolves.toBe(false)
   })
 
   describe('hook', () => {

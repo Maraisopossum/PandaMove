@@ -59,6 +59,7 @@ Exécuter les migrations **dans l'ordre**, une seule fois chacune, dans l'édite
 14. `supabase/migrations/0014_objectifs_plan.sql` : table `objectifs_plan` (objectifs et jalons des plans d'endurance, résultat d'un jalon). **À appliquer avant la fusion du client**, puis redéployer les règles PowerSync (nouvelle table synchronisée).
 15. `supabase/migrations/0015_hyrox.sql` : tables `hyrox_courses`, `hyrox_simulations`, `hyrox_segments` (module Hyrox, date de course facultative). **À appliquer avant la fusion du client**, puis redéployer les règles PowerSync (3 nouvelles tables synchronisées).
 16. `supabase/migrations/0016_administration.sql` : administration technique (tables `profils` et `journal_admin`, fonctions `enregistrer_battement` et `admin_*`), **non synchronisée par PowerSync**. À appliquer avant la fusion du client ; puis poser `{"role": "admin"}` dans les métadonnées de votre compte (voir `src/features/admin/README.md`) et vous reconnecter. Aucune règle PowerSync à changer.
+17. `supabase/migrations/0017_sante_synchro.sql` : santé de la synchro (compteurs de rejets par table et code, `admin_sante_synchro`) et déconnexion forcée (`admin_revoquer_sessions`, clé de service seulement). Non synchronisée par PowerSync. **À appliquer avant la fusion du client**, puis redéployer la fonction `admin-comptes`.
 
 Toutes sont idempotentes. Règle générale : une migration s'applique **avant** la fusion sur `main` du client qui l'utilise, puis les règles PowerSync (`powersync/sync-rules.yaml`) sont redéployées si de nouvelles tables apparaissent.
 

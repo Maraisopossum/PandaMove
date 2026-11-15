@@ -59,6 +59,11 @@ Deno.serve(async (requete) => {
         const { error } = await base.auth.resetPasswordForEmail(email, redirection ? { redirectTo: redirection } : undefined)
         if (error) throw new ErreurAdmin(400, `Envoi impossible : ${error.message}`)
       },
+      async revoquerSessions(id) {
+        const { data, error } = await base.rpc('admin_revoquer_sessions', { p_user: id })
+        if (error) throw new Error(error.message)
+        return Number(data ?? 0)
+      },
       async viderTables(id) {
         for (const table of TABLES_UTILISATEUR) {
           const { error } = await base.from(table).delete().eq('user_id', id)

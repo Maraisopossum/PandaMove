@@ -61,18 +61,44 @@ export async function lireJournal(supabase: ClientSupabase, limite = 100): Promi
 }
 
 /**
- * Battement : version de l'application et horodatage, RIEN d'autre (aucune donnée d'entraînement). Les erreurs sont ignorées : hors ligne,
+ * Battement : version de l'application, horodatage et compteurs de rejets d'envoi (table + code), RIEN d'autre (aucune donnée d'entraînement). Les erreurs sont ignorées : hors ligne,
  * ou avant l'application de la migration, l'application fonctionne exactement comme avant.
  */
-export async function envoyerBattement(supabase: ClientSupabase, version: string, synchro = false): Promise<void> {
+export async function envoyerBattement(supabase: ClientSupabase, version: string, synchro = false, rejets: RejetCompte[] = []): Promise<boolean> {
   try {
-    await supabase.rpc('enregistrer_battement', { p_version: version, p_synchro: synchro })
+    const { error } = await supabase.rpc('enregistrer_battement', { p_version: version, p_synchro: synchro, p_rejets: rejets })
+    return !error
   } catch {
-    // sans conséquence
+    return false
   }
 }
 
-export type ActionAdmin = 'inviter' | 'suspendre' | 'retablir' | 'reinitialiser' | 'supprimer'
+/** Envois rejetés définitivement par le serveur depuis le dernier battement : table et code d'erreur, jamais le contenu de la ligne. */
+export interface RejetCompte {
+  table: string
+  code: string
+  nb: number
+}
+
+export interface SanteCompte {
+  userId: string
+  email: string | null
+  derniereSynchroAt: string | null
+  joursSansSynchro: number | null
+  versionApp: string | null
+  rejetsTotal: number
+  rejets: { table: string; code: string; nb: number; dernierAt: string }[]
+}
+
+export async function lireSante(supabase: ClientSupabase): Promise<SanteCompte[]> {
+  return (await appeler(supabase, 'admin_sante_synchro')).map((l) => ({
+    userId: String(l.user_id), email: txt(l.email), derniereSynchroAt: txt(l.derniere_synchro_at), joursSansSynchro: l.jours_sans_synchro == null ? null : Number(l.jours_sans_synchro),
+    versionApp: txt(l.version_app), rejetsTotal: Number(l.rejets_total ?? 0),
+    rejets: (Array.isArray(l.rejets) ? (l.rejets as Ligne[]) : []).map((r) => ({ table: String(r.table), code: String(r.code), nb: Number(r.nb), dernierAt: String(r.dernier_at) })),
+  }))
+}
+
+export type ActionAdmin = 'inviter' | 'suspendre' | 'retablir' | 'reinitialiser' | 'deconnecter' | 'supprimer'
 
 export interface DemandeAdmin {
   action: ActionAdmin

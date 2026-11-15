@@ -2,8 +2,8 @@
 // Aucune dépendance à Deno ni à Supabase : les accès passent par des « ports » injectés (index.ts les branche sur la clé de service),
 // ce qui permet de tester toutes les règles sous Vitest (src/core/admin/fonctionAdminComptes.test.ts).
 
-export type ActionAdmin = 'inviter' | 'suspendre' | 'retablir' | 'reinitialiser' | 'supprimer'
-export const ACTIONS: readonly ActionAdmin[] = ['inviter', 'suspendre', 'retablir', 'reinitialiser', 'supprimer']
+export type ActionAdmin = 'inviter' | 'suspendre' | 'retablir' | 'reinitialiser' | 'deconnecter' | 'supprimer'
+export const ACTIONS: readonly ActionAdmin[] = ['inviter', 'suspendre', 'retablir', 'reinitialiser', 'deconnecter', 'supprimer']
 
 export interface DemandeAdmin {
   action: ActionAdmin
@@ -39,6 +39,8 @@ export interface PortsAdmin {
   bannir(id: string, banni: boolean): Promise<void>
   marquerStatut(id: string, statut: 'actif' | 'suspendu'): Promise<void>
   envoyerReinitialisation(email: string): Promise<void>
+  /** Coupe les sessions du compte (il doit se reconnecter) ; renvoie le nombre de sessions coupées. */
+  revoquerSessions(id: string): Promise<number>
   viderTables(id: string): Promise<void>
   supprimerUtilisateur(id: string): Promise<void>
   journaliser(action: string, cibleId: string | null, detail: string | null): Promise<void>
@@ -83,6 +85,7 @@ export async function executer(demande: DemandeAdmin, p: PortsAdmin): Promise<{ 
 
   const cible = await p.trouverCompte(demande.userId!)
   if (!cible) throw new ErreurAdmin(404, 'Compte introuvable.')
+  if (demande.action === 'deconnecter' && cible.id === p.adminId) throw new ErreurAdmin(403, 'Vous ne pouvez pas faire cela sur votre propre compte.')
   const destructif = demande.action === 'suspendre' || demande.action === 'supprimer'
   if (destructif && cible.id === p.adminId) throw new ErreurAdmin(403, 'Vous ne pouvez pas faire cela sur votre propre compte.')
   if (destructif && cible.admin) throw new ErreurAdmin(403, 'Ce compte est administrateur : retirez d’abord son rôle dans Supabase.')
@@ -103,6 +106,11 @@ export async function executer(demande: DemandeAdmin, p: PortsAdmin): Promise<{ 
       await p.envoyerReinitialisation(cible.email)
       await p.journaliser('reinitialisation_mot_de_passe', cible.id, cible.email)
       return { message: `Lien de réinitialisation envoyé à ${cible.email}.` }
+    case 'deconnecter': {
+      const n = await p.revoquerSessions(cible.id)
+      await p.journaliser('deconnexion_forcee', cible.id, cible.email)
+      return { message: n > 0 ? 'Compte déconnecté : il devra se reconnecter.' : 'Aucune session ouverte pour ce compte.' }
+    }
     case 'supprimer': {
       if (!cible.email || (demande.confirmation ?? '').toLowerCase() !== cible.email.toLowerCase()) {
         throw new ErreurAdmin(400, 'Confirmation incorrecte : retapez l’adresse e-mail du compte.')
