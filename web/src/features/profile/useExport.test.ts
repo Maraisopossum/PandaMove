@@ -78,7 +78,7 @@ describe('useExport', () => {
     await act(() => result.current.exporter())
     expect(telecharger).not.toHaveBeenCalled()
     expect(result.current.statut).toBe('erreur')
-    expect(result.current.erreur).toBe("L'export a échoué : aucun fichier n'a été créé. Réessayez.")
+    expect(result.current.erreur).toBe("L’export a échoué : aucun fichier n’a été créé. Réessayez.")
     expect(result.current.message).toBe('')
     expect(erreurConsole).toHaveBeenCalled()
 

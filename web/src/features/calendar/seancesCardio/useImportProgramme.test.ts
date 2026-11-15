@@ -94,7 +94,7 @@ describe('useImportProgramme', () => {
       await result.current.importer()
     })
     expect(result.current.statut).toBe('error')
-    expect(result.current.erreur).toBe("L'import a échoué, aucune donnée n'a été modifiée.")
+    expect(result.current.erreur).toBe("L’import a échoué, aucune donnée n’a été modifiée.")
     expect(result.current.erreur).not.toMatch(/disque/)
     expect(journal).toHaveBeenCalled()
 

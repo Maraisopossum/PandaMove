@@ -3,7 +3,7 @@ import { useLocation } from 'react-router'
 import { deconnecterSupabaseBrut, useAuth } from '../core/auth/AuthProvider'
 import { useBattement } from '../core/admin/useBattement'
 import { useSyncConnection } from '../core/sync/useSyncConnection'
-import { MODULES, moduleActif } from './modules'
+import { infoModule } from './modules'
 import { useDarkMode } from './theme'
 import { useDeconnexion } from './useDeconnexion'
 import { useDrawer } from './useDrawer'
@@ -32,5 +32,5 @@ export function useAppShell() {
     if (window.confirm(CONFIRMATION_ABANDON)) void abandonnerDonneesLocales()
   }, [abandonnerDonneesLocales])
 
-  return { module: MODULES[moduleActif(pathname)], drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon }
+  return { module: infoModule(pathname), drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon }
 }

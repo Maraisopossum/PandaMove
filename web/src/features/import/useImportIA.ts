@@ -19,7 +19,7 @@ export interface DepsImportIA {
   userId?: string
 }
 
-const MESSAGE_GENERIQUE = "L'import a échoué, aucune donnée n'a été modifiée."
+const MESSAGE_GENERIQUE = "L’import a échoué, aucune donnée n’a été modifiée."
 const TYPES_MIME: Record<PieceModele, string> = { consigne: 'text/markdown', exemple: 'application/json', schema: 'application/json' }
 const CONFIRMATIONS: Record<PieceModele, string> = {
   consigne: 'Consigne téléchargée.',
@@ -159,7 +159,7 @@ export function useImportIA(deps: DepsImportIA = {}) {
     async (piece: PieceModele) => {
       const modele = await preparerModele()
       const ok = telechargerTexte(NOMS_FICHIERS_MODELE[piece], modele[piece], TYPES_MIME[piece])
-      setInfo(ok ? CONFIRMATIONS[piece] : "Le téléchargement n'a pas pu démarrer sur cet appareil.")
+      setInfo(ok ? CONFIRMATIONS[piece] : "Le téléchargement n’a pas pu démarrer sur cet appareil.")
     },
     [preparerModele],
   )

@@ -151,7 +151,7 @@ export function AssignDialog({
               )}
               {form.fin === 'date' && (
                 <div className="formulaire__champ">
-                  <label htmlFor={idDateFin}>Jusqu'au</label>
+                  <label htmlFor={idDateFin}>Jusqu’au</label>
                   <input id={idDateFin} type="date" value={form.dateFin} onChange={(e) => onChamp({ dateFin: e.target.value })} />
                 </div>
               )}

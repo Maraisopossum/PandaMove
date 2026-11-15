@@ -313,7 +313,7 @@ export function useReport(instanceId: string, { db, userId, nowFn = Date.now }: 
         } catch (e) {
           decidees.current.delete(exerciceId)
           console.error('Enregistrement de la décision impossible', e)
-          setErreur("L'enregistrement de votre choix a échoué. Réessayez.")
+          setErreur("L’enregistrement de votre choix a échoué. Réessayez.")
           return false
         }
         const etat: EtatProposition =

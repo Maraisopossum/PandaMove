@@ -117,7 +117,7 @@ export function useMethodeForm(id: string | undefined, { db }: DepsMethodeForm =
       if (e instanceof ErreurRespiration) setErreur(e.message)
       else {
         console.error("Enregistrement de la méthode impossible", e)
-        setErreur("L'enregistrement de la méthode a échoué.")
+        setErreur("L’enregistrement de la méthode a échoué.")
       }
       return false
     } finally {

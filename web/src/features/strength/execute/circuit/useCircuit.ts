@@ -43,12 +43,12 @@ const MESSAGES = {
   circuit: {
     terminee: 'Circuit terminé : toutes les séries sont enregistrées.',
     arretee: 'Circuit arrêté : les séries déjà validées sont conservées.',
-    echec: "Circuit interrompu : la série n'a pas pu être enregistrée.",
+    echec: "Circuit interrompu : la série n’a pas pu être enregistrée.",
   },
   seul: {
     terminee: 'Minuteur terminé : série enregistrée.',
     arretee: 'Minuteur arrêté.',
-    echec: "Minuteur interrompu : la série n'a pas pu être enregistrée.",
+    echec: "Minuteur interrompu : la série n’a pas pu être enregistrée.",
   },
 } as const
 

@@ -137,7 +137,7 @@ describe('usePushRappels', () => {
     expect(abonnement()!.unsubscribe).toHaveBeenCalledTimes(1)
     expect(result.current.actif).toBe(false)
     expect(window.localStorage.getItem(CLE_PUSH_ACTIF)).toBeNull()
-    expect(result.current.message).toContain("n'ont pas pu être activés")
+    expect(result.current.message).toContain("n’ont pas pu être activés")
   })
 
   it('un abonnement déjà présent n’est pas recréé ni annulé en cas d’échec d’écriture', async () => {

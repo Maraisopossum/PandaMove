@@ -37,7 +37,7 @@ const stockageNavigateur: StockageUtilisateur = {
 }
 
 export const MESSAGE_AUTRE_COMPTE =
-  "Des modifications non synchronisées d'un autre compte sont présentes sur cet appareil. Reconnectez-vous avec ce compte pour les envoyer."
+  "Des modifications non synchronisées d’un autre compte sont présentes sur cet appareil. Reconnectez-vous avec ce compte pour les envoyer."
 
 export interface ResultatDeconnexion {
   ok: boolean

@@ -59,7 +59,7 @@ export function TableauSeries({ nomExercice, tableau: t, lectureSeule, historiqu
       )}
 
       {historique.length > 0 && (
-        <section className="tableau-series__historique" aria-label="Historique de l'exercice">
+        <section className="tableau-series__historique" aria-label="Historique de l’exercice">
           <h4>Historique</h4>
           <ul>
             {historique.map((h) => (

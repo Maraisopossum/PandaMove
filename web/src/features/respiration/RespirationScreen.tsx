@@ -261,8 +261,8 @@ export default function RespirationScreen() {
           libelle={aSupprimer.libelle}
           precision={
             aSupprimer.type === 'methode'
-              ? "La méthode sera définitivement supprimée ; l'historique de ses séances est conservé."
-              : "Cette séance sera définitivement supprimée de l'historique."
+              ? "La méthode sera définitivement supprimée ; l’historique de ses séances est conservé."
+              : "Cette séance sera définitivement supprimée de l’historique."
           }
           enCours={suppressionEnCours}
           onConfirmer={() => void confirmer()}

@@ -124,7 +124,7 @@ describe('useEcranCalendrier — saisie d’une séance de cardio', () => {
     act(() => r.result.current.changerBrouillon({ titre: 'Footing' }))
     await act(() => r.result.current.enregistrer())
     expect(r.result.current.saisie).not.toBeNull()
-    expect(r.result.current.erreur).toBe("L'ajout de la séance a échoué.")
+    expect(r.result.current.erreur).toBe("L’ajout de la séance a échoué.")
   })
 
   it('ouvrir un dialogue efface le message d’une action précédente', async () => {

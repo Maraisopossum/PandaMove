@@ -76,7 +76,7 @@ export default function SeanceListScreen() {
             Séance directe
           </button>
           <Link to="/strength/catalog" className="bouton lien-bouton">
-            Catalogue d'exercices
+            Catalogue d’exercices
           </Link>
           {!l.vide && (
             <button type="button" className="bouton" onClick={() => sel.entrer()}>
@@ -110,7 +110,7 @@ export default function SeanceListScreen() {
           <PandaIllustration image={l.pandaVide} sizes="96px" decoratif className="calendrier__panda" />
           <div>
             <p>
-              <strong>Aucune séance type pour l'instant.</strong>
+              <strong>Aucune séance type pour l’instant.</strong>
             </p>
             <p>
               Une séance type est un modèle réutilisable (exercices, séries, charges). Créez-la une fois, puis lancez-la ou

@@ -1,3 +1,4 @@
+import { CLE_CHOIX as CLE_CHOIX_MOBILITE } from '../mobilite/stockage'
 import { CLE_EXERCICE_DEFAUT, lireExerciceDefaut } from '../stats/exerciceDefaut'
 import { CLE_PERIODE, PERIODES, lirePeriode } from '../stats/periode'
 import { CLE_FAVORITE, lireFavorite } from '../respiration/reglages'
@@ -10,7 +11,7 @@ import { CLE_REGLAGES_RAPPELS, lireReglages as lireReglagesRappels } from '../ou
 // et remise à zéro. Aucun n'est synchronisé. La remise à zéro ne touche ni les objectifs, ni le poids, ni les rappels (l'autorisation de
 // notifier se donne par appareil), ni le mode sombre, la variante du panda ou la décharge, qui ont leur place plus haut sur le profil.
 
-export const CLES_REINITIALISABLES = [CLE_EXERCICE_DEFAUT, CLE_FAVORITE, CLE_REGLAGES_CHARGE, CLE_PERIODE, 'pandamove.mobilite.choix'] as const
+export const CLES_REINITIALISABLES = [CLE_EXERCICE_DEFAUT, CLE_FAVORITE, CLE_REGLAGES_CHARGE, CLE_PERIODE, CLE_CHOIX_MOBILITE] as const
 
 export interface LigneReglage {
   id: 'exercice' | 'favorite' | 'zones' | 'rappels' | 'periode' | 'mobilite'

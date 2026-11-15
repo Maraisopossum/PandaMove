@@ -23,7 +23,7 @@ export interface DepsSession {
   secondesDecompte?: number
 }
 
-const MESSAGE_ECHEC_ENREGISTREMENT = "La séance n'a pas pu être enregistrée dans l'historique."
+const MESSAGE_ECHEC_ENREGISTREMENT = "La séance n’a pas pu être enregistrée dans l’historique."
 
 const aujourdhuiParDefaut = () => dateIsoLocale(new Date())
 

@@ -139,7 +139,7 @@ describe('useCircuit', () => {
     act(() => h.result.current.lancer({ type: 'circuit', blocId: 'b' }))
     await passer(13_000)
     expect(h.result.current.affichage).toBeNull()
-    expect(h.result.current.message).toBe("Circuit interrompu : la série n'a pas pu être enregistrée.")
+    expect(h.result.current.message).toBe("Circuit interrompu : la série n’a pas pu être enregistrée.")
     await passer(30_000)
     expect(valider).toHaveBeenCalledTimes(1)
   })

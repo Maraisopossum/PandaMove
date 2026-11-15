@@ -32,7 +32,7 @@ describe('CatalogScreen — catalogue de base', () => {
   it('ajoute le catalogue de base, annonce le résultat et masque le bouton', async () => {
     render(<CatalogScreen />)
     fireEvent.click(await screen.findByRole('button', { name: 'Ajouter le catalogue de base' }))
-    const statut = screen.getByRole('status', { name: "Résultat de l'opération" })
+    const statut = screen.getByRole('status', { name: "Résultat de l’opération" })
     await waitFor(() => expect(within(statut).getByText('166 exercices ajoutés, 0 corrigé.')).toBeTruthy())
     expect(screen.queryByRole('button', { name: 'Ajouter le catalogue de base' })).toBeNull()
     expect(screen.getByText('167 exercice(s)')).toBeTruthy()

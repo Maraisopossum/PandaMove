@@ -32,10 +32,10 @@ export function lienValide(saisie: string | null | undefined): ResultatLien {
   try {
     url = new URL(texte)
   } catch {
-    return refus("Ce lien n'est pas une adresse valide.")
+    return refus("Ce lien n’est pas une adresse valide.")
   }
   if (url.protocol !== 'https:') return refus('Le lien doit commencer par https://.')
-  if (url.username !== '' || url.password !== '') return refus("Le lien ne doit pas contenir d'identifiant ni de mot de passe.")
+  if (url.username !== '' || url.password !== '') return refus("Le lien ne doit pas contenir d’identifiant ni de mot de passe.")
   if (url.hostname === '') return refus("Le lien doit contenir un nom de domaine.")
   if (Array.from(url.href).length > LONGUEUR_MAX_LIEN) return refus(`Le lien est trop long (${LONGUEUR_MAX_LIEN} caractères au plus).`)
   return { ok: true, valeur: url.href }

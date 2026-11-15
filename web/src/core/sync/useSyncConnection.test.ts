@@ -131,7 +131,7 @@ describe('useSyncConnection', () => {
     expect(base.disconnectAndClear).not.toHaveBeenCalled()
     expect(base.connect).not.toHaveBeenCalled()
     expect(result.current.messageAutreCompte).toBe(
-      "Des modifications non synchronisées d'un autre compte sont présentes sur cet appareil. Reconnectez-vous avec ce compte pour les envoyer.",
+      "Des modifications non synchronisées d’un autre compte sont présentes sur cet appareil. Reconnectez-vous avec ce compte pour les envoyer.",
     )
   })
 

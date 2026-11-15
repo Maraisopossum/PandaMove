@@ -30,7 +30,7 @@ export default function ReportScreen() {
         </Link>
       ) : !b.terminee ? (
         <>
-          <p>Cette séance n'est pas encore terminée : le rapport sera disponible à la fin.</p>
+          <p>Cette séance n’est pas encore terminée : le rapport sera disponible à la fin.</p>
           <Link to={b.lienSeance} className="bouton lien-bouton bouton--principal">
             Reprendre la séance
           </Link>

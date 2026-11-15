@@ -15,7 +15,7 @@ export function formaterDuree(secondes: number): string {
   return h > 0 ? `${h}:${deux(m)}:${deux(s)}` : `${m}:${deux(s)}`
 }
 
-// 10020 -> « 10,02 » (virgule française, deux décimales) : le nombre seul, l'unité est affichée à part.
+// 10020 -> « 10,02 » (virgule française, deux décimales) : le nombre seul, l’unité est affichée à part.
 export function distanceKm(metres: number): string {
   return (metres / 1000).toFixed(2).replace('.', ',')
 }

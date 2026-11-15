@@ -18,7 +18,7 @@ export function formaterDateHistorique(iso: string): string {
 
 export const MESSAGES_PANDA = [
   'Le panda sait que le calme se cultive, pas à pas.',
-  "Chaque souffle compte. Tu viens d'en prouver quelques-uns.",
+  "Chaque souffle compte. Tu viens d’en prouver quelques-uns.",
   'Le panda est fier. Et un peu jaloux de ton calme.',
   'Respirer bien, c’est vivre mieux. Le panda valide.',
   'Séance accomplie. Le bambou peut attendre.',

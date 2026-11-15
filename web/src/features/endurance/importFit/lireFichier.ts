@@ -34,7 +34,7 @@ export async function extraireFitDuZip(octets: Uint8Array): Promise<Uint8Array> 
     const debutDonnees = decalage + 30 + u16(v, decalage + 26) + u16(v, decalage + 28)
     const donnees = octets.subarray(debutDonnees, debutDonnees + tailleCompressee)
     if (methode === 0) return donnees
-    if (methode !== 8) throw new ErreurImportFit("Compression de l'archive non prise en charge.")
+    if (methode !== 8) throw new ErreurImportFit("Compression de l’archive non prise en charge.")
     const flux = new Response(donnees as BodyInit).body!.pipeThrough(new DecompressionStream('deflate-raw'))
     return new Uint8Array(await new Response(flux).arrayBuffer())
   }

@@ -52,7 +52,7 @@ export const rejetsEnvoi = {
   },
 }
 
-export const messageRejet = (r: RejetEnvoi) => `Une modification n'a pas pu être envoyée au serveur (code ${r.code}).`
+export const messageRejet = (r: RejetEnvoi) => `Une modification n’a pas pu être envoyée au serveur (code ${r.code}).`
 
 /** Message du dernier rejet (null si aucun ou masqué) et action pour le masquer. */
 export function useRejetEnvoi(): { message: string | null; masquer: () => void } {

@@ -267,7 +267,7 @@ describe('Suppression depuis la liste', () => {
       "Supprime la séance type et les séances programmées, conserve les séances déjà terminées (calendrier, statistiques)",
     )
     expect(dialogue.textContent).toContain('Supprime aussi les séances terminées et leurs séries')
-    for (const nom of ["Garder l'historique", 'Tout supprimer', 'Annuler']) {
+    for (const nom of ["Garder l’historique", 'Tout supprimer', 'Annuler']) {
       expect(screen.getByRole('button', { name: nom })).toBeTruthy()
     }
     await waitFor(() => expect(dialogue.contains(document.activeElement)).toBe(true))
@@ -312,11 +312,11 @@ describe('Suppression depuis la liste', () => {
     expect(l.deleted_at).toBeNull()
   })
 
-  it("« Garder l'historique » supprime le modèle et conserve les séances réalisées", async () => {
+  it("« Garder l’historique » supprime le modèle et conserve les séances réalisées", async () => {
     monter('/strength')
     await action('Squat', 'Supprimer…')
     await screen.findByRole('dialog')
-    fireEvent.click(screen.getByRole('button', { name: "Garder l'historique" }))
+    fireEvent.click(screen.getByRole('button', { name: "Garder l’historique" }))
     // Le modèle disparaît de « Séances types » ; ses séances jouées restent visibles sous leur nom
     await waitFor(() => expect(screen.queryByRole('button', { name: "Plus d'actions pour Squat" })).toBeNull())
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -344,7 +344,7 @@ describe('Suppression depuis la liste', () => {
     await action('Vierge', 'Supprimer…')
     const dialogue = await screen.findByRole('dialog', { name: 'Supprimer cette séance ?' })
     expect(dialogue.textContent).toContain('Cette action est définitive')
-    expect(screen.queryByRole('button', { name: "Garder l'historique" })).toBeNull()
+    expect(screen.queryByRole('button', { name: "Garder l’historique" })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Tout supprimer' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Annuler' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }))

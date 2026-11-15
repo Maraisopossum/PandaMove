@@ -28,7 +28,7 @@ export default function ImportProgrammePanel(props: DepsImportProgramme) {
   return (
     <>
       <p className="import__intro">
-        Ajoutez à l'agenda les {nbSeances} séances de cardio du programme 2027 (course et vélo), du {formaterDate(debut)} au {formaterDate(fin)}, dont {nbJalons} jalons.
+        Ajoutez à l’agenda les {nbSeances} séances de cardio du programme 2027 (course et vélo), du {formaterDate(debut)} au {formaterDate(fin)}, dont {nbJalons} jalons.
       </p>
 
       <div className="import__carte">
@@ -49,7 +49,7 @@ export default function ImportProgrammePanel(props: DepsImportProgramme) {
           Rétablir les séances supprimées
         </button>
         <p id="import-programme-retablir" className="import-ia__aide">
-          Remet dans l'agenda les séances du programme que vous avez supprimées. Celles déplacées ou validées ne sont pas touchées.
+          Remet dans l’agenda les séances du programme que vous avez supprimées. Celles déplacées ou validées ne sont pas touchées.
         </p>
         {raisonBlocage && (
           <p id="import-programme-raison" className="import-ia__aide">
@@ -68,7 +68,7 @@ export default function ImportProgrammePanel(props: DepsImportProgramme) {
               <h2 id="import-programme-succes">Import terminé</h2>
               <p role="status">{messageResultat(resultat)}</p>
               <Link to="/calendar" className="bouton bouton--import import-ia__lien">
-                Voir l'agenda
+                Voir l’agenda
               </Link>
             </section>
           )}

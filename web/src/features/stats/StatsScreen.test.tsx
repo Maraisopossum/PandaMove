@@ -99,7 +99,7 @@ describe('StatsScreen', () => {
     expect(await screen.findByText('Aucune séance terminée sur cette période.')).toBeTruthy()
     expect(screen.queryByRole('figure')).toBeNull()
     // L'historique reste disponible (toutes dates)
-    expect(screen.getByRole('region', { name: "Historique d'un exercice" })).toBeTruthy()
+    expect(screen.getByRole('region', { name: "Historique d’un exercice" })).toBeTruthy()
   })
 
   it("erreur de lecture : alertes visibles, jamais l'état vide", async () => {
@@ -108,13 +108,13 @@ describe('StatsScreen', () => {
     base = { ...reelle, getAll: () => Promise.reject(new Error('base indisponible')) }
     render(<StatsScreen />)
     expect(await screen.findByText('Le chargement des statistiques a échoué.')).toBeTruthy()
-    expect(await screen.findByText("Le chargement de l'historique a échoué.")).toBeTruthy()
+    expect(await screen.findByText("Le chargement de l’historique a échoué.")).toBeTruthy()
     expect(screen.queryByText('Aucune séance terminée sur cette période.')).toBeNull()
   })
 
   it("affiche l'historique de l'exercice en graphique et en tableau", async () => {
     render(<StatsScreen />)
-    const section = await screen.findByRole('region', { name: "Historique d'un exercice" })
+    const section = await screen.findByRole('region', { name: "Historique d’un exercice" })
     const tableau = await within(section).findByRole('table')
     await waitFor(() => expect(within(tableau).getAllByRole('row')).toHaveLength(3))
     expect(texte(tableau)).toMatch(/1 août 2026.*100 kg.*10/)
@@ -188,7 +188,7 @@ describe('StatsScreen', () => {
 
   it('courbe : mesure au choix, axes, point record et bulle d’information au toucher', async () => {
     render(<StatsScreen />)
-    const section = await screen.findByRole('region', { name: "Historique d'un exercice" })
+    const section = await screen.findByRole('region', { name: "Historique d’un exercice" })
     const groupe = await within(section).findByRole('group', { name: 'Mesure affichée' })
     expect(within(groupe).getByRole('button', { name: 'Charge max' }).getAttribute('aria-pressed')).toBe('true')
     // Deux séances (100 kg le 1er août, 120 kg le 20 oct.) : le record est la plus récente ; la bulle montre la dernière séance

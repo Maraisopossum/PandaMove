@@ -145,7 +145,7 @@ export default function CalendarScreen() {
           <span aria-hidden="true">›</span>
         </button>
         <button type="button" className="bouton calendrier__auj" onClick={c.auj}>
-          Aujourd'hui
+          Aujourd’hui
         </button>
       </div>
 

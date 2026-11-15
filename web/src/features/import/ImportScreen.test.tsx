@@ -15,7 +15,7 @@ import ImportScreen from './ImportScreen'
 afterEach(cleanup)
 
 const deposer = (f: File) =>
-  fireEvent.change(screen.getByLabelText(/Fichier d'export/), { target: { files: [f] } })
+  fireEvent.change(screen.getByLabelText(/Fichier d’export/), { target: { files: [f] } })
 const fichier = (texte: string) => new File([texte], 'export.json', { type: 'application/json' })
 
 describe('ImportScreen', () => {
@@ -25,27 +25,27 @@ describe('ImportScreen', () => {
     expect(await screen.findByText('2 séance(s)')).toBeTruthy()
     expect(screen.getByText(/remplace les éléments correspondants déjà présents/)).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: "Confirmer l'import" }))
+    fireEvent.click(screen.getByRole('button', { name: "Confirmer l’import" }))
     expect(await screen.findByText(/importés\./)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: "Confirmer l'import" })).toBeNull()
+    expect(screen.queryByRole('button', { name: "Confirmer l’import" })).toBeNull()
     await waitFor(() => expect(document.activeElement?.className).toBe('import__resultat'))
   })
 
-  it("les remarques de l'import restent lisibles après la fin (l'aperçu disparaît)", async () => {
+  it("les remarques de l’import restent lisibles après la fin (l’aperçu disparaît)", async () => {
     render(<ImportScreen />)
     deposer(fichier(JSON.stringify({ ...exportV32, runTemplates: [{}] })))
     expect(await screen.findByText(/runTemplates : 1 élément/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: "Confirmer l'import" }))
+    fireEvent.click(screen.getByRole('button', { name: "Confirmer l’import" }))
     expect(await screen.findByRole('heading', { name: 'Remarques' })).toBeTruthy()
     expect(screen.getByText(/runTemplates : 1 élément/)).toBeTruthy()
   })
 
-  it("affiche l'erreur dans une zone role=alert et déplace le focus", async () => {
+  it("affiche l’erreur dans une zone role=alert et déplace le focus", async () => {
     render(<ImportScreen />)
     deposer(fichier('{"tronque'))
     const alerte = await screen.findByRole('alert')
     expect(alerte.textContent).toBe('Fichier JSON invalide ou tronqué')
     await waitFor(() => expect(document.activeElement?.className).toBe('import__resultat'))
-    expect(screen.queryByRole('button', { name: "Confirmer l'import" })).toBeNull()
+    expect(screen.queryByRole('button', { name: "Confirmer l’import" })).toBeNull()
   })
 })

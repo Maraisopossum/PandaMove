@@ -19,7 +19,7 @@ export interface DepsExport {
 
 export const CLE_DERNIERE_SAUVEGARDE = 'pandamove.derniereSauvegarde'
 
-export const ERREUR_EXPORT = "L'export a échoué : aucun fichier n'a été créé. Réessayez."
+export const ERREUR_EXPORT = "L’export a échoué : aucun fichier n’a été créé. Réessayez."
 
 // Sauvegarde : génère l'export JSON v3.2 de la base locale et le télécharge. Un seul export à la fois.
 export function useExport({ db, userId, telecharger = telechargerJson, maintenant = () => new Date() }: DepsExport = {}) {
@@ -55,7 +55,7 @@ export function useExport({ db, userId, telecharger = telechargerJson, maintenan
 
   const message =
     statut === 'generation'
-      ? "Préparation du fichier d'export…"
+      ? "Préparation du fichier d’export…"
       : statut === 'termine' && nomFichier
         ? `Fichier ${nomFichier} téléchargé : retrouvez-le dans vos téléchargements.`
         : ''

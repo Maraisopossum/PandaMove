@@ -25,7 +25,7 @@ function CarteExercice({ e, dense, info }: { e: ExerciceDetail; dense?: boolean;
         <strong className="detail__exo-nom">{e.nom}</strong>
         {e.progression && <span className="badge badge--progression">↗ Progression</span>}
         {e.bilateral && (
-          <span className="badge badge--bilateral" title="Bilatéral : un côté puis l'autre">
+          <span className="badge badge--bilateral" title="Bilatéral : un côté puis l’autre">
             G+D<span className="visuellement-cache"> (bilatéral)</span>
           </span>
         )}
@@ -114,7 +114,7 @@ export default function SeanceDetailScreen() {
 
   return (
     <>
-      <nav aria-label="Fil d'Ariane">
+      <nav aria-label="Fil d’Ariane">
         <Link to="/strength" className="detail__retour">
           <span aria-hidden="true">← </span>Séances types
         </Link>
@@ -188,7 +188,7 @@ export default function SeanceDetailScreen() {
       <section aria-labelledby={idHistorique}>
         <h2 id={idHistorique}>Historique</h2>
         {d.instances.length === 0 ? (
-          <p>Aucune séance terminée ou programmée à partir de cette séance type pour l'instant.</p>
+          <p>Aucune séance terminée ou programmée à partir de cette séance type pour l’instant.</p>
         ) : (
           <ul className="seances__liste">
             {d.instances.map((i) => (

@@ -36,19 +36,19 @@ export default function ImportIaPanel(props: DepsImportIA) {
       </p>
 
       <div className="import__carte">
-        <h2 className="import-ia__titre">1. Préparer la consigne pour l'IA</h2>
+        <h2 className="import-ia__titre">1. Préparer la consigne pour l’IA</h2>
         <p className="import-ia__aide">
-          Le fichier est généré sur cet appareil, avec la liste des exercices disponibles. Rien n'est envoyé à une IA : c'est vous qui le lui donnez.
+          Le fichier est généré sur cet appareil, avec la liste des exercices disponibles. Rien n’est envoyé à une IA : c’est vous qui le lui donnez.
         </p>
         <div className="import-ia__actions">
           <button type="button" className="bouton bouton--import" onClick={() => void ia.telecharger('consigne')}>
-            Télécharger la consigne pour l'IA (.md)
+            Télécharger la consigne pour l’IA (.md)
           </button>
           <button type="button" className="bouton" onClick={() => void ia.copierConsigne()}>
             Copier la consigne
           </button>
           <button type="button" className="bouton" onClick={() => void ia.telecharger('exemple')}>
-            Télécharger l'exemple (.json)
+            Télécharger l’exemple (.json)
           </button>
           <button type="button" className="bouton" onClick={() => void ia.telecharger('schema')}>
             Télécharger le schéma (.json)
@@ -60,14 +60,14 @@ export default function ImportIaPanel(props: DepsImportIA) {
       </div>
 
       <div className="import__carte import-ia__carte-import">
-        <h2 className="import-ia__titre">2. Importer la réponse de l'IA</h2>
+        <h2 className="import-ia__titre">2. Importer la réponse de l’IA</h2>
         <div className="import__champ">
           <span className="import__icone" aria-hidden="true">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
             </svg>
           </span>
-          <label htmlFor="import-ia-fichier">Fichier JSON de l'IA (.json)</label>
+          <label htmlFor="import-ia-fichier">Fichier JSON de l’IA (.json)</label>
           <input
             id="import-ia-fichier"
             type="file"
@@ -78,7 +78,7 @@ export default function ImportIaPanel(props: DepsImportIA) {
         </div>
 
         <div className="import-ia__collage">
-          <label htmlFor="import-ia-texte">Ou collez la réponse de l'IA</label>
+          <label htmlFor="import-ia-texte">Ou collez la réponse de l’IA</label>
           <textarea
             id="import-ia-texte"
             className="import-ia__zone"
@@ -100,14 +100,14 @@ export default function ImportIaPanel(props: DepsImportIA) {
           {ia.erreurs.length > 0 && (
             <div role="alert" className="import__erreur">
               <p className="import-ia__erreur-titre">
-                {ia.erreurs.length > 1 ? `Le fichier contient ${ia.erreurs.length} erreurs` : 'Le fichier contient une erreur'} : rien n'a été importé.
+                {ia.erreurs.length > 1 ? `Le fichier contient ${ia.erreurs.length} erreurs` : 'Le fichier contient une erreur'} : rien n’a été importé.
               </p>
               <ul className="import-ia__liste">
                 {ia.erreurs.map((m) => (
                   <li key={m}>{m}</li>
                 ))}
               </ul>
-              <p className="import-ia__aide">Corrigez le fichier (ou redemandez-le à l'IA en lui donnant ces messages), puis rechargez-le.</p>
+              <p className="import-ia__aide">Corrigez le fichier (ou redemandez-le à l’IA en lui donnant ces messages), puis rechargez-le.</p>
             </div>
           )}
           {ia.echec && (
@@ -208,7 +208,7 @@ export default function ImportIaPanel(props: DepsImportIA) {
         </span>
         <p>
           <strong>Sans doublon, sans écrasement</strong>
-          Réimporter le même fichier ne crée rien de plus. Une séance du même nom mais différente est ajoutée avec « (2) ». N'ajoutez jamais de données personnelles dans votre demande à l'IA.
+          Réimporter le même fichier ne crée rien de plus. Une séance du même nom mais différente est ajoutée avec « (2) ». N’ajoutez jamais de données personnelles dans votre demande à l’IA.
         </p>
       </aside>
     </>

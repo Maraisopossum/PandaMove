@@ -170,7 +170,7 @@ describe('useSeanceList', () => {
       c = await rendu.result.current.compterHistorique('s1')
     })
     expect(c).toBeNull()
-    expect(rendu.result.current.erreur).toBe("Le décompte de l'historique a échoué.")
+    expect(rendu.result.current.erreur).toBe("Le décompte de l’historique a échoué.")
   })
 
   it('expose les modèles archivés à part, et desarchiver les remet dans la liste', async () => {

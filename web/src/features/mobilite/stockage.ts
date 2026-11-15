@@ -7,7 +7,7 @@ import { dureeTotale, type Etape, type PlanSeance } from './generer'
 // historique du navigateur n'est plus que relu, une fois, pour être repris en base (useHistoriqueMobilite), puis effacé.
 // Toute lecture tolère un stockage absent ou corrompu et revient à une valeur par défaut.
 
-const CLE_CHOIX = 'pandamove.mobilite.choix'
+export const CLE_CHOIX = 'pandamove.mobilite.choix'
 const CLE_PLAN = 'pandamove.mobilite.plan'
 const CLE_HISTORIQUE = 'pandamove.mobilite.historique'
 

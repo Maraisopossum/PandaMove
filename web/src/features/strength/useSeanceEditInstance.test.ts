@@ -56,7 +56,7 @@ describe('useSeanceEdit : mode instance', () => {
 
   it('instance terminée ou inconnue : message français, aucun brouillon', async () => {
     await db.execute("UPDATE instances_seance SET is_completed = 1 WHERE id = 'i1'")
-    expect((await monter('i1')).result.current.erreur).toBe("Cette séance est terminée : elle n'est plus modifiable.")
+    expect((await monter('i1')).result.current.erreur).toBe("Cette séance est terminée : elle n’est plus modifiable.")
     expect((await monter('inconnue')).result.current.erreur).toBe('Séance introuvable.')
   })
 

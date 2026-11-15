@@ -26,7 +26,7 @@ describe('rejetsEnvoi (store)', () => {
   })
 
   it('message français avec le code', () => {
-    expect(messageRejet(REJET)).toBe("Une modification n'a pas pu être envoyée au serveur (code 23505).")
+    expect(messageRejet(REJET)).toBe("Une modification n’a pas pu être envoyée au serveur (code 23505).")
   })
 })
 
@@ -35,7 +35,7 @@ describe('useRejetEnvoi', () => {
     const { result } = renderHook(() => useRejetEnvoi())
     expect(result.current.message).toBeNull()
     act(() => rejetsEnvoi.signaler(REJET))
-    expect(result.current.message).toBe("Une modification n'a pas pu être envoyée au serveur (code 23505).")
+    expect(result.current.message).toBe("Une modification n’a pas pu être envoyée au serveur (code 23505).")
     act(() => result.current.masquer())
     expect(result.current.message).toBeNull()
     expect(rejetsEnvoi.dernier()).toBeNull()
@@ -50,9 +50,9 @@ describe('AlerteRejetEnvoiVue', () => {
 
   it('affiche une alerte et un bouton « Masquer »', () => {
     const masquer = vi.fn()
-    render(<AlerteRejetEnvoiVue message="Une modification n'a pas pu être envoyée au serveur (code 42501)." onMasquer={masquer} />)
+    render(<AlerteRejetEnvoiVue message="Une modification n’a pas pu être envoyée au serveur (code 42501)." onMasquer={masquer} />)
     expect(screen.getByRole('alert').textContent).toContain('code 42501')
-    fireEvent.click(screen.getByRole('button', { name: "Masquer l'alerte d'envoi" }))
+    fireEvent.click(screen.getByRole('button', { name: "Masquer l’alerte d’envoi" }))
     expect(masquer).toHaveBeenCalledTimes(1)
   })
 })

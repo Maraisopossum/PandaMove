@@ -81,6 +81,6 @@ describe('ErrorBoundary — détails', () => {
         <Bombe erreur={new Error('boum')} />
       </ErrorBoundary>,
     )
-    expect(screen.getByRole('button', { name: "Copier les détails de l'erreur" })).toBeTruthy()
+    expect(screen.getByRole('button', { name: "Copier les détails de l’erreur" })).toBeTruthy()
   })
 })

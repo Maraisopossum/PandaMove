@@ -73,7 +73,7 @@ export default function DonneesScreen() {
               : `Votre dernière sauvegarde date de ${d.joursSansSauvegarde} jours. Enregistrez-en une pour garder une copie hors de l’application.`}
           </p>
         )}
-        <p className="aide">L'export JSON contient le renforcement (séances, séries, exercices, objectifs, matériel). Les sorties et la respiration n'y sont pas encore : « Exporter une partie » les couvre.</p>
+        <p className="aide">L’export JSON contient le renforcement (séances, séries, exercices, objectifs, matériel) au format de l’application Android, puis, dans un complément propre à la WebApp, les sorties, la respiration, la mobilité, les séances planifiées, les plans et Hyrox. Votre poids, vos objectifs personnels et les réglages de cet appareil restent sur l’appareil. « Exporter une partie » sert à partager ou à analyser une partie des données.</p>
         <button type="button" className="bouton bouton--principal" aria-busy={sauvegarde.enCours} disabled={sauvegarde.enCours} onClick={() => void sauvegarde.exporter()}>
           Exporter en JSON
         </button>

@@ -104,7 +104,7 @@ describe('Affectation : plusieurs dates et répétition', () => {
     fireEvent.change(screen.getByLabelText('Unité'), { target: { value: 'jour' } })
     fireEvent.change(screen.getByLabelText('Fin de la répétition'), { target: { value: 'date' } })
     fireEvent.change(screen.getByLabelText('Première séance'), { target: { value: '2027-03-01' } })
-    fireEvent.change(screen.getByLabelText("Jusqu'au"), { target: { value: '2027-03-03' } })
+    fireEvent.change(screen.getByLabelText("Jusqu’au"), { target: { value: '2027-03-03' } })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(await datesDe('r2')).toEqual(['2027-03-01', '2027-03-02', '2027-03-03'])

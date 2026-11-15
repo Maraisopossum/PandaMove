@@ -196,7 +196,7 @@ function StatsRenforcement() {
             <div
               className="heatmap__echelle"
               role="img"
-              aria-label="Échelle d'intensité des muscles : de faible à intense, selon le nombre de séries sur la période"
+              aria-label="Échelle d’intensité des muscles : de faible à intense, selon le nombre de séries sur la période"
             >
               <span className="heatmap__echelle-borne">Faible</span>
               <span className="heatmap__echelle-barre" style={{ background: degradeEchelle() }} aria-hidden="true" />
@@ -232,14 +232,14 @@ function StatsRenforcement() {
 
       {s.pret && (
         <section aria-labelledby="stats-historique" className="stats__section stats__section--carte stats__section--grille">
-          <h2 id="stats-historique">Historique d'un exercice</h2>
+          <h2 id="stats-historique">Historique d’un exercice</h2>
           {s.erreurHistorique && (
             <p role="alert" className="import__erreur">
               {s.erreurHistorique}
             </p>
           )}
           {s.exercices.length === 0 ? (
-            !s.erreurHistorique && <p>Aucun exercice dans une séance terminée pour l'instant.</p>
+            !s.erreurHistorique && <p>Aucun exercice dans une séance terminée pour l’instant.</p>
           ) : (
             <>
               <label className="formulaire__champ">

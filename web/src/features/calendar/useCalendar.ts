@@ -122,7 +122,7 @@ export function useCalendar(mois: Mois, { db, nowFn }: DepsCalendrier = {}) {
   )
   const creerCardio = useCallback(
     (genre: GenreCardio, saisie: SaisieSeanceCardio) =>
-      agir((base) => creerSeanceCardio(base, genre, saisie), "L'ajout de la séance a échoué."),
+      agir((base) => creerSeanceCardio(base, genre, saisie), "L’ajout de la séance a échoué."),
     [agir],
   )
   const modifierCardio = useCallback(

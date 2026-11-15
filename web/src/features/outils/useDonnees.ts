@@ -182,7 +182,7 @@ export function useDonnees({ db, maintenant = () => new Date(), telecharger = te
       setMessageCible(`Fichier ${nom} téléchargé : retrouvez-le dans vos téléchargements.`)
     } catch (e) {
       console.error('Export ciblé impossible', e)
-      setErreurCible("L'export a échoué : aucun fichier n'a été créé. Réessayez.")
+      setErreurCible("L’export a échoué : aucun fichier n’a été créé. Réessayez.")
     }
   }, [db, modules, periode, format, telecharger])
 
