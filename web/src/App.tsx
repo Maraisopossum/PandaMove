@@ -4,6 +4,7 @@ import { AppShell } from './app/AppShell'
 import { ErrorBoundary } from './app/ErrorBoundary'
 import { construireRoutes } from './app/routes'
 import { AuthProvider, useAuth } from './core/auth/AuthProvider'
+import { GardeMfa } from './features/auth/GardeMfa'
 import LoginScreen from './features/auth/LoginScreen'
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen'
 import { useOnboarding } from './features/onboarding/useOnboarding'
@@ -16,7 +17,7 @@ function Connecte() {
 
 function Contenu() {
   const { session } = useAuth()
-  return session ? <Connecte /> : <LoginScreen />
+  return session ? <GardeMfa><Connecte /></GardeMfa> : <LoginScreen />
 }
 
 // Premier lancement : l'onboarding s'affiche avant tout (connexion comprise), jusqu'à « Passer » ou « Commencer ».

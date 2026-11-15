@@ -2,14 +2,15 @@
 // supprimer un compte). Appelée par l'application depuis l'écran « Comptes » avec le jeton de l'administrateur connecté.
 // La clé de service ne sort jamais d'ici. Les règles sont dans comptes.ts (testées sous Vitest) ; ce fichier ne fait que brancher Supabase.
 //
-// Sécurité : la plateforme vérifie la signature du jeton (verify_jwt par défaut) ; la fonction exige en plus `app_metadata.role = 'admin'`.
+// Sécurité : la plateforme vérifie la signature du jeton (verify_jwt par défaut) ; la fonction exige en plus `app_metadata.role = 'admin'` et un
+// jeton de niveau aal2 (code de la double authentification validé).
 // Aucune lecture de données d'entraînement : seules des métadonnées de compte sont touchées, et la suppression vide les tables du compte.
 //
 // Secrets : SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis par la plateforme. Facultatif : SITE_URL (adresse de l'application,
 // pour les liens des e-mails d'invitation et de réinitialisation).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { ErreurAdmin, executer, lireDemande, TABLES_UTILISATEUR, type PortsAdmin } from './comptes.ts'
+import { ErreurAdmin, executer, exigerAdministrateur, lireDemande, TABLES_UTILISATEUR, type PortsAdmin } from './comptes.ts'
 
 const env = (nom: string): string => {
   const v = Deno.env.get(nom)
@@ -29,7 +30,7 @@ Deno.serve(async (requete) => {
     const jeton = (requete.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
     const { data: appelant, error: erreurJeton } = await base.auth.getUser(jeton)
     if (erreurJeton || !appelant.user) return reponse(401, { erreur: 'Connexion requise.' })
-    if (appelant.user.app_metadata?.role !== 'admin') return reponse(403, { erreur: 'Accès refusé.' })
+    exigerAdministrateur(appelant.user.app_metadata?.role, jeton)
 
     const demande = lireDemande(await requete.json().catch(() => null))
     const redirection = Deno.env.get('SITE_URL') || undefined

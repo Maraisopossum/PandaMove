@@ -15,7 +15,7 @@ function useLecture<T>(lire: (c: ClientSupabase) => Promise<T>, client?: ClientS
     lire(client ?? getSupabase())
       .then((donnees) => !annule && setE({ etat: 'pret', donnees }))
       .catch((err: unknown) => {
-        if (!annule) setE({ etat: 'erreur', message: err instanceof Error && /Accès refusé/.test(err.message) ? 'Accès refusé par le serveur : le rôle administrateur manque dans votre jeton (reconnectez-vous).' : 'Impossible de lire ces informations pour le moment.' })
+        if (!annule) setE({ etat: 'erreur', message: err instanceof Error && /Accès refusé/.test(err.message) ? 'Accès refusé par le serveur : le rôle administrateur ou la double authentification manque dans votre jeton (reconnectez-vous et saisissez votre code).' : 'Impossible de lire ces informations pour le moment.' })
       })
     return () => {
       annule = true
