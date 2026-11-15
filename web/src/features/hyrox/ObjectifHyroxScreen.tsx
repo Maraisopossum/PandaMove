@@ -45,7 +45,7 @@ function FormulaireObjectif({ h }: { h: ReturnType<typeof useHyrox> }) {
       return
     }
     try {
-      const saisie = { nom, lieu, date: date || null, categorie, genre, objectifS: cibleS, resultatS, repartitionJson: ecrireRepartition({ partCoursesPct: part }) }
+      const saisie = { nom, lieu, date: date || null, categorie, genre, objectifS: cibleS, resultatS, repartitionJson: ecrireRepartition({ partCoursesPct: part }, objectif?.repartitionJson) }
       if (objectif) await modifierCourseHyrox(getDb(), objectif.id, saisie)
       else await creerCourseHyrox(getDb(), saisie)
       navigate('/hyrox')
