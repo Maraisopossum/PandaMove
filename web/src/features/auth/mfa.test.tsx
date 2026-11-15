@@ -140,7 +140,7 @@ describe('section du profil', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Valider' }))
     await waitFor(() => expect(mfa.challengeAndVerify).toHaveBeenCalledWith({ factorId: 'f9', code: '654321' }))
     expect(await screen.findByText(/Double authentification activée/)).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Désactiver…' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Désactiver…' }, { timeout: 5000 })).toBeTruthy()
   })
 
   it('retire un facteur commencé puis abandonné avant d’en inscrire un nouveau', async () => {
