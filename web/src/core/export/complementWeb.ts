@@ -24,6 +24,9 @@ export const TABLES_COMPLEMENT = [
   'hyrox_courses',
   'hyrox_simulations',
   'hyrox_segments',
+  'aliments',
+  'repas_entrees',
+  'objectifs_nutrition',
 ] as const
 
 export type TableComplement = (typeof TABLES_COMPLEMENT)[number]

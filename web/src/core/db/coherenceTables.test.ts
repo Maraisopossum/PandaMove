@@ -6,6 +6,7 @@ import { TABLES_RESPIRATION } from './repos/respiration'
 import { TABLE_MOBILITE } from './repos/mobilite'
 import { TABLES_CARDIO } from './repos/seancesCardio'
 import { TABLE_HYROX_COURSES, TABLE_HYROX_SEGMENTS, TABLE_HYROX_SIMULATIONS } from './repos/hyrox'
+import { TABLE_ALIMENTS, TABLE_OBJECTIFS_NUTRITION, TABLE_REPAS_ENTREES } from './repos/nutrition'
 import { TABLE_OBJECTIFS_PLAN } from './repos/objectifsPlan'
 import { TABLE_SORTIES } from './repos/sorties'
 
@@ -20,6 +21,7 @@ const migrationSorties = lire('supabase', 'migrations', '0010_sorties.sql')
 const migrationMobilite = lire('supabase', 'migrations', '0012_mobilite_rappels.sql')
 const migrationObjectifsPlan = lire('supabase', 'migrations', '0014_objectifs_plan.sql')
 const migrationHyrox = lire('supabase', 'migrations', '0015_hyrox.sql')
+const migrationNutrition = lire('supabase', 'migrations', '0020_nutrition.sql')
 
 const tablesSchema = [...schema.matchAll(/^ {2}(\w+): new Table\(/gm)].map((m) => m[1])
 const tablesRegles = [...regles.matchAll(/^\s*- SELECT \* FROM (\w+) WHERE/gm)].map((m) => m[1])
@@ -90,6 +92,14 @@ describe('cohérence des tables de cardio', () => {
     }
   })
 
+  it('la migration 0020 crée les trois tables de nutrition, présentes aussi dans le schéma local et les règles de synchro', () => {
+    expect(/foreach t in array array\['aliments', 'repas_entrees', 'objectifs_nutrition'\] loop/.test(migrationNutrition)).toBe(true)
+    for (const table of [TABLE_ALIMENTS, TABLE_REPAS_ENTREES, TABLE_OBJECTIFS_NUTRITION]) {
+      expect(migrationNutrition).toContain(`create table if not exists public.${table} (`)
+      expect(tablesSchema).toContain(table)
+      expect(tablesRegles).toContain(table)
+    }
+  })
   it('le schéma et les règles listent les mêmes tables', () => {
     expect([...tablesSchema].sort()).toEqual([...tablesRegles].sort())
   })

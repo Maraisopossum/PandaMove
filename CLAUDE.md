@@ -33,7 +33,8 @@ src/core/db/    → client.ts (getDb/getSupabase), Db.ts (interface testable), s
 src/core/sync/  → connecteur Supabase (envoi de la file, rejets définitifs signalés), état de synchro
 src/core/       → auth, catalogue (exercices de base), progression (moteur), import / import-ia / export, images (panda)
 src/features/   → home, strength, endurance (course + vélo : sorties, import FIT, cartes), calendar (+ séances cardio
-                  planifiées), stats, respiration, mobilite, outils, profile, import, onboarding, demarrage
+                  planifiées), stats, respiration, mobilite, nutrition (journal, photo de l'assiette, Open Food Facts), hyrox, plans,
+                  admin, outils, profile, import, onboarding, demarrage
 supabase/migrations/ → 0001 à 0013 (SQL idempotent, appliqué à la main par Benoît)
 supabase/functions/ → fonction `envoyer-rappels` (push, Deno ; déployée à la main, voir son README)
 supabase/tests/      → schema-rls.test.ts (PGlite), rls.test.sql (pgTAP, manuel)
