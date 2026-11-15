@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { urlIcone } from '../../app/modules'
+import { estAdmin } from '../../core/admin/admin'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { useImagePanda } from '../../core/images/usePandaVariante'
@@ -125,6 +126,20 @@ export default function ProfileScreen() {
         ))}
       </nav>
 
+      {estAdmin(session) && (
+        <nav aria-label="Administration" className="profil__liens">
+          <Link className="bouton profil__lien" to="/admin">
+            <span className="profil__lien-icone" aria-hidden="true">
+              <Puce icone="cle" />
+            </span>
+            <span className="profil__lien-texte">Administration</span>
+            <span className="profil__lien-chevron" aria-hidden="true">
+              ›
+            </span>
+          </Link>
+        </nav>
+      )}
+
       <section aria-labelledby="profil-seance" className="profil__seance">
         <h2 id="profil-seance">Séance</h2>
         <p className="aide">Retours du circuit automatique et du minuteur d’exercice, mémorisés sur cet appareil.</p>
@@ -136,6 +151,15 @@ export default function ProfileScreen() {
       <h2 className="profil__rubrique">Compte et données</h2>
 
       <MotDePasseSection />
+
+      <section aria-labelledby="profil-confidentialite" className="profil__sauvegarde">
+        <h2 id="profil-confidentialite">Confidentialité</h2>
+        <p>
+          Vos séances, vos poids, vos sorties et vos traces ne sont lisibles que par vous : l’administrateur de l’application ne voit que des informations
+          techniques, jamais votre contenu. À l’ouverture, l’application envoie seulement sa version et l’heure de votre dernière connexion ou synchronisation
+          (aucune donnée d’entraînement). Vous pouvez exporter toutes vos données ci-dessous.
+        </p>
+      </section>
 
       <section aria-labelledby="profil-sauvegarde" className="profil__sauvegarde">
         <h2 id="profil-sauvegarde">Sauvegarde</h2>

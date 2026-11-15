@@ -3,8 +3,9 @@ import type { RouteObject } from 'react-router'
 import {
   CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen, ObjectifPlanScreen, JalonPlanScreen, AjusterPlanScreen, HyroxScreen, ObjectifHyroxScreen, StationsHyroxScreen, SimulationHyroxScreen, BilanHyroxScreen, RecordsHyroxScreen, StationDetailHyroxScreen, JourJHyroxScreen, PlanHyroxScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen, ObjectifPlanScreen, JalonPlanScreen, AjusterPlanScreen, HyroxScreen, ObjectifHyroxScreen, StationsHyroxScreen, SimulationHyroxScreen, BilanHyroxScreen, RecordsHyroxScreen, AdminTableauScreen, AdminComptesScreen, AdminJournalScreen, StationDetailHyroxScreen, JourJHyroxScreen, PlanHyroxScreen,
 } from './EcransChargesALaDemande'
+import { GardeAdmin } from '../features/admin/GardeAdmin'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
 
@@ -63,6 +64,9 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'hyrox/simulation', element: chargement(<SimulationHyroxScreen />) },
     { path: 'hyrox/bilan/:id', element: chargement(<BilanHyroxScreen />) },
     { path: 'hyrox/records', element: chargement(<RecordsHyroxScreen />) },
+    { path: 'admin', element: chargement(<GardeAdmin><AdminTableauScreen /></GardeAdmin>) },
+    { path: 'admin/comptes', element: chargement(<GardeAdmin><AdminComptesScreen /></GardeAdmin>) },
+    { path: 'admin/journal', element: chargement(<GardeAdmin><AdminJournalScreen /></GardeAdmin>) },
     { path: 'hyrox/stations/:cle', element: chargement(<StationDetailHyroxScreen />) },
     { path: 'hyrox/jour-j', element: chargement(<JourJHyroxScreen />) },
     { path: 'hyrox/plan', element: chargement(<PlanHyroxScreen />) },
