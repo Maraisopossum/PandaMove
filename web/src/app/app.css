@@ -9047,3 +9047,13 @@ time,
   .hyrox > :not(.hyrox__plan), .hyrox__plan .hyrox__liens { display: none; }
   .hyrox__plan { border: 0; box-shadow: none; }
 }
+
+/* Plans et Hyrox : liens lisibles (plus de bleu souligné par défaut), boutons à la couleur du module, texte d'en-tête moins grand, cartes sans vide */
+.plans__lien { color: var(--texte); text-decoration: underline; text-underline-offset: 0.2em; text-decoration-thickness: 2px; }
+.plans .bouton--principal { border-color: #1b5e20; background: #1b5e20; }
+.hyrox .bouton--principal { border-color: #26262b; background: #26262b; }
+:root[data-theme='dark'] .hyrox .bouton--principal { border-color: #ffd60a; background: #ffd60a; color: #26262b; }
+.plans__carte > p { margin: 0; }
+.plans__entete .plans__grand { font-size: clamp(1.5rem, 7vw, 2rem); line-height: 1.15; }
+.hyrox__liens { gap: 0.5rem; }
+.hyrox__liens .plans__lien { padding: 0 0.875rem; border: 1px solid var(--bord); border-radius: 999px; background: var(--surface); text-decoration: none; }
