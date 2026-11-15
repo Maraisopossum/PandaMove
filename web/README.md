@@ -57,6 +57,7 @@ Exécuter les migrations **dans l'ordre**, une seule fois chacune, dans l'édite
 12. `supabase/migrations/0012_mobilite_rappels.sql` : table `seances_mobilite` (historique de mobilité) et colonne `user_settings.rappels_json` (réglages des rappels)
 13. `supabase/migrations/0013_rappels_push.sql` : tables `push_abonnements` et `rappels_push_envoyes` (rappels par notification push). **Hors synchronisation PowerSync** : rien à changer dans les règles. Facultative : sans elle et sans la fonction, l'application fonctionne comme avant.
 14. `supabase/migrations/0014_objectifs_plan.sql` : table `objectifs_plan` (objectifs et jalons des plans d'endurance, résultat d'un jalon). **À appliquer avant la fusion du client**, puis redéployer les règles PowerSync (nouvelle table synchronisée).
+15. `supabase/migrations/0015_hyrox.sql` : tables `hyrox_courses`, `hyrox_simulations`, `hyrox_segments` (module Hyrox, date de course facultative). **À appliquer avant la fusion du client**, puis redéployer les règles PowerSync (3 nouvelles tables synchronisées).
 
 Toutes sont idempotentes. Règle générale : une migration s'applique **avant** la fusion sur `main` du client qui l'utilise, puis les règles PowerSync (`powersync/sync-rules.yaml`) sont redéployées si de nouvelles tables apparaissent.
 

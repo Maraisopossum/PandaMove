@@ -62,6 +62,7 @@ describe('semaine du plan', () => {
   })
 
   it('propose de rattacher une sortie, puis valide la séance une fois confirmé', async () => {
+    window.localStorage.setItem('pandamove.plans.reglages', JSON.stringify({ rattachementAuto: false }))
     await programme()
     await creerSortie(base, { sport: 'course', date: '2026-11-10', titre: 'Footing du matin', dureeS: 2400, source: 'manuel' })
     monter('/plans/semaine')
@@ -76,6 +77,7 @@ describe('semaine du plan', () => {
   })
 
   it('« Non, hors plan » écarte la proposition sans rien écrire', async () => {
+    window.localStorage.setItem('pandamove.plans.reglages', JSON.stringify({ rattachementAuto: false }))
     await programme()
     await creerSortie(base, { sport: 'course', date: '2026-11-10', titre: 'Footing du matin', dureeS: 2400, source: 'manuel' })
     monter('/plans/semaine')

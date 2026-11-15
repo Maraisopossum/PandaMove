@@ -22,6 +22,8 @@ export interface ReglagesPlans {
   additionnerCharge: boolean
   alerteJalons: boolean
   proposerRattachement: boolean
+  /** Une sortie manuelle du même sport et du même jour compte pour la séance prévue, sans confirmation. */
+  rattachementAuto: boolean
 }
 
 export const CLE_REGLAGES_PLANS = 'pandamove.plans.reglages'
@@ -39,6 +41,7 @@ export const REGLAGES_PLANS_DEFAUT: ReglagesPlans = {
   additionnerCharge: true,
   alerteJalons: true,
   proposerRattachement: true,
+  rattachementAuto: true,
 }
 
 const MESURES: readonly MesureReussite[] = ['seances', 'duree', 'les-deux']
@@ -73,6 +76,7 @@ export function lireReglagesPlans(brut: string | null): ReglagesPlans {
     additionnerCharge: booleen(o.additionnerCharge, d.additionnerCharge),
     alerteJalons: booleen(o.alerteJalons, d.alerteJalons),
     proposerRattachement: booleen(o.proposerRattachement, d.proposerRattachement),
+    rattachementAuto: booleen(o.rattachementAuto, d.rattachementAuto),
   }
 }
 

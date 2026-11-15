@@ -67,6 +67,8 @@ export interface OptionsPlan {
   autrementPct?: number
   /** Jour de référence yyyy-MM-dd (aujourd'hui) ; sans lui, aucune séance n'est manquée. */
   aujourdhui?: string
+  /** Compte une sortie manuelle du même sport, du même jour (ou à un jour d'écart), pour la séance prévue. Défaut : non. */
+  rattachementAuto?: boolean
 }
 
 const dureeMin = (s: SeanceCardio) => minutesDeDetail(s.detail) ?? DUREE_DEFAUT_MIN
@@ -86,6 +88,30 @@ export function etatSeance(s: SeanceCardio, sortie: Sortie | null, o: OptionsPla
   return o.aujourdhui && s.date < o.aujourdhui ? 'manquee' : 'aVenir'
 }
 
+/**
+ * Rattachements implicites : une sortie saisie à la main, sans séance, compte pour la séance non faite du même sport du même jour
+ * (ou la veille ou le lendemain), une sortie par séance. Sans cela, une séance remplacée par une sortie ajoutée à la main resterait
+ * « manquée » et fausserait le taux de réalisation. Rien n'est écrit en base : seul le calcul du plan en tient compte.
+ */
+export function rattachementsImplicites(seances: readonly SeanceCardio[], sorties: readonly Sortie[]): Map<string, Sortie> {
+  const candidates = seances.filter((s) => !s.isValidated)
+  const prises = new Set<string>()
+  const res = new Map<string, Sortie>()
+  const libres = sorties.filter((s) => !s.seanceId).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
+  for (const sortie of libres) {
+    const duree = sortie.dureeS ? sortie.dureeS / 60 : null
+    const meilleure = candidates
+      .filter((c) => c.genre === sortie.sport && !prises.has(c.id) && Math.abs(joursEntre(c.date, sortie.date)) <= 1)
+      .map((c) => ({ c, ecartJours: Math.abs(joursEntre(c.date, sortie.date)), ecartDuree: duree === null ? 0 : Math.abs(dureeMin(c) - duree) }))
+      .sort((a, b) => a.ecartJours - b.ecartJours || Number(a.c.optionnelle) - Number(b.c.optionnelle) || a.ecartDuree - b.ecartDuree || a.c.id.localeCompare(b.c.id))[0]
+    if (meilleure) {
+      prises.add(meilleure.c.id)
+      res.set(meilleure.c.id, sortie)
+    }
+  }
+  return res
+}
+
 /** Construit le plan ; null sans aucune séance. */
 export function construirePlan(seances: readonly SeanceCardio[], sorties: readonly Sortie[] = [], o: OptionsPlan = {}): Plan | null {
   if (seances.length === 0) return null
@@ -97,6 +123,7 @@ export function construirePlan(seances: readonly SeanceCardio[], sorties: readon
   const debuts = Array.from({ length: nb }, (_, i) => ajouterJours(premier, 7 * i))
   const parSeance = new Map<string, Sortie>()
   for (const so of sorties) if (so.seanceId) parSeance.set(so.seanceId, so)
+  const implicites = o.rattachementAuto ? rattachementsImplicites(seances, sorties) : new Map<string, Sortie>()
 
   const vides = (): SeancePlan[][] => Array.from({ length: nb }, () => [])
   const liste = vides()
@@ -104,8 +131,8 @@ export function construirePlan(seances: readonly SeanceCardio[], sorties: readon
   for (const s of seances) {
     const i = debuts.indexOf(lundiDe(s.date))
     if (i < 0) continue
-    const sortie = parSeance.get(s.id) ?? null
-    const etat = etatSeance(s, sortie, o)
+    const sortie = parSeance.get(s.id) ?? implicites.get(s.id) ?? null
+    const etat = etatSeance(implicites.has(s.id) ? { ...s, isValidated: true } : s, sortie, o)
     const prevu = dureeMin(s)
     const faite = etat === 'faite' || etat === 'autrement'
     liste[i].push({

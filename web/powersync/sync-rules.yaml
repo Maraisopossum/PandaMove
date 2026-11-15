@@ -26,3 +26,6 @@ streams:
       - SELECT * FROM sorties WHERE user_id = auth.user_id()
       - SELECT * FROM seances_mobilite WHERE user_id = auth.user_id()
       - SELECT * FROM objectifs_plan WHERE user_id = auth.user_id()
+      - SELECT * FROM hyrox_courses WHERE user_id = auth.user_id()
+      - SELECT * FROM hyrox_simulations WHERE user_id = auth.user_id()
+      - SELECT * FROM hyrox_segments WHERE user_id = auth.user_id()

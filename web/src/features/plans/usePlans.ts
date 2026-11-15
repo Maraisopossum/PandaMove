@@ -39,7 +39,7 @@ export function usePlans({ db, aujourdhui = dateIsoLocale(new Date()) }: { db?: 
         if (annule) return
         const plan = construirePlan([...course, ...velo], sorties, {
           parametres: { reductionAffutagePct: reglages.reductionAffutagePct, allegeePct: reglages.allegeePct },
-          dureeMinPct: reglages.dureeMinPct, autrementPct: reglages.autrementPct, aujourdhui,
+          dureeMinPct: reglages.dureeMinPct, autrementPct: reglages.autrementPct, rattachementAuto: reglages.rattachementAuto, aujourdhui,
         })
         const echeances = construireEcheances(plan, objectifs)
         if (!plan) {
@@ -60,7 +60,7 @@ export function usePlans({ db, aujourdhui = dateIsoLocale(new Date()) }: { db?: 
     return () => {
       annule = true
     }
-  }, [db, aujourdhui, version, reglages.reductionAffutagePct, reglages.allegeePct, reglages.mesure, reglages.dureeMinPct, reglages.autrementPct])
+  }, [db, aujourdhui, version, reglages.reductionAffutagePct, reglages.allegeePct, reglages.mesure, reglages.dureeMinPct, reglages.autrementPct, reglages.rattachementAuto])
 
   const changer = useCallback((suite: Partial<ReglagesPlans>) => {
     setReglages((r) => {

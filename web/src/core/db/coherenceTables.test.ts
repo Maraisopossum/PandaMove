@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { TABLES_RESPIRATION } from './repos/respiration'
 import { TABLE_MOBILITE } from './repos/mobilite'
 import { TABLES_CARDIO } from './repos/seancesCardio'
+import { TABLE_HYROX_COURSES, TABLE_HYROX_SEGMENTS, TABLE_HYROX_SIMULATIONS } from './repos/hyrox'
 import { TABLE_OBJECTIFS_PLAN } from './repos/objectifsPlan'
 import { TABLE_SORTIES } from './repos/sorties'
 
@@ -18,6 +19,7 @@ const migrationRespiration = lire('supabase', 'migrations', '0009_respiration.sq
 const migrationSorties = lire('supabase', 'migrations', '0010_sorties.sql')
 const migrationMobilite = lire('supabase', 'migrations', '0012_mobilite_rappels.sql')
 const migrationObjectifsPlan = lire('supabase', 'migrations', '0014_objectifs_plan.sql')
+const migrationHyrox = lire('supabase', 'migrations', '0015_hyrox.sql')
 
 const tablesSchema = [...schema.matchAll(/^ {2}(\w+): new Table\(/gm)].map((m) => m[1])
 const tablesRegles = [...regles.matchAll(/^\s*- SELECT \* FROM (\w+) WHERE/gm)].map((m) => m[1])
@@ -77,6 +79,15 @@ describe('cohérence des tables de cardio', () => {
     expect(migrationObjectifsPlan).toContain(`create table if not exists public.${TABLE_OBJECTIFS_PLAN} (`)
     expect(tablesSchema).toContain(TABLE_OBJECTIFS_PLAN)
     expect(tablesRegles).toContain(TABLE_OBJECTIFS_PLAN)
+  })
+
+  it('la migration 0015 crée les trois tables Hyrox, présentes aussi dans le schéma local et les règles de synchro', () => {
+    expect(/foreach t in array array\['hyrox_courses', 'hyrox_simulations', 'hyrox_segments'\] loop/.test(migrationHyrox)).toBe(true)
+    for (const table of [TABLE_HYROX_COURSES, TABLE_HYROX_SIMULATIONS, TABLE_HYROX_SEGMENTS]) {
+      expect(migrationHyrox).toContain(`create table if not exists public.${table} (`)
+      expect(tablesSchema).toContain(table)
+      expect(tablesRegles).toContain(table)
+    }
   })
 
   it('le schéma et les règles listent les mêmes tables', () => {

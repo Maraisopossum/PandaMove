@@ -841,3 +841,68 @@ describe('0014 : objectifs et jalons des plans d’endurance', () => {
     expect(r.rows[0]).toEqual({ ins: true, del: false, anon: false, rls: true })
   })
 })
+
+describe('0015 : module Hyrox (objectif, simulations, segments)', () => {
+  const HY = (n: number) => `f0000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+  const inserer = (table: string, id: string, valeurs: Record<string, string | number | null>) => {
+    const sql = Object.values(valeurs).map((v) => (v === null ? 'null' : typeof v === 'number' ? String(v) : `'${v}'`)).join(', ')
+    return db.exec(`insert into ${table} (id, ${Object.keys(valeurs).join(', ')}) values ('${id}', ${sql})`)
+  }
+  const course = (extra: Record<string, string | number | null> = {}) => ({ nom: 'Préparation Hyrox', created_at: '2026-11-15T10:00:00.000Z', ...extra })
+  const simulation = (extra: Record<string, string | number | null> = {}) => ({ forme: 'complete', debut_at: '2026-11-15T10:00:00.000Z', created_at: '2026-11-15T10:00:00.000Z', ...extra })
+  const segment = (extra: Record<string, string | number | null> = {}) => ({ simulation_id: HY(50), rang: 1, type: 'course', created_at: '2026-11-15T10:00:00.000Z', ...extra })
+
+  beforeAll(async () => {
+    await db.exec(migration('0015_hyrox.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0015_hyrox.sql'))
+  })
+
+  it('un objectif sans date : user_id = auth.uid(), catégorie open et genre homme par défaut ; invisible et intouchable pour un autre compte', async () => {
+    await commeUtilisateur(A, () => inserer('hyrox_courses', HY(1), course()))
+    const r = await commeUtilisateur(A, () => db.query(`select user_id, date, categorie, genre from hyrox_courses where id = '${HY(1)}'`))
+    expect(r.rows).toEqual([{ user_id: A, date: null, categorie: 'open', genre: 'homme' }])
+    const b = await commeUtilisateur(B, () => db.query<{ n: number }>('select count(*)::int as n from hyrox_courses'))
+    expect(b.rows[0].n).toBe(0)
+    const u = await commeUtilisateur(B, () => db.query(`update hyrox_courses set nom = 'x' where id = '${HY(1)}'`))
+    expect(u.affectedRows).toBe(0)
+  })
+
+  it.each([
+    ['hyrox_courses', 'nom vide', course({ nom: '' })],
+    ['hyrox_courses', 'date au mauvais format', course({ date: '15/11/2026' })],
+    ['hyrox_courses', 'catégorie inconnue', course({ categorie: 'elite' })],
+    ['hyrox_courses', 'genre inconnu', course({ genre: 'autre' })],
+    ['hyrox_courses', 'temps visé négatif', course({ objectif_s: -1 })],
+    ['hyrox_simulations', 'forme inconnue', simulation({ forme: 'demi' })],
+    ['hyrox_simulations', 'statut inconnu', simulation({ statut: 'fini' })],
+    ['hyrox_simulations', 'référence hors 0/1', simulation({ reference: 2 })],
+    ['hyrox_simulations', 'notes trop longues', simulation({ notes: 'x'.repeat(2001) })],
+    ['hyrox_segments', 'rang 0', segment({ rang: 0 })],
+    ['hyrox_segments', 'rang 17', segment({ rang: 17 })],
+    ['hyrox_segments', 'type inconnu', segment({ type: 'repos' })],
+    ['hyrox_segments', 'temps réel trop grand', segment({ reel_s: 604801 })],
+  ])('refuse (%s) : %s', async (table, _cas, valeurs) => {
+    await expect(commeUtilisateur(A, () => inserer(table, HY(100 + JSON.stringify(valeurs).length), valeurs))).rejects.toThrow(/check constraint|violates/)
+  })
+
+  it('accepte une simulation et ses segments', async () => {
+    await commeUtilisateur(A, () => inserer('hyrox_simulations', HY(50), simulation({ statut: 'terminee', total_s: 4200, reference: 1 })))
+    await commeUtilisateur(A, () => inserer('hyrox_segments', HY(51), segment({ cible_s: 300, reel_s: 310 })))
+    await commeUtilisateur(A, () => inserer('hyrox_segments', HY(52), segment({ rang: 2, type: 'station', station: 'skierg', charge_label: null })))
+    const r = await commeUtilisateur(A, () => db.query<{ n: number }>(`select count(*)::int as n from hyrox_segments where simulation_id = '${HY(50)}'`))
+    expect(r.rows[0].n).toBe(2)
+  })
+
+  it('droits : authenticated en SELECT / INSERT / UPDATE seulement (pas de DELETE), anon sans aucun droit, RLS active', async () => {
+    for (const table of ['hyrox_courses', 'hyrox_simulations', 'hyrox_segments']) {
+      const r = await db.query<{ ins: boolean; del: boolean; anon: boolean; rls: boolean }>(
+        `select has_table_privilege('authenticated', 'public.${table}', 'INSERT') as ins,
+                has_table_privilege('authenticated', 'public.${table}', 'DELETE') as del,
+                has_table_privilege('anon', 'public.${table}', 'SELECT') as anon,
+                (select relrowsecurity from pg_class where relname = '${table}') as rls`,
+      )
+      expect(r.rows[0], table).toEqual({ ins: true, del: false, anon: false, rls: true })
+    }
+  })
+})

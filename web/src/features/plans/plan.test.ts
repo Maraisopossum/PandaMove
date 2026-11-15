@@ -193,3 +193,26 @@ describe('réglages des plans', () => {
     expect(definitionMesure('seances')).toBe('séances faites ÷ séances prévues')
   })
 })
+
+describe('rattachements implicites', () => {
+  it('une sortie ajoutée à la main compte pour la séance du même sport du même jour (taux de réalisation à 100 %)', () => {
+    const seances = [seance('a', 'course', '2026-11-10', '60 min'), seance('b', 'course', '2026-11-12', '45 min')]
+    const sorties = [sortie('s1', 'course', '2026-11-10', 60), sortie('s2', 'course', '2026-11-12', 45)]
+    const plan = construirePlan(seances, sorties, { aujourdhui: '2026-11-15', rattachementAuto: true })!
+    expect(plan.semaines[0].seances.map((s) => s.etat)).toEqual(['faite', 'faite'])
+    expect(realisationJusquA(plan, 0, 'seances').tauxPct).toBe(100)
+  })
+
+  it('ne rattache ni un autre sport, ni une sortie à plus d’un jour, ni deux sorties à la même séance', () => {
+    const seances = [seance('a', 'course', '2026-11-10', '60 min')]
+    const plan = construirePlan(seances, [sortie('v', 'velo', '2026-11-10', 60), sortie('l', 'course', '2026-11-13', 60)], { aujourdhui: '2026-11-15', rattachementAuto: true })!
+    expect(plan.semaines[0].seances[0].etat).toBe('manquee')
+    const deux = construirePlan(seances, [sortie('x', 'course', '2026-11-10', 60), sortie('y', 'course', '2026-11-10', 30)], { aujourdhui: '2026-11-15', rattachementAuto: true })!
+    expect(deux.semaines[0].seances[0].sortieId).toBe('x')
+  })
+})
+
+it('sans le réglage, une sortie manuelle ne compte pas pour la séance', () => {
+  const plan = construirePlan([seance('a', 'course', '2026-11-10', '60 min')], [sortie('s1', 'course', '2026-11-10', 60)], { aujourdhui: '2026-11-15' })!
+  expect(plan.semaines[0].seances[0].etat).toBe('manquee')
+})

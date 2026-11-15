@@ -46,6 +46,7 @@ const COLONNES_PROPRES = new Map(
   }),
 )
 
+const SANS_JOUR_OBLIGATOIRE = new Set<TableComplement>(['methodes_respiration', 'hyrox_courses', 'hyrox_simulations', 'hyrox_segments'])
 const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 const LIBELLES: Record<TableComplement, string> = {
@@ -56,6 +57,9 @@ const LIBELLES: Record<TableComplement, string> = {
   seances_respiration: 'séance(s) de respiration',
   seances_mobilite: 'séance(s) de mobilité',
   objectifs_plan: 'objectif(s) de plan',
+  hyrox_courses: 'objectif(s) Hyrox',
+  hyrox_simulations: 'simulation(s) Hyrox',
+  hyrox_segments: 'segment(s) de simulation Hyrox',
 }
 export const libelleComplement = (t: TableComplement) => LIBELLES[t]
 
@@ -94,8 +98,8 @@ function validerLigne(
     else if (typeof v === 'string' && v.length <= TEXTE_MAX) valeurs[cle] = v
     else return null
   }
-  // Toutes ces tables portent un jour et un horodatage de création (colonnes NOT NULL côté serveur), sauf les méthodes
-  if (table !== 'methodes_respiration' && !(typeof valeurs.date === 'string' && RE_DATE.test(valeurs.date))) return null
+  // Les tables datées portent un jour (NOT NULL côté serveur), sauf les méthodes et les tables Hyrox (date facultative ou absente)
+  if (!SANS_JOUR_OBLIGATOIRE.has(table) && !(typeof valeurs.date === 'string' && RE_DATE.test(valeurs.date))) return null
   if (typeof valeurs.created_at !== 'string' || valeurs.created_at === '') return null
   return valeurs
 }
@@ -135,6 +139,10 @@ export function extraireComplement(data: unknown, userId: string): PlanComplemen
             const ref = valeurs[colonne]
             if (typeof ref === 'string' && ref !== '') valeurs[colonne] = deterministicId(userId, `${cible}|${ref}`)
           }
+        }
+        for (const [t, colonne, cible] of [['hyrox_simulations', 'course_id', 'hyrox_courses'], ['hyrox_segments', 'simulation_id', 'hyrox_simulations']] as const) {
+          const ref = valeurs[colonne]
+          if (table === t && typeof ref === 'string' && ref !== '') valeurs[colonne] = deterministicId(userId, `${cible}|${ref}`)
         }
         if (table === 'seances_respiration' && typeof valeurs.methode_id === 'string') {
           const methodes = Array.isArray(tables.methodes_respiration) ? (tables.methodes_respiration as unknown[]) : []
