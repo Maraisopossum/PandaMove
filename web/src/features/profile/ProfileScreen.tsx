@@ -10,6 +10,7 @@ import { SEMAINES_DECHARGE_MAX, useReglageDecharge } from '../strength/progressi
 import { MotDePasseSection } from './MotDePasseSection'
 import { ObjectifsSection } from './ObjectifsSection'
 import { PoidsSection } from './PoidsSection'
+import { SecuriteSection } from './SecuriteSection'
 import { ReglagesAppareilSection } from './ReglagesAppareilSection'
 import { useExport } from './useExport'
 import { useProfile } from './useProfile'
@@ -151,6 +152,8 @@ export default function ProfileScreen() {
       <h2 className="profil__rubrique">Compte et données</h2>
 
       <MotDePasseSection />
+
+      <SecuriteSection />
 
       <section aria-labelledby="profil-confidentialite" className="profil__sauvegarde">
         <h2 id="profil-confidentialite">Confidentialité</h2>

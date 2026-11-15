@@ -1090,3 +1090,43 @@ describe('0017 : santé de la synchro et déconnexion forcée', () => {
     expect(schema).not.toContain('synchro_rejets')
   })
 })
+
+describe('0018 : double authentification obligatoire pour l’administration', () => {
+  const ADM = '00000000-0000-4000-8000-0000000000a3'
+
+  async function avecClaims<T>(uid: string, claims: string, fn: () => Promise<T>): Promise<T> {
+    await db.exec(`select set_config('request.jwt.claims', '${claims}', false);`)
+    try {
+      return await commeUtilisateur(uid, fn)
+    } finally {
+      await db.exec(`select set_config('request.jwt.claims', '', false);`)
+    }
+  }
+
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users (id, email) values ('${ADM}', 'adm3@exemple.fr') on conflict do nothing;`)
+    await db.exec(migration('0018_admin_mfa.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0018_admin_mfa.sql'))
+  })
+
+  it.each([
+    ['admin sans second facteur (aal1)', '{"aal":"aal1","app_metadata":{"role":"admin"}}', false],
+    ['admin sans niveau dans le jeton', '{"app_metadata":{"role":"admin"}}', false],
+    ['aal2 sans rôle administrateur', '{"aal":"aal2","app_metadata":{}}', false],
+    ['aal2 avec un autre rôle', '{"aal":"aal2","app_metadata":{"role":"coach"}}', false],
+    ['admin avec second facteur (aal2)', '{"aal":"aal2","app_metadata":{"role":"admin"}}', true],
+  ])('est_admin : %s', async (_cas, claims, attendu) => {
+    const r = await avecClaims(ADM, claims, () => db.query<{ est: boolean }>('select est_admin() as est'))
+    expect(r.rows[0].est).toBe(attendu)
+  })
+
+  it('toutes les fonctions administrateur refusent un jeton aal1 et acceptent aal2', async () => {
+    const aal1 = '{"aal":"aal1","app_metadata":{"role":"admin"}}'
+    const aal2 = '{"aal":"aal2","app_metadata":{"role":"admin"}}'
+    for (const appel of ['admin_lister_comptes()', 'admin_resume()', 'admin_lire_journal(10)', 'admin_sante_synchro()']) {
+      await expect(avecClaims(ADM, aal1, () => db.query(`select * from ${appel}`)), appel).rejects.toThrow(/Accès refusé/)
+      await expect(avecClaims(ADM, aal2, () => db.query(`select * from ${appel}`)), appel).resolves.toBeTruthy()
+    }
+  })
+})

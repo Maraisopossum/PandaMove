@@ -9,7 +9,7 @@ Rien de ceci n'est déployé automatiquement. Tant que la fonction n'est pas dé
 ## Sécurité
 
 - La plateforme vérifie la signature du jeton (`verify_jwt`, activé par défaut : ne pas le désactiver pour cette fonction).
-- La fonction exige en plus `app_metadata.role = 'admin'` (même rôle que les fonctions SQL de la migration 0016).
+- La fonction exige en plus `app_metadata.role = 'admin'` **et un jeton `aal2`** (code de la double authentification validé), comme les fonctions SQL (migrations 0016 et 0018). Sans le second facteur, elle répond 403 « Double authentification requise ».
 - La clé de service (`SUPABASE_SERVICE_ROLE_KEY`, fournie par la plateforme) reste côté serveur.
 - Garde-fous : aucune suspension ni suppression de son propre compte ni d'un autre administrateur ; la suppression exige de retaper l'adresse e-mail.
 - Chaque action est inscrite au journal d'audit (`journal_admin`, insertion seulement) ; pour une suppression, le journal est écrit **avant**.

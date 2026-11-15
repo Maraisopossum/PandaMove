@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { AppSchema } from '../db/schema'
-import { ErreurAdmin, executer, lireDemande, TABLES_UTILISATEUR, type CompteCible, type PortsAdmin } from '../../../supabase/functions/admin-comptes/comptes'
+import { ErreurAdmin, executer, exigerAdministrateur, lireDemande, niveauAalDuJeton, TABLES_UTILISATEUR, type CompteCible, type PortsAdmin } from '../../../supabase/functions/admin-comptes/comptes'
 
 const ADMIN = '00000000-0000-4000-8000-0000000000ad'
 const CIBLE = '00000000-0000-4000-8000-00000000000b'
@@ -124,5 +124,30 @@ describe('tables vidées à la suppression', () => {
 
   it('ne contient aucun doublon', () => {
     expect(new Set(TABLES_UTILISATEUR).size).toBe(TABLES_UTILISATEUR.length)
+  })
+})
+
+describe('double authentification exigée', () => {
+  const jeton = (aal?: string) => `x.${btoa(JSON.stringify(aal ? { aal } : {})).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}.y`
+
+  it('lit le niveau dans le jeton, null s’il est illisible', () => {
+    expect(niveauAalDuJeton(jeton('aal2'))).toBe('aal2')
+    expect(niveauAalDuJeton(jeton('aal1'))).toBe('aal1')
+    expect(niveauAalDuJeton(jeton())).toBeNull()
+    expect(niveauAalDuJeton('pas-un-jeton')).toBeNull()
+    expect(niveauAalDuJeton('a.%%%.c')).toBeNull()
+  })
+
+  it('exige le rôle administrateur ET aal2', () => {
+    expect(() => exigerAdministrateur('admin', jeton('aal2'))).not.toThrow()
+    expect(() => exigerAdministrateur('admin', jeton('aal1'))).toThrow(/Double authentification requise/)
+    expect(() => exigerAdministrateur('admin', 'illisible')).toThrow(/Double authentification requise/)
+    expect(() => exigerAdministrateur('coach', jeton('aal2'))).toThrow(/Accès refusé/)
+    expect(() => exigerAdministrateur(undefined, jeton('aal2'))).toThrow(/Accès refusé/)
+    try {
+      exigerAdministrateur('admin', jeton('aal1'))
+    } catch (e) {
+      expect((e as ErreurAdmin).statut).toBe(403)
+    }
   })
 })

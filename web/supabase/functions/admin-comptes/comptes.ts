@@ -123,3 +123,21 @@ export async function executer(demande: DemandeAdmin, p: PortsAdmin): Promise<{ 
     }
   }
 }
+
+/** Niveau d'assurance (`aal`) lu dans la charge utile d'un jeton JWT ; null s'il est illisible. La signature est vérifiée par la plateforme. */
+export function niveauAalDuJeton(jeton: string): string | null {
+  try {
+    const charge = jeton.split('.')[1]
+    if (!charge) return null
+    const json = JSON.parse(atob(charge.replace(/-/g, '+').replace(/_/g, '/'))) as { aal?: unknown }
+    return typeof json.aal === 'string' ? json.aal : null
+  } catch {
+    return null
+  }
+}
+
+/** Contrôle d'accès de la fonction : rôle administrateur ET second facteur validé (aal2). Lève une ErreurAdmin sinon. */
+export function exigerAdministrateur(role: unknown, jeton: string): void {
+  if (role !== 'admin') throw new ErreurAdmin(403, 'Accès refusé.')
+  if (niveauAalDuJeton(jeton) !== 'aal2') throw new ErreurAdmin(403, 'Double authentification requise : activez-la dans votre profil, reconnectez-vous et saisissez votre code.')
+}

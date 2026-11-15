@@ -19,7 +19,9 @@ import AdminJournalScreen from './AdminJournalScreen'
 import AdminTableauScreen from './AdminTableauScreen'
 import { GardeAdmin } from './GardeAdmin'
 
-const sessionDe = (role?: string) => ({ user: { id: 'u1', app_metadata: role ? { role } : {} } }) as unknown as Session
+// Jeton de niveau aal2 : l'administration exige le second facteur (migration 0018)
+const AAL2 = `x.${btoa(JSON.stringify({ aal: 'aal2' }))}.y`
+const sessionDe = (role?: string) => ({ access_token: AAL2, user: { id: 'u1', app_metadata: role ? { role } : {} } }) as unknown as Session
 const faux = (reponses: Record<string, unknown>, erreurs: Record<string, string> = {}) => {
   const rpc = vi.fn(async (fonction: string) => (erreurs[fonction] ? { data: null, error: { message: erreurs[fonction] } } : { data: reponses[fonction] ?? [], error: null }))
   return { auth: {}, from: vi.fn(), rpc } as unknown as ClientSupabase & { rpc: typeof rpc }
