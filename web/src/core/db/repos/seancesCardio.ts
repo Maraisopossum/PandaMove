@@ -13,6 +13,9 @@ export const TABLES_CARDIO = { course: 'seances_course', velo: 'seances_velo' } 
 
 // Mêmes bornes que les contraintes SQL de la migration 0008 (un rejet SQL 23514 est classé « définitif » par le
 // connecteur de synchro : la ligne locale serait abandonnée en silence, d'où la validation côté client).
+/** Titre des séances du plan de préparation Hyrox ajoutées à l'agenda : le module Plans les écarte de son plan d'endurance. */
+export const PREFIXE_SEANCE_HYROX = 'Hyrox · '
+
 export const LIMITES_CARDIO = { titre: 200, consigne: 2000, detail: 100, jalon: 100, lien: 2048 } as const
 
 export interface SeanceCardio {
