@@ -20,4 +20,5 @@ chronométrer des simulations sans course prévue (compte à rebours et jour J a
 - Le chrono ne dépend d'aucune minuterie : un segment part de la fin du précédent (début de la simulation + temps déjà enregistrés), donc une simulation en cours se reprend après un rechargement. Pas de pause pour l'instant.
 - **Charges officielles à vérifier avec le règlement de la saison** avant de s'y fier (elles changent parfois d'une saison à l'autre).
 - Le résultat officiel est enregistré comme une simulation complète terminée (notes « Course officielle ») : records et estimation en profitent. Si les 16 temps sont saisis, le résultat de l'objectif est aussi renseigné.
-- Pas encore fait : application du plan à l'agenda, « Ajouter à ma semaine » depuis le détail d'une station, intégrations (agenda, sorties de course, rappels).
+- Agenda : « Appliquer à l'agenda » (page du plan) crée des séances de course titrées « Hyrox · … » (à venir seulement, réappliquer remplace les non faites, jamais les faites) ; le module Plans les écarte de son plan d'endurance (préfixe `PREFIXE_SEANCE_HYROX`).
+- Pas encore fait : « Ajouter à ma semaine » depuis le détail d'une station, intégrations (agenda, sorties de course, rappels).

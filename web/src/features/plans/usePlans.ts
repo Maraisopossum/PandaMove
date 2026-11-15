@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { dateIsoLocale } from '../../core/common/dates'
 import { getDb } from '../../core/db/client'
 import type { Db, DbLecture } from '../../core/db/Db'
-import { definirValidation, lirePlage, type GenreCardio } from '../../core/db/repos/seancesCardio'
+import { definirValidation, lirePlage, PREFIXE_SEANCE_HYROX, type GenreCardio } from '../../core/db/repos/seancesCardio'
 import { lireObjectifsPlan, type ObjectifPlan } from '../../core/db/repos/objectifsPlan'
 import { lierSeance, lireSorties, type Sortie } from '../../core/db/repos/sorties'
 import { construireEcheances, type Echeance } from './echeances'
@@ -37,7 +37,9 @@ export function usePlans({ db, aujourdhui = dateIsoLocale(new Date()) }: { db?: 
     Promise.all([lirePlage(base, 'course', '0000-01-01', '9999-12-31'), lirePlage(base, 'velo', '0000-01-01', '9999-12-31'), lireSorties(base), lireObjectifsPlan(base)])
       .then(([course, velo, sorties, objectifs]) => {
         if (annule) return
-        const plan = construirePlan([...course, ...velo], sorties, {
+        // Les séances Hyrox de l'agenda (préparation Hyrox) ne font pas partie du plan d'endurance
+        const hors = (s: { titre: string }) => !s.titre.startsWith(PREFIXE_SEANCE_HYROX)
+        const plan = construirePlan([...course, ...velo].filter(hors), sorties, {
           parametres: { reductionAffutagePct: reglages.reductionAffutagePct, allegeePct: reglages.allegeePct },
           dureeMinPct: reglages.dureeMinPct, autrementPct: reglages.autrementPct, rattachementAuto: reglages.rattachementAuto, aujourdhui,
         })

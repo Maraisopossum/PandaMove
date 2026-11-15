@@ -42,7 +42,7 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
   mobility: { path: '/mobility', label: 'Mobilité', color: '#AD1457', icone: 'mobilite' },
   calendar: { path: '/calendar', label: 'Calendrier', color: '#D24700', icone: 'calendrier' },
   // Plans d'endurance (frise, phases, jalons) : vert foncé, texte blanc >= 4,5:1 (contraste.test.ts)
-  plans: { path: '/plans', label: 'Plans', color: '#1B5E20', icone: 'course' },
+  plans: { path: '/plans', label: 'Plans', color: '#1B5E20', icone: 'plans' },
   // Hyrox : gris anthracite de la maquette, texte blanc >= 4,5:1 (contraste.test.ts)
   hyrox: { path: '/hyrox', label: 'Hyrox', color: '#26262B', icone: 'halteres' },
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C', icone: 'stats' },
