@@ -3,11 +3,13 @@ import { listerComptes, lireJournal, lireResume, type CompteAdmin, type EntreeJo
 import { getSupabase } from '../../core/db/client'
 import type { ClientSupabase } from '../../core/db/clientSupabase'
 
-type Etat<T> = { etat: 'chargement' } | { etat: 'erreur'; message: string } | { etat: 'pret'; donnees: T }
+type Lecture<T> = { etat: 'chargement' } | { etat: 'erreur'; message: string } | { etat: 'pret'; donnees: T }
+type Etat<T> = Lecture<T> & { recharger: () => void }
 
 /** Lecture d'une donnée d'administration (comptes, résumé, journal) : chargement, erreur lisible, ou données. */
 function useLecture<T>(lire: (c: ClientSupabase) => Promise<T>, client?: ClientSupabase): Etat<T> {
-  const [e, setE] = useState<Etat<T>>({ etat: 'chargement' })
+  const [e, setE] = useState<Lecture<T>>({ etat: 'chargement' })
+  const [version, setVersion] = useState(0)
   useEffect(() => {
     let annule = false
     lire(client ?? getSupabase())
@@ -20,8 +22,8 @@ function useLecture<T>(lire: (c: ClientSupabase) => Promise<T>, client?: ClientS
     }
     // `lire` est une fonction du module, stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client])
-  return e
+  }, [client, version])
+  return { ...e, recharger: () => setVersion((v) => v + 1) }
 }
 
 export const useComptes = (client?: ClientSupabase): Etat<CompteAdmin[]> => useLecture(listerComptes, client)

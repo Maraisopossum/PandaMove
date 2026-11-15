@@ -9057,3 +9057,12 @@ time,
 .plans__entete .plans__grand { font-size: clamp(1.5rem, 7vw, 2rem); line-height: 1.15; }
 .hyrox__liens { gap: 0.5rem; }
 .hyrox__liens .plans__lien { padding: 0 0.875rem; border: 1px solid var(--bord); border-radius: 999px; background: var(--surface); text-decoration: none; }
+
+/* Administration : liste des comptes et confirmation de suppression */
+.admin__comptes { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.admin__suppression { display: grid; gap: 0.5rem; padding: 0.625rem 0.75rem; border-radius: var(--radius-bouton); background: color-mix(in srgb, #b3261e 10%, var(--surface)); }
+.admin__suppression p { margin: 0; }
+
+/* Plan Hyrox : espace entre les cartes de semaine, pastille de phase visible dans le titre */
+.hyrox__semaines { display: grid; gap: 0.875rem; }
+.plans__pastille { display: inline-block; vertical-align: middle; }

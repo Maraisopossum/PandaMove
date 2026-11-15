@@ -71,3 +71,29 @@ export async function envoyerBattement(supabase: ClientSupabase, version: string
     // sans conséquence
   }
 }
+
+export type ActionAdmin = 'inviter' | 'suspendre' | 'retablir' | 'reinitialiser' | 'supprimer'
+
+export interface DemandeAdmin {
+  action: ActionAdmin
+  email?: string
+  userId?: string
+  /** Suppression : l'adresse e-mail du compte, retapée pour confirmer. */
+  confirmation?: string
+}
+
+/** Exécute une action d'administration par la fonction serveur `admin-comptes` (clé de service côté serveur). Renvoie le message de confirmation. */
+export async function executerAction(supabase: ClientSupabase, demande: DemandeAdmin): Promise<string> {
+  let reponse: Response
+  try {
+    reponse = await supabase.appelerFonction('admin-comptes', demande)
+  } catch {
+    throw new Error('Le serveur est injoignable pour le moment.')
+  }
+  const corps = (await reponse.json().catch(() => ({}))) as { message?: string; erreur?: string }
+  if (!reponse.ok) {
+    if (reponse.status === 404) throw new Error('La fonction d’administration n’est pas déployée (voir supabase/functions/admin-comptes/README.md).')
+    throw new Error(corps.erreur ?? 'L’action a échoué.')
+  }
+  return corps.message ?? 'Fait.'
+}
