@@ -12,6 +12,7 @@ chronométrer des simulations sans course prévue (compte à rebours et jour J a
 | Bilan | `/hyrox/bilan/:id` | total, écart, dérive de course, écart par segment, forts et faibles, notes, référence |
 | Records | `/hyrox/records` | meilleur temps par station, meilleur kilomètre, progression des simulations complètes |
 | Détail d'une station | `/hyrox/stations/:cle` | charge, évolution des temps, points clés, erreurs fréquentes, simulation de cette station |
+| Plan de préparation | `/hyrox/plan` | plan **entièrement réglable** (semaines de 2 à 52, 2 à 6 séances par semaine, affûtage 0 à 3 semaines, semaine allégée, simulations, début ou fin sur la date de course) ; recalculé à chaque réglage, seuls les réglages sont enregistrés (champ `plan` de `repartition_json` de l'objectif) |
 | Jour J | `/hyrox/jour-j` | liste de préparation (gardée sur l'appareil), plan de course (partage, impression), résultat officiel par segment saisi à la main |
 
 - Règles pures : `simulation.ts` (formes, répartition, bilan, records, formats), catalogue : `stations.ts` (jamais en base).
@@ -19,4 +20,4 @@ chronométrer des simulations sans course prévue (compte à rebours et jour J a
 - Le chrono ne dépend d'aucune minuterie : un segment part de la fin du précédent (début de la simulation + temps déjà enregistrés), donc une simulation en cours se reprend après un rechargement. Pas de pause pour l'instant.
 - **Charges officielles à vérifier avec le règlement de la saison** avant de s'y fier (elles changent parfois d'une saison à l'autre).
 - Le résultat officiel est enregistré comme une simulation complète terminée (notes « Course officielle ») : records et estimation en profitent. Si les 16 temps sont saisis, le résultat de l'objectif est aussi renseigné.
-- Pas encore fait : plan de préparation de 17 semaines et son application à l'agenda, « Ajouter à ma semaine » depuis le détail d'une station, intégrations (agenda, sorties de course, rappels).
+- Pas encore fait : application du plan à l'agenda, « Ajouter à ma semaine » depuis le détail d'une station, intégrations (agenda, sorties de course, rappels).

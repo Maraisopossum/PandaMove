@@ -46,3 +46,4 @@ export const BilanHyroxScreen = lazy(() => import('../features/hyrox/BilanHyroxS
 export const RecordsHyroxScreen = lazy(() => import('../features/hyrox/RecordsHyroxScreen'))
 export const StationDetailHyroxScreen = lazy(() => import('../features/hyrox/StationDetailHyroxScreen'))
 export const JourJHyroxScreen = lazy(() => import('../features/hyrox/JourJHyroxScreen'))
+export const PlanHyroxScreen = lazy(() => import('../features/hyrox/PlanHyroxScreen'))

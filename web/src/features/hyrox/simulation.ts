@@ -74,7 +74,17 @@ export function lireRepartition(json: string | null | undefined): Repartition {
   }
 }
 
-export const ecrireRepartition = (r: Repartition) => JSON.stringify({ partCoursesPct: Math.round(r.partCoursesPct) })
+/** Écrit la répartition dans le JSON de l'objectif en gardant les autres champs (réglages du plan de préparation). */
+export function ecrireRepartition(r: Repartition, existant?: string | null): string {
+  let base: Record<string, unknown> = {}
+  try {
+    const v = existant ? (JSON.parse(existant) as unknown) : null
+    if (v && typeof v === 'object' && !Array.isArray(v)) base = v as Record<string, unknown>
+  } catch {
+    base = {}
+  }
+  return JSON.stringify({ ...base, partCoursesPct: Math.round(r.partCoursesPct) })
+}
 
 export interface SegmentMesure {
   rang: number
