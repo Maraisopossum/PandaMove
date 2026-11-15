@@ -13,6 +13,8 @@ export interface ClientSupabase {
   // AuthClient est un alias de GoTrueClient (valeur) : le type est celui de GoTrueClient
   auth: GoTrueClient
   from: (table: string) => ReturnType<PostgrestClient['from']>
+  /** Appel d'une fonction Postgres (administration, battement). */
+  rpc: (fonction: string, args?: Record<string, unknown>) => ReturnType<PostgrestClient['rpc']>
 }
 
 /** Clé localStorage de la session, identique à supabase-js (`sb-<premier segment de l'hôte>-auth-token`). */
@@ -60,5 +62,5 @@ export function creerClientSupabase(url: string, clePublique: string, options: O
   }
 
   const rest = new PostgrestClient(new URL('rest/v1', base).href, { schema: 'public', fetch: fetchAvecSession })
-  return { auth, from: (table: string) => rest.from(table) }
+  return { auth, from: (table: string) => rest.from(table), rpc: (fonction: string, args?: Record<string, unknown>) => rest.rpc(fonction, args) }
 }

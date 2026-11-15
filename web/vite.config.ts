@@ -4,7 +4,11 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { pwaOptions } from './pwa.config.ts'
 
+// Empreinte du commit construit (Cloudflare Workers Builds ou GitHub Actions), envoyée avec le battement de l'application
+const version = (process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA ?? 'dev').slice(0, 7)
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [react(), VitePWA(pwaOptions)],
   // Playwright (webServer) attend exactement ce port
   server: { port: 5173, strictPort: true },

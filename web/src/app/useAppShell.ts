@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { useLocation } from 'react-router'
 import { deconnecterSupabaseBrut, useAuth } from '../core/auth/AuthProvider'
+import { useBattement } from '../core/admin/useBattement'
 import { useSyncConnection } from '../core/sync/useSyncConnection'
 import { MODULES, moduleActif } from './modules'
 import { useDarkMode } from './theme'
@@ -20,6 +21,7 @@ export function useAppShell() {
     userId: session?.user.id ?? null,
     signOut: deconnecterSupabaseBrut,
   })
+  useBattement({ userId: session?.user.id })
   useInstallationCatalogue(session?.user.id)
   useRappelsActifs({ userId: session?.user.id })
   const { refBascule, refDrawer, ...drawer } = useDrawer()

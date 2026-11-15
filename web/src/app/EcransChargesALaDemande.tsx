@@ -47,3 +47,6 @@ export const RecordsHyroxScreen = lazy(() => import('../features/hyrox/RecordsHy
 export const StationDetailHyroxScreen = lazy(() => import('../features/hyrox/StationDetailHyroxScreen'))
 export const JourJHyroxScreen = lazy(() => import('../features/hyrox/JourJHyroxScreen'))
 export const PlanHyroxScreen = lazy(() => import('../features/hyrox/PlanHyroxScreen'))
+export const AdminTableauScreen = lazy(() => import('../features/admin/AdminTableauScreen'))
+export const AdminComptesScreen = lazy(() => import('../features/admin/AdminComptesScreen'))
+export const AdminJournalScreen = lazy(() => import('../features/admin/AdminJournalScreen'))

@@ -906,3 +906,105 @@ describe('0015 : module Hyrox (objectif, simulations, segments)', () => {
     }
   })
 })
+
+describe('0016 : administration technique (profils, journal, fonctions admin)', () => {
+  const ADMIN = '00000000-0000-4000-8000-0000000000ad'
+  const CLAIMS_ADMIN = '{"app_metadata":{"role":"admin"}}'
+
+  /** Exécute `fn` comme utilisateur connecté, avec ou sans rôle administrateur dans le JWT. */
+  async function commeCompte<T>(uid: string, fn: () => Promise<T>, admin = false): Promise<T> {
+    await db.exec(`select set_config('request.jwt.claims', '${admin ? CLAIMS_ADMIN : '{}'}', false);`)
+    try {
+      return await commeUtilisateur(uid, fn)
+    } finally {
+      await db.exec(`select set_config('request.jwt.claims', '', false);`)
+    }
+  }
+
+  beforeAll(async () => {
+    // Ce que Supabase fournit en plus : auth.jwt() et auth.users
+    await db.exec(`
+      create or replace function auth.jwt() returns jsonb language sql stable
+        as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+      create table if not exists auth.users (id uuid primary key, email varchar, created_at timestamptz default now(), last_sign_in_at timestamptz);
+      insert into auth.users (id, email) values ('${A}', 'a@exemple.fr'), ('${B}', 'b@exemple.fr'), ('${ADMIN}', 'admin@exemple.fr') on conflict do nothing;
+    `)
+    await db.exec(migration('0016_administration.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0016_administration.sql'))
+  })
+
+  it('le battement crée puis met à jour la ligne de son compte, sans rien écrire d’autre', async () => {
+    await commeCompte(A, () => db.exec(`select enregistrer_battement('1.0.0')`))
+    let r = await commeCompte(A, () => db.query(`select user_id, version_app, statut, derniere_synchro_at is null as sans_synchro from profils`))
+    expect(r.rows).toEqual([{ user_id: A, version_app: '1.0.0', statut: 'actif', sans_synchro: true }])
+    await commeCompte(A, () => db.exec(`select enregistrer_battement('1.1.0', true)`))
+    r = await commeCompte(A, () => db.query(`select version_app, derniere_synchro_at is not null as synchro from profils`))
+    expect(r.rows).toEqual([{ version_app: '1.1.0', synchro: true }])
+    // Un battement sans synchro garde la dernière synchro
+    await commeCompte(A, () => db.exec(`select enregistrer_battement('1.1.0')`))
+    r = await commeCompte(A, () => db.query(`select derniere_synchro_at is not null as synchro from profils`))
+    expect(r.rows).toEqual([{ synchro: true }])
+  })
+
+  it('un compte ne lit que sa ligne et ne peut ni écrire ni se rétablir actif directement', async () => {
+    await commeCompte(B, () => db.exec(`select enregistrer_battement('2.0.0')`))
+    const b = await commeCompte(B, () => db.query<{ n: number }>('select count(*)::int as n from profils'))
+    expect(b.rows[0].n).toBe(1)
+    await expect(commeCompte(B, () => db.exec(`update profils set statut = 'actif'`))).rejects.toThrow(/permission denied/)
+    await expect(commeCompte(B, () => db.exec(`insert into profils (user_id) values ('${A}')`))).rejects.toThrow(/permission denied/)
+    await expect(commeCompte(B, () => db.exec('delete from profils'))).rejects.toThrow(/permission denied/)
+  })
+
+  it('refuse le battement sans connexion et aux visiteurs', async () => {
+    await expect(commeAnonyme(() => db.exec(`select enregistrer_battement('1')`))).rejects.toThrow(/permission denied/)
+    await expect(commeCompte('', () => db.exec(`select enregistrer_battement('1')`))).rejects.toThrow()
+  })
+
+  it('les fonctions administrateur refusent un compte ordinaire et les visiteurs', async () => {
+    for (const appel of ['admin_lister_comptes()', 'admin_resume()', 'admin_lire_journal(10)']) {
+      await expect(commeCompte(A, () => db.query(`select * from ${appel}`)), appel).rejects.toThrow(/Accès refusé/)
+      await expect(commeAnonyme(() => db.query(`select * from ${appel}`)), appel).rejects.toThrow(/permission denied/)
+    }
+    const r = await commeCompte(A, () => db.query<{ est: boolean }>('select est_admin() as est'))
+    expect(r.rows[0].est).toBe(false)
+  })
+
+  it('l’administrateur voit les comptes sans aucune donnée d’entraînement, et le résumé', async () => {
+    await commeCompte(A, () => insererSeance('10000000-0000-4000-8000-0000000000a1'))
+    const r = await commeCompte(ADMIN, () => db.query<Record<string, unknown>>('select * from admin_lister_comptes()'), true)
+    expect(r.rows.map((x) => x.email)).toEqual(['a@exemple.fr', 'b@exemple.fr', 'admin@exemple.fr'])
+    expect(Object.keys(r.rows[0]).sort()).toEqual(['derniere_connexion_at', 'derniere_synchro_at', 'email', 'inscrit_at', 'statut', 'user_id', 'version_app'])
+    expect(r.rows.find((x) => x.email === 'a@exemple.fr')).toMatchObject({ version_app: '1.1.0', statut: 'actif' })
+    expect(r.rows.find((x) => x.email === 'admin@exemple.fr')).toMatchObject({ version_app: null, statut: 'actif' })
+    const resume = await commeCompte(ADMIN, () => db.query('select * from admin_resume()'), true)
+    expect(resume.rows).toEqual([{ inscrits: 3, actifs_7j: 2, actifs_30j: 2, suspendus: 0 }])
+    // Même administrateur : la RLS des séances le tient à l'écart du contenu
+    const seances = await commeCompte(ADMIN, () => db.query<{ n: number }>('select count(*)::int as n from seances'), true)
+    expect(seances.rows[0].n).toBe(0)
+  })
+
+  it('le journal est en insertion seulement, illisible hors fonction administrateur', async () => {
+    await db.exec(`insert into journal_admin (admin_id, action, cible_user_id, detail) values ('${ADMIN}', 'suspension', '${B}', 'essai')`)
+    await expect(db.exec(`update journal_admin set action = 'autre'`)).rejects.toThrow(/insertion seulement/)
+    await expect(db.exec('delete from journal_admin')).rejects.toThrow(/insertion seulement/)
+    await expect(commeCompte(ADMIN, () => db.exec('select * from journal_admin'), true)).rejects.toThrow(/permission denied/)
+    await expect(commeCompte(ADMIN, () => db.exec(`insert into journal_admin (admin_id, action) values ('${ADMIN}', 'x')`), true)).rejects.toThrow(/permission denied/)
+    const r = await commeCompte(ADMIN, () => db.query('select action, cible_user_id from admin_lire_journal(10)'), true)
+    expect(r.rows).toEqual([{ action: 'suspension', cible_user_id: B }])
+  })
+
+  it('refuse les valeurs hors contraintes', async () => {
+    await expect(db.exec(`insert into profils (user_id, statut) values ('${ADMIN}', 'banni')`)).rejects.toThrow(/check constraint|violates/)
+    await expect(db.exec(`insert into journal_admin (admin_id, action) values ('${ADMIN}', '')`)).rejects.toThrow(/check constraint|violates/)
+  })
+
+  it('ces tables ne sont pas synchronisées : absentes des règles PowerSync et du schéma local', () => {
+    const regles = readFileSync(resolve(import.meta.dirname, '../../powersync/sync-rules.yaml'), 'utf8')
+    const schema = readFileSync(resolve(import.meta.dirname, '../../src/core/db/schema.ts'), 'utf8')
+    for (const t of ['profils', 'journal_admin']) {
+      expect(regles).not.toContain(t)
+      expect(schema).not.toContain(t)
+    }
+  })
+})
