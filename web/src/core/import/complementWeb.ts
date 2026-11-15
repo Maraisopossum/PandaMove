@@ -55,6 +55,7 @@ const LIBELLES: Record<TableComplement, string> = {
   methodes_respiration: 'méthode(s) de respiration',
   seances_respiration: 'séance(s) de respiration',
   seances_mobilite: 'séance(s) de mobilité',
+  objectifs_plan: 'objectif(s) de plan',
 }
 export const libelleComplement = (t: TableComplement) => LIBELLES[t]
 

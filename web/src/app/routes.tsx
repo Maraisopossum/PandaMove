@@ -3,7 +3,7 @@ import type { RouteObject } from 'react-router'
 import {
   CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen, ObjectifPlanScreen, JalonPlanScreen, AjusterPlanScreen,
 } from './EcransChargesALaDemande'
 import { PageErreur } from './PageErreur'
 import { PageIntrouvable } from './PageIntrouvable'
@@ -53,6 +53,10 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'plans/semaine', element: chargement(<SemainePlanScreen />) },
     { path: 'plans/semaine/:debut', element: chargement(<SemainePlanScreen />) },
     { path: 'plans/evolution', element: chargement(<EvolutionPlanScreen />) },
+    { path: 'plans/ajuster', element: chargement(<AjusterPlanScreen />) },
+    { path: 'plans/objectif', element: chargement(<ObjectifPlanScreen />) },
+    { path: 'plans/objectif/:id', element: chargement(<ObjectifPlanScreen />) },
+    { path: 'plans/jalon/:cle', element: chargement(<JalonPlanScreen />) },
     { path: 'stats', element: chargement(<StatsScreen />) },
     { path: 'breathing', element: chargement(<RespirationScreen />) },
     // Chemins statiques (new, session/…) avant :id/edit

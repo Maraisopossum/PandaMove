@@ -49,7 +49,7 @@ describe('écran Plans', () => {
     const phases = screen.getByRole('region', { name: /Phases déduites/ })
     expect(within(phases).getAllByText('Affûtage', { selector: 'strong' }).length).toBe(3)
     expect(within(phases).getByText('Reprise', { selector: 'strong' })).toBeTruthy()
-    const jalons = screen.getByRole('region', { name: 'Jalons' })
+    const jalons = screen.getByRole('region', { name: 'Jalons et objectifs' })
     expect(within(jalons).getAllByRole('listitem')).toHaveLength(3)
   })
 

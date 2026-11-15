@@ -8993,3 +8993,12 @@ time,
 .plans__barre-rang { position: absolute; bottom: 0; font-size: 0.6875rem; color: var(--texte-secondaire); }
 .plans__legende-ligne { display: flex; align-items: center; gap: 0.375rem; margin: 0; font-size: var(--taille-petit); }
 .plans__progression { width: 100%; height: 0.75rem; accent-color: #1565c0; }
+.plans__formulaire { display: grid; gap: 0.75rem; }
+.plans__conflit { display: grid; gap: 0.375rem; margin: 0; padding: 0.625rem 0.75rem; border-radius: var(--radius-bouton); background: color-mix(in srgb, #b3261e 10%, var(--surface)); font-size: 0.875rem; line-height: 1.45; }
+.plans__conflit ul { margin: 0; padding-left: 1.125rem; }
+.plans__phase-lien { color: inherit; text-decoration: none; flex: 1; }
+.plans__bouton-lien { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.plans__entete { display: grid; gap: 0.5rem; padding: 1rem; border-radius: var(--radius-carte); background: #26262b; color: #fff; }
+.plans__entete p { margin: 0; }
+.plans__entete .outils__chiffre-libelle, .plans__entete .outils__chiffre-detail { color: #d4d4d8; }
+.plans__sur-titre { color: #ffd60a; font-size: var(--taille-petit); font-weight: 700; letter-spacing: 0.04em; }

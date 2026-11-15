@@ -786,3 +786,58 @@ describe('0013 : rappels par notification push', () => {
     }
   })
 })
+
+describe('0014 : objectifs et jalons des plans d’endurance', () => {
+  const OBJ = (n: number) => `e0000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+  const inserer = (id: string, champs: Record<string, string | number | null> = {}) => {
+    const valeurs: Record<string, string | number | null> = { nom: 'Ravensberg 10 km', discipline: 'course', date: '2027-01-31', created_at: '2026-11-14T10:00:00.000Z', ...champs }
+    const sql = Object.values(valeurs).map((v) => (v === null ? 'null' : typeof v === 'number' ? String(v) : `'${v}'`)).join(', ')
+    return db.exec(`insert into objectifs_plan (id, ${Object.keys(valeurs).join(', ')}) values ('${id}', ${sql})`)
+  }
+
+  beforeAll(async () => {
+    await db.exec(migration('0014_objectifs_plan.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0014_objectifs_plan.sql'))
+  })
+
+  it('objectif minimal : user_id = auth.uid(), priorité B et statut prévu par défaut ; invisible et intouchable pour un autre compte', async () => {
+    await commeUtilisateur(A, () => inserer(OBJ(1)))
+    const r = await commeUtilisateur(A, () => db.query(`select user_id, priorite, statut from objectifs_plan where id = '${OBJ(1)}'`))
+    expect(r.rows).toEqual([{ user_id: A, priorite: 'B', statut: 'prevu' }])
+    const b = await commeUtilisateur(B, () => db.query<{ n: number }>('select count(*)::int as n from objectifs_plan'))
+    expect(b.rows[0].n).toBe(0)
+    const u = await commeUtilisateur(B, () => db.query(`update objectifs_plan set nom = 'x' where id = '${OBJ(1)}'`))
+    expect(u.affectedRows).toBe(0)
+  })
+
+  it.each([
+    ['nom vide', { nom: '' }],
+    ['discipline inconnue', { discipline: 'golf' }],
+    ['date au mauvais format', { date: '31/01/2027' }],
+    ['priorité inconnue', { priorite: 'Z' }],
+    ['statut inconnu', { statut: 'fini' }],
+    ['temps visé négatif', { cible_s: -1 }],
+    ['résultat trop grand', { resultat_s: 604801 }],
+    ['notes trop longues', { notes: 'x'.repeat(2001) }],
+  ])('refuse : %s', async (_cas, champs) => {
+    await expect(commeUtilisateur(A, () => inserer(OBJ(100 + Object.keys(champs).length + JSON.stringify(champs).length), champs))).rejects.toThrow(/check constraint|violates/)
+  })
+
+  it('accepte chaque discipline, priorité et statut', async () => {
+    let n = 10
+    for (const discipline of ['course', 'velo', 'hyrox']) await commeUtilisateur(A, () => inserer(OBJ(++n), { discipline }))
+    for (const priorite of ['A', 'B', 'C']) await commeUtilisateur(A, () => inserer(OBJ(++n), { priorite }))
+    for (const statut of ['prevu', 'fait', 'abandonne']) await commeUtilisateur(A, () => inserer(OBJ(++n), { statut, resultat_s: statut === 'fait' ? 2880 : null }))
+  })
+
+  it('droits : authenticated en SELECT / INSERT / UPDATE seulement (pas de DELETE), anon sans aucun droit, RLS active', async () => {
+    const r = await db.query<{ ins: boolean; del: boolean; anon: boolean; rls: boolean }>(
+      `select has_table_privilege('authenticated', 'public.objectifs_plan', 'INSERT') as ins,
+              has_table_privilege('authenticated', 'public.objectifs_plan', 'DELETE') as del,
+              has_table_privilege('anon', 'public.objectifs_plan', 'SELECT') as anon,
+              (select relrowsecurity from pg_class where relname = 'objectifs_plan') as rls`,
+    )
+    expect(r.rows[0]).toEqual({ ins: true, del: false, anon: false, rls: true })
+  })
+})

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { TABLES_RESPIRATION } from './repos/respiration'
 import { TABLE_MOBILITE } from './repos/mobilite'
 import { TABLES_CARDIO } from './repos/seancesCardio'
+import { TABLE_OBJECTIFS_PLAN } from './repos/objectifsPlan'
 import { TABLE_SORTIES } from './repos/sorties'
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
@@ -16,6 +17,7 @@ const migration = lire('supabase', 'migrations', '0008_seances_cardio.sql')
 const migrationRespiration = lire('supabase', 'migrations', '0009_respiration.sql')
 const migrationSorties = lire('supabase', 'migrations', '0010_sorties.sql')
 const migrationMobilite = lire('supabase', 'migrations', '0012_mobilite_rappels.sql')
+const migrationObjectifsPlan = lire('supabase', 'migrations', '0014_objectifs_plan.sql')
 
 const tablesSchema = [...schema.matchAll(/^ {2}(\w+): new Table\(/gm)].map((m) => m[1])
 const tablesRegles = [...regles.matchAll(/^\s*- SELECT \* FROM (\w+) WHERE/gm)].map((m) => m[1])
@@ -68,6 +70,13 @@ describe('cohérence des tables de cardio', () => {
   it('la colonne rappels_json existe dans la migration 0012 et dans le schéma local de user_settings', () => {
     expect(migrationMobilite).toContain('alter table public.user_settings add column if not exists rappels_json text')
     expect(/user_settings: new Table\(\{[^}]*rappels_json: t/.test(schema)).toBe(true)
+  })
+
+  it('la migration 0014 crée la table des objectifs de plan, présente aussi dans le schéma local et les règles de synchro', () => {
+    expect(/foreach t in array array\['objectifs_plan'\] loop/.test(migrationObjectifsPlan)).toBe(true)
+    expect(migrationObjectifsPlan).toContain(`create table if not exists public.${TABLE_OBJECTIFS_PLAN} (`)
+    expect(tablesSchema).toContain(TABLE_OBJECTIFS_PLAN)
+    expect(tablesRegles).toContain(TABLE_OBJECTIFS_PLAN)
   })
 
   it('le schéma et les règles listent les mêmes tables', () => {

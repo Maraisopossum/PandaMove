@@ -94,6 +94,22 @@ const sortie = {
   created_at: t,
 }
 
+// Objectifs et jalons des plans d'endurance (migration 0014) : `date` et `created_at` sont du texte ISO, durées en secondes.
+const objectifPlan = {
+  ...sync,
+  nom: t,
+  discipline: t,
+  date: t,
+  distance_m: r,
+  cible_s: i,
+  priorite: t,
+  statut: t,
+  resultat_s: i,
+  seance_id: t,
+  notes: t,
+  created_at: t,
+}
+
 export const AppSchema = new Schema({
   exercises: new Table({
     ...sync,
@@ -221,4 +237,5 @@ export const AppSchema = new Schema({
   seances_respiration: new Table(seanceRespiration),
   sorties: new Table(sortie),
   seances_mobilite: new Table(seanceMobilite),
+  objectifs_plan: new Table(objectifPlan),
 })
