@@ -308,3 +308,46 @@ export async function supprimerSimulation(db: Db, simulationId: string): Promise
     await tx.execute('UPDATE hyrox_simulations SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL', [maintenant, maintenant, simulationId])
   })
 }
+
+export interface PassageStation {
+  simulationId: string
+  /** Horodatage ISO UTC du départ de la simulation. */
+  debutAt: string
+  reelS: number
+  cibleS: number | null
+}
+
+/** Temps d'une station dans les simulations terminées ou abandonnées, du plus ancien au plus récent. */
+export async function lireHistoriqueStation(db: DbLecture, station: string): Promise<PassageStation[]> {
+  const lignes = await db.getAll<Ligne>(
+    `SELECT g.simulation_id AS simulation_id, s.debut_at AS debut_at, g.reel_s AS reel_s, g.cible_s AS cible_s
+     FROM hyrox_segments g JOIN hyrox_simulations s ON s.id = g.simulation_id
+     WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.statut IN ('terminee', 'abandonnee') AND g.type = 'station' AND g.station = ? AND g.reel_s IS NOT NULL
+     ORDER BY s.debut_at, g.rang`,
+    [station],
+  )
+  return lignes.map((l) => ({ simulationId: String(l.simulation_id), debutAt: String(l.debut_at), reelS: Number(l.reel_s), cibleS: num(l.cible_s) }))
+}
+
+export interface CourseOfficielle {
+  courseId?: string | null
+  categorie: CategorieHyroxDb
+  genre: GenreHyroxDb
+  /** Départ de la course (ISO UTC) ; maintenant par défaut. */
+  debutAt?: string
+  /** Les segments de la course avec le temps officiel (null s'il n'est pas connu). */
+  segments: readonly (SegmentAPlanifier & { reelS: number | null })[]
+}
+
+/**
+ * Enregistre le résultat officiel saisi à la main comme une simulation complète terminée (notes « Course officielle »), pour que les
+ * records et l'estimation en profitent. Renvoie son identifiant.
+ */
+export async function enregistrerCourseOfficielle(db: Db, c: CourseOfficielle): Promise<string> {
+  if (!c.segments.some((s) => s.reelS !== null)) return invalide('Saisissez au moins un temps.')
+  const id = await demarrerSimulation(db, { courseId: c.courseId ?? null, forme: 'complete', categorie: c.categorie, genre: c.genre, segments: c.segments, debutAt: c.debutAt })
+  for (const s of c.segments) if (s.reelS !== null) await enregistrerSegment(db, id, s.rang, s.reelS)
+  await cloreSimulation(db, id, 'terminee')
+  await modifierNotesSimulation(db, id, 'Course officielle')
+  return id
+}

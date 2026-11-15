@@ -11,9 +11,12 @@ chronométrer des simulations sans course prévue (compte à rebours et jour J a
 | Simulation | `/hyrox/simulation` | complète (16 segments), partielle (8) ou une station ; écran sombre gardé allumé, bouton « Segment suivant » de 72 px, bips |
 | Bilan | `/hyrox/bilan/:id` | total, écart, dérive de course, écart par segment, forts et faibles, notes, référence |
 | Records | `/hyrox/records` | meilleur temps par station, meilleur kilomètre, progression des simulations complètes |
+| Détail d'une station | `/hyrox/stations/:cle` | charge, évolution des temps, points clés, erreurs fréquentes, simulation de cette station |
+| Jour J | `/hyrox/jour-j` | liste de préparation (gardée sur l'appareil), plan de course (partage, impression), résultat officiel par segment saisi à la main |
 
 - Règles pures : `simulation.ts` (formes, répartition, bilan, records, formats), catalogue : `stations.ts` (jamais en base).
 - Données : `core/db/repos/hyrox.ts`, tables `hyrox_courses`, `hyrox_simulations`, `hyrox_segments` (migration `0015_hyrox.sql`).
 - Le chrono ne dépend d'aucune minuterie : un segment part de la fin du précédent (début de la simulation + temps déjà enregistrés), donc une simulation en cours se reprend après un rechargement. Pas de pause pour l'instant.
 - **Charges officielles à vérifier avec le règlement de la saison** avant de s'y fier (elles changent parfois d'une saison à l'autre).
-- Pas encore fait : détail d'une station, plan de préparation de 17 semaines, jour J et résultat par segment, intégrations (agenda, sorties, rappels).
+- Le résultat officiel est enregistré comme une simulation complète terminée (notes « Course officielle ») : records et estimation en profitent. Si les 16 temps sont saisis, le résultat de l'objectif est aussi renseigné.
+- Pas encore fait : plan de préparation de 17 semaines et son application à l'agenda, « Ajouter à ma semaine » depuis le détail d'une station, intégrations (agenda, sorties de course, rappels).

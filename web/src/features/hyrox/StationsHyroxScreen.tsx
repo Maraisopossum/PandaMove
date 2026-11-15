@@ -24,7 +24,7 @@ export default function StationsHyroxScreen() {
           const cible = cibles?.[SEGMENTS_COMPLETS.findIndex((c) => c.station === s.cle)]
           return (
             <li key={s.cle} className="plans__carte">
-              <h2 className="plans__titre">{i + 1}. {s.nom} <span className="plans__sous">{s.effort}{charge ? ` · ${charge}` : ''}</span></h2>
+              <h2 className="plans__titre"><Link to={`/hyrox/stations/${s.cle}`}>{i + 1}. {s.nom}</Link> <span className="plans__sous">{s.effort}{charge ? ` · ${charge}` : ''}</span></h2>
               <p>{s.conseil}</p>
               <p className="aide">
                 Record : {record !== undefined ? formaterChrono(record) : 'pas encore chronométré'}
