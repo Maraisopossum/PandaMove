@@ -66,6 +66,7 @@ export default function ReglagesPlansScreen() {
         <h2 id="rp-plans" className="plans__titre">Plusieurs plans</h2>
         <Interrupteur libelle="Additionner la charge de tous les plans" aide="La charge de la semaine compte les séances de chaque plan actif." cle="additionnerCharge" r={r} changer={changer} />
         <Interrupteur libelle="Alerter si deux jalons sont à moins de 10 jours" aide="Message avant l’enregistrement d’un objectif." cle="alerteJalons" r={r} changer={changer} />
+        <Interrupteur libelle="Compter automatiquement les sorties manuelles" aide="Une sortie ajoutée à la main, du même sport et du même jour (ou à un jour d’écart) qu’une séance prévue la remplace dans le taux de réalisation. Rien n’est modifié dans vos données." cle="rattachementAuto" r={r} changer={changer} />
         <Interrupteur libelle="Proposer le rattachement des sorties" aide="Une proposition par sortie ; jamais appliquée sans confirmation." cle="proposerRattachement" r={r} changer={changer} />
       </section>
 

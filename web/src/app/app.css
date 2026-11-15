@@ -9002,3 +9002,33 @@ time,
 .plans__entete p { margin: 0; }
 .plans__entete .outils__chiffre-libelle, .plans__entete .outils__chiffre-detail { color: #d4d4d8; }
 .plans__sur-titre { color: #ffd60a; font-size: var(--taille-petit); font-weight: 700; letter-spacing: 0.04em; }
+
+/* Hyrox : les cartes reprennent celles des plans (.plans__*) ; ici seulement la simulation sombre et les listes propres au module.
+   Jaune #ffd60a réservé aux fonds (sur blanc il ne passe pas le contraste AA) ; il porte du texte sombre. */
+.hyrox__bouton { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.hyrox__liens { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+.hyrox__stations { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.hyrox-sim { display: grid; gap: 0.75rem; justify-items: center; align-content: center; min-height: calc(100dvh - 8rem); max-width: 40rem; margin: 0 auto; padding: 1.5rem 1rem; border-radius: var(--radius-carte); background: #26262b; color: #fff; text-align: center; }
+.hyrox-sim p, .hyrox-sim h1 { margin: 0; }
+.hyrox-sim__rang { color: #ffd60a; font-size: var(--taille-petit); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.hyrox-sim__nom { font-size: 1.75rem; font-weight: 800; }
+.hyrox-sim__charge, .hyrox-sim__suivant { color: #d4d4d8; }
+.hyrox-sim__chrono { font-size: clamp(4rem, 22vw, 7rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.hyrox-sim__ecart { font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+.hyrox-sim__erreur { color: #ffb4ab; }
+.hyrox-sim__bouton { width: 100%; min-height: 4.5rem; margin-top: 0.5rem; border: 0; border-radius: var(--radius-carte); background: #ffd60a; color: #26262b; font: inherit; font-size: 1.375rem; font-weight: 800; cursor: pointer; }
+.hyrox-sim__bouton:focus-visible, .hyrox-sim__lien:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.hyrox-sim__pied { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 1.25rem; }
+.hyrox-sim__lien { min-height: 2.75rem; padding: 0 0.5rem; border: 0; background: none; color: #fff; font: inherit; text-decoration: underline; cursor: pointer; }
+
+/* Corrections de mise en page (captures du 15 novembre) : tuiles lisibles dans les en-têtes sombres, boutons du bas de la sortie sans
+   texte rogné, flèche des réglages repliables. */
+.plans__entete .outils__chiffre { background: rgb(255 255 255 / 0.1); }
+.plans__entete .outils__chiffre strong { color: #fff; }
+.sorties__actions-bas > * { flex: 1 1 auto; min-width: 0; padding-inline: 0.875rem; text-align: center; }
+.sorties__actions-bas > :last-child { flex: 1.3 1 auto; }
+.charge__reglages summary { justify-content: space-between; gap: 0.75rem; list-style: none; }
+.charge__reglages summary::-webkit-details-marker { display: none; }
+.charge__reglages summary::after { content: ''; flex: none; width: 0.625rem; height: 0.625rem; border-right: 2.5px solid currentColor; border-bottom: 2.5px solid currentColor; transform: rotate(45deg); transition: transform 0.15s; margin-right: 0.25rem; }
+.charge__reglages[open] summary::after { transform: rotate(-135deg); }
+@media (prefers-reduced-motion: reduce) { .charge__reglages summary::after { transition: none; } }

@@ -110,6 +110,44 @@ const objectifPlan = {
   created_at: t,
 }
 
+// Module Hyrox (migration 0015) : objectif (date facultative), simulations chronométrées et leurs segments. Durées en secondes.
+const hyroxCourse = {
+  ...sync,
+  nom: t,
+  lieu: t,
+  date: t,
+  categorie: t,
+  genre: t,
+  objectif_s: i,
+  resultat_s: i,
+  repartition_json: t,
+  created_at: t,
+}
+const hyroxSimulation = {
+  ...sync,
+  course_id: t,
+  forme: t,
+  categorie: t,
+  genre: t,
+  debut_at: t,
+  statut: t,
+  total_s: i,
+  reference: i,
+  notes: t,
+  created_at: t,
+}
+const hyroxSegment = {
+  ...sync,
+  simulation_id: t,
+  rang: i,
+  type: t,
+  station: t,
+  cible_s: i,
+  reel_s: i,
+  charge_label: t,
+  created_at: t,
+}
+
 export const AppSchema = new Schema({
   exercises: new Table({
     ...sync,
@@ -238,4 +276,7 @@ export const AppSchema = new Schema({
   sorties: new Table(sortie),
   seances_mobilite: new Table(seanceMobilite),
   objectifs_plan: new Table(objectifPlan),
+  hyrox_courses: new Table(hyroxCourse),
+  hyrox_simulations: new Table(hyroxSimulation),
+  hyrox_segments: new Table(hyroxSegment),
 })
