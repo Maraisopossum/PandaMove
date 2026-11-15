@@ -1,6 +1,6 @@
 # Fonction `admin-comptes` : actions d'administration technique
 
-Inviter, suspendre, rétablir, envoyer un lien de réinitialisation du mot de passe, supprimer un compte. Appelée par l'écran **Administration > Comptes**
+Inviter, suspendre, rétablir, envoyer un lien de réinitialisation du mot de passe, déconnecter (couper les sessions), supprimer un compte. Appelée par l'écran **Administration > Comptes**
 avec le jeton de l'administrateur connecté. **Aucun accès au contenu d'un compte** : seules des métadonnées sont touchées ; la suppression vide les
 tables du compte puis supprime l'utilisateur.
 
@@ -17,7 +17,7 @@ Rien de ceci n'est déployé automatiquement. Tant que la fonction n'est pas dé
 
 ## Installation
 
-Prérequis : la migration `0016_administration.sql` appliquée, ton compte avec `{"role": "admin"}`, la CLI Supabase connectée au projet.
+Prérequis : les migrations `0016_administration.sql` et `0017_sante_synchro.sql` appliquées (la 0017 pour « Déconnecter »), ton compte avec `{"role": "admin"}`, la CLI Supabase connectée au projet.
 
 ```bash
 supabase functions deploy admin-comptes

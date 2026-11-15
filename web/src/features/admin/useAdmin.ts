@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listerComptes, lireJournal, lireResume, type CompteAdmin, type EntreeJournal, type ResumeAdmin } from '../../core/admin/admin'
+import { listerComptes, lireJournal, lireResume, lireSante, type CompteAdmin, type EntreeJournal, type ResumeAdmin, type SanteCompte } from '../../core/admin/admin'
 import { getSupabase } from '../../core/db/client'
 import type { ClientSupabase } from '../../core/db/clientSupabase'
 
@@ -29,3 +29,4 @@ function useLecture<T>(lire: (c: ClientSupabase) => Promise<T>, client?: ClientS
 export const useComptes = (client?: ClientSupabase): Etat<CompteAdmin[]> => useLecture(listerComptes, client)
 export const useResume = (client?: ClientSupabase): Etat<ResumeAdmin> => useLecture(lireResume, client)
 export const useJournal = (client?: ClientSupabase): Etat<EntreeJournal[]> => useLecture((c) => lireJournal(c, 100), client)
+export const useSante = (client?: ClientSupabase): Etat<SanteCompte[]> => useLecture(lireSante, client)

@@ -1008,3 +1008,85 @@ describe('0016 : administration technique (profils, journal, fonctions admin)', 
     }
   })
 })
+
+describe('0017 : santé de la synchro et déconnexion forcée', () => {
+  const U1 = '00000000-0000-4000-8000-0000000000c1'
+  const U2 = '00000000-0000-4000-8000-0000000000c2'
+  const ADMIN2 = '00000000-0000-4000-8000-0000000000a2'
+
+  async function commeCompte2<T>(uid: string, fn: () => Promise<T>, admin = false): Promise<T> {
+    await db.exec(`select set_config('request.jwt.claims', '${admin ? '{"app_metadata":{"role":"admin"}}' : '{}'}', false);`)
+    try {
+      return await commeUtilisateur(uid, fn)
+    } finally {
+      await db.exec(`select set_config('request.jwt.claims', '', false);`)
+    }
+  }
+
+  beforeAll(async () => {
+    await db.exec(`
+      create table if not exists auth.sessions (id uuid primary key default gen_random_uuid(), user_id uuid not null);
+      insert into auth.users (id, email) values ('${U1}', 'c1@exemple.fr'), ('${U2}', 'c2@exemple.fr'), ('${ADMIN2}', 'admin2@exemple.fr') on conflict do nothing;
+      insert into auth.sessions (user_id) values ('${U1}'), ('${U1}'), ('${U2}');
+    `)
+    await db.exec(migration('0017_sante_synchro.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0017_sante_synchro.sql'))
+  })
+
+  it('l’ancien appel à deux paramètres fonctionne toujours', async () => {
+    await commeCompte2(U1, () => db.exec(`select enregistrer_battement('1.0.0', true)`))
+    const r = await commeCompte2(U1, () => db.query('select version_app from profils'))
+    expect(r.rows).toEqual([{ version_app: '1.0.0' }])
+  })
+
+  it('cumule les rejets par table et code, au plus 20 entrées, en ignorant ce qui est mal formé', async () => {
+    const rejets = JSON.stringify([
+      { table: 'seances', code: '23514', nb: 2 }, { table: 'seances', code: '23514', nb: 1 }, { table: 'sorties', code: '22P02', nb: 1 },
+      { table: 'x'.repeat(51), code: '23514', nb: 1 }, { table: 'sorties', code: 'trop-long-code', nb: 1 }, { table: 'sorties', code: '42501', nb: 0 },
+      { table: 'sorties', code: '42501', nb: 1.5 }, { table: 'sorties', code: '42501', nb: 5000 }, { table: 'sorties', code: '42501', nb: '3' }, 'texte', null,
+    ])
+    await commeCompte2(U1, () => db.exec(`select enregistrer_battement('1.0.0', false, '${rejets}'::jsonb)`))
+    await commeCompte2(U1, () => db.exec(`select enregistrer_battement('1.0.0', false, '[{"table": "seances", "code": "23514", "nb": 4}]'::jsonb)`))
+    const r = await db.query('select table_nom, code, nb from synchro_rejets where user_id = $1 order by table_nom, code', [U1])
+    expect(r.rows).toEqual([{ table_nom: 'seances', code: '23514', nb: 7 }, { table_nom: 'sorties', code: '22P02', nb: 1 }])
+    // Un paramètre qui n'est pas une liste est ignoré sans erreur
+    await commeCompte2(U2, () => db.exec(`select enregistrer_battement('1.0.0', false, '{"a": 1}'::jsonb)`))
+  })
+
+  it('les rejets sont illisibles et intouchables directement par les clients', async () => {
+    await expect(commeCompte2(U1, () => db.exec('select * from synchro_rejets'))).rejects.toThrow(/permission denied/)
+    await expect(commeCompte2(U1, () => db.exec(`insert into synchro_rejets (user_id, table_nom, code, nb) values ('${U1}', 'a', 'b', 1)`))).rejects.toThrow(/permission denied/)
+    await expect(commeAnonyme(() => db.exec(`select enregistrer_battement('1', false, '[]')`))).rejects.toThrow(/permission denied/)
+  })
+
+  it('la santé de la synchro est réservée à l’administrateur et ne contient aucune donnée d’entraînement', async () => {
+    await expect(commeCompte2(U1, () => db.query('select * from admin_sante_synchro()'))).rejects.toThrow(/Accès refusé/)
+    await expect(commeAnonyme(() => db.query('select * from admin_sante_synchro()'))).rejects.toThrow(/permission denied/)
+    const r = await commeCompte2(ADMIN2, () => db.query<Record<string, unknown>>('select * from admin_sante_synchro()'), true)
+    const c1 = r.rows.find((x) => x.email === 'c1@exemple.fr')!
+    expect(Object.keys(c1).sort()).toEqual(['derniere_synchro_at', 'email', 'jours_sans_synchro', 'rejets', 'rejets_total', 'user_id', 'version_app'])
+    expect(c1).toMatchObject({ rejets_total: 8, jours_sans_synchro: 0 })
+    expect(c1.rejets).toEqual([expect.objectContaining({ table: 'seances', code: '23514', nb: 7 }), expect.objectContaining({ table: 'sorties', code: '22P02', nb: 1 })])
+    expect(r.rows.find((x) => x.email === 'c2@exemple.fr')).toMatchObject({ rejets_total: 0, rejets: [] })
+  })
+
+  it('la révocation des sessions n’est exécutable ni par un utilisateur connecté (même admin) ni par un visiteur', async () => {
+    await expect(commeCompte2(ADMIN2, () => db.query(`select admin_revoquer_sessions('${U1}')`), true)).rejects.toThrow(/permission denied/)
+    await expect(commeAnonyme(() => db.query(`select admin_revoquer_sessions('${U1}')`))).rejects.toThrow(/permission denied/)
+  })
+
+  it('la révocation coupe les sessions du seul compte visé (appelée avec les droits du propriétaire, comme la clé de service)', async () => {
+    const r = await db.query<{ admin_revoquer_sessions: number }>(`select admin_revoquer_sessions('${U1}')`)
+    expect(r.rows[0].admin_revoquer_sessions).toBe(2)
+    const restantes = await db.query<{ user_id: string }>('select user_id from auth.sessions')
+    expect(restantes.rows).toEqual([{ user_id: U2 }])
+  })
+
+  it('cette table n’est pas synchronisée : absente des règles PowerSync et du schéma local', () => {
+    const regles = readFileSync(resolve(import.meta.dirname, '../../powersync/sync-rules.yaml'), 'utf8')
+    const schema = readFileSync(resolve(import.meta.dirname, '../../src/core/db/schema.ts'), 'utf8')
+    expect(regles).not.toContain('synchro_rejets')
+    expect(schema).not.toContain('synchro_rejets')
+  })
+})

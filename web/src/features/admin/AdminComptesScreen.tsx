@@ -85,6 +85,7 @@ export default function AdminComptesScreen() {
                         ? <button type="button" className="bouton" disabled={enCours} onClick={() => void agir({ action: 'retablir', userId: c.userId })}>Rétablir</button>
                         : <button type="button" className="bouton" disabled={enCours} onClick={() => void agir({ action: 'suspendre', userId: c.userId })}>Suspendre</button>}
                       <button type="button" className="bouton" disabled={enCours || !c.email} onClick={() => void agir({ action: 'reinitialiser', userId: c.userId })}>Lien de réinitialisation</button>
+                      <button type="button" className="bouton" disabled={enCours} onClick={() => void agir({ action: 'deconnecter', userId: c.userId })}>Déconnecter</button>
                       <button type="button" className="bouton bouton--alerte" disabled={enCours} onClick={() => { setASupprimer(c.userId); setConfirmation('') }}>Supprimer…</button>
                     </div>
                   )}

@@ -36,6 +36,7 @@ export default function AdminTableauScreen() {
       )}
       <div className="hyrox__liens">
         <Link className="plans__lien" to="/admin/comptes">Liste des comptes</Link>
+        <Link className="plans__lien" to="/admin/synchro">Santé de la synchro</Link>
         <Link className="plans__lien" to="/admin/journal">Journal d’audit</Link>
       </div>
     </div>
