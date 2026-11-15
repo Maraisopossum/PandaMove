@@ -87,6 +87,7 @@ export default function HyroxScreen() {
         <div className="hyrox__liens">
           <Link className="plans__lien" to="/hyrox/stations">Les 8 stations</Link>
           <Link className="plans__lien" to="/hyrox/records">Records</Link>
+          <Link className="plans__lien" to="/hyrox/jour-j">Jour J</Link>
           <Link className="plans__lien" to="/hyrox/objectif">{objectif ? 'Modifier l’objectif' : 'Définir un objectif'}</Link>
         </div>
       </section>

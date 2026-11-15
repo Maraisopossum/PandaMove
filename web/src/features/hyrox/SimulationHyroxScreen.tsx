@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useWakeLock } from '../strength/execute/useWakeLock'
 import { ecrireSonHyrox, lireSonHyrox } from './bip'
 import { FORMES, formaterChrono, formaterEcart, LIBELLE_FORME, NOM_COURSE_COURT, type FormeSimulation } from './simulation'
-import { CATEGORIES_HYROX, GENRES_HYROX, LIBELLE_CATEGORIE, LIBELLE_GENRE, STATION_PAR_CLE, STATIONS, type CategorieHyrox, type CleStation, type GenreHyrox } from './stations'
+import { CATEGORIES_HYROX, estCleStation, GENRES_HYROX, LIBELLE_CATEGORIE, LIBELLE_GENRE, STATION_PAR_CLE, STATIONS, type CategorieHyrox, type CleStation, type GenreHyrox } from './stations'
 import { useSimulationHyrox } from './useSimulationHyrox'
 
 const nomSegment = (s: { type: 'course' | 'station'; station: string | null }) => (s.type === 'course' ? NOM_COURSE_COURT : STATION_PAR_CLE[s.station as CleStation]?.nom ?? 'Station')
@@ -13,8 +13,10 @@ const nomSegment = (s: { type: 'course' | 'station'; station: string | null }) =
 export default function SimulationHyroxScreen() {
   const navigate = useNavigate()
   const s = useSimulationHyrox()
-  const [forme, setForme] = useState<FormeSimulation>('complete')
-  const [station, setStation] = useState<CleStation>('wall_balls')
+  const [params] = useSearchParams()
+  const stationDemandee = params.get('station')
+  const [forme, setForme] = useState<FormeSimulation>(estCleStation(stationDemandee) ? 'station' : 'complete')
+  const [station, setStation] = useState<CleStation>(estCleStation(stationDemandee) ? stationDemandee : 'wall_balls')
   const [categorieChoisie, setCategorie] = useState<CategorieHyrox | null>(null)
   const [genreChoisi, setGenre] = useState<GenreHyrox | null>(null)
   const categorie = categorieChoisie ?? s.objectif?.categorie ?? 'open'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createTestDb } from '../../../test/sqliteDb'
 import {
-  cloreSimulation, creerCourseHyrox, definirReference, demarrerSimulation, enregistrerSegment, ErreurHyrox, lireObjectifHyrox, lireSegments, lireSegmentsMesures,
+  cloreSimulation, creerCourseHyrox, enregistrerCourseOfficielle, lireHistoriqueStation, definirReference, demarrerSimulation, enregistrerSegment, ErreurHyrox, lireObjectifHyrox, lireSegments, lireSegmentsMesures,
   lireSimulation, lireSimulationEnCours, lireSimulations, modifierCourseHyrox, modifierNotesSimulation, supprimerCourseHyrox, supprimerSimulation,
 } from './hyrox'
 
@@ -117,5 +117,28 @@ describe('simulations Hyrox', () => {
     const id = await demarrerSimulation(db, depart)
     await enregistrerSegment(db, id, 1, 280)
     expect(await lireSegmentsMesures(db)).toEqual([])
+  })
+})
+
+describe('historique et course officielle', () => {
+  it('liste les temps d’une station, du plus ancien au plus récent, sans les simulations en cours', async () => {
+    const db = createTestDb()
+    const a = await demarrerSimulation(db, { ...depart, debutAt: '2026-11-01T10:00:00.000Z' })
+    await enregistrerSegment(db, a, 2, 260)
+    await cloreSimulation(db, a, 'terminee')
+    const b = await demarrerSimulation(db, { ...depart, debutAt: '2026-11-08T10:00:00.000Z' })
+    await enregistrerSegment(db, b, 2, 240)
+    await cloreSimulation(db, b, 'terminee')
+    const c = await demarrerSimulation(db, depart)
+    await enregistrerSegment(db, c, 2, 200)
+    expect((await lireHistoriqueStation(db, 'skierg')).map((p) => [p.reelS, p.cibleS])).toEqual([[260, 240], [240, 240]])
+    expect(await lireHistoriqueStation(db, 'rowing')).toEqual([])
+  })
+
+  it('enregistre la course officielle comme une simulation complète terminée', async () => {
+    const db = createTestDb()
+    const id = await enregistrerCourseOfficielle(db, { categorie: 'open', genre: 'homme', segments: [{ ...segments[0], reelS: 310 }, { ...segments[1], reelS: null }] })
+    expect(await lireSimulation(db, id)).toMatchObject({ forme: 'complete', statut: 'terminee', totalS: 310, notes: 'Course officielle' })
+    await expect(enregistrerCourseOfficielle(db, { categorie: 'open', genre: 'homme', segments: [{ ...segments[0], reelS: null }] })).rejects.toBeInstanceOf(ErreurHyrox)
   })
 })
