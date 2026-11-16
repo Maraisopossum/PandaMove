@@ -310,6 +310,37 @@ describe('photo de l’assiette', () => {
 })
 
 describe('objectifs', () => {
+  // Le poids (dernière pesée) et la taille viennent du Profil, jamais d'une saisie dans Nutrition
+  beforeEach(() => {
+    localStorage.setItem('pandamove.poids', JSON.stringify({ objectifKg: null, pesees: [{ date: '2026-11-10', kg: 80 }, { date: '2026-11-14', kg: 78.4 }] }))
+    localStorage.setItem('pandamove.taille', '182')
+  })
+  afterEach(() => {
+    localStorage.removeItem('pandamove.poids')
+    localStorage.removeItem('pandamove.taille')
+  })
+
+  it('lit le poids (dernière pesée) et la taille du Profil, avec un lien pour les modifier', async () => {
+    monter('/nutrition/objectifs')
+    const bloc = await screen.findByRole('group', { name: 'Mensurations du Profil' })
+    expect(bloc.textContent).toMatch(/78,4\skg.*14\/11\/2026.*182\scm/)
+    expect(screen.queryByLabelText(/^Poids/)).toBeNull()
+    expect(screen.queryByLabelText(/^Taille/)).toBeNull()
+    expect(screen.getByRole('link', { name: 'Modifier dans le Profil' }).getAttribute('href')).toBe('/profile')
+    fireEvent.click(screen.getByRole('button', { name: 'Utiliser cette proposition' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(screen.getByTestId('lieu').textContent).toBe('/nutrition'))
+    expect(JSON.parse((await lireObjectifsNutrition(base))!.profilJson!)).toMatchObject({ poidsKg: 78.4, tailleCm: 182 })
+  })
+
+  it('sans poids ni taille dans le Profil : pas de proposition, un renvoi vers le Profil', async () => {
+    localStorage.clear()
+    monter('/nutrition/objectifs')
+    expect(await screen.findByText(/poids et votre taille ne sont pas renseignés/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Utiliser cette proposition' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Les renseigner dans le Profil' }).getAttribute('href')).toBe('/profile')
+  })
+
   it('calcule une proposition, l’applique puis enregistre', async () => {
     monter('/nutrition/objectifs')
     fireEvent.click(await screen.findByRole('button', { name: 'Utiliser cette proposition' }))
@@ -325,7 +356,7 @@ describe('objectifs', () => {
     await enregistrerObjectifsNutrition(base, { kcal: 2222, proteinesG: 140, glucidesG: 250, lipidesG: 70, eauMl: 2750, profilJson: JSON.stringify({ sexe: 'femme', age: 28, tailleCm: 165, poidsKg: 60, activite: 'legere', but: 'perte' }) })
     monter('/nutrition/objectifs')
     expect(((await screen.findByLabelText(/^Énergie/)) as HTMLInputElement).value).toBe('2222')
-    expect((screen.getByLabelText(/^Poids/) as HTMLInputElement).value).toBe('60')
+    expect((screen.getByLabelText(/^Âge/) as HTMLInputElement).value).toBe('28')
   })
 
   it('refuse un profil hors limites sans proposition et signale un objectif invalide', async () => {

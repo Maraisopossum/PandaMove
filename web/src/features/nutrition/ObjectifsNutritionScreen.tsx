@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { getDb } from '../../core/db/client'
 import { enregistrerObjectifsNutrition, lireObjectifsNutrition } from '../../core/db/repos/nutrition'
 import {
   kcalDesMacros, LIBELLE_ACTIVITE, LIBELLE_BUT, metabolismeDeBase, proposerObjectifs, repartitionEnergie, verifierProfil, type Activite, type But, type ObjectifsNutrition, type ProfilNutrition, type Sexe,
 } from '../../core/nutrition/calculs'
-import { entier } from './outils'
+import { lireMensurations } from '../profile/poids'
+import { entier, decimal } from './outils'
 
 const PROFIL_DEFAUT: ProfilNutrition = { sexe: 'homme', age: 35, tailleCm: 175, poidsKg: 75, activite: 'moderee', but: 'maintien' }
 const OBJECTIFS_DEFAUT: ObjectifsNutrition = { kcal: 2400, proteinesG: 120, glucidesG: 280, lipidesG: 75, eauMl: 2500 }
@@ -31,10 +32,11 @@ function Nombre({ libelle, valeur, onChange, unite, min, max }: { libelle: strin
 }
 
 // Objectifs quotidiens : énergie, protéines, glucides, lipides, eau. Un calculateur propose un point de départ (Mifflin-St Jeor + but) ;
-// tout reste modifiable à la main.
+// tout reste modifiable à la main. Le poids (dernière pesée) et la taille viennent du Profil : ils ne se ressaisissent pas ici.
 export default function ObjectifsNutritionScreen() {
   const navigate = useNavigate()
   const [profil, setProfil] = useState<ProfilNutrition>(PROFIL_DEFAUT)
+  const [mensurations] = useState(lireMensurations)
   const [o, setO] = useState<ObjectifsNutrition>(OBJECTIFS_DEFAUT)
   const [pret, setPret] = useState(false)
   const [erreur, setErreur] = useState('')
@@ -60,8 +62,11 @@ export default function ObjectifsNutritionScreen() {
     }
   }, [])
 
-  const erreurProfil = verifierProfil(profil)
-  const proposition = erreurProfil === null ? proposerObjectifs(profil) : null
+  // Poids et taille du Profil remplacent ceux d'un ancien enregistrement : un seul endroit pour les modifier
+  const mensurationsConnues = mensurations.poids !== null && mensurations.tailleCm !== null
+  const profilCalcul: ProfilNutrition = { ...profil, tailleCm: mensurations.tailleCm ?? Number.NaN, poidsKg: mensurations.poids?.kg ?? Number.NaN }
+  const erreurProfil = mensurationsConnues ? verifierProfil(profilCalcul) : null
+  const proposition = mensurationsConnues && erreurProfil === null ? proposerObjectifs(profilCalcul) : null
   const repartition = repartitionEnergie({ kcal: o.kcal, proteines: o.proteinesG, glucides: o.glucidesG, lipides: o.lipidesG, fibres: 0 })
   const energieMacros = kcalDesMacros(o.proteinesG, o.glucidesG, o.lipidesG)
 
@@ -76,7 +81,7 @@ export default function ObjectifsNutritionScreen() {
     setErreur('')
     setMessage('')
     try {
-      await enregistrerObjectifsNutrition(getDb(), { ...o, profilJson: erreurProfil === null ? JSON.stringify(profil) : null })
+      await enregistrerObjectifsNutrition(getDb(), { ...o, profilJson: mensurationsConnues && erreurProfil === null ? JSON.stringify(profilCalcul) : null })
       navigate('/nutrition')
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’enregistrement a échoué.')
@@ -95,10 +100,18 @@ export default function ObjectifsNutritionScreen() {
           <div className="outils__periodes" role="group" aria-label="Sexe">
             {(['homme', 'femme'] as Sexe[]).map((s) => <button key={s} type="button" className="outils__periode" aria-pressed={profil.sexe === s} onClick={() => setProfil({ ...profil, sexe: s })}>{s === 'homme' ? 'Homme' : 'Femme'}</button>)}
           </div>
-          <div className="nutri__trois">
-            <Nombre libelle="Âge" valeur={profil.age} unite="ans" min={14} max={100} onChange={(v) => setProfil({ ...profil, age: v })} />
-            <Nombre libelle="Taille" valeur={profil.tailleCm} unite="cm" min={120} max={230} onChange={(v) => setProfil({ ...profil, tailleCm: v })} />
-            <Nombre libelle="Poids" valeur={profil.poidsKg} unite="kg" min={30} max={250} onChange={(v) => setProfil({ ...profil, poidsKg: v })} />
+          <Nombre libelle="Âge" valeur={profil.age} unite="ans" min={14} max={100} onChange={(v) => setProfil({ ...profil, age: v })} />
+          <div className="nutri__mensurations" role="group" aria-label="Mensurations du Profil">
+            {mensurationsConnues ? (
+              <p>
+                Poids <strong>{decimal(mensurations.poids!.kg)} kg</strong> (pesée du {mensurations.poids!.date.split('-').reverse().join('/')}) · taille <strong>{mensurations.tailleCm} cm</strong>
+              </p>
+            ) : (
+              <p role="status">
+                {mensurations.poids === null && mensurations.tailleCm === null ? 'Votre poids et votre taille ne sont pas renseignés.' : mensurations.poids === null ? 'Votre poids n’est pas renseigné.' : 'Votre taille n’est pas renseignée.'}
+              </p>
+            )}
+            <Link className="bouton" to="/profile">{mensurationsConnues ? 'Modifier dans le Profil' : 'Les renseigner dans le Profil'}</Link>
           </div>
           <label className="formulaire__champ">
             Activité
@@ -115,7 +128,7 @@ export default function ObjectifsNutritionScreen() {
           {erreurProfil && <p role="alert">{erreurProfil}</p>}
           {proposition && (
             <>
-              <p className="aide">Métabolisme de base {entier(metabolismeDeBase(profil))} kcal. Proposition : <strong>{entier(proposition.kcal)} kcal</strong>, protéines {proposition.proteinesG} g, glucides {proposition.glucidesG} g, lipides {proposition.lipidesG} g, eau {entier(proposition.eauMl)} ml.</p>
+              <p className="aide">Métabolisme de base {entier(metabolismeDeBase(profilCalcul))} kcal. Proposition : <strong>{entier(proposition.kcal)} kcal</strong>, protéines {proposition.proteinesG} g, glucides {proposition.glucidesG} g, lipides {proposition.lipidesG} g, eau {entier(proposition.eauMl)} ml.</p>
               <button type="button" className="bouton" onClick={appliquer}>Utiliser cette proposition</button>
             </>
           )}

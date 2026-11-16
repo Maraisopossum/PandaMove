@@ -8886,6 +8886,9 @@ time,
 .profil__objectif-barre { display: block; height: 100%; border-radius: 999px; background: var(--profil-accent); }
 .profil__objectif-barre--atteint { background: var(--couleur-succes); }
 .profil__objectifs-form { display: grid; gap: 0.75rem; padding: 0.75rem; border-radius: var(--radius-bouton); background: var(--fond); }
+.profil__taille { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 0.75rem; }
+.profil__taille p { margin: 0; }
+.profil__taille form { flex-basis: 100%; }
 .profil__poids-haut { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
 .profil__poids-valeur { display: grid; gap: 0.125rem; }
 .profil__poids-valeur strong { font-family: var(--police-titres); font-size: 1.875rem; font-weight: 800; line-height: 1; }
@@ -9131,6 +9134,8 @@ time,
 .nutri__apports dt { color: var(--texte-secondaire); font-size: var(--taille-micro); }
 .nutri__apports dd { margin: 0; font-weight: 700; }
 .nutri__trois { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.nutri__mensurations { display: grid; gap: 0.5rem; padding: 0.625rem 0.75rem; border: 1px solid var(--bord); border-radius: var(--radius-bouton); background: var(--surface-douce, var(--surface)); }
+.nutri__mensurations p { margin: 0; }
 .nutri__recherche { display: grid; gap: 0.5rem; }
 .nutri__choix { width: 100%; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .nutri__scan { display: grid; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--bord); border-radius: var(--radius-carte); background: var(--surface); }

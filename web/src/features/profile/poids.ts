@@ -70,6 +70,44 @@ export function definirObjectifPoids(s: SuiviPoids, kg: number | null): SuiviPoi
   return suite
 }
 
+// Taille : réglage d'appareil lui aussi (clé `pandamove.taille`), saisi une fois dans le Profil. Nutrition la lit avec la dernière pesée
+// pour calculer les objectifs : le poids et la taille ne se ressaisissent nulle part ailleurs.
+export const CLE_TAILLE = 'pandamove.taille'
+export const TAILLE_MIN_CM = 120
+export const TAILLE_MAX_CM = 230
+
+export const tailleValide = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= TAILLE_MIN_CM && v <= TAILLE_MAX_CM
+
+export function lireTailleCm(): number | null {
+  try {
+    const v = Number(localStorage.getItem(CLE_TAILLE))
+    return tailleValide(v) ? Math.round(v) : null
+  } catch {
+    return null
+  }
+}
+
+/** Enregistre la taille (en cm) ; `null` l'efface. Hors de 120 à 230 cm : refusé (rend false). */
+export function definirTailleCm(cm: number | null): boolean {
+  if (cm !== null && !tailleValide(cm)) return false
+  try {
+    if (cm === null) localStorage.removeItem(CLE_TAILLE)
+    else localStorage.setItem(CLE_TAILLE, String(Math.round(cm)))
+  } catch {
+    // Stockage indisponible : la taille vaut pour la session seulement
+  }
+  return true
+}
+
+export interface Mensurations {
+  /** Dernière pesée, avec son jour ; null sans pesée. */
+  poids: Pesee | null
+  tailleCm: number | null
+}
+
+/** Poids (dernière pesée) et taille du Profil : la source unique des modules qui en ont besoin (Nutrition). */
+export const lireMensurations = (): Mensurations => ({ poids: lireSuiviPoids().pesees.at(-1) ?? null, tailleCm: lireTailleCm() })
+
 export interface BilanPoids {
   derniere: Pesee | null
   /** Écart en kg avec la pesée de 30 jours plus tôt (la plus proche avant ce jour, sinon la plus ancienne dans la fenêtre) ; null sans point de comparaison. */
