@@ -148,7 +148,7 @@ export default function AjouterAlimentScreen({ aujourdhui = dateIsoLocale(new Da
   const navigate = useNavigate()
   const date = jourDemande(params.get('date'), aujourdhui)
   const repas = repasDemande(params.get('repas'))
-  const retour = () => navigate(date === aujourdhui ? '/nutrition' : `/nutrition?date=${date}`)
+  const retour = () => navigate(date === aujourdhui ? '/nutrition' : `/nutrition?date=${date}`, { replace: true })
 
   const [texte, setTexte] = useState('')
   const [mes, setMes] = useState<Aliment[]>([])

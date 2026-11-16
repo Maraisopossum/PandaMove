@@ -1,4 +1,3 @@
-import { Link } from 'react-router'
 import { useSante } from './useAdmin'
 
 /** Au-delà de ce nombre de jours sans synchro, un compte est signalé comme « hors ligne depuis longtemps ». */
@@ -68,7 +67,6 @@ export default function AdminSanteScreen() {
           </section>
         </>
       )}
-      <Link className="plans__lien" to="/admin">Retour à l’administration</Link>
     </div>
   )
 }

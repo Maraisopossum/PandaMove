@@ -7,6 +7,7 @@ import { SyncIndicator } from '../core/sync/SyncIndicator'
 import { Drawer } from './Drawer'
 import type { ModuleInfo } from './modules'
 import type { Deconnexion } from './useDeconnexion'
+import type { Retour } from './useRetour'
 import { useAppShell } from './useAppShell'
 
 interface VueProps {
@@ -18,6 +19,8 @@ interface VueProps {
   deconnexion: Deconnexion
   messageAutreCompte: string | null
   demanderAbandon: () => void
+  /** Retour à l'écran parent (absent sur un écran racine). */
+  retour?: Retour | null
   indicateurSynchro: ReactNode
   /** Alerte des envois rejetés définitivement par le serveur (sous la barre du haut). */
   alerteEnvoi?: ReactNode
@@ -27,7 +30,7 @@ interface VueProps {
 }
 
 // Présentation pure de la coque : lien d'évitement, drawer, barre du haut colorée par module, contenu.
-export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon, indicateurSynchro, alerteEnvoi, seanceActive, children }: VueProps) {
+export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon, retour, indicateurSynchro, alerteEnvoi, seanceActive, children }: VueProps) {
   return (
     <div className="coque">
       <a className="coque__evitement" href="#contenu">
@@ -37,6 +40,13 @@ export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, de
       {drawer.ouvert && <div className="coque__voile" aria-hidden="true" onClick={drawer.fermer} />}
       <div className="coque__corps">
         <header className="barre" style={{ '--couleur-module': module.color } as CSSProperties}>
+          {retour && (
+            <button type="button" className="barre__retour" aria-label={`Retour : ${retour.libelle}`} onClick={retour.aller}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
           <button
             type="button"
             ref={refBascule}

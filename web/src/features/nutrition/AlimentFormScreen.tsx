@@ -38,7 +38,7 @@ function Formulaire({ id, initial }: { id: string | null; initial: Champs }) {
     try {
       if (id) await modifierAliment(getDb(), id, saisie)
       else await creerAliment(getDb(), saisie)
-      navigate('/nutrition/aliments')
+      navigate('/nutrition/aliments', { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’enregistrement a échoué.')
     }
@@ -66,7 +66,7 @@ function Formulaire({ id, initial }: { id: string | null; initial: Champs }) {
       {erreur && <p role="alert">{erreur}</p>}
       <div className="nutri__raccourcis">
         <button type="submit" className="bouton bouton--principal">Enregistrer</button>
-        <Link className="bouton" to="/nutrition/aliments">Annuler</Link>
+        <Link className="bouton" to="/nutrition/aliments" replace>Annuler</Link>
       </div>
     </form>
   )

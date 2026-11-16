@@ -82,7 +82,7 @@ export default function ObjectifsNutritionScreen() {
     setMessage('')
     try {
       await enregistrerObjectifsNutrition(getDb(), { ...o, profilJson: mensurationsConnues && erreurProfil === null ? JSON.stringify(profilCalcul) : null })
-      navigate('/nutrition')
+      navigate('/nutrition', { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’enregistrement a échoué.')
     }

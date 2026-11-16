@@ -193,7 +193,6 @@ function PlanReglable({ h }: { h: ReturnType<typeof useHyrox> }) {
           </article>
         ))}
       </section>
-      <Link className="plans__lien" to="/hyrox">Retour à Hyrox</Link>
     </div>
   )
 }

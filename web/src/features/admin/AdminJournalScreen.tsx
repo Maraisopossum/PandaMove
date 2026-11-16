@@ -1,4 +1,3 @@
-import { Link } from 'react-router'
 import { useJournal } from './useAdmin'
 
 const dateHeure = (iso: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
@@ -26,7 +25,6 @@ export default function AdminJournalScreen() {
             ))}
           </ul>
         ))}
-      <Link className="plans__lien" to="/admin">Retour à l’administration</Link>
     </div>
   )
 }

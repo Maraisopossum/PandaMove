@@ -1,7 +1,6 @@
 import { Link } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
 import type { Sport } from '../../core/db/repos/sorties'
-import { CHEMIN_SPORT } from './chemins'
 import { formaterDate, formaterDuree } from './presentation'
 import { ancienneteRecord, courbeEvolution, valeurAutre } from './presentationRecords'
 import { useRecordsSorties, useToutesLesSorties } from './useRecordsSorties'
@@ -15,18 +14,12 @@ export default function RecordsSortiesScreen({ sport, maintenant = MAINTENANT }:
   const { sorties, charge, erreur } = useToutesLesSorties()
   const { records } = useRecordsSorties(sorties, sport)
   const aujourdhui = dateIsoLocale(maintenant())
-  const chemin = CHEMIN_SPORT[sport]
   const courbe = courbeEvolution(records.evolution5k)
   const evolution = records.evolution5k.length >= 2 ? records.evolution5k[0].dureeS - records.evolution5k[records.evolution5k.length - 1].dureeS : null
 
   return (
     <div className={`sorties sorties--${sport}`}>
       <header>
-        <p className="sorties__retour-haut">
-          <Link to={chemin} className="sorties__semaine-lien">
-            ← {sport === 'course' ? 'Course' : 'Vélo'}
-          </Link>
-        </p>
         <h1 className="titre-ecran">Records</h1>
       </header>
 

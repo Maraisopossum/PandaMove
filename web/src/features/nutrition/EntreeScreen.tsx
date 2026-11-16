@@ -30,7 +30,7 @@ function Edition({ entree }: { entree: EntreeJournal }) {
     setErreur('')
     try {
       await modifierEntree(getDb(), entree.id, { repas, quantiteG: quantite, apport: par100 ? apportPourQuantite(par100, quantite) : entree.apport })
-      navigate(retourJournal(entree))
+      navigate(retourJournal(entree), { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’enregistrement a échoué.')
       setOccupe(false)
@@ -41,7 +41,7 @@ function Edition({ entree }: { entree: EntreeJournal }) {
     setOccupe(true)
     try {
       await supprimerEntree(getDb(), entree.id)
-      navigate(retourJournal(entree))
+      navigate(retourJournal(entree), { replace: true })
     } catch {
       setErreur('La suppression a échoué.')
       setOccupe(false)
@@ -65,7 +65,7 @@ function Edition({ entree }: { entree: EntreeJournal }) {
       {erreur && <p role="alert">{erreur}</p>}
       <div className="nutri__raccourcis">
         <button type="button" className="bouton bouton--principal" disabled={occupe || (peutRecalculer && quantite <= 0)} onClick={() => void enregistrer()}>Enregistrer</button>
-        <Link className="bouton" to={retourJournal(entree)}>Annuler</Link>
+        <Link className="bouton" to={retourJournal(entree)} replace>Annuler</Link>
       </div>
       {!confirme ? (
         <button type="button" className="bouton bouton--alerte" onClick={() => setConfirme(true)}>Supprimer cette ligne</button>

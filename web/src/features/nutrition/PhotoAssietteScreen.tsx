@@ -48,7 +48,7 @@ function Revue({ analyse, repasInitial, date, aujourdhui, recommencer }: { analy
     setErreur('')
     try {
       await ajouterEntrees(getDb(), valides.map((a) => ({ date, repas, nom: a.nom.trim(), quantiteG: a.quantiteG, apport: apportEstime(a), source: 'ia' as const })))
-      navigate(date === aujourdhui ? '/nutrition' : `/nutrition?date=${date}`)
+      navigate(date === aujourdhui ? '/nutrition' : `/nutrition?date=${date}`, { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’ajout a échoué.')
       setOccupe(false)

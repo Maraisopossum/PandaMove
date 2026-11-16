@@ -45,7 +45,6 @@ export default function RecordsHyroxScreen() {
           </ul>
         )}
       </section>
-      <Link className="plans__lien" to="/hyrox">Retour à Hyrox</Link>
     </div>
   )
 }

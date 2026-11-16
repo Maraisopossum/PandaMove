@@ -39,7 +39,7 @@ export function useSuppressionSeanceEnCours(instanceId: string, db?: Db, avantQu
       await supprimerInstanceRenforcement(db ?? getDb(), instanceId)
       setOuverte(false)
       avantQuitter?.()
-      await navigate('/strength/planned')
+      await navigate('/strength/planned', { replace: true })
     } catch (e) {
       if (e instanceof ErreurSeance || e instanceof ErreurCalendrier) setErreur(e.message)
       else {

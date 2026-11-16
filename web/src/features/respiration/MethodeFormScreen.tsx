@@ -69,7 +69,7 @@ export default function MethodeFormScreen() {
       noValidate
       onSubmit={(e) => {
         e.preventDefault()
-        void form.enregistrer().then((ok) => ok && navigate('/breathing'))
+        void form.enregistrer().then((ok) => ok && navigate('/breathing', { replace: true }))
       }}
     >
       <h1 className="titre-ecran">{id === undefined ? 'Nouvelle méthode' : 'Modifier la méthode'}</h1>

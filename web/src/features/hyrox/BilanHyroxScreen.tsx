@@ -97,9 +97,8 @@ export default function BilanHyroxScreen() {
           </button>
         )}
         {erreur && <p role="alert">{erreur}</p>}
-        <button type="button" className="bouton bouton--alerte" onClick={() => void agir(() => supprimerSimulation(getDb(), sim.id), () => navigate('/hyrox'))}>Supprimer la simulation</button>
+        <button type="button" className="bouton bouton--alerte" onClick={() => void agir(() => supprimerSimulation(getDb(), sim.id), () => navigate('/hyrox', { replace: true }))}>Supprimer la simulation</button>
       </section>
-      <Link className="plans__lien" to="/hyrox">Retour à Hyrox</Link>
     </div>
   )
 }

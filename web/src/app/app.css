@@ -223,6 +223,7 @@ time,
 
 /* Boutons : cible tactile de 48 px (--hauteur-controle) */
 .bouton,
+.barre__retour,
 .barre__menu {
   min-height: var(--hauteur-controle);
   min-width: var(--hauteur-controle);
@@ -496,6 +497,7 @@ time,
   color: #fff;
 }
 
+.barre__retour,
 .barre__menu {
   display: grid;
   place-items: center;
@@ -505,6 +507,7 @@ time,
   color: inherit;
 }
 
+.barre__retour svg,
 .barre__menu svg {
   width: 24px;
   height: 24px;
