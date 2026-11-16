@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { creerCourseHyrox, ErreurHyrox, modifierCourseHyrox, supprimerCourseHyrox } from '../../core/db/repos/hyrox'
+import { ErreurHyrox } from '../../core/db/repos/hyrox'
 import { formaterTemps } from '../plans/echeances'
 import {
   ciblesCourseComplete, ecartObjectifPct, ecrireRepartition, formaterChrono, lireTempsHyrox, PART_COURSES_MAX, PART_COURSES_MIN, SEUIL_ECART_OBJECTIF_PCT,
 } from './simulation'
 import { CATEGORIES_HYROX, GENRES_HYROX, LIBELLE_CATEGORIE, LIBELLE_GENRE, STATIONS, type CategorieHyrox, type GenreHyrox } from './stations'
+import { useEcrituresHyrox } from './useAccesHyrox'
 import { useHyrox } from './useHyrox'
 
 // Objectif Hyrox : nom, catégorie, genre, temps visé et répartition entre courses et stations. La date et le lieu sont facultatifs :
@@ -20,6 +20,7 @@ export default function ObjectifHyroxScreen() {
 
 function FormulaireObjectif({ h }: { h: ReturnType<typeof useHyrox> }) {
   const navigate = useNavigate()
+  const ecriture = useEcrituresHyrox()
   const objectif = h.objectif
   const [nom, setNom] = useState(objectif?.nom ?? 'Préparation Hyrox')
   const [lieu, setLieu] = useState(objectif?.lieu ?? '')
@@ -46,8 +47,8 @@ function FormulaireObjectif({ h }: { h: ReturnType<typeof useHyrox> }) {
     }
     try {
       const saisie = { nom, lieu, date: date || null, categorie, genre, objectifS: cibleS, resultatS, repartitionJson: ecrireRepartition({ partCoursesPct: part }, objectif?.repartitionJson) }
-      if (objectif) await modifierCourseHyrox(getDb(), objectif.id, saisie)
-      else await creerCourseHyrox(getDb(), saisie)
+      if (objectif) await ecriture.modifierObjectif(objectif.id, saisie)
+      else await ecriture.creerObjectif(saisie)
       navigate('/hyrox', { replace: true })
     } catch (err) {
       setErreur(err instanceof ErreurHyrox ? err.message : 'L’enregistrement a échoué.')
@@ -57,7 +58,7 @@ function FormulaireObjectif({ h }: { h: ReturnType<typeof useHyrox> }) {
   async function supprimer() {
     if (!objectif) return
     try {
-      await supprimerCourseHyrox(getDb(), objectif.id)
+      await ecriture.supprimerObjectif(objectif.id)
       navigate('/hyrox', { replace: true })
     } catch {
       setErreur('La suppression a échoué.')

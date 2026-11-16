@@ -38,7 +38,7 @@ export function AppShellView({ module, drawer, refBascule, refDrawer, sombre, de
       </a>
       <Drawer refNav={refDrawer} ouvert={drawer.ouvert} onNavigation={drawer.fermer} deconnexion={deconnexion} sombre={sombre} />
       {drawer.ouvert && <div className="coque__voile" aria-hidden="true" onClick={drawer.fermer} />}
-      <div className="coque__corps">
+      <div className="coque__corps" style={{ '--couleur-module': module.color } as CSSProperties}>
         <header className="barre" style={{ '--couleur-module': module.color } as CSSProperties}>
           {retour && (
             <button type="button" className="barre__retour" aria-label={`Retour : ${retour.libelle}`} onClick={retour.aller}>

@@ -1,9 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { creerAliment, lireAliment, modifierAliment } from '../../core/db/repos/nutrition'
 import { ecartEnergie, kcalDesMacros } from '../../core/nutrition/calculs'
 import { entier } from './outils'
+import { useAccesNutrition } from './useAccesNutrition'
 
 interface Champs {
   nom: string
@@ -22,6 +21,7 @@ const VIDE: Champs = { nom: '', marque: '', codeBarres: '', kcal: '', p: '', g: 
 const n = (s: string) => (s.trim() === '' ? 0 : Number(s.replace(',', '.')))
 
 function Formulaire({ id, initial }: { id: string | null; initial: Champs }) {
+  const acces = useAccesNutrition()
   const navigate = useNavigate()
   const [v, setV] = useState(initial)
   const [erreur, setErreur] = useState('')
@@ -36,8 +36,8 @@ function Formulaire({ id, initial }: { id: string | null; initial: Champs }) {
       kcal100: n(v.kcal), proteines100: n(v.p), glucides100: n(v.g), lipides100: n(v.l), fibres100: v.fibres.trim() === '' ? null : n(v.fibres),
     }
     try {
-      if (id) await modifierAliment(getDb(), id, saisie)
-      else await creerAliment(getDb(), saisie)
+      if (id) await acces.modifierAliment(id, saisie)
+      else await acces.creerAliment(saisie)
       navigate('/nutrition/aliments', { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’enregistrement a échoué.')
@@ -74,6 +74,7 @@ function Formulaire({ id, initial }: { id: string | null; initial: Champs }) {
 
 // Création et modification d'un aliment personnel (/nutrition/aliments/new et /nutrition/aliments/:id).
 export default function AlimentFormScreen() {
+  const acces = useAccesNutrition()
   const { id } = useParams()
   const edition = id && id !== 'new' ? id : null
   const [etat, setEtat] = useState<{ pret: boolean; initial: Champs | null }>({ pret: !edition, initial: edition ? null : VIDE })
@@ -81,7 +82,7 @@ export default function AlimentFormScreen() {
   useEffect(() => {
     if (!edition) return
     let annule = false
-    lireAliment(getDb(), edition)
+    acces.lireAliment(edition)
       .then((a) => {
         if (annule) return
         setEtat({
@@ -96,7 +97,7 @@ export default function AlimentFormScreen() {
     return () => {
       annule = true
     }
-  }, [edition])
+  }, [edition, acces])
 
   return (
     <div className="plans nutri">

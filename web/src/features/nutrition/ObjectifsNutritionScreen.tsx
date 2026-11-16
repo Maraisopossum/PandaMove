@@ -1,12 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { enregistrerObjectifsNutrition, lireObjectifsNutrition } from '../../core/db/repos/nutrition'
 import {
   kcalDesMacros, LIBELLE_ACTIVITE, LIBELLE_BUT, metabolismeDeBase, proposerObjectifs, repartitionEnergie, verifierProfil, type Activite, type But, type ObjectifsNutrition, type ProfilNutrition, type Sexe,
 } from '../../core/nutrition/calculs'
 import { lireMensurations } from '../profile/poids'
 import { entier, decimal } from './outils'
+import { useAccesNutrition } from './useAccesNutrition'
 
 const PROFIL_DEFAUT: ProfilNutrition = { sexe: 'homme', age: 35, tailleCm: 175, poidsKg: 75, activite: 'moderee', but: 'maintien' }
 const OBJECTIFS_DEFAUT: ObjectifsNutrition = { kcal: 2400, proteinesG: 120, glucidesG: 280, lipidesG: 75, eauMl: 2500 }
@@ -34,6 +33,7 @@ function Nombre({ libelle, valeur, onChange, unite, min, max }: { libelle: strin
 // Objectifs quotidiens : énergie, protéines, glucides, lipides, eau. Un calculateur propose un point de départ (Mifflin-St Jeor + but) ;
 // tout reste modifiable à la main. Le poids (dernière pesée) et la taille viennent du Profil : ils ne se ressaisissent pas ici.
 export default function ObjectifsNutritionScreen() {
+  const acces = useAccesNutrition()
   const navigate = useNavigate()
   const [profil, setProfil] = useState<ProfilNutrition>(PROFIL_DEFAUT)
   const [mensurations] = useState(lireMensurations)
@@ -44,7 +44,7 @@ export default function ObjectifsNutritionScreen() {
 
   useEffect(() => {
     let annule = false
-    lireObjectifsNutrition(getDb())
+    acces.lireObjectifs()
       .then((actuel) => {
         if (annule) return
         if (actuel) setO({ kcal: actuel.kcal, proteinesG: actuel.proteinesG, glucidesG: actuel.glucidesG, lipidesG: actuel.lipidesG, eauMl: actuel.eauMl })
@@ -60,7 +60,7 @@ export default function ObjectifsNutritionScreen() {
     return () => {
       annule = true
     }
-  }, [])
+  }, [acces])
 
   // Poids et taille du Profil remplacent ceux d'un ancien enregistrement : un seul endroit pour les modifier
   const mensurationsConnues = mensurations.poids !== null && mensurations.tailleCm !== null
@@ -81,7 +81,7 @@ export default function ObjectifsNutritionScreen() {
     setErreur('')
     setMessage('')
     try {
-      await enregistrerObjectifsNutrition(getDb(), { ...o, profilJson: mensurationsConnues && erreurProfil === null ? JSON.stringify(profilCalcul) : null })
+      await acces.enregistrerObjectifs({ ...o, profilJson: mensurationsConnues && erreurProfil === null ? JSON.stringify(profilCalcul) : null })
       navigate('/nutrition', { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’enregistrement a échoué.')

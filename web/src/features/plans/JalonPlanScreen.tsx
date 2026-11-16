@@ -2,12 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
 import { useAuth } from '../../core/auth/AuthProvider'
-import { getDb } from '../../core/db/client'
-import { creerObjectifPlan, idObjectifDeJalon, lireObjectifPlan, modifierObjectifPlan } from '../../core/db/repos/objectifsPlan'
+import { idObjectifDeJalon } from '../../core/db/repos/objectifsPlan'
 import { formaterMinutes } from '../calendar/chargeCalendrier'
 import { formaterTemps, lireTemps } from './echeances'
 import { LIBELLE_PHASE } from './phases'
 import { joursEntre, realisationEntre } from './plan'
+import { useAccesPlans } from './useAccesPlans'
 import { usePlans } from './usePlans'
 
 const jour = (iso: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8), 12))
@@ -20,6 +20,7 @@ export default function JalonPlanScreen() {
   const { session } = useAuth()
   const aujourdhui = dateIsoLocale(new Date())
   const p = usePlans({ aujourdhui })
+  const acces = useAccesPlans()
   const [cibleTexte, setCibleTexte] = useState<string | null>(null)
   const [resultatTexte, setResultatTexte] = useState<string | null>(null)
   const [erreur, setErreur] = useState('')
@@ -49,11 +50,9 @@ export default function JalonPlanScreen() {
       return
     }
     try {
-      const base = getDb()
       const saisie = { nom: e.nom, discipline: e.discipline, date: e.date, priorite: e.priorite, cibleS, resultatS, statut: resultatS !== null ? ('fait' as const) : e.statut, seanceId: e.seanceId }
       const id = e.objectifId ?? (e.seanceId && session?.user.id ? idObjectifDeJalon(session.user.id, e.seanceId) : null)
-      if (id && (await lireObjectifPlan(base, id))) await modifierObjectifPlan(base, id, saisie)
-      else await creerObjectifPlan(base, id ? { ...saisie, id } : saisie)
+      await acces.enregistrerObjectifDeJalon(id, saisie)
       setCibleTexte(null)
       setResultatTexte(null)
       p.recharger()

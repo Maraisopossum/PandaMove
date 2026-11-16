@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { enregistrerCourseOfficielle, modifierCourseHyrox } from '../../core/db/repos/hyrox'
 import { ciblesCourseComplete, ecrireRepartition, formaterChrono, lireTempsHyrox, NOM_COURSE_COURT, SEGMENTS_COMPLETS } from './simulation'
 import { chargeStation, STATION_PAR_CLE } from './stations'
+import { useEcrituresHyrox } from './useAccesHyrox'
 import { useHyrox } from './useHyrox'
 
 const CLE_LISTE = 'pandamove.hyrox.checklist'
@@ -36,6 +35,7 @@ const nomSegment = (rang: number) => {
 export default function JourJHyroxScreen() {
   const navigate = useNavigate()
   const h = useHyrox()
+  const ecriture = useEcrituresHyrox()
   const [coches, setCoches] = useState(lireCoches)
   const [saisies, setSaisies] = useState<string[]>(() => Array.from({ length: 16 }, () => ''))
   const [erreur, setErreur] = useState('')
@@ -80,8 +80,7 @@ export default function JourJHyroxScreen() {
       return
     }
     try {
-      const db = getDb()
-      const id = await enregistrerCourseOfficielle(db, {
+      const id = await ecriture.enregistrerCourseOfficielle({
         courseId: objectif?.id ?? null, categorie, genre, debutAt: objectif?.date ? new Date(`${objectif.date}T12:00:00`).toISOString() : undefined,
         segments: SEGMENTS_COMPLETS.map((s, i) => ({
           rang: s.rang, type: s.type, station: s.station, cibleS: cibles ? cibles[i] : null, chargeLabel: s.station ? chargeStation(s.station, categorie, genre) : null, reelS: temps[i],
@@ -89,7 +88,7 @@ export default function JourJHyroxScreen() {
       })
       if (objectif && temps.every((t) => t !== null)) {
         const total = temps.reduce((t, x) => t + (x ?? 0), 0)
-        await modifierCourseHyrox(db, objectif.id, {
+        await ecriture.modifierObjectif(objectif.id, {
           nom: objectif.nom, lieu: objectif.lieu, date: objectif.date, categorie: objectif.categorie, genre: objectif.genre, objectifS: objectif.objectifS,
           resultatS: total, repartitionJson: objectif.repartitionJson ?? ecrireRepartition(h.repartition),
         })

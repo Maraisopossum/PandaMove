@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
-import { getDb } from '../../core/db/client'
-import {
-  ajouterEntree, alimentsFrequents, creerAliment, lireAlimentParCodeBarres, listerAliments, type Aliment, type AlimentRecent, type SourceEntree,
-} from '../../core/db/repos/nutrition'
+import type { Aliment, AlimentRecent, SourceEntree } from '../../core/db/repos/nutrition'
 import { chercherDansBase, normaliserTexte, type AlimentBase } from '../../core/nutrition/baseAliments'
 import { apportPourQuantite, ecartEnergie, LIBELLE_REPAS, REPAS, estRepas, type Valeurs100 } from '../../core/nutrition/calculs'
 import { codeBarresValide, produitParCodeBarres, rechercherProduits, type ProduitOff } from '../../core/nutrition/openFoodFacts'
 import { PanneauQuantite } from './composants'
 import { decalerJour, decimal, entier, jourDemande, libelleJour, repasDemande, scanPossible } from './outils'
+import { useAccesNutrition } from './useAccesNutrition'
 import { ScanCodeBarres } from './ScanCodeBarres'
 
 interface Choix {
@@ -49,6 +47,7 @@ const depuisFrequent = (f: AlimentRecent): Choix => {
 const resume = (v: Valeurs100) => `${entier(v.kcal)} kcal · P ${decimal(v.proteines)} · G ${decimal(v.glucides)} · L ${decimal(v.lipides)} pour 100 g`
 
 function Panneau({ choix, repas, date, retour, annuler }: { choix: Choix; repas: (typeof REPAS)[number]; date: string; retour: () => void; annuler: () => void }) {
+  const acces = useAccesNutrition()
   const [quantite, setQuantite] = useState(choix.quantiteInitiale)
   const [repasChoisi, setRepasChoisi] = useState(repas)
   const [garder, setGarder] = useState(choix.gardable)
@@ -59,16 +58,15 @@ function Panneau({ choix, repas, date, retour, annuler }: { choix: Choix; repas:
     setOccupe(true)
     setErreur('')
     try {
-      const db = getDb()
       let alimentId = choix.alimentId
       if (garder && !alimentId) {
-        const existant = choix.codeBarres ? await lireAlimentParCodeBarres(db, choix.codeBarres) : null
-        alimentId = existant?.id ?? (await creerAliment(db, {
+        const existant = choix.codeBarres ? await acces.lireAlimentParCodeBarres(choix.codeBarres) : null
+        alimentId = existant?.id ?? (await acces.creerAliment({
           nom: choix.nom, marque: choix.marque, codeBarres: choix.codeBarres, portionG: choix.portionG ?? 100, portionLabel: choix.portionLabel,
           kcal100: choix.valeurs.kcal, proteines100: choix.valeurs.proteines, glucides100: choix.valeurs.glucides, lipides100: choix.valeurs.lipides, fibres100: choix.valeurs.fibres, source: 'off',
         }))
       }
-      await ajouterEntree(db, { date, repas: repasChoisi, nom: choix.nom, quantiteG: quantite, apport: apportPourQuantite(choix.valeurs, quantite), alimentId, source: choix.source })
+      await acces.ajouterEntree({ date, repas: repasChoisi, nom: choix.nom, quantiteG: quantite, apport: apportPourQuantite(choix.valeurs, quantite), alimentId, source: choix.source })
       retour()
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’ajout a échoué.')
@@ -103,6 +101,7 @@ function Panneau({ choix, repas, date, retour, annuler }: { choix: Choix; repas:
 }
 
 function SaisieRapide({ repas, date, retour }: { repas: (typeof REPAS)[number]; date: string; retour: () => void }) {
+  const acces = useAccesNutrition()
   const [v, setV] = useState({ nom: '', kcal: '', p: '', g: '', l: '', q: '' })
   const [erreur, setErreur] = useState('')
   const champ = (cle: keyof typeof v) => (e: { target: { value: string } }) => setV((x) => ({ ...x, [cle]: e.target.value }))
@@ -113,7 +112,7 @@ function SaisieRapide({ repas, date, retour }: { repas: (typeof REPAS)[number]; 
     ev.preventDefault()
     setErreur('')
     try {
-      await ajouterEntree(getDb(), {
+      await acces.ajouterEntree({
         date, repas, nom: v.nom, quantiteG: n(v.q), source: 'manuel',
         apport: { kcal: n(v.kcal), proteines: n(v.p), glucides: n(v.g), lipides: n(v.l), fibres: 0 },
       })
@@ -144,6 +143,7 @@ function SaisieRapide({ repas, date, retour }: { repas: (typeof REPAS)[number]; 
 
 // Ajout d'un aliment au journal : fréquents, mes aliments, base intégrée (hors ligne), Open Food Facts (texte ou code-barres) et saisie rapide.
 export default function AjouterAlimentScreen({ aujourdhui = dateIsoLocale(new Date()) }: { aujourdhui?: string }) {
+  const acces = useAccesNutrition()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const date = jourDemande(params.get('date'), aujourdhui)
@@ -162,8 +162,7 @@ export default function AjouterAlimentScreen({ aujourdhui = dateIsoLocale(new Da
 
   useEffect(() => {
     let annule = false
-    const db = getDb()
-    Promise.all([listerAliments(db), alimentsFrequents(db, decalerJour(aujourdhui, -60))])
+    Promise.all([acces.listerAliments(), acces.alimentsFrequents(decalerJour(aujourdhui, -60))])
       .then(([a, f]) => {
         if (annule) return
         setMes(a)
@@ -173,7 +172,7 @@ export default function AjouterAlimentScreen({ aujourdhui = dateIsoLocale(new Da
     return () => {
       annule = true
     }
-  }, [aujourdhui])
+  }, [aujourdhui, acces])
 
   const recherche = normaliserTexte(texte)
   const mesTrouves = useMemo(() => (recherche ? mes.filter((a) => normaliserTexte(`${a.nom} ${a.marque ?? ''}`).includes(recherche)) : mes.filter((a) => a.favori)), [mes, recherche])
@@ -199,7 +198,7 @@ export default function AjouterAlimentScreen({ aujourdhui = dateIsoLocale(new Da
     setChargement(true)
     setMessage('')
     try {
-      const local = await lireAlimentParCodeBarres(getDb(), code.trim())
+      const local = await acces.lireAlimentParCodeBarres(code.trim())
       setChoix(local ? depuisAliment(local) : depuisProduit(await produitParCodeBarres(code)))
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Le produit n’a pas pu être lu.')

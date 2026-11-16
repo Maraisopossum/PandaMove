@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { dateIsoLocale } from '../../core/common/dates'
 import { ecart } from '../../core/common/ecart'
-import { getDb } from '../../core/db/client'
 import type { DbLecture } from '../../core/db/Db'
-import { lireSeancesDepuis, type SeanceRespirationDatee } from '../../core/db/repos/respiration'
 import { duree } from '../home/bilanSemaine'
 import { PERIODES, type PeriodeId } from '../stats/periode'
 import { formaterJourMois } from '../stats/presentation'
 import { lireObjectifQuotidien } from './reglages'
 import { minutesParSemaine, statsPeriode, type Moment } from './statsRespiration'
+import { useSeancesRespiration } from './useSeancesRespiration'
 
 const MAINTENANT = () => new Date()
 const FORMAT_1 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 })
@@ -20,22 +19,8 @@ const NOMS_MOMENT: { id: Moment; nom: string }[] = [
 // et moments de la journée. Tout est calculé sur l'appareil (statsRespiration.ts) ; l'objectif hebdomadaire est l'objectif
 // quotidien réglé à l'écran Respiration, sur sept jours.
 export default function StatsRespirationScreen({ db, maintenant = MAINTENANT }: { db?: DbLecture; maintenant?: () => Date }) {
-  const [seances, setSeances] = useState<SeanceRespirationDatee[] | null>(null)
-  const [erreur, setErreur] = useState<string | null>(null)
+  const { seances, erreur } = useSeancesRespiration(db)
   const [periode, setPeriode] = useState<PeriodeId>('30j')
-
-  useEffect(() => {
-    let annule = false
-    lireSeancesDepuis(db ?? getDb(), '0000-01-01')
-      .then((l) => !annule && setSeances(l))
-      .catch((e: unknown) => {
-        console.error('Lecture des séances de respiration impossible', e)
-        if (!annule) setErreur('Le chargement des statistiques a échoué.')
-      })
-    return () => {
-      annule = true
-    }
-  }, [db])
 
   // « Maintenant » est lu une fois à l'ouverture de l'écran : les statistiques ne bougent pas pendant la consultation
   const [now] = useState(maintenant)

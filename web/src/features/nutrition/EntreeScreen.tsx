@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { lireEntree, modifierEntree, supprimerEntree, type EntreeJournal } from '../../core/db/repos/nutrition'
+import type { EntreeJournal } from '../../core/db/repos/nutrition'
 import { apportPourQuantite, estRepas, LIBELLE_REPAS, mettreALEchelle, REPAS, type Repas } from '../../core/nutrition/calculs'
 import { PanneauQuantite } from './composants'
 import { decimal, entier } from './outils'
+import { useAccesNutrition } from './useAccesNutrition'
 
 const retourJournal = (e: EntreeJournal) => `/nutrition?date=${e.date}`
 
 function Edition({ entree }: { entree: EntreeJournal }) {
+  const acces = useAccesNutrition()
   const navigate = useNavigate()
   const [quantite, setQuantite] = useState(entree.quantiteG)
   const [repas, setRepas] = useState<Repas>(entree.repas === 'eau' ? 'collation' : entree.repas)
@@ -29,7 +30,7 @@ function Edition({ entree }: { entree: EntreeJournal }) {
     setOccupe(true)
     setErreur('')
     try {
-      await modifierEntree(getDb(), entree.id, { repas, quantiteG: quantite, apport: par100 ? apportPourQuantite(par100, quantite) : entree.apport })
+      await acces.modifierEntree(entree.id, { repas, quantiteG: quantite, apport: par100 ? apportPourQuantite(par100, quantite) : entree.apport })
       navigate(retourJournal(entree), { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’enregistrement a échoué.')
@@ -40,7 +41,7 @@ function Edition({ entree }: { entree: EntreeJournal }) {
   async function supprimer() {
     setOccupe(true)
     try {
-      await supprimerEntree(getDb(), entree.id)
+      await acces.supprimerEntree(entree.id)
       navigate(retourJournal(entree), { replace: true })
     } catch {
       setErreur('La suppression a échoué.')
@@ -82,18 +83,19 @@ function Edition({ entree }: { entree: EntreeJournal }) {
 
 // Correction d'une ligne du journal : quantité (apports recalculés), repas, suppression.
 export default function EntreeScreen() {
+  const acces = useAccesNutrition()
   const { id = '' } = useParams()
   const [etat, setEtat] = useState<{ pret: boolean; entree: EntreeJournal | null }>({ pret: false, entree: null })
 
   useEffect(() => {
     let annule = false
-    lireEntree(getDb(), id)
+    acces.lireEntree(id)
       .then((entree) => !annule && setEtat({ pret: true, entree }))
       .catch(() => !annule && setEtat({ pret: true, entree: null }))
     return () => {
       annule = true
     }
-  }, [id])
+  }, [id, acces])
 
   return (
     <div className="plans nutri">

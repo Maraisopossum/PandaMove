@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { basculerFavori, listerAliments, supprimerAliment, type Aliment } from '../../core/db/repos/nutrition'
+import type { Aliment } from '../../core/db/repos/nutrition'
 import { decimal, entier } from './outils'
+import { useAccesNutrition } from './useAccesNutrition'
 
 // Mes aliments : catalogue personnel (créés à la main, produits scannés, aliments issus d'une photo). Favoris en premier.
 export default function MesAlimentsScreen() {
+  const acces = useAccesNutrition()
   const [aliments, setAliments] = useState<Aliment[] | null>(null)
   const [version, setVersion] = useState(0)
   const [erreur, setErreur] = useState('')
@@ -13,7 +14,7 @@ export default function MesAlimentsScreen() {
 
   useEffect(() => {
     let annule = false
-    listerAliments(getDb())
+    acces.listerAliments()
       .then((a) => !annule && setAliments(a))
       .catch(() => {
         if (annule) return
@@ -23,7 +24,7 @@ export default function MesAlimentsScreen() {
     return () => {
       annule = true
     }
-  }, [version])
+  }, [version, acces])
 
   async function agir(action: () => Promise<void>, echec: string) {
     setErreur('')
@@ -51,9 +52,9 @@ export default function MesAlimentsScreen() {
                 <strong>{a.nom}{a.marque ? ` · ${a.marque}` : ''}</strong>
                 <span className="plans__phase-detail">{entier(a.kcal100)} kcal · P {decimal(a.proteines100)} · G {decimal(a.glucides100)} · L {decimal(a.lipides100)} pour 100 g</span>
               </Link>
-              <button type="button" className="bouton nutri__etoile" aria-pressed={a.favori} aria-label={a.favori ? `Retirer ${a.nom} des favoris` : `Mettre ${a.nom} en favori`} onClick={() => void agir(() => basculerFavori(getDb(), a.id), 'Le favori n’a pas pu être changé.')}>{a.favori ? '★' : '☆'}</button>
+              <button type="button" className="bouton nutri__etoile" aria-pressed={a.favori} aria-label={a.favori ? `Retirer ${a.nom} des favoris` : `Mettre ${a.nom} en favori`} onClick={() => void agir(() => acces.basculerFavori(a.id), 'Le favori n’a pas pu être changé.')}>{a.favori ? '★' : '☆'}</button>
               {aSupprimer === a.id ? (
-                <button type="button" className="bouton bouton--alerte" onClick={() => void agir(() => supprimerAliment(getDb(), a.id), 'La suppression a échoué.')}>Confirmer</button>
+                <button type="button" className="bouton bouton--alerte" onClick={() => void agir(() => acces.supprimerAliment(a.id), 'La suppression a échoué.')}>Confirmer</button>
               ) : (
                 <button type="button" className="bouton" aria-label={`Supprimer ${a.nom}`} onClick={() => setASupprimer(a.id)}>×</button>
               )}

@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { lireHistoriqueStation, type PassageStation } from '../../core/db/repos/hyrox'
 import { ciblesCourseComplete, formaterChrono, SEGMENTS_COMPLETS } from './simulation'
 import { chargeStation, estCleStation, STATION_PAR_CLE } from './stations'
 import { DETAIL_STATION } from './stationsDetail'
+import { useHistoriqueStation } from './useAccesHyrox'
 import { useHyrox } from './useHyrox'
 
 const dateCourte = (iso: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(iso))
@@ -13,17 +11,8 @@ const dateCourte = (iso: string) => new Intl.DateTimeFormat('fr-FR', { day: 'num
 export default function StationDetailHyroxScreen() {
   const { cle = '' } = useParams()
   const h = useHyrox()
-  const [passages, setPassages] = useState<PassageStation[]>([])
   const valide = estCleStation(cle)
-
-  useEffect(() => {
-    if (!valide) return
-    let annule = false
-    lireHistoriqueStation(getDb(), cle).then((p) => !annule && setPassages(p)).catch(() => {})
-    return () => {
-      annule = true
-    }
-  }, [cle, valide])
+  const passages = useHistoriqueStation(cle, valide)
 
   if (!valide) return <div className="plans hyrox"><h1 className="titre-ecran">Station</h1><p>Station introuvable. <Link to="/hyrox/stations">Retour aux stations</Link></p></div>
 

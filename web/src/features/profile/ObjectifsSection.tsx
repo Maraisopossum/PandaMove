@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { urlIcone } from '../../app/modules'
-import { getDb } from '../../core/db/client'
 import type { DbLecture } from '../../core/db/Db'
 import { ecrireObjectif, lireObjectif, OBJECTIF_MAX_KM, OBJECTIF_MIN_KM } from '../endurance/objectif'
 import {
   ecrireObjectifQuotidien, OBJECTIF_QUOTIDIEN_MAX, OBJECTIF_QUOTIDIEN_MIN, lireObjectifQuotidien,
 } from '../respiration/reglages'
-import { ecrireObjectifsPerso, LIMITES_OBJECTIFS, lireObjectifsPerso, lireProgressionObjectifs, type ProgressionObjectif } from './objectifs'
+import { ecrireObjectifsPerso, LIMITES_OBJECTIFS, lireObjectifsPerso } from './objectifs'
+import { useProgressionObjectifs } from './useLecturesProfil'
 
 const MAINTENANT = () => new Date()
 
@@ -51,24 +51,10 @@ function lire(c: Champ, texte: string): number | null {
 // « Mes objectifs » du profil : avancement de chaque objectif défini et formulaire de réglage. Objectifs propres à l'appareil.
 // Calculs dans objectifs.ts.
 export function ObjectifsSection({ db, maintenant = MAINTENANT }: { db?: DbLecture; maintenant?: () => Date }) {
-  const [progression, setProgression] = useState<ProgressionObjectif[] | null>(null)
   const [edition, setEdition] = useState<Record<Champ['id'], string> | null>(null)
   const [version, setVersion] = useState(0)
 
-  useEffect(() => {
-    let annule = false
-    lireProgressionObjectifs(db ?? getDb(), maintenant())
-      .then((p) => !annule && setProgression(p))
-      .catch((e: unknown) => {
-        console.error('Progression des objectifs impossible', e)
-        if (!annule) setProgression([])
-      })
-    return () => {
-      annule = true
-    }
-    // « Maintenant » est lu au chargement et après chaque enregistrement
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, version])
+  const progression = useProgressionObjectifs(db, maintenant, version)
 
   const erreurs = edition ? CHAMPS.filter((c) => Number.isNaN(lire(c, edition[c.id]))).map((c) => c.id) : []
   const enregistrer = useCallback(() => {

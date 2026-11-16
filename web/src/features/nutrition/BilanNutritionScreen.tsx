@@ -1,28 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
-import { getDb } from '../../core/db/client'
-import { lireObjectifsNutrition, lireTotauxParJour, type ObjectifNutrition, type TotauxJour } from '../../core/db/repos/nutrition'
+import type { ObjectifNutrition, TotauxJour } from '../../core/db/repos/nutrition'
 import { resumerBilan } from '../../core/nutrition/calculs'
 import { decalerJour, decimal, entier, libelleCourt } from './outils'
+import { useAccesNutrition } from './useAccesNutrition'
 
 type Periode = 7 | 30
 
 // Bilan sur 7 ou 30 jours : énergie par jour face à l'objectif, moyennes sur les jours saisis, régularité.
 export default function BilanNutritionScreen({ aujourdhui = dateIsoLocale(new Date()) }: { aujourdhui?: string }) {
+  const acces = useAccesNutrition()
   const [periode, setPeriode] = useState<Periode>(7)
   const [donnees, setDonnees] = useState<{ pret: boolean; totaux: TotauxJour[]; objectifs: ObjectifNutrition | null; erreur: string }>({ pret: false, totaux: [], objectifs: null, erreur: '' })
 
   useEffect(() => {
     let annule = false
-    const db = getDb()
-    Promise.all([lireTotauxParJour(db, decalerJour(aujourdhui, -(periode - 1)), aujourdhui), lireObjectifsNutrition(db)])
+    Promise.all([acces.lireTotauxParJour(decalerJour(aujourdhui, -(periode - 1)), aujourdhui), acces.lireObjectifs()])
       .then(([totaux, objectifs]) => !annule && setDonnees({ pret: true, totaux, objectifs, erreur: '' }))
       .catch(() => !annule && setDonnees({ pret: true, totaux: [], objectifs: null, erreur: 'Le bilan n’a pas pu être lu.' }))
     return () => {
       annule = true
     }
-  }, [aujourdhui, periode])
+  }, [aujourdhui, periode, acces])
 
   const jours = Array.from({ length: periode }, (_, i) => decalerJour(aujourdhui, -(periode - 1 - i)))
   const parJour = new Map(donnees.totaux.map((t) => [t.date, t]))

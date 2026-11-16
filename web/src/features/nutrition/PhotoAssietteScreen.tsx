@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
-import { getDb, getSupabase } from '../../core/db/client'
+import { getSupabase } from '../../core/db/client'
 import type { ClientSupabase } from '../../core/db/clientSupabase'
-import { ajouterEntrees } from '../../core/db/repos/nutrition'
 import { estRepas, LIBELLE_REPAS, REPAS, sommer } from '../../core/nutrition/calculs'
 import { analyserAssiette, apportEstime, enregistrerFournisseurChoisi, fournisseurInitial, lireFournisseurChoisi, listerFournisseursIa, reduireImage, type AlimentEstime, type AnalysePhoto, type FournisseursIa } from '../../core/nutrition/photo'
 import { ajusterQuantite, decimal, entier, jourDemande, libelleJour, repasDemande } from './outils'
+import { useAccesNutrition } from './useAccesNutrition'
 
 type Etape = { nom: 'choix' } | { nom: 'analyse' } | { nom: 'revue'; analyse: AnalysePhoto }
 
@@ -35,6 +35,7 @@ function Ligne({ a, changer, retirer }: { a: AlimentEstime; changer: (a: Aliment
 }
 
 function Revue({ analyse, repasInitial, date, aujourdhui, recommencer }: { analyse: AnalysePhoto; repasInitial: (typeof REPAS)[number]; date: string; aujourdhui: string; recommencer: () => void }) {
+  const acces = useAccesNutrition()
   const navigate = useNavigate()
   const [aliments, setAliments] = useState(analyse.aliments)
   const [repas, setRepas] = useState(repasInitial)
@@ -47,7 +48,7 @@ function Revue({ analyse, repasInitial, date, aujourdhui, recommencer }: { analy
     setOccupe(true)
     setErreur('')
     try {
-      await ajouterEntrees(getDb(), valides.map((a) => ({ date, repas, nom: a.nom.trim(), quantiteG: a.quantiteG, apport: apportEstime(a), source: 'ia' as const })))
+      await acces.ajouterEntrees(valides.map((a) => ({ date, repas, nom: a.nom.trim(), quantiteG: a.quantiteG, apport: apportEstime(a), source: 'ia' as const })))
       navigate(date === aujourdhui ? '/nutrition' : `/nutrition?date=${date}`, { replace: true })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’ajout a échoué.')
