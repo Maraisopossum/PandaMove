@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createElement } from 'react'
 import type { RouteObject } from 'react-router'
@@ -88,5 +88,23 @@ describe('données : une table nouvelle doit être couverte partout', () => {
       const fautives = table.columns.map((c) => c.name).filter((c) => /_(sec|seconds)$/.test(c))
       expect(fautives, `${table.name} : durée en secondes à nommer « _s »`).toEqual([])
     }
+  })
+})
+
+describe('style des boutons principaux', () => {
+  const css = readFileSync(resolve(import.meta.dirname, 'app.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+  it('le bouton principal prend la couleur du module courant (--couleur-module), violet du Renforcement hors coque', () => {
+    const regle = /(^|\n)\.bouton--principal \{([^}]*)\}/.exec(css)
+    expect(regle, 'règle .bouton--principal introuvable').not.toBeNull()
+    expect(regle![2]).toContain('background: var(--couleur-module, var(--couleur-renforcement))')
+    expect(regle![2]).toContain('border-color: var(--couleur-module, var(--couleur-renforcement))')
+  })
+
+  it('aucun module ne redéfinit la couleur du bouton principal (seule exception : Hyrox en mode sombre, jaune sur anthracite)', () => {
+    const surcharges = [...css.matchAll(/([^{}]*\.bouton--principal[^{}]*)\{([^}]*)\}/g)]
+      .filter(([, selecteur, corps]) => selecteur.replace(/:not\([^)]*\)/g, '').includes('.bouton--principal') && /\b(background|border-color)\s*:/.test(corps) && selecteur.trim() !== '.bouton--principal')
+      .map(([, selecteur]) => selecteur.trim().replace(/\s+/g, ' '))
+    expect(surcharges).toEqual([":root[data-theme='dark'] .hyrox .bouton--principal"])
   })
 })

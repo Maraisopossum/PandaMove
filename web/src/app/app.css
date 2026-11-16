@@ -1539,7 +1539,7 @@ time,
 /* Lancer prend la place restante ; 📅 et ⋮ sont des carrés de 44 px sur fond neutre */
 .seance__actions .bouton--principal {
   flex: 1 1 8rem;
-  box-shadow: 0 4px 12px -2px rgb(91 61 158 / 0.25);
+  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--couleur-module, var(--couleur-renforcement)) 25%, transparent);
 }
 
 .seance__actions > .bouton:not(.bouton--principal),
@@ -2450,9 +2450,11 @@ time,
   font-weight: 500;
 }
 
+/* Bouton principal : la couleur du module courant (posée par la coque sur .coque__corps), violet du Renforcement hors coque.
+   Les couleurs de module ont toutes un texte blanc >= 4,5:1 (contraste.test.ts). Aucune surcharge par module : concordanceModules.test.ts. */
 .bouton--principal {
-  border-color: var(--couleur-renforcement);
-  background: var(--couleur-renforcement);
+  border-color: var(--couleur-module, var(--couleur-renforcement));
+  background: var(--couleur-module, var(--couleur-renforcement));
   color: #ffffff;
 }
 
@@ -3221,8 +3223,6 @@ time,
 }
 
 .calendrier__seance .seance__actions .bouton--principal {
-  border-color: var(--calendrier-bouton);
-  background: var(--calendrier-bouton);
   box-shadow: none;
   flex: 1 1 100%;
 }
@@ -6762,9 +6762,6 @@ time,
 }
 
 .respiration .bouton--principal {
-  border-color: var(--couleur-respiration);
-  background: var(--couleur-respiration);
-  color: #ffffff;
   font-weight: 700;
 }
 
@@ -8616,7 +8613,6 @@ time,
 .mobilite__commandes .bouton { flex: 1; }
 .mobilite__fin { justify-items: center; text-align: center; }
 .mobilite__fin .bouton { width: 100%; }
-.mobilite .bouton--principal { background: var(--couleur-mobilite); border-color: var(--couleur-mobilite); color: #fff; }
 .mobilite .mobilite__quitter { display: flex; align-items: center; justify-content: center; }
 
 /* Mobilité : routines, types d'exercices, programme annoncé, régularité */
@@ -9052,8 +9048,6 @@ time,
 
 /* Plans et Hyrox : liens lisibles (plus de bleu souligné par défaut), boutons à la couleur du module, texte d'en-tête moins grand, cartes sans vide */
 .plans__lien { color: var(--texte); text-decoration: underline; text-underline-offset: 0.2em; text-decoration-thickness: 2px; }
-.plans .bouton--principal { border-color: #1b5e20; background: #1b5e20; }
-.hyrox .bouton--principal { border-color: #26262b; background: #26262b; }
 :root[data-theme='dark'] .hyrox .bouton--principal { border-color: #ffd60a; background: #ffd60a; color: #26262b; }
 .plans__carte > p { margin: 0; }
 .plans__entete .plans__grand { font-size: clamp(1.5rem, 7vw, 2rem); line-height: 1.15; }
@@ -9078,7 +9072,6 @@ time,
 .profil__codes code { font-size: 1rem; letter-spacing: 0.06em; }
 
 /* Nutrition : journal, anneau d'énergie, macros, hydratation, ajout d'aliment, photo de l'assiette. Couleur du module : vert émeraude (#047857 en texte, #059669 en accent). */
-.nutri .bouton--principal { border-color: #047857; background: #047857; color: #fff; }
 .nutri .bouton--principal:disabled { opacity: 0.55; }
 .nutri__jour { display: grid; grid-template-columns: 3rem 1fr 3rem; gap: 0.5rem; align-items: stretch; }
 .nutri__fleche { min-width: 2.75rem; font-size: 1.5rem; line-height: 1; }
