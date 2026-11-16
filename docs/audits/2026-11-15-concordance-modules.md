@@ -18,13 +18,13 @@ suppression de compte et la sauvegarde couvrent toutes les tables, les contraste
 | Sauvegarde complète : toutes les tables exportées | ✅ désormais testé (garde-fou ajouté) ; ❌ textes obsolètes (corrigés) |
 | Menu ↔ routes ↔ barre du haut | ❌ `/admin/*` s'affichait « Accueil » (corrigé), ✅ le reste, désormais testé |
 | Pastilles et couleurs de module | ⚠️ Hyrox réutilise l'icône du Renforcement (assumé, testé) |
-| Accueil (tuiles, bilan, propositions) | ⚠️ Plans et Hyrox absents des tuiles ; Hyrox absent du bilan |
-| Statistiques / charge d'entraînement | ⚠️ les simulations Hyrox n'y entrent pas |
-| Export ciblé (« Exporter une partie ») | ⚠️ ni Hyrox, ni plans |
+| Accueil (tuiles, bilan, propositions) | ✅ 9 accès rapides configurables ; Hyrox dans le bilan (voir « Suites données ») |
+| Statistiques / charge d'entraînement | ✅ les simulations Hyrox y entrent (voir « Suites données ») |
+| Export ciblé (« Exporter une partie ») | ✅ Hyrox, plans et nutrition ajoutés |
 | Écran = composant + hook (CLAUDE.md) | ❌ 13 composants lisent la base directement |
 | Style des boutons principaux | ⚠️ 4 familles de couleur |
 | Typographie des textes (apostrophe ’) | ❌ environ 80 textes avec ' (corrigés dans l'interface), ⚠️ messages de `core/` restants |
-| Redondances Profil / Outils / Statistiques | ⚠️ 2 doublons |
+| Redondances Profil / Outils / Statistiques | ✅ 2 doublons supprimés |
 | Documentation | ⚠️ 12 dossiers sur 17 sans README, `CLAUDE.md` en retard |
 
 ## Corrigé dans cette PR
@@ -116,6 +116,36 @@ filtre `Hyrox · ` côté Plans ; contraste AA des couleurs de module (testé) .
 - ⚠️ Mêmes écarts que les autres modules récents : écrans qui lisent la base (point 5), pas de tuile à l'Accueil (point 2), absente de l'export ciblé (point 3), poids à ressaisir
   (point 4), `plans__carte` réutilisée (point 12).
 - ⚠️ Pas de rappel de saisie (les rappels existants ne couvrent que les séances) ; pas d'effet sur le bilan de la semaine (volontaire : l'énergie dépensée n'est pas comptée).
+
+## Suites données (2026-11-16)
+
+Décisions de Benoît sur les écarts ci-dessus, et ce qui en a été fait.
+
+| Écart | Décision | Réalisation |
+| --- | --- | --- |
+| 1. Hyrox hors bilan, charge, statistiques | Ajouter | `hyrox/chargeHyrox.ts` : une simulation **terminée** compte comme séance terminée et temps de sport dans le bilan de l'Accueil ; elle entre dans la charge d'entraînement (forme, fatigue, fraîcheur) sous la forme d'une sortie de course à la volée, avec un effort supposé de **8/10** pour une simulation complète et **7/10** pour une partielle ou une station (pondération modifiable dans `RPE_PAR_FORME`) ; nouvelle vue **Hyrox** dans Statistiques (nombre, temps passé, temps moyen, meilleure simulation complète, liste). Les simulations en cours ou abandonnées ne comptent pas. Aucune distance n'est comptée (non mesurée). |
+| 2. Tuiles Accueil | Ajouter Plans, Hyrox, Nutrition | 9 accès rapides (3 × 3), puis **configurables** : Profil > Organiser les modules (ordre commun au menu et à l'Accueil, case « Accueil » par module). |
+| 3. Export ciblé | Ajouter Hyrox, plans (et nutrition) | Familles « Hyrox » (simulations terminées ; temps de chaque segment dans le JSON), « Plans » (objectifs, hors période comme le calendrier) et « Nutrition » (journal, eau comprise). |
+| 4. Poids | Tout dans le Profil, Nutrition le lit | La **taille** se règle dans Profil > Poids (réglage d'appareil, comme le poids). Nutrition lit la dernière pesée et la taille du Profil, ne les redemande plus et renvoie vers le Profil pour les modifier. Âge et sexe restent saisis dans Nutrition (ils n'existent pas dans le Profil). |
+| 5. 13 écrans sans hook | Proposition demandée | Voir ci-dessous. |
+| 6. Boutons principaux | Proposition demandée | Voir ci-dessous. |
+| 7. Doublons | Progression : garder Statistiques ; Sauvegarde : garder Mes données | `/outils/progression` supprimé (redirige vers `/stats`), entrée retirée du menu Outils ; la section « Sauvegarde » du Profil est remplacée par un renvoi vers Outils > Mes données. |
+
+Autres demandes traitées avec ces décisions :
+- **Menu** : plus de sous-menus, uniquement les modules, dans un ordre réglable (Profil > Organiser les modules).
+- **Retour** : la barre du haut porte un bouton Retour sur tous les sous-écrans (`app/parents.ts` : table des écrans parents, couverte par un test sur toutes les routes). Il monte d'un niveau ; il revient en arrière dans l'historique si l'écran parent est celui d'où l'on vient, sinon il remplace l'écran courant par son parent. Enregistrer, supprimer ou annuler un formulaire **remplace** l'écran dans l'historique (le retour du système ne rouvre plus un formulaire validé). Les liens « ← Parent » et « Retour à X » redondants sont retirés (restent ceux des écrans « introuvable » et les actions « Annuler »).
+
+### Proposition pour l'écart 5 : écrans sans hook
+
+13 écrans appellent `getDb()` ou les dépôts eux-mêmes. Proposition : **un hook par écran, par module, sans changement de comportement**, protégé par les tests existants (écrans) :
+1. Hyrox (5 écrans), puis Plans (3), puis Profil (2), Respiration (1), Renforcement (2), chacun dans sa PR ;
+2. un test d'architecture « aucun `getDb` dans un `*Screen.tsx` » avec une **liste d'exceptions qui ne fait que diminuer** (elle contient les 13 écrans au départ, la PR de chaque module en retire) ;
+3. pour Nutrition, les écrans neufs (objectifs, aliments, entrée) passent par `useJournalNutrition` ou un hook voisin dans la même série.
+Coût : mécanique, sans valeur visible pour l'utilisateur ; je recommande de le faire **au fil des modifications** de chaque module plutôt qu'en bloc, avec le test d'architecture posé tout de suite.
+
+### Proposition pour l'écart 6 : boutons principaux
+
+Aujourd'hui : violet par défaut, couleur du module pour six modules. Proposition **A (recommandée)** : le bouton principal prend la **couleur du module courant** partout (Course vert, Vélo bleu, Calendrier orange foncé, Statistiques, Outils, Profil, Import, Administration selon leur propre couleur de barre), via une variable `--couleur-action` posée par la coque et un seul `.bouton--principal` ; les six surcharges de `app.css` disparaissent. Les couleurs de barre ont déjà un texte blanc ≥ 4,5:1 (testé), donc l'AA est acquis ; seul Hyrox garde sa variante jaune en mode sombre. Variante **B** : violet de marque pour tous (cohérence maximale, mais les modules perdent leur identité sur l'action principale). Une décision à prendre avant de coder.
 
 ## Comment relancer l'audit
 `npm test -- src/app/concordanceModules` pour les garde-fous. Les inventaires (apostrophes, accès base dans les composants, formats de date, clés de stockage, tailles de CSS par
