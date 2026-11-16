@@ -29,3 +29,6 @@ streams:
       - SELECT * FROM hyrox_courses WHERE user_id = auth.user_id()
       - SELECT * FROM hyrox_simulations WHERE user_id = auth.user_id()
       - SELECT * FROM hyrox_segments WHERE user_id = auth.user_id()
+      - SELECT * FROM aliments WHERE user_id = auth.user_id()
+      - SELECT * FROM repas_entrees WHERE user_id = auth.user_id()
+      - SELECT * FROM objectifs_nutrition WHERE user_id = auth.user_id()

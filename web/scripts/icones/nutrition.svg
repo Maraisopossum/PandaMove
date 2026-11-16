@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Icône du menu Nutrition : bol de salade, même trait épais que les autres pastilles (public/icons/menu/nutrition.webp, voir scripts/icones/nutrition.mjs) -->
+  <g stroke="#1f3d2b" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- feuilles du fond -->
+    <path d="M42 96 C30 70 48 44 74 48 C80 66 70 88 42 96 Z" fill="#5fb04a"/>
+    <path d="M150 96 C162 68 146 42 120 46 C112 66 124 88 150 96 Z" fill="#7cc65a"/>
+    <path d="M70 92 C62 58 84 34 104 40 C116 60 104 84 70 92 Z" fill="#3f9a3f"/>
+    <!-- tomate -->
+    <circle cx="124" cy="82" r="19" fill="#e5483b"/>
+    <path d="M116 66 l8 7 l8 -7" fill="none"/>
+    <!-- carotte -->
+    <path d="M52 84 L84 76 L80 90 Z" fill="#f59a2f"/>
+    <!-- bol -->
+    <path d="M22 100 H170 C170 144 144 168 96 168 C48 168 22 144 22 100 Z" fill="#fff8e7"/>
+    <path d="M22 100 H170" fill="none"/>
+    <path d="M38 118 C52 148 76 156 96 156" fill="none" stroke="#e8dcc0" stroke-width="6"/>
+    <!-- pied -->
+    <path d="M70 170 H122" fill="none"/>
+  </g>
+  <!-- reflet de la tomate -->
+  <path d="M116 74 q4 -6 10 -6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+</svg>

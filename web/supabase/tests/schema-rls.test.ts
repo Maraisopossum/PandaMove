@@ -1174,3 +1174,82 @@ describe('0019 : codes de secours de la double authentification', () => {
   })
 })
 
+describe('0020 : nutrition (aliments, journal, objectifs, quota des analyses)', () => {
+  const U1 = '00000000-0000-4000-8000-0000000000e1'
+  const U2 = '00000000-0000-4000-8000-0000000000e2'
+  const ID = (n: number) => `00000000-0000-4000-8000-00000000f${String(n).padStart(3, '0')}`
+
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users (id, email) values ('${U1}', 'e1@exemple.fr'), ('${U2}', 'e2@exemple.fr') on conflict do nothing;`)
+    await db.exec(migration('0020_nutrition.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0020_nutrition.sql'))
+  })
+
+  const entree = (id: number, over: Record<string, string | number> = {}) => {
+    const v = { repas: 'dejeuner', nom: 'Riz', quantite_g: 150, kcal: 195, source: 'base', date: '2026-11-15', ...over }
+    return `insert into repas_entrees (id, date, repas, nom, quantite_g, kcal, source, created_at) values ('${ID(id)}', '${v.date}', '${v.repas}', '${v.nom}', ${v.quantite_g}, ${v.kcal}, '${v.source}', '2026-11-15T12:00:00Z')`
+  }
+
+  it('chaque utilisateur écrit et lit ses lignes, jamais celles des autres', async () => {
+    await commeUtilisateur(U1, () => db.exec(entree(1)))
+    await commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, created_at) values ('${ID(2)}', 'Skyr', 63, '2026-11-15T12:00:00Z')`))
+    await commeUtilisateur(U1, () => db.exec(`insert into objectifs_nutrition (id, kcal, proteines_g, glucides_g, lipides_g, created_at) values ('${ID(3)}', 2400, 150, 280, 70, '2026-11-15T12:00:00Z')`))
+    for (const t of ['repas_entrees', 'aliments', 'objectifs_nutrition']) {
+      const u1 = await commeUtilisateur(U1, () => db.query(`select id, user_id from ${t}`))
+      expect(u1.rows).toHaveLength(1)
+      expect((u1.rows[0] as { user_id: string }).user_id).toBe(U1)
+      expect((await commeUtilisateur(U2, () => db.query(`select id from ${t}`))).rows).toHaveLength(0)
+    }
+    // Écrire pour un autre compte est refusé
+    await expect(commeUtilisateur(U2, () => db.exec(`insert into aliments (id, user_id, nom, kcal_100, created_at) values ('${ID(9)}', '${U1}', 'X', 1, 'x')`))).rejects.toThrow(/row-level security/)
+  })
+
+  it('aucune suppression physique (seulement la suppression logique)', async () => {
+    await expect(commeUtilisateur(U1, () => db.exec(`delete from repas_entrees where id = '${ID(1)}'`))).rejects.toThrow(/permission denied/)
+    await commeUtilisateur(U1, () => db.exec(`update repas_entrees set deleted_at = now() where id = '${ID(1)}'`))
+  })
+
+  it.each([
+    ['repas inconnu', { repas: 'brunch' }],
+    ['source inconnue', { source: 'devine' }],
+    ['énergie négative', { kcal: -1 }],
+    ['énergie démesurée', { kcal: 20001 }],
+    ['quantité négative', { quantite_g: -5 }],
+    ['date mal formée', { date: '15/11/2026' }],
+    ['nom vide', { nom: '' }],
+  ])('refuse une entrée du journal invalide : %s', async (_cas, over) => {
+    await expect(commeUtilisateur(U1, () => db.exec(entree(20, over)))).rejects.toThrow(/check constraint|violates/)
+  })
+
+  it('accepte l’eau (repas « eau », source « eau »)', async () => {
+    await commeUtilisateur(U1, () => db.exec(entree(21, { repas: 'eau', source: 'eau', nom: 'Eau', quantite_g: 250, kcal: 0 })))
+  })
+
+  it('refuse un aliment ou des objectifs hors bornes', async () => {
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, created_at) values ('${ID(30)}', 'Trop', 1001, 'x')`))).rejects.toThrow(/check constraint/)
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, proteines_100, created_at) values ('${ID(31)}', 'Trop', 10, 101, 'x')`))).rejects.toThrow(/check constraint/)
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, source, created_at) values ('${ID(32)}', 'Src', 10, 'inconnue', 'x')`))).rejects.toThrow(/check constraint/)
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into objectifs_nutrition (id, kcal, proteines_g, glucides_g, lipides_g, created_at) values ('${ID(33)}', 100, 1, 1, 1, 'x')`))).rejects.toThrow(/check constraint/)
+  })
+
+  it('le quota des analyses de photo est fermé aux clients', async () => {
+    await expect(commeUtilisateur(U1, () => db.exec('select * from analyses_assiette'))).rejects.toThrow(/permission denied/)
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into analyses_assiette (user_id) values ('${U1}')`))).rejects.toThrow(/permission denied/)
+    await expect(commeAnonyme(() => db.exec('select * from analyses_assiette'))).rejects.toThrow(/permission denied/)
+    await db.exec(`insert into analyses_assiette (user_id) values ('${U1}')`)
+    expect((await db.query('select count(*)::int as n from analyses_assiette where user_id = $1', [U1])).rows).toEqual([{ n: 1 }])
+  })
+
+  it('la table du quota n’est pas synchronisée ; les trois autres le sont', () => {
+    const regles = readFileSync(resolve(import.meta.dirname, '../../powersync/sync-rules.yaml'), 'utf8')
+    const schema = readFileSync(resolve(import.meta.dirname, '../../src/core/db/schema.ts'), 'utf8')
+    expect(regles).not.toContain('analyses_assiette')
+    expect(schema).not.toContain('analyses_assiette')
+    for (const t of ['aliments', 'repas_entrees', 'objectifs_nutrition']) {
+      expect(regles).toContain(`FROM ${t} WHERE`)
+      expect(schema).toContain(`${t}: new Table(`)
+    }
+  })
+})
+

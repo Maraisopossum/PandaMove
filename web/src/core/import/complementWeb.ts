@@ -46,7 +46,7 @@ const COLONNES_PROPRES = new Map(
   }),
 )
 
-const SANS_JOUR_OBLIGATOIRE = new Set<TableComplement>(['methodes_respiration', 'hyrox_courses', 'hyrox_simulations', 'hyrox_segments'])
+const SANS_JOUR_OBLIGATOIRE = new Set<TableComplement>(['methodes_respiration', 'hyrox_courses', 'hyrox_simulations', 'hyrox_segments', 'aliments', 'objectifs_nutrition'])
 const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 const LIBELLES: Record<TableComplement, string> = {
@@ -60,6 +60,9 @@ const LIBELLES: Record<TableComplement, string> = {
   hyrox_courses: 'objectif(s) Hyrox',
   hyrox_simulations: 'simulation(s) Hyrox',
   hyrox_segments: 'segment(s) de simulation Hyrox',
+  aliments: 'aliment(s) personnel(s)',
+  repas_entrees: 'entrée(s) du journal alimentaire',
+  objectifs_nutrition: 'objectif(s) de nutrition',
 }
 export const libelleComplement = (t: TableComplement) => LIBELLES[t]
 
