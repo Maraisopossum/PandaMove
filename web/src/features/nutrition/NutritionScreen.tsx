@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
 import { LIBELLE_REPAS, REPAS } from '../../core/nutrition/calculs'
@@ -16,12 +17,33 @@ export default function NutritionScreen({ aujourdhui = dateIsoLocale(new Date())
   const eau = eauDuJour(j.entrees)
   const o = j.objectifs
   const versJour = (d: string) => setParams(d === aujourdhui ? {} : { date: d }, { replace: true })
+  // Raccourci « Ajouter 250 ml d'eau » (appui long sur l'icône, boutons du widget) : `?action=eau` ajoute l'eau UNE fois puis retire le
+  // paramètre de l'adresse (un rechargement ne réajoute rien) ; l'annulation reste à un toucher.
+  const [eauAjoutee, setEauAjoutee] = useState(false)
+  const actionTraitee = useRef(false)
+  const demandeEau = params.get('action') === 'eau'
+  useEffect(() => {
+    if (!demandeEau || actionTraitee.current) return
+    actionTraitee.current = true
+    void j.ajouterEau(PAS_EAU[0]).then(() => setEauAjoutee(true))
+    setParams({}, { replace: true })
+    // Une seule fois par arrivée sur l'écran
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demandeEau])
   const lien = (chemin: string, repas?: string) => `${chemin}?date=${date}${repas ? `&repas=${repas}` : ''}`
 
   return (
     <div className="plans nutri">
       <h1 className="titre-ecran">Nutrition</h1>
       {j.erreur && <p role="alert">{j.erreur}</p>}
+      {eauAjoutee && (
+        <p role="status" className="nutri__eau-ajoutee">
+          {PAS_EAU[0]} ml ajoutés ·{' '}
+          <button type="button" className="plans__lien nutri__lien-bouton" onClick={() => void j.annulerDerniereEau().then(() => setEauAjoutee(false))}>
+            Annuler
+          </button>
+        </p>
+      )}
 
       <nav className="nutri__jour" aria-label="Choisir le jour">
         <button type="button" className="bouton nutri__fleche" aria-label="Jour précédent" onClick={() => versJour(decalerJour(date, -1))}>‹</button>

@@ -15,6 +15,22 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     scope: '/',
     theme_color: COULEUR,
     background_color: COULEUR,
+    // Appui long sur l'icône de l'application installée : quatre actions de Nutrition (Android en affiche quatre au plus). Les adresses sont
+    // celles des écrans ; `?action=eau` ajoute 250 ml au jour courant puis propose d'annuler (NutritionScreen).
+    shortcuts: [
+      { name: 'Photographier l’assiette', short_name: 'Photo', url: '/nutrition/photo' },
+      { name: 'Ajouter 250 ml d’eau', short_name: '+ 250 ml', url: '/nutrition?action=eau' },
+      { name: 'Ajouter un aliment', short_name: 'Aliment', url: '/nutrition/ajouter' },
+      { name: 'Journal du jour', short_name: 'Journal', url: '/nutrition' },
+    ],
+    // Partager une photo vers PandaMove (galerie, appareil photo) : reçue par public/partage-sw.js, analysée par l'écran Photo de l'assiette.
+    // Disponible pour l'application installée seulement.
+    share_target: {
+      action: '/nutrition/photo',
+      method: 'POST',
+      enctype: 'multipart/form-data',
+      params: { files: [{ name: 'image', accept: ['image/*'] }] },
+    },
     icons: [
       { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
@@ -35,8 +51,8 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     // Le wasm de wa-sqlite dépasse la limite par défaut (2 Mio)
     maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
     // Notifications push (rappels application fermée) : gestionnaires `push` et `notificationclick` de public/push-sw.js,
-    // exécutés dans le service worker principal
-    importScripts: ['push-sw.js'],
+    // exécutés dans le service worker principal ; `partage-sw.js` reçoit les photos partagées vers l'application (share_target)
+    importScripts: ['push-sw.js', 'partage-sw.js'],
     // Repli SPA : toute navigation hors ligne sert index.html
     navigateFallback: '/index.html',
     // Images du panda et illustrations de mobilité : mises en cache à la première vue (non précachées),
