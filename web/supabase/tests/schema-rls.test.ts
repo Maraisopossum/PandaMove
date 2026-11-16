@@ -1131,6 +1131,49 @@ describe('0018 : double authentification obligatoire pour l’administration', (
   })
 })
 
+describe('0019 : codes de secours de la double authentification', () => {
+  const U1 = '00000000-0000-4000-8000-0000000000d1'
+  const U2 = '00000000-0000-4000-8000-0000000000d2'
+  const H = (c: string) => c.repeat(64)
+
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users (id, email) values ('${U1}', 'd1@exemple.fr'), ('${U2}', 'd2@exemple.fr') on conflict do nothing;`)
+    await db.exec(migration('0019_mfa_codes_secours.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0019_mfa_codes_secours.sql'))
+    await db.exec(`
+      insert into mfa_codes_secours (user_id, code_hash, utilise_at) values ('${U1}', '${H('a')}', null), ('${U1}', '${H('b')}', null), ('${U1}', '${H('c')}', now()), ('${U2}', '${H('d')}', null);
+    `)
+  })
+
+  it('la table est illisible et intouchable directement par les clients', async () => {
+    await expect(commeUtilisateur(U1, () => db.exec('select * from mfa_codes_secours'))).rejects.toThrow(/permission denied/)
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into mfa_codes_secours (user_id, code_hash) values ('${U1}', '${H('e')}')`))).rejects.toThrow(/permission denied/)
+    await expect(commeUtilisateur(U1, () => db.exec(`update mfa_codes_secours set utilise_at = null where user_id = '${U1}'`))).rejects.toThrow(/permission denied/)
+    await expect(commeAnonyme(() => db.exec('select * from mfa_codes_secours'))).rejects.toThrow(/permission denied/)
+  })
+
+  it('mfa_codes_secours_restants compte les codes inutilisés du compte connecté seulement', async () => {
+    const r1 = await commeUtilisateur(U1, () => db.query<{ n: number }>('select mfa_codes_secours_restants() as n'))
+    const r2 = await commeUtilisateur(U2, () => db.query<{ n: number }>('select mfa_codes_secours_restants() as n'))
+    expect(r1.rows[0].n).toBe(2)
+    expect(r2.rows[0].n).toBe(1)
+    await expect(commeAnonyme(() => db.query('select mfa_codes_secours_restants()'))).rejects.toThrow(/permission denied/)
+  })
+
+  it('l’empreinte doit faire 64 caractères et un code est unique par compte', async () => {
+    await expect(db.exec(`insert into mfa_codes_secours (user_id, code_hash) values ('${U1}', 'court')`)).rejects.toThrow()
+    await expect(db.exec(`insert into mfa_codes_secours (user_id, code_hash) values ('${U1}', '${H('a')}')`)).rejects.toThrow(/duplicate|unique/)
+  })
+
+  it('cette table n’est pas synchronisée : absente des règles PowerSync et du schéma local', () => {
+    const regles = readFileSync(resolve(import.meta.dirname, '../../powersync/sync-rules.yaml'), 'utf8')
+    const schema = readFileSync(resolve(import.meta.dirname, '../../src/core/db/schema.ts'), 'utf8')
+    expect(regles).not.toContain('mfa_codes_secours')
+    expect(schema).not.toContain('mfa_codes_secours')
+  })
+})
+
 describe('0020 : nutrition (aliments, journal, objectifs, quota des analyses)', () => {
   const U1 = '00000000-0000-4000-8000-0000000000e1'
   const U2 = '00000000-0000-4000-8000-0000000000e2'
