@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { desinscrire, inscrireTotp, listerFacteurs, verifierCode, type FacteurTotp, type InscriptionTotp } from '../../core/auth/mfa'
 import { getSupabase } from '../../core/db/client'
 import type { ClientSupabase } from '../../core/db/clientSupabase'
+import { CodesSecours } from './CodesSecours'
 
 // Section « Double authentification » du profil : inscrire une application d'authentification (QR code, code à 6 chiffres), ou la retirer.
 // Facultative pour tous ; exigée seulement pour accéder à l'administration. La logique d'accès est dans core/auth/mfa.ts.
@@ -122,6 +123,7 @@ export function SecuriteSection({ client }: { client?: ClientSupabase } = {}) {
       {actif && (
         <>
           <p role="status">Activée : un code vous est demandé à chaque connexion.</p>
+          <CodesSecours supabase={supabase} />
           {!confirmeRetrait ? (
             <button type="button" className="bouton" disabled={occupe} onClick={() => setConfirmeRetrait(true)}>Désactiver…</button>
           ) : (

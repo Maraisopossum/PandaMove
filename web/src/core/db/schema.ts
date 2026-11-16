@@ -148,6 +148,50 @@ const hyroxSegment = {
   created_at: t,
 }
 
+// Module Nutrition (migration 0020). Les valeurs nutritionnelles des aliments sont pour 100 g ; celles d'une entrée du journal sont
+// celles de la quantité mangée (instantané). `date` est le jour (yyyy-MM-dd), `favori` un booléen 0/1.
+const aliment = {
+  ...sync,
+  nom: t,
+  marque: t,
+  code_barres: t,
+  portion_g: r,
+  portion_label: t,
+  kcal_100: r,
+  proteines_100: r,
+  glucides_100: r,
+  lipides_100: r,
+  fibres_100: r,
+  favori: i,
+  source: t,
+  created_at: t,
+}
+const repasEntree = {
+  ...sync,
+  date: t,
+  repas: t,
+  nom: t,
+  quantite_g: r,
+  kcal: r,
+  proteines: r,
+  glucides: r,
+  lipides: r,
+  fibres: r,
+  aliment_id: t,
+  source: t,
+  created_at: t,
+}
+const objectifNutrition = {
+  ...sync,
+  kcal: i,
+  proteines_g: i,
+  glucides_g: i,
+  lipides_g: i,
+  eau_ml: i,
+  profil_json: t,
+  created_at: t,
+}
+
 export const AppSchema = new Schema({
   exercises: new Table({
     ...sync,
@@ -279,4 +323,7 @@ export const AppSchema = new Schema({
   hyrox_courses: new Table(hyroxCourse),
   hyrox_simulations: new Table(hyroxSimulation),
   hyrox_segments: new Table(hyroxSegment),
+  aliments: new Table(aliment),
+  repas_entrees: new Table(repasEntree),
+  objectifs_nutrition: new Table(objectifNutrition),
 })

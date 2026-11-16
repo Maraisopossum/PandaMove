@@ -3,7 +3,7 @@ import type { RouteObject } from 'react-router'
 import {
   CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen, ObjectifPlanScreen, JalonPlanScreen, AjusterPlanScreen, HyroxScreen, ObjectifHyroxScreen, StationsHyroxScreen, SimulationHyroxScreen, BilanHyroxScreen, RecordsHyroxScreen, AdminTableauScreen, AdminComptesScreen, AdminJournalScreen, AdminSanteScreen, StationDetailHyroxScreen, JourJHyroxScreen, PlanHyroxScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen, ObjectifPlanScreen, JalonPlanScreen, AjusterPlanScreen, HyroxScreen, ObjectifHyroxScreen, StationsHyroxScreen, SimulationHyroxScreen, BilanHyroxScreen, RecordsHyroxScreen, AdminTableauScreen, AdminComptesScreen, AdminJournalScreen, AdminSanteScreen, StationDetailHyroxScreen, JourJHyroxScreen, PlanHyroxScreen, NutritionScreen, AjouterAlimentScreen, PhotoAssietteScreen, EntreeNutritionScreen, ObjectifsNutritionScreen, BilanNutritionScreen, MesAlimentsScreen, AlimentFormScreen,
 } from './EcransChargesALaDemande'
 import { GardeAdmin } from '../features/admin/GardeAdmin'
 import { PageErreur } from './PageErreur'
@@ -71,6 +71,15 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'hyrox/stations/:cle', element: chargement(<StationDetailHyroxScreen />) },
     { path: 'hyrox/jour-j', element: chargement(<JourJHyroxScreen />) },
     { path: 'hyrox/plan', element: chargement(<PlanHyroxScreen />) },
+    { path: 'nutrition', element: chargement(<NutritionScreen />) },
+    { path: 'nutrition/ajouter', element: chargement(<AjouterAlimentScreen />) },
+    { path: 'nutrition/photo', element: chargement(<PhotoAssietteScreen />) },
+    { path: 'nutrition/entree/:id', element: chargement(<EntreeNutritionScreen />) },
+    { path: 'nutrition/objectifs', element: chargement(<ObjectifsNutritionScreen />) },
+    { path: 'nutrition/bilan', element: chargement(<BilanNutritionScreen />) },
+    { path: 'nutrition/aliments', element: chargement(<MesAlimentsScreen />) },
+    { path: 'nutrition/aliments/new', element: chargement(<AlimentFormScreen />) },
+    { path: 'nutrition/aliments/:id', element: chargement(<AlimentFormScreen />) },
     { path: 'stats', element: chargement(<StatsScreen />) },
     { path: 'breathing', element: chargement(<RespirationScreen />) },
     // Chemins statiques (new, session/…) avant :id/edit
