@@ -74,5 +74,15 @@ export function moduleActif(pathname: string): ModuleId {
   return 'home'
 }
 
+// L'administration n'a pas d'entrée dans le menu (on y va depuis le profil, pour les administrateurs) mais sa barre du haut doit le dire :
+// sans cela, /admin affichait « Accueil » sur le violet de l'accueil. Gris ardoise : texte blanc >= 4,5:1 (contraste.test.ts).
+export const MODULE_ADMIN: ModuleInfo = { path: '/admin', label: 'Administration', color: '#37474F', icone: 'cle' }
+
+/** Informations de la barre du haut pour une adresse : module du menu, ou administration, sinon accueil. */
+export function infoModule(pathname: string): ModuleInfo {
+  if (pathname === MODULE_ADMIN.path || pathname.startsWith(`${MODULE_ADMIN.path}/`)) return MODULE_ADMIN
+  return MODULES[moduleActif(pathname)]
+}
+
 // Adresse de la pastille d'un module (fichier de public/icons/menu).
 export const urlIcone = (icone: string) => `/icons/menu/${icone}.webp`

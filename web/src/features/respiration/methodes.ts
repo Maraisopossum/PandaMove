@@ -21,7 +21,7 @@ export interface Methode {
 export const METHODES_INTEGREES: readonly Methode[] = [
   {
     id: 'coherence_cardiaque', nom: 'Cohérence cardiaque', emoji: '💚',
-    description: "5 secondes d'inspiration, 5 secondes d'expiration. 6 cycles/min pendant 5 minutes.",
+    description: "5 secondes d’inspiration, 5 secondes d’expiration. 6 cycles/min pendant 5 minutes.",
     inspireSec: 5, retentionPleineSec: 0, expireSec: 5, retentionVideSec: 0, cyclesDefaut: 30, personnalisee: false,
   },
   {

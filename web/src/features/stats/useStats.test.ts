@@ -93,7 +93,7 @@ describe('useStats', () => {
     await waitFor(() => expect(result.current.chargement).toBe(false))
     expect(result.current.erreur).toBe('Le chargement des statistiques a échoué.')
     expect(result.current.vide).toBe(false)
-    await waitFor(() => expect(result.current.erreurHistorique).toBe("Le chargement de l'historique a échoué."))
+    await waitFor(() => expect(result.current.erreurHistorique).toBe("Le chargement de l’historique a échoué."))
 
     panne = false
     act(() => result.current.choisirPeriode('3m'))

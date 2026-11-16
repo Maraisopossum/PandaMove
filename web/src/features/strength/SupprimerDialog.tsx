@@ -33,7 +33,7 @@ export function SupprimerDialog({ nomSeance, historique, enCours, onChoisir, onF
         {aHistorique ? (
           <div className="dialogue__choix">
             <button type="button" className="bouton" disabled={enCours} aria-describedby={idGarder} onClick={() => onChoisir('garder_historique')}>
-              Garder l'historique
+              Garder l’historique
             </button>
             <p id={idGarder} className="dialogue__aide">
               Supprime la séance type et les séances programmées, conserve les séances déjà terminées (calendrier, statistiques).

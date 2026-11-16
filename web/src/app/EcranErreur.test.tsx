@@ -39,7 +39,7 @@ describe('EcranErreur', () => {
   it('en développement : affiche le nom, le message et la pile', () => {
     render(<EcranErreur erreur={erreurTest()} dev />)
     expect(screen.getByRole('alert').textContent).toContain('Une erreur est survenue')
-    const detail = screen.getByLabelText("Détail technique de l'erreur")
+    const detail = screen.getByLabelText("Détail technique de l’erreur")
     expect(detail.textContent).toContain('TypeError: x.trim is not a function')
     expect(detail.textContent).toContain('at musclesAffiches')
   })
@@ -48,9 +48,9 @@ describe('EcranErreur', () => {
     const ecrire = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: ecrire }, configurable: true })
     render(<EcranErreur erreur={erreurTest()} dev={false} />)
-    expect(screen.queryByLabelText("Détail technique de l'erreur")).toBeNull()
+    expect(screen.queryByLabelText("Détail technique de l’erreur")).toBeNull()
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: "Copier les détails de l'erreur" }))
+      fireEvent.click(screen.getByRole('button', { name: "Copier les détails de l’erreur" }))
     })
     expect(ecrire).toHaveBeenCalledTimes(1)
     expect(ecrire.mock.calls[0][0]).toContain('TypeError: x.trim is not a function')
@@ -61,7 +61,7 @@ describe('EcranErreur', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockRejectedValue(new Error('refus')) }, configurable: true })
     render(<EcranErreur erreur={erreurTest()} dev={false} />)
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: "Copier les détails de l'erreur" }))
+      fireEvent.click(screen.getByRole('button', { name: "Copier les détails de l’erreur" }))
     })
     expect(screen.getByRole('status').textContent).toContain('Copie impossible')
   })
@@ -70,7 +70,7 @@ describe('EcranErreur', () => {
     Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
     render(<EcranErreur erreur={erreurTest()} dev={false} />)
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: "Copier les détails de l'erreur" }))
+      fireEvent.click(screen.getByRole('button', { name: "Copier les détails de l’erreur" }))
     })
     expect(screen.getByRole('status').textContent).toContain('Copie impossible')
   })
@@ -86,7 +86,7 @@ describe('PageErreur', () => {
     }
     const routeur = createMemoryRouter([{ path: '/', element: <Bombe />, errorElement: <PageErreur /> }])
     render(<RouterProvider router={routeur} />)
-    expect(await screen.findByLabelText("Détail technique de l'erreur")).toBeTruthy()
-    expect(screen.getByRole('button', { name: "Copier les détails de l'erreur" })).toBeTruthy()
+    expect(await screen.findByLabelText("Détail technique de l’erreur")).toBeTruthy()
+    expect(screen.getByRole('button', { name: "Copier les détails de l’erreur" })).toBeTruthy()
   })
 })

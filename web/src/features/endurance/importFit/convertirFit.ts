@@ -88,7 +88,7 @@ function sourceDe(fabricant: string | undefined): SourceSortie {
 
 export function convertirActiviteFit(fit: ActiviteFit): SaisieSortie {
   const session = fit.sessions?.[0]
-  if (!session) throw new ErreurImportFit("Ce fichier ne contient pas d'activité (session absente).")
+  if (!session) throw new ErreurImportFit("Ce fichier ne contient pas d’activité (session absente).")
   const sport = SPORTS[session.sport ?? '']
   if (!sport) throw new ErreurImportFit(`Sport « ${session.sport ?? 'inconnu'} » non pris en charge (course à pied et vélo seulement).`)
   const debut = instant(session.start_time) ?? instant(fit.file_ids?.[0]?.time_created)

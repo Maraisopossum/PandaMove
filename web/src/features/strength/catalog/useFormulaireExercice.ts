@@ -91,7 +91,7 @@ export function useFormulaireExercice({ creerPersonnalise, modifier }: Actions) 
       if (e instanceof ErreurExercice) setErreur(e.message)
       else {
         console.error("Enregistrement de l'exercice impossible", e)
-        setErreur("L'enregistrement a échoué.")
+        setErreur("L’enregistrement a échoué.")
       }
     }
   }, [brouillon, idEdite, modifier, creerPersonnalise])

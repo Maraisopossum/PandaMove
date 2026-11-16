@@ -140,7 +140,7 @@ describe('useImport', () => {
       await expect(result.current.confirm()).rejects.toThrow('boom interne')
     })
     expect(result.current.status).toBe('error')
-    expect(result.current.error).toBe("L'import a échoué, aucune donnée n'a été modifiée.")
+    expect(result.current.error).toBe("L’import a échoué, aucune donnée n’a été modifiée.")
     expect(result.current.error).not.toMatch(/boom/)
     expect(erreurConsole).toHaveBeenCalled()
   })

@@ -320,7 +320,7 @@ describe('useExecute : séries', () => {
     }
     const r = await monter('i1', panne)
     await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null }))
-    expect(r.result.current.erreur).toBe("L'enregistrement de la série a échoué. Réessayez.")
+    expect(r.result.current.erreur).toBe("L’enregistrement de la série a échoué. Réessayez.")
     expect(r.result.current.exercices).toHaveLength(2)
     expect(await lignesSeries()).toEqual([])
   })
@@ -331,7 +331,7 @@ describe('useExecute : séries', () => {
     const [serie] = await lignesSeries()
     await act(() => r.result.current.terminer())
     await act(() => r.result.current.validerSerie(E1, { reps: 8, chargeKg: 60, rpe: null }))
-    expect(r.result.current.erreur).toBe("Cette séance est terminée : elle n'est plus modifiable.")
+    expect(r.result.current.erreur).toBe("Cette séance est terminée : elle n’est plus modifiable.")
     await act(() => r.result.current.corrigerSerie(serie.id, { reps: 1 }))
     expect(await lignesSeries()).toMatchObject([{ id: serie.id, reps_realisees: 8 }])
   })
@@ -460,7 +460,7 @@ describe('useExecute : progression appliquée à « Terminer » (ordre Android)'
         ),
     }
     const { r } = await seanceJouee('ia', 7, panne)
-    expect(r.result.current.erreur).toBe("L'enregistrement de la fin de séance a échoué.")
+    expect(r.result.current.erreur).toBe("L’enregistrement de la fin de séance a échoué.")
     expect(r.result.current.terminee).toBe(false)
     expect(await instanceSp('ia')).toEqual({ is_completed: 0, progression_json: null })
     expect(await objectifsSp()).toEqual([])

@@ -122,8 +122,8 @@ describe('FeuilleSeanceCardio — erreurs', () => {
   })
 
   it("une erreur générale d'enregistrement s'annonce dans le dialogue", () => {
-    monter({ erreurGenerale: "L'ajout de la séance a échoué." })
-    expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toBe("L'ajout de la séance a échoué.")
+    monter({ erreurGenerale: "L’ajout de la séance a échoué." })
+    expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toBe("L’ajout de la séance a échoué.")
   })
 
   it('sans erreur, aucune alerte', () => {

@@ -425,7 +425,7 @@ describe("useSeanceEdit : modification d'un modèle", () => {
       id = await rendu.result.current.enregistrer()
     })
     expect(id).toBeNull()
-    expect(rendu.result.current.erreur).toBe("L'enregistrement a échoué.")
+    expect(rendu.result.current.erreur).toBe("L’enregistrement a échoué.")
     expect(erreurConsole).toHaveBeenCalled()
     erreurConsole.mockRestore()
     expect(result.current.erreur).toBeNull()

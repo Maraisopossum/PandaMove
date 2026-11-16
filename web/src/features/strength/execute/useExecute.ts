@@ -37,7 +37,7 @@ export interface DepsExecute {
 // Erreur destinée à l'utilisateur (message français affiché tel quel).
 class ErreurExecution extends Error {}
 
-const TERMINEE = "Cette séance est terminée : elle n'est plus modifiable."
+const TERMINEE = "Cette séance est terminée : elle n’est plus modifiable."
 
 interface Donnees {
   instance: InstanceSeance | null
@@ -155,7 +155,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
         if (e instanceof ErreurExecution || e instanceof ErreurInstance) setErreur(e.message)
         else {
           console.error("Ouverture de la séance impossible", e)
-          setErreur("L'ouverture de la séance a échoué.")
+          setErreur("L’ouverture de la séance a échoué.")
         }
       })
       .finally(() => {
@@ -258,7 +258,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
           })
           await evaluerEtAppliquerSilencieux(tx, instanceId, { userId, maintenantMs: maintenant })
         })
-      }, "L'enregistrement de la fin de séance a échoué."),
+      }, "L’enregistrement de la fin de séance a échoué."),
     [ecrire, instanceId, userId],
   )
 
@@ -302,7 +302,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
             iso,
           )
         })
-      }, "L'enregistrement de la série a échoué. Réessayez.").finally(() => marquerValidation(exerciceId, false))
+      }, "L’enregistrement de la série a échoué. Réessayez.").finally(() => marquerValidation(exerciceId, false))
     },
     [ecrire, instanceId, marquerValidation, modifiable],
   )
@@ -314,7 +314,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
       ecrire(async (base, maintenant) => {
         await modifiable(base)
         await supprimerSeriesNumeros(base, instanceId, exerciceId, [numero], new Date(maintenant).toISOString())
-      }, "L'annulation de la validation a échoué."),
+      }, "L’annulation de la validation a échoué."),
     [ecrire, instanceId, modifiable],
   )
 
@@ -329,7 +329,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
         )
         if (!ligne) throw new ErreurExecution('Exercice introuvable dans cette séance.')
         await changerSeriesPrevues(base, instanceId, exerciceId, ligne.n + 1, new Date(maintenant).toISOString())
-      }, "L'ajout de la série a échoué."),
+      }, "L’ajout de la série a échoué."),
     [ecrire, instanceId, modifiable],
   )
 
@@ -362,7 +362,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
       ecrire(async (base, maintenant) => {
         await modifiable(base)
         await majNotesInstance(base, instanceId, notes, new Date(maintenant).toISOString())
-      }, "L'enregistrement du commentaire a échoué."),
+      }, "L’enregistrement du commentaire a échoué."),
     [ecrire, instanceId, modifiable],
   )
 
@@ -383,7 +383,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
       ecrire(async (base, maintenant) => {
         await modifiable(base)
         await majNoteExercice(base, instanceId, exerciceId, texte, new Date(maintenant).toISOString())
-      }, "L'enregistrement de la note a échoué."),
+      }, "L’enregistrement de la note a échoué."),
     [ecrire, instanceId, modifiable],
   )
 
@@ -392,7 +392,7 @@ export function useExecute(instanceId: string, { db, nowFn = Date.now, tickMs = 
     let remise = false
     await ecrire(async (base, maintenant) => {
       remise = await abandonnerDemarrage(base, instanceId, new Date(maintenant).toISOString())
-    }, "L'abandon de la séance a échoué.")
+    }, "L’abandon de la séance a échoué.")
     return remise
   }, [ecrire, instanceId])
 

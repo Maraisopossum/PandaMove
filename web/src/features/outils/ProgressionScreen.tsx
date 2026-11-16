@@ -11,7 +11,7 @@ export default function ProgressionScreen() {
     <div className="outils">
       <h1 className="titre-ecran">Progression</h1>
       {p.erreur && <p role="alert">{p.erreur}</p>}
-      {p.pret && p.exercices.length === 0 && !p.erreur && <p>Aucun exercice dans une séance terminée pour l'instant.</p>}
+      {p.pret && p.exercices.length === 0 && !p.erreur && <p>Aucun exercice dans une séance terminée pour l’instant.</p>}
       {p.exercices.length > 0 && (
         <>
           <label className="formulaire__champ">

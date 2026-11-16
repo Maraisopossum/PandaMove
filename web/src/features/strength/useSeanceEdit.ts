@@ -68,7 +68,7 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
           // Séance en cours : on édite les lignes de l'instance, tant qu'elle n'est pas terminée
           const instance = await getInstance(base, instanceId)
           if (!instance) message = 'Séance introuvable.'
-          else if (instance.isCompleted) message = "Cette séance est terminée : elle n'est plus modifiable."
+          else if (instance.isCompleted) message = "Cette séance est terminée : elle n’est plus modifiable."
           else {
             existant = await chargerBrouillon(base, instance.seanceId, liste, instanceId)
             if (!existant) message = 'Séance introuvable.'
@@ -194,7 +194,7 @@ export function useSeanceEdit(seanceId: string | null, { db, userId, instanceId 
       if (e instanceof ErreurEditionInstance) setErreur(e.message)
       else {
         console.error("Enregistrement de la séance impossible", e)
-        setErreur("L'enregistrement a échoué.")
+        setErreur("L’enregistrement a échoué.")
       }
       return null
     } finally {

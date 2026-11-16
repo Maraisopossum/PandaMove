@@ -38,7 +38,7 @@ function monter() {
 describe('états de la liste des séances types', () => {
   it('aucune séance : panda, explication de ce qu\'est une séance type et bouton de création', async () => {
     monter()
-    expect(await screen.findByText("Aucune séance type pour l'instant.")).toBeTruthy()
+    expect(await screen.findByText("Aucune séance type pour l’instant.")).toBeTruthy()
     expect(screen.getByText(/modèle réutilisable/)).toBeTruthy()
     await waitFor(() => expect(document.querySelector('img.calendrier__panda')).not.toBeNull())
     fireEvent.click(screen.getByRole('link', { name: 'Créer ma première séance' }))
@@ -52,13 +52,13 @@ describe('états de la liste des séances types', () => {
     monter()
     expect(await screen.findByText(/Aucune séance type active/)).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Séances archivées' })).toBeTruthy()
-    expect(screen.queryByText("Aucune séance type pour l'instant.")).toBeNull()
+    expect(screen.queryByText("Aucune séance type pour l’instant.")).toBeNull()
   })
 
   it('une séance directe n\'apparaît jamais parmi les modèles', async () => {
     await seance('d1', 'Directe', { seance_category: 'STRENGTH_ONESHOT' })
     monter()
-    expect(await screen.findByText("Aucune séance type pour l'instant.")).toBeTruthy()
+    expect(await screen.findByText("Aucune séance type pour l’instant.")).toBeTruthy()
     expect(screen.queryByText('Directe')).toBeNull()
   })
 

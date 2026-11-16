@@ -32,8 +32,8 @@ test('séries saisies hors ligne : conservées au rechargement puis synchronisé
   // 1. Import du fixture (idempotent : rejouer le test ne duplique rien)
   await seConnecter(page, '/import')
   await expect(page.getByRole('heading', { name: 'Import' })).toBeVisible()
-  await page.getByLabel("Fichier d'export (.json)").setInputFiles(fixture)
-  await page.getByRole('button', { name: "Confirmer l'import" }).click()
+  await page.getByLabel("Fichier d’export (.json)").setInputFiles(fixture)
+  await page.getByRole('button', { name: "Confirmer l’import" }).click()
   await expect(page.getByRole('heading', { name: 'Import terminé' })).toBeVisible({ timeout: 30_000 })
   await expect(page.getByTestId('sync-state')).toHaveText('en ligne', { timeout: 60_000 })
 

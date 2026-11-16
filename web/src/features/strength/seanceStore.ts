@@ -124,7 +124,7 @@ export async function ecrireBrouillon(tx: DbTx, brouillon: SeanceDraft, instance
       [instanceId],
     )
     if (!instance) throw new ErreurEditionInstance('Séance introuvable.')
-    if (instance.is_completed) throw new ErreurEditionInstance("Cette séance est terminée : elle n'est plus modifiable.")
+    if (instance.is_completed) throw new ErreurEditionInstance("Cette séance est terminée : elle n’est plus modifiable.")
     if (instance.seance_id !== d.id) throw new ErreurEditionInstance('Cette séance ne correspond pas à son modèle.')
     // Un id repris d'une ligne du modèle (ou d'une autre instance) écraserait cette ligne : refus avant toute écriture
     const ids = [...blocsDe(d).map((b) => ({ table: 'blocs_seance', id: b.id })), ...exercicesDe(d).map((e) => ({ table: 'exercices_seance', id: e.id }))]

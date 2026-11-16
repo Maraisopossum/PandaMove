@@ -559,7 +559,7 @@ describe('SeanceEditScreen : modifier les exercices d’une séance en cours', (
     await base.execute("UPDATE instances_seance SET is_completed = 1 WHERE id = 'i1'")
     monterInstance()
     await pret()
-    expect((await screen.findByRole('alert')).textContent).toBe("Cette séance est terminée : elle n'est plus modifiable.")
+    expect((await screen.findByRole('alert')).textContent).toBe("Cette séance est terminée : elle n’est plus modifiable.")
     cliquer('Enregistrer')
     expect(screen.queryByText('Séance en cours')).toBeNull()
   })

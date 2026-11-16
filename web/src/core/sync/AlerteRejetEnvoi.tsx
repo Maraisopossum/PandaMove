@@ -7,7 +7,7 @@ export function AlerteRejetEnvoiVue({ message, onMasquer }: { message: string | 
   return (
     <section role="alert" className="bandeau">
       <p>{message}</p>
-      <button type="button" className="bouton" aria-label="Masquer l'alerte d'envoi" onClick={onMasquer}>
+      <button type="button" className="bouton" aria-label="Masquer l’alerte d’envoi" onClick={onMasquer}>
         Masquer
       </button>
     </section>

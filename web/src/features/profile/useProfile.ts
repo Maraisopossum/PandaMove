@@ -49,7 +49,7 @@ export function useProfile({ db, userId }: DepsProfil = {}) {
       await action()
     } catch (e) {
       console.error('Enregistrement du profil impossible', e)
-      setErreur("L'enregistrement a échoué.")
+      setErreur("L’enregistrement a échoué.")
     }
   }, [])
   const changerVariante = useCallback((v: PandaVariant) => proteger(() => setPandaVariant(v)), [proteger, setPandaVariant])

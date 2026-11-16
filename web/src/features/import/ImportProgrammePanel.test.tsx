@@ -73,7 +73,7 @@ describe('ImportProgrammePanel', () => {
     expect((await screen.findByRole('status')).textContent).toContain(`${programme.length} séances ajoutées`)
     expect(await compter()).toBe(programme.length)
     await waitFor(() => expect(document.activeElement?.className).toBe('import__resultat'))
-    expect(screen.getByRole('link', { name: "Voir l'agenda" }).getAttribute('href')).toBe('/calendar')
+    expect(screen.getByRole('link', { name: "Voir l’agenda" }).getAttribute('href')).toBe('/calendar')
   })
 
   it('rejouer l’import n’ajoute rien et le dit', async () => {

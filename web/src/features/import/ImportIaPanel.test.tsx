@@ -40,7 +40,7 @@ afterEach(cleanup)
 
 const rendre = (userId: string | null = USER) => render(<MemoryRouter><ImportIaPanel userId={userId ?? undefined} /></MemoryRouter>)
 const coller = (texte: string) => {
-  fireEvent.change(screen.getByLabelText("Ou collez la réponse de l'IA"), { target: { value: texte } })
+  fireEvent.change(screen.getByLabelText("Ou collez la réponse de l’IA"), { target: { value: texte } })
   fireEvent.click(screen.getByRole('button', { name: 'Analyser le texte' }))
 }
 const EXEMPLE_TEXTE = JSON.stringify(EXEMPLE)
@@ -49,14 +49,14 @@ const fichier = (texte: string) => new File([texte], 'seances.json', { type: 'ap
 describe('ImportIaPanel : fichier modèle', () => {
   it('propose les quatre actions', () => {
     rendre()
-    for (const nom of ["Télécharger la consigne pour l'IA (.md)", 'Copier la consigne', "Télécharger l'exemple (.json)", 'Télécharger le schéma (.json)']) {
+    for (const nom of ["Télécharger la consigne pour l’IA (.md)", 'Copier la consigne', "Télécharger l’exemple (.json)", 'Télécharger le schéma (.json)']) {
       expect(screen.getByRole('button', { name: nom })).toBeTruthy()
     }
   })
 
-  it('télécharge la consigne, l\'exemple et le schéma sous leurs noms, et annonce le résultat', async () => {
+  it('télécharge la consigne, l’exemple et le schéma sous leurs noms, et annonce le résultat', async () => {
     rendre()
-    fireEvent.click(screen.getByRole('button', { name: "Télécharger la consigne pour l'IA (.md)" }))
+    fireEvent.click(screen.getByRole('button', { name: "Télécharger la consigne pour l’IA (.md)" }))
     await waitFor(() => expect(telechargerTexte).toHaveBeenCalledTimes(1))
     const [nom, contenu, type] = telechargerTexte.mock.calls[0] as unknown as [string, string, string]
     expect(nom).toBe(NOMS_FICHIERS_MODELE.consigne)
@@ -64,7 +64,7 @@ describe('ImportIaPanel : fichier modèle', () => {
     expect(contenu).toBe(genererModeleIA().consigne)
     expect((await screen.findAllByRole('status')).some((n) => n.textContent === 'Consigne téléchargée.')).toBe(true)
 
-    fireEvent.click(screen.getByRole('button', { name: "Télécharger l'exemple (.json)" }))
+    fireEvent.click(screen.getByRole('button', { name: "Télécharger l’exemple (.json)" }))
     await waitFor(() => expect(telechargerTexte).toHaveBeenCalledTimes(2))
     expect((telechargerTexte.mock.calls[1] as unknown as string[])[0]).toBe(NOMS_FICHIERS_MODELE.exemple)
     fireEvent.click(screen.getByRole('button', { name: 'Télécharger le schéma (.json)' }))
@@ -89,7 +89,7 @@ describe('ImportIaPanel : fichier modèle', () => {
       [USER],
     )
     rendre()
-    fireEvent.click(screen.getByRole('button', { name: "Télécharger la consigne pour l'IA (.md)" }))
+    fireEvent.click(screen.getByRole('button', { name: "Télécharger la consigne pour l’IA (.md)" }))
     await waitFor(() => expect(telechargerTexte).toHaveBeenCalled())
     expect((telechargerTexte.mock.calls[0] as unknown as string[])[1]).toContain('- Mon tirage maison')
   })
@@ -118,7 +118,7 @@ describe('ImportIaPanel : aperçu et import', () => {
 
   it('fichier .json choisi -> aperçu ; un second import du même fichier : déjà présentes, bouton désactivé', async () => {
     rendre()
-    const choisir = (f: File) => fireEvent.change(screen.getByLabelText(/Fichier JSON de l'IA/), { target: { files: [f] } })
+    const choisir = (f: File) => fireEvent.change(screen.getByLabelText(/Fichier JSON de l’IA/), { target: { files: [f] } })
     choisir(fichier(EXEMPLE_TEXTE))
     fireEvent.click(await screen.findByRole('button', { name: 'Importer 2 séances' }))
     await screen.findByText('2 séances importées, 1 exercice créé.')
@@ -145,7 +145,7 @@ describe('ImportIaPanel : aperçu et import', () => {
     expect(screen.getByText(/sera enregistrée sous « Haut du corps – force \(2\) »/)).toBeTruthy()
   })
 
-  it('exercice inconnu proche d\'un nom du catalogue : suggestion sans substitution', async () => {
+  it('exercice inconnu proche d’un nom du catalogue : suggestion sans substitution', async () => {
     rendre()
     coller(JSON.stringify({ format: 'pandamove-seances-ia', version: 1, seances: [{ nom: 'S', blocs: [{ type: 'LIBRE', exercices: [{ exercice: 'Developpe couche barr', series: 3 }] }] }] }))
     expect(await screen.findByText(/vouliez-vous dire « Développé couché barre »/)).toBeTruthy()
@@ -163,7 +163,7 @@ describe('ImportIaPanel : aperçu et import', () => {
 describe('ImportIaPanel : erreurs bloquantes', () => {
   const sansBouton = () => expect(screen.queryByRole('button', { name: /^Importer \d|Aucune séance/ })).toBeNull()
 
-  it('JSON cassé : alerte claire, focus sur la zone, aucun bouton d\'import', async () => {
+  it('JSON cassé : alerte claire, focus sur la zone, aucun bouton d’import', async () => {
     rendre()
     coller('{"format": "pandamove-seances-ia", "seances": [')
     const alerte = await screen.findByRole('alert')
@@ -180,7 +180,7 @@ describe('ImportIaPanel : erreurs bloquantes', () => {
       { nom: 'B', blocs: [{ type: 'LIBRE', exercices: [{ exercice: 'Pompes', series: 0 }] }, { type: 'SUPERSET', exercices: [] }] },
     ] }))
     const alerte = await screen.findByRole('alert')
-    expect(within(alerte).getByText('Le fichier contient 3 erreurs : rien n\'a été importé.')).toBeTruthy()
+    expect(within(alerte).getByText('Le fichier contient 3 erreurs : rien n’a été importé.')).toBeTruthy()
     expect(within(alerte).getAllByRole('listitem').map((l) => l.textContent)).toEqual([
       "seances[0].blocs[0].type : doit valoir l'une de ces valeurs : LIBRE, ECHAUFFEMENT, ACTIVATION, SUPERSET, CIRCUIT, RECUPERATION",
       'seances[1].blocs[0].exercices[0].series : doit être un entier entre 1 et 20',
@@ -190,11 +190,11 @@ describe('ImportIaPanel : erreurs bloquantes', () => {
     expect(screen.queryByRole('region', { name: 'Aperçu avant import' })).toBeNull()
   })
 
-  it('modifier le texte après une analyse invalide l\'aperçu', async () => {
+  it('modifier le texte après une analyse invalide l’aperçu', async () => {
     rendre()
     coller(EXEMPLE_TEXTE)
     await screen.findByRole('button', { name: 'Importer 2 séances' })
-    fireEvent.change(screen.getByLabelText("Ou collez la réponse de l'IA"), { target: { value: EXEMPLE_TEXTE + ' ' } })
+    fireEvent.change(screen.getByLabelText("Ou collez la réponse de l’IA"), { target: { value: EXEMPLE_TEXTE + ' ' } })
     expect(screen.queryByRole('button', { name: 'Importer 2 séances' })).toBeNull()
   })
 
@@ -202,7 +202,7 @@ describe('ImportIaPanel : erreurs bloquantes', () => {
     rendre()
     const gros = new File(['x'], 'gros.json')
     Object.defineProperty(gros, 'size', { value: 3 * 1024 * 1024 })
-    fireEvent.change(screen.getByLabelText(/Fichier JSON de l'IA/), { target: { files: [gros] } })
+    fireEvent.change(screen.getByLabelText(/Fichier JSON de l’IA/), { target: { files: [gros] } })
     expect((await screen.findByRole('alert')).textContent).toMatch(/Fichier trop volumineux \(maximum 2 Mo\)/)
   })
 
@@ -216,20 +216,20 @@ describe('ImportIaPanel : erreurs bloquantes', () => {
 describe('ImportScreen : onglets', () => {
   const ecran = () => render(<MemoryRouter><ImportScreen /></MemoryRouter>)
 
-  it('l\'import Android reste l\'onglet par défaut ; l\'onglet IA est accessible', () => {
+  it('l’import Android reste l’onglet par défaut ; l’onglet IA est accessible', () => {
     ecran()
     const onglets = screen.getAllByRole('tab')
     expect(onglets.map((o) => o.textContent)).toEqual(['Export Android', 'Séances créées par une IA', 'Programme 2027'])
     expect(onglets[0].getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByLabelText(/Fichier d'export/)).toBeTruthy()
+    expect(screen.getByLabelText(/Fichier d’export/)).toBeTruthy()
     fireEvent.click(onglets[1])
     expect(onglets[1].getAttribute('aria-selected')).toBe('true')
     expect(screen.getByRole('button', { name: 'Copier la consigne' })).toBeTruthy()
-    expect(screen.queryByLabelText(/Fichier d'export/)).toBeNull()
+    expect(screen.queryByLabelText(/Fichier d’export/)).toBeNull()
     expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe(onglets[1].id)
   })
 
-  it("flèches du clavier : changent d'onglet, bouclent et déplacent le focus", () => {
+  it("flèches du clavier : changent d’onglet, bouclent et déplacent le focus", () => {
     ecran()
     const [android, ia, prog] = screen.getAllByRole('tab')
     android.focus()
@@ -248,10 +248,10 @@ describe('ImportScreen : onglets', () => {
     expect(android.getAttribute('aria-selected')).toBe('true')
   })
 
-  it("l'onglet Programme 2027 affiche son panneau", () => {
+  it("l’onglet Programme 2027 affiche son panneau", () => {
     ecran()
     fireEvent.click(screen.getAllByRole('tab')[2])
     expect(screen.getByRole('button', { name: 'Importer le programme 2027' })).toBeTruthy()
-    expect(screen.queryByLabelText(/Fichier d'export/)).toBeNull()
+    expect(screen.queryByLabelText(/Fichier d’export/)).toBeNull()
   })
 })

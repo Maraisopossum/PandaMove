@@ -230,7 +230,7 @@ describe('ReportScreen : rapport', () => {
   it("séance non terminée : message et lien vers la séance", async () => {
     await seanceTerminee('r-encours', { terminee: false })
     monter('r-encours')
-    expect(await screen.findByText("Cette séance n'est pas encore terminée : le rapport sera disponible à la fin.")).toBeTruthy()
+    expect(await screen.findByText("Cette séance n’est pas encore terminée : le rapport sera disponible à la fin.")).toBeTruthy()
     const lien = screen.getByRole('link', { name: 'Reprendre la séance' })
     expect(lien.getAttribute('href')).toBe('/strength/instance/r-encours')
     expect(screen.queryByRole('dialog')).toBeNull()

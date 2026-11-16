@@ -76,7 +76,7 @@ export function useImportFit({ db, lire = lireFichierActivite, apres }: DepsImpo
           if (e instanceof ErreurImportFit || e instanceof ErreurSortie) sortie.push({ nom: fichier.name, etat: 'erreur', message: e.message })
           else {
             console.error("Import d'une sortie impossible", e)
-            sortie.push({ nom: fichier.name, etat: 'erreur', message: "L'import de ce fichier a échoué." })
+            sortie.push({ nom: fichier.name, etat: 'erreur', message: "L’import de ce fichier a échoué." })
           }
         }
       }

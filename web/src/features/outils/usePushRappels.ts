@@ -90,7 +90,7 @@ export function usePushRappels({ cle = cleVapidPublique(), client = () => getSup
     let abonnement: PushSubscription | null = null
     try {
       if ((await demanderPermission()) !== 'granted') {
-        setMessage("Notifications refusées : autorisez-les pour PandaMove dans les réglages du navigateur ou de l'appareil.")
+        setMessage("Notifications refusées : autorisez-les pour PandaMove dans les réglages du navigateur ou de l’appareil.")
         return
       }
       const reg = await registration()
@@ -109,7 +109,7 @@ export function usePushRappels({ cle = cleVapidPublique(), client = () => getSup
       console.error('Activation des rappels push impossible', e)
       // Ne pas garder un abonnement que le serveur ne connaît pas
       if (creeIci) await abonnement?.unsubscribe().catch(() => undefined)
-      setMessage("Les rappels application fermée n'ont pas pu être activés. Vérifiez votre connexion puis réessayez ; si le problème continue, le serveur d'envoi n'est peut-être pas encore installé.")
+      setMessage("Les rappels application fermée n’ont pas pu être activés. Vérifiez votre connexion puis réessayez ; si le problème continue, le serveur d’envoi n’est peut-être pas encore installé.")
     } finally {
       verrou.current = false
       setEnCours(false)

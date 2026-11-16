@@ -22,7 +22,7 @@ function LienStatistiques({ lien }: { lien: string }) {
     return (
       <p className="calendrier__lien">
         <a href={resultat.valeur} target="_blank" rel="noopener noreferrer">
-          Statistiques<span className="visuellement-cache"> (s'ouvre dans un nouvel onglet)</span>
+          Statistiques<span className="visuellement-cache"> (s’ouvre dans un nouvel onglet)</span>
         </a>
       </p>
     )

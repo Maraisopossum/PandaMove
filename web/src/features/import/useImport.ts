@@ -24,7 +24,7 @@ export interface DepsImport {
   now?: () => string
 }
 
-const MESSAGE_GENERIQUE = "L'import a échoué, aucune donnée n'a été modifiée."
+const MESSAGE_GENERIQUE = "L’import a échoué, aucune donnée n’a été modifiée."
 
 // Message affiché à l'utilisateur : ImportError (français, avec le chemin fautif si le message
 // ne le contient pas déjà) ; toute autre erreur est journalisée et masquée derrière un message générique.
@@ -98,7 +98,7 @@ export function useImport(deps: DepsImport = {}) {
   const confirm = useCallback((): Promise<ImportReport> => {
     if (enCours.current) return enCours.current
     const aImporter = plan.current
-    if (!aImporter) return Promise.reject(new Error("Aucun fichier à importer : chargez d'abord un fichier"))
+    if (!aImporter) return Promise.reject(new Error("Aucun fichier à importer : chargez d’abord un fichier"))
     setStatut('importing')
     setErreur(null)
     const promesse = applyImportPlan(db ?? getDb(), aImporter, complement.current).then(

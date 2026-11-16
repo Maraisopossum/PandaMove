@@ -29,7 +29,7 @@ interface DonneesPeriode {
   volume: Record<MuscleGroup, number>
 }
 
-const ECHEC_HISTORIQUE = "Le chargement de l'historique a échoué."
+const ECHEC_HISTORIQUE = "Le chargement de l’historique a échoué."
 const AUCUN_POINT: PointHistorique[] = []
 const RESUME_VIDE: ResumePeriode = { tonnageKg: 0, seancesTerminees: 0, seriesTotal: 0, repsTotal: 0 }
 

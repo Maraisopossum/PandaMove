@@ -75,7 +75,7 @@ describe('ProfileScreen — sauvegarde', () => {
     afficher()
     fireEvent.click(screen.getByRole('button', { name: 'Exporter mes données' }))
     const alerte = await screen.findByRole('alert')
-    expect(alerte.textContent).toBe("L'export a échoué : aucun fichier n'a été créé. Réessayez.")
+    expect(alerte.textContent).toBe("L’export a échoué : aucun fichier n’a été créé. Réessayez.")
     expect((screen.getByRole('button', { name: 'Exporter mes données' }) as HTMLButtonElement).disabled).toBe(false)
     vi.restoreAllMocks()
   })

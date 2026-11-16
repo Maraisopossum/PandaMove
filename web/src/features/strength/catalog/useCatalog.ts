@@ -119,7 +119,7 @@ export function useCatalog({ db, userId }: DepsCatalogue = {}) {
     await lancer(async () => {
       if (!userId) throw new Error('Utilisateur non connecté.')
       return messageInstallation(await installerCatalogueDeBase(db ?? getDb(), userId))
-    }, "L'ajout du catalogue de base a échoué. Réessayez.")
+    }, "L’ajout du catalogue de base a échoué. Réessayez.")
   }, [db, userId, lancer])
 
   const corrigerGroupes = useCallback(async () => {

@@ -56,7 +56,7 @@ export default function ImportScreen() {
   return (
     <>
       <h1 className="titre-ecran">Import</h1>
-      <div role="tablist" aria-label="Type d'import" className="import__onglets" onKeyDown={surTouche}>
+      <div role="tablist" aria-label="Type d’import" className="import__onglets" onKeyDown={surTouche}>
         {ONGLETS.map((o) => (
           <button
             key={o.id}
@@ -81,13 +81,13 @@ export default function ImportScreen() {
         ) : (
           <>
           <p className="import__intro">
-            Importez une sauvegarde PandaMove (renforcement, sorties de course et de vélo, séances de cardio planifiées, respiration, mobilité, rappels) ou un export JSON de l'application Android (séances, exercices, matériel).
+            Importez une sauvegarde PandaMove (renforcement, sorties de course et de vélo, séances de cardio planifiées, respiration, mobilité, rappels) ou un export JSON de l’application Android (séances, exercices, matériel).
           </p>
 
           <div className="import__carte">
             <div className="import__champ">
               <PandaIllustration image={panda} sizes="76px" decoratif className="import__panda" />
-              <label htmlFor="import-fichier">Fichier d'export (.json)</label>
+              <label htmlFor="import-fichier">Fichier d’export (.json)</label>
               <input id="import-fichier" type="file" accept=".json,application/json" onChange={choisir} disabled={enCours} />
             </div>
 
@@ -153,7 +153,7 @@ export default function ImportScreen() {
                   {AVERTISSEMENT}
                 </p>
                 <button type="button" className="bouton bouton--import" onClick={importer} disabled={enCours}>
-                  {enCours ? 'Import en cours…' : "Confirmer l'import"}
+                  {enCours ? 'Import en cours…' : "Confirmer l’import"}
                 </button>
               </section>
             )}

@@ -146,7 +146,7 @@ describe('écran Séances : un seul appel à l’action principale à vide', () 
   it('état vide : « Créer ma première séance » est le seul bouton principal, pas de carte « Pour commencer » ni de « Nouvelle séance »', async () => {
     base = createTestDb()
     monter()
-    expect(await screen.findByText("Aucune séance type pour l'instant.", undefined, LARGE)).toBeTruthy()
+    expect(await screen.findByText("Aucune séance type pour l’instant.", undefined, LARGE)).toBeTruthy()
     expect(screen.getAllByRole('link', { name: /Créer|Nouvelle séance/ }).map((l) => l.textContent?.replace('＋ ', ''))).toEqual(['Créer ma première séance'])
     expect(screen.queryByRole('heading', { name: 'Pour commencer' })).toBeNull()
   })

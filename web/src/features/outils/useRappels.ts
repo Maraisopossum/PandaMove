@@ -78,13 +78,13 @@ export function useReglagesRappels({ db }: { db?: Db } = {}) {
       setMessage('')
       if (!actif) return enregistrer({ ...reglages, actif: false })
       if (typeof Notification === 'undefined') {
-        setMessage("Ce navigateur ne permet pas les notifications : installez l'application sur l'écran d'accueil.")
+        setMessage("Ce navigateur ne permet pas les notifications : installez l’application sur l’écran d’accueil.")
         return
       }
       const reponse = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
       setPermission(reponse)
       if (reponse !== 'granted') {
-        setMessage("Notifications refusées : autorisez-les pour PandaMove dans les réglages du navigateur ou de l'appareil.")
+        setMessage("Notifications refusées : autorisez-les pour PandaMove dans les réglages du navigateur ou de l’appareil.")
         return
       }
       enregistrer({ ...reglages, actif: true })

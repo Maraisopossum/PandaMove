@@ -116,7 +116,7 @@ export function useFormulaireSortie(sport: Sport, id: string | undefined, { db, 
       if (e instanceof ErreurSortie) setErreur(e.message)
       else {
         console.error("Enregistrement de la sortie impossible", e)
-        setErreur("L'enregistrement de la sortie a échoué.")
+        setErreur("L’enregistrement de la sortie a échoué.")
       }
       return false
     } finally {

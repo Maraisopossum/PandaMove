@@ -313,8 +313,8 @@ function erreursExercice(e: ExerciceDraft): string[] {
   if (e.repsMin !== null && e.repsMax !== null && entierDans(e.repsMin, 1, 1000) && entierDans(e.repsMax, 1, 1000) && e.repsMin > e.repsMax) {
     erreurs.push(`${n} : le minimum de répétitions dépasse le maximum.`)
   }
-  if (e.incrementKg !== null && !nombreDans(e.incrementKg, 0, 500)) erreurs.push(`${n} : l'incrément en kg doit être entre 0 et 500.`)
-  if (e.incrementPct !== null && !nombreDans(e.incrementPct, 0, 100)) erreurs.push(`${n} : le pourcentage d'incrément doit être entre 0 et 100.`)
+  if (e.incrementKg !== null && !nombreDans(e.incrementKg, 0, 500)) erreurs.push(`${n} : l’incrément en kg doit être entre 0 et 500.`)
+  if (e.incrementPct !== null && !nombreDans(e.incrementPct, 0, 100)) erreurs.push(`${n} : le pourcentage d’incrément doit être entre 0 et 100.`)
   if (!entierDans(e.seuilDeload, 1, 10)) erreurs.push(`${n} : le seuil de deload doit être entre 1 et 10.`)
   if (!entierDans(e.incrementDureeSec, 1, 600)) erreurs.push(`${n} : l'incrément de durée doit être entre 1 et 600 secondes.`)
   return erreurs

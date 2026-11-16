@@ -41,7 +41,7 @@ export function useProgression({ db, maintenant = MAINTENANT }: DepsProgression 
       .then((points) => !annule && setHistorique({ id: exerciceId, points }))
       .catch((e: unknown) => {
         console.error("Lecture de l'historique impossible", e)
-        if (!annule) setErreur("Le chargement de l'historique a échoué.")
+        if (!annule) setErreur("Le chargement de l’historique a échoué.")
       })
     return () => {
       annule = true

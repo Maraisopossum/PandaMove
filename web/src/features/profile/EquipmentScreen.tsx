@@ -15,7 +15,7 @@ const MESSAGES_STATUT: Record<StatutEnregistrement, string> = {
   idle: '',
   enCours: 'Enregistrement…',
   enregistre: 'Enregistré.',
-  erreur: "L'enregistrement a échoué.",
+  erreur: "L’enregistrement a échoué.",
 }
 
 const SANS_APERCU = (): string[] => []
@@ -127,7 +127,7 @@ function SectionHalteres({ valeur, sauver }: { valeur: HalteresConfig; sauver: (
       </div>
       <label className="formulaire__case">
         <input type="checkbox" checked={b.chargeable} onChange={(e) => f.setBrouillon({ ...b, chargeable: e.target.checked })} />
-        J'ai aussi des haltères chargeables
+        J’ai aussi des haltères chargeables
       </label>
       {b.chargeable && (
         <ChampsDisques libelleBarre="Poids de la poignée (kg)" valeur={b.disques} onChange={(disques) => f.setBrouillon({ ...b, disques })} />

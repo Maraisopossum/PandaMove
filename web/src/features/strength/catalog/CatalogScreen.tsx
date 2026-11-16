@@ -17,7 +17,7 @@ export default function CatalogScreen() {
 
   return (
     <>
-      <h1 className="titre-ecran">Catalogue d'exercices</h1>
+      <h1 className="titre-ecran">Catalogue d’exercices</h1>
 
       <div className="catalogue__filtres" role="search">
         <label className="catalogue__recherche" htmlFor="cat-recherche">
@@ -66,7 +66,7 @@ export default function CatalogScreen() {
         <button type="button" className="bouton" disabled={c.operation.enCours} onClick={() => void c.corrigerGroupes()}>
           Corriger les groupes musculaires
         </button>
-        <p role="status" aria-label="Résultat de l'opération" className="catalogue__resultat">
+        <p role="status" aria-label="Résultat de l’opération" className="catalogue__resultat">
           {c.operation.enCours ? 'Opération en cours…' : (c.operation.message ?? '')}
         </p>
         {c.operation.erreur && <p role="alert" className="import__erreur">{c.operation.erreur}</p>}
@@ -75,13 +75,13 @@ export default function CatalogScreen() {
       {form.ouvert && (
         <form
           className="catalogue__formulaire"
-          aria-label={form.enEdition ? "Modifier l'exercice" : 'Nouvel exercice'}
+          aria-label={form.enEdition ? "Modifier l’exercice" : 'Nouvel exercice'}
           onSubmit={(e) => {
             e.preventDefault()
             void form.soumettre()
           }}
         >
-          <h2>{form.enEdition ? "Modifier l'exercice" : 'Nouvel exercice'}</h2>
+          <h2>{form.enEdition ? "Modifier l’exercice" : 'Nouvel exercice'}</h2>
           <div className="formulaire__champ">
             <label htmlFor="ex-nom">Nom</label>
             <input id="ex-nom" type="text" value={b.name} onChange={(e) => form.setBrouillon({ ...b, name: e.target.value })} required />

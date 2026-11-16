@@ -213,7 +213,7 @@ describe('statsQueries', () => {
   })
 
   it('records : meilleure série par 1RM de chaque exercice chargé, sans durée ni poids du corps, récents d’abord', async () => {
-    // « Aujourd'hui » = 12 oct. : la séance du 10 oct. est récente (≤ 14 j), celle du 28 sept. ne l'est plus (14 jours exactement : récente)
+    // « Aujourd’hui » = 12 oct. : la séance du 10 oct. est récente (≤ 14 j), celle du 28 sept. ne l'est plus (14 jours exactement : récente)
     const records = await recordsPersonnels(db, '2026-10-12')
     expect(records.map((r) => [r.nom, r.chargeKg, r.reps, r.dateIso, r.rmEstimeKg, r.recent])).toEqual([
       ['Développé couché', 75, 8, '2026-10-10', 95, true],

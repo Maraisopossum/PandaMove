@@ -97,7 +97,7 @@ export function useEquipment({ db, userId }: DepsMateriel = {}) {
         })
       } catch (e) {
         console.error('Enregistrement des catégories impossible', e)
-        setErreur("L'enregistrement a échoué.")
+        setErreur("L’enregistrement a échoué.")
       }
     },
     [modifier],

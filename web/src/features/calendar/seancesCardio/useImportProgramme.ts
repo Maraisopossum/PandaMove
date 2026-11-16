@@ -17,7 +17,7 @@ export interface DepsImportProgramme {
   synchro: SourceSynchro
 }
 
-const MESSAGE_GENERIQUE = "L'import a échoué, aucune donnée n'a été modifiée."
+const MESSAGE_GENERIQUE = "L’import a échoué, aucune donnée n’a été modifiée."
 const MESSAGE_CONNEXION = 'Vous devez être connecté pour importer le programme.'
 const MESSAGE_FILE = 'Des modifications de cet appareil ne sont pas encore envoyées. Attendez la fin de la synchronisation.'
 

@@ -76,7 +76,7 @@ export function useSeanceList({ db }: DepsListeSeances = {}) {
         if (e instanceof ErreurSeance) setErreur(e.message)
         else {
           console.error("Archivage de la séance impossible", e)
-          setErreur("L'archivage a échoué.")
+          setErreur("L’archivage a échoué.")
         }
         return false
       }
@@ -156,7 +156,7 @@ export function useSeanceList({ db }: DepsListeSeances = {}) {
         return await compterHistorique(db ?? getDb(), seanceId)
       } catch (e) {
         console.error("Décompte de l'historique impossible", e)
-        setErreur("Le décompte de l'historique a échoué.")
+        setErreur("Le décompte de l’historique a échoué.")
         return null
       }
     },

@@ -86,7 +86,7 @@ export function useAffectation(
       if (e instanceof ErreurSeance) setErreur(e.message)
       else {
         console.error('Affectation de la séance impossible', e)
-        setErreur("L'affectation a échoué.")
+        setErreur("L’affectation a échoué.")
       }
     } finally {
       setEnCours(false)

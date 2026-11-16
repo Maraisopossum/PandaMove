@@ -10,12 +10,12 @@ export function EcranErreur({ erreur, dev = import.meta.env.DEV }: { erreur: unk
       <h1>Oups</h1>
       <p role="alert">{messageErreur(erreur)}</p>
       {dev && (
-        <pre className="erreur-racine__detail" aria-label="Détail technique de l'erreur" tabIndex={0}>
+        <pre className="erreur-racine__detail" aria-label="Détail technique de l’erreur" tabIndex={0}>
           {detailsErreur(erreur)}
         </pre>
       )}
       <button type="button" className="bouton" onClick={() => void copier()}>
-        Copier les détails de l'erreur
+        Copier les détails de l’erreur
       </button>
       <p role="status">{confirmation}</p>
     </main>

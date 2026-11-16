@@ -23,7 +23,7 @@ function Puce({ icone }: { icone: string }) {
 // Liens du profil : icône décorative (le nom accessible reste le libellé)
 const LIENS = [
   { to: '/profile/equipment', libelle: 'Mon matériel', icone: 'materiel' },
-  { to: '/strength/catalog', libelle: "Catalogue d'exercices", icone: 'catalogue' },
+  { to: '/strength/catalog', libelle: "Catalogue d’exercices", icone: 'catalogue' },
   { to: '/import', libelle: 'Importer des données', icone: 'import' },
 ]
 
@@ -167,10 +167,12 @@ export default function ProfileScreen() {
       <section aria-labelledby="profil-sauvegarde" className="profil__sauvegarde">
         <h2 id="profil-sauvegarde">Sauvegarde</h2>
         <p id="profil-sauvegarde-aide">
-          Téléchargez toutes vos données de renforcement (séances, séances jouées, séries, exercices, objectifs et
-          matériel) dans un fichier JSON au format de l'application Android. C'est une sauvegarde locale : gardez-la
+          Téléchargez toutes vos données dans un fichier JSON : le renforcement (séances, séries, exercices, objectifs, matériel) au
+          format de l’application Android, puis les sorties, la respiration, la mobilité, les séances planifiées, les plans et
+          Hyrox dans un complément propre à la WebApp. Votre poids, vos objectifs personnels et les réglages de cet appareil
+          n’y figurent pas. C’est une sauvegarde locale : gardez-la
           sur votre appareil ou votre propre support, hors des services tiers. Pour restaurer, importez-la avec ce
-          compte depuis « Importer des données » : les éléments existants reprennent l'état du fichier, sans doublon,
+          compte depuis « Importer des données » : les éléments existants reprennent l’état du fichier, sans doublon,
           et ceux supprimés depuis reviennent.
         </p>
         <button
