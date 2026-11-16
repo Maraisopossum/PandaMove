@@ -1,9 +1,9 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import type { RouteObject } from 'react-router'
+import { Navigate, type RouteObject } from 'react-router'
 import {
-  CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
+  OrganiserModulesScreen, CalendarScreen, CatalogScreen, EquipmentScreen, ExecuteScreen, HomeScreen, ImportScreen, ListeInstancesScreen, MethodeFormScreen, ProfileScreen,
   ReportScreen, RespirationScreen, SeanceDetailScreen, SeanceEditScreen, SeanceListScreen, SessionRespirationScreen, SortieDetailScreen, SortieFormScreen,
-  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, ProgressionScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen, ObjectifPlanScreen, JalonPlanScreen, AjusterPlanScreen, HyroxScreen, ObjectifHyroxScreen, StationsHyroxScreen, SimulationHyroxScreen, BilanHyroxScreen, RecordsHyroxScreen, AdminTableauScreen, AdminComptesScreen, AdminJournalScreen, AdminSanteScreen, StationDetailHyroxScreen, JourJHyroxScreen, PlanHyroxScreen, NutritionScreen, AjouterAlimentScreen, PhotoAssietteScreen, EntreeNutritionScreen, ObjectifsNutritionScreen, BilanNutritionScreen, MesAlimentsScreen, AlimentFormScreen,
+  SortiesScreen, StatsScreen, OutilsScreen, MobiliteScreen, ApercuMobiliteScreen, SeanceMobiliteScreen, RoutinesMobiliteScreen, RecordsSortiesScreen, StatsRespirationScreen, DonneesScreen, RappelsScreen, PlansScreen, ReglagesPlansScreen, SemainePlanScreen, EvolutionPlanScreen, ObjectifPlanScreen, JalonPlanScreen, AjusterPlanScreen, HyroxScreen, ObjectifHyroxScreen, StationsHyroxScreen, SimulationHyroxScreen, BilanHyroxScreen, RecordsHyroxScreen, AdminTableauScreen, AdminComptesScreen, AdminJournalScreen, AdminSanteScreen, StationDetailHyroxScreen, JourJHyroxScreen, PlanHyroxScreen, NutritionScreen, AjouterAlimentScreen, PhotoAssietteScreen, EntreeNutritionScreen, ObjectifsNutritionScreen, BilanNutritionScreen, MesAlimentsScreen, AlimentFormScreen,
 } from './EcransChargesALaDemande'
 import { GardeAdmin } from '../features/admin/GardeAdmin'
 import { PageErreur } from './PageErreur'
@@ -90,6 +90,7 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'strength/catalog', element: chargement(<CatalogScreen />) },
     { path: 'profile', element: chargement(<ProfileScreen />) },
     { path: 'profile/equipment', element: chargement(<EquipmentScreen />) },
+    { path: 'profile/modules', element: chargement(<OrganiserModulesScreen />) },
     { path: 'import', element: chargement(<ImportScreen />) },
     { path: 'mobility', element: chargement(<MobiliteScreen />) },
     { path: 'mobility/apercu', element: chargement(<ApercuMobiliteScreen />) },
@@ -98,7 +99,8 @@ export function construireRoutes(coque: ReactNode, dev: boolean = AVEC_DEBUG): R
     { path: 'outils', element: chargement(<OutilsScreen />) },
     { path: 'outils/donnees', element: chargement(<DonneesScreen />) },
     { path: 'outils/rappels', element: chargement(<RappelsScreen />) },
-    { path: 'outils/progression', element: chargement(<ProgressionScreen />) },
+    // Ancienne adresse de l'écran Progression, fusionné dans Statistiques (Renforcement, Historique d'un exercice) : les liens enregistrés suivent
+    { path: 'outils/progression', element: <Navigate to="/stats" replace /> },
   ]
   if (dev && DebugWriteScreen) {
     enfants.push({

@@ -38,14 +38,14 @@ export function useEcranEdition(enInstance = false) {
 
   const soumettre = useCallback(async () => {
     const idEnregistre = await enregistrer()
-    if (idEnregistre !== null) await navigate(retour)
+    if (idEnregistre !== null) await navigate(retour, { replace: true })
   }, [enregistrer, navigate, retour])
   // Confirmation de la perte des séries d'exercices retirés d'une séance en cours
   const confirmerPertes = useCallback(async () => {
     const idEnregistre = await enregistrer(true)
-    if (idEnregistre !== null) await navigate(retour)
+    if (idEnregistre !== null) await navigate(retour, { replace: true })
   }, [enregistrer, navigate, retour])
-  const annuler = useCallback(() => navigate(retour), [navigate, retour])
+  const annuler = useCallback(() => navigate(retour, { replace: true }), [navigate, retour])
 
   const { modifierBloc, changerTypeBloc, deplacer, modifierExercice, transformerExercice, dupliquer, supprimerExercice } = edition
   const ouvrirSelecteur = selecteur.ouvrir

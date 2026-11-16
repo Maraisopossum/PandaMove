@@ -67,7 +67,7 @@ export default function SortieFormScreen({ sport }: { sport: Sport }) {
       noValidate
       onSubmit={(e) => {
         e.preventDefault()
-        void form.enregistrer().then((ok) => ok && navigate(chemin))
+        void form.enregistrer().then((ok) => ok && navigate(chemin, { replace: true }))
       }}
     >
       <h1 className="titre-ecran">{id === undefined ? 'Nouvelle sortie' : 'Modifier la sortie'}</h1>

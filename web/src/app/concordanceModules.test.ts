@@ -31,7 +31,6 @@ describe('modules, menu et routes', () => {
   it('chaque entrée du menu et chaque sous-menu mène à une route', () => {
     for (const m of Object.values(MODULES)) {
       expect(aUneRoute(m.path), `route manquante pour ${m.label} (${m.path})`).toBe(true)
-      for (const s of m.sousLiens ?? []) expect(aUneRoute(s.path), `route manquante pour le sous-menu ${s.label} (${s.path})`).toBe(true)
     }
   })
 

@@ -28,15 +28,17 @@ Déploiement : Cloudflare Workers Builds (`web/wrangler.jsonc`, ressources stati
 
 ## Arborescence `web/`
 ```
-src/app/        → AppShell, Drawer, routes.tsx, modules.ts (couleur + pastille par module), app.css (jetons :root)
+src/app/        → AppShell, Drawer, routes.tsx, modules.ts (couleur + pastille par module), parents.ts (écran parent du bouton Retour),
+                  ordreModules.ts (ordre du menu et accès rapides de l'Accueil), app.css (jetons :root)
 src/core/db/    → client.ts (getDb/getSupabase), Db.ts (interface testable), schema.ts (schéma PowerSync), repos/ (accès SQL)
 src/core/sync/  → connecteur Supabase (envoi de la file, rejets définitifs signalés), état de synchro
 src/core/       → auth, catalogue (exercices de base), progression (moteur), import / import-ia / export, images (panda)
 src/features/   → home, strength, endurance (course + vélo : sorties, import FIT, cartes), calendar (+ séances cardio
                   planifiées), stats, respiration, mobilite, nutrition (journal, photo de l'assiette, Open Food Facts), hyrox, plans,
                   admin, outils, profile, import, onboarding, demarrage
-supabase/migrations/ → 0001 à 0013 (SQL idempotent, appliqué à la main par Benoît)
-supabase/functions/ → fonction `envoyer-rappels` (push, Deno ; déployée à la main, voir son README)
+supabase/migrations/ → 0001 à 0020 (SQL idempotent, appliqué à la main par Benoît)
+supabase/functions/ → `envoyer-rappels` (push), `admin-comptes`, `codes-secours` (MFA), `analyser-assiette` (photo, 3 fournisseurs d'IA) :
+                       Deno, déployées à la main (voir leur README)
 supabase/tests/      → schema-rls.test.ts (PGlite), rls.test.sql (pgTAP, manuel)
 powersync/sync-rules.yaml → Sync Streams (chaque utilisateur ne reçoit que ses lignes)
 public/         → icônes, panda/ (WebP générés), mobilite/ (illustrations par exercice, -male/-female), _headers (CSP)
@@ -45,6 +47,13 @@ Documentation détaillée : `web/README.md` (installation, Supabase, PowerSync, 
 READMEs de module (`src/features/calendar|respiration/README.md`), specs dans `docs/superpowers/specs/`.
 
 ## Patterns
+- **Navigation** : le menu ne liste que les modules (pas de sous-menus), dans l'ordre choisi par l'utilisateur (`ordreModules.ts`, réglage
+  d'appareil, Profil > Organiser les modules) ; les accès rapides de l'Accueil suivent le même ordre. Le bouton Retour de la barre du haut
+  monte d'un niveau (`parents.ts`) : **toute nouvelle route doit y avoir son parent** (test `retour.test.tsx`). Pas de lien « ← Parent » ni
+  « Retour à X » dans les écrans. Une action qui termine un parcours (enregistrer, supprimer, annuler un formulaire) utilise
+  `navigate(..., { replace: true })` ou `<Link replace>` pour ne pas laisser l'écran quitté dans l'historique.
+- **Poids et taille** : saisis une seule fois dans le Profil (`profile/poids.ts`, `lireMensurations()`) ; les autres modules (Nutrition) les
+  lisent et renvoient vers le Profil pour les modifier, ils ne les redemandent pas.
 - **Écran = composant de présentation + hook** (`useEcranAccueil`, `useSorties`, `useSeanceMobilite`…) : le hook lit/écrit
   via les `repos/`, le composant ne fait qu'afficher et appeler. Pas de SQL ni de règle métier dans un composant.
 - **Accès aux données** : toujours par `src/core/db/repos/*`, qui prennent un `Db` en paramètre (tests sur SQLite en

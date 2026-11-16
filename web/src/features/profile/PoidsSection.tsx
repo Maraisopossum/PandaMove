@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { dateIsoLocale } from '../../core/common/dates'
 import { formaterDate } from '../endurance/presentation'
-import { ajouterPesee, bilanPoids, definirObjectifPoids, lireSuiviPoids, POIDS_MAX_KG, POIDS_MIN_KG, retirerPesee } from './poids'
+import { ajouterPesee, bilanPoids, definirObjectifPoids, definirTailleCm, lireSuiviPoids, lireTailleCm, POIDS_MAX_KG, POIDS_MIN_KG, retirerPesee, TAILLE_MAX_CM, TAILLE_MIN_CM } from './poids'
 
 const MAINTENANT = () => new Date()
 const FORMAT = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -13,6 +13,8 @@ export function PoidsSection({ maintenant = MAINTENANT }: { maintenant?: () => D
   const [suivi, setSuivi] = useState(lireSuiviPoids)
   const [saisie, setSaisie] = useState<{ kg: string; date: string } | null>(null)
   const [objectif, setObjectif] = useState<string | null>(null)
+  const [tailleCm, setTailleCm] = useState(lireTailleCm)
+  const [tailleSaisie, setTailleSaisie] = useState<string | null>(null)
   const [now] = useState(maintenant)
   const aujourdhui = dateIsoLocale(now)
   const bilan = useMemo(() => bilanPoids(suivi, aujourdhui), [suivi, aujourdhui])
@@ -20,6 +22,8 @@ export function PoidsSection({ maintenant = MAINTENANT }: { maintenant?: () => D
   const kgSaisi = saisie ? nombre(saisie.kg) : Number.NaN
   const saisieValide = saisie !== null && Number.isFinite(kgSaisi) && kgSaisi >= POIDS_MIN_KG && kgSaisi <= POIDS_MAX_KG && /^\d{4}-\d{2}-\d{2}$/.test(saisie.date) && saisie.date <= aujourdhui
   const objectifKg = objectif === null ? null : nombre(objectif)
+  const tailleLue = tailleSaisie === null ? Number.NaN : nombre(tailleSaisie)
+  const tailleSaisieValide = tailleSaisie !== null && Number.isFinite(tailleLue) && tailleLue >= TAILLE_MIN_CM && tailleLue <= TAILLE_MAX_CM
   const objectifValide = objectif !== null && objectif.trim() !== '' && Number.isFinite(objectifKg) && (objectifKg as number) >= POIDS_MIN_KG && (objectifKg as number) <= POIDS_MAX_KG
 
   // Courbe : de la valeur la plus basse à la plus haute des pesées récentes et de l'objectif, avec de l'air autour
@@ -106,6 +110,53 @@ export function PoidsSection({ maintenant = MAINTENANT }: { maintenant?: () => D
         <p className="aide">Aucune pesée pour l’instant. Ajoutez la première pour suivre votre poids.</p>
       )}
 
+      <div className="profil__taille">
+        {tailleSaisie === null ? (
+          <>
+            <p>
+              Taille : <strong>{tailleCm === null ? 'non renseignée' : `${tailleCm} cm`}</strong>
+            </p>
+            <button type="button" className="bouton" onClick={() => setTailleSaisie(tailleCm === null ? '' : String(tailleCm))}>
+              {tailleCm === null ? 'Renseigner ma taille' : 'Modifier ma taille'}
+            </button>
+          </>
+        ) : (
+          <form
+            className="profil__objectifs-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (tailleSaisie.trim() === '') {
+                definirTailleCm(null)
+                setTailleCm(null)
+                setTailleSaisie(null)
+              } else if (tailleSaisieValide && definirTailleCm(tailleLue)) {
+                setTailleCm(Math.round(tailleLue))
+                setTailleSaisie(null)
+              }
+            }}
+          >
+            <div className="formulaire__champ">
+              <label htmlFor="taille-cm">Taille (cm)</label>
+              <input id="taille-cm" inputMode="numeric" value={tailleSaisie} autoFocus onChange={(e) => setTailleSaisie(e.target.value)} />
+              <p className="aide">Vide : taille effacée. Nutrition la lit avec votre dernière pesée.</p>
+            </div>
+            {tailleSaisie.trim() !== '' && !tailleSaisieValide && (
+              <p role="alert" className="formulaire__erreur">
+                Entre {TAILLE_MIN_CM} et {TAILLE_MAX_CM} cm.
+              </p>
+            )}
+            <div className="formulaire__ligne">
+              <button type="button" className="bouton" onClick={() => setTailleSaisie(null)}>
+                Annuler
+              </button>
+              <button type="submit" className="bouton bouton--principal" disabled={tailleSaisie.trim() !== '' && !tailleSaisieValide}>
+                Enregistrer
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {saisie ? (
         <form
           className="profil__objectifs-form"
@@ -161,7 +212,7 @@ export function PoidsSection({ maintenant = MAINTENANT }: { maintenant?: () => D
           </ul>
         </details>
       )}
-      <p className="aide">Le poids reste sur cet appareil : il n’est ni synchronisé ni compris dans l’export. Aucune conclusion de santé n’en est tirée.</p>
+      <p className="aide">Le poids et la taille restent sur cet appareil : ils ne sont ni synchronisés ni compris dans l’export. Le module Nutrition les lit ici pour calculer vos objectifs ; aucune conclusion de santé n’en est tirée.</p>
     </section>
   )
 }

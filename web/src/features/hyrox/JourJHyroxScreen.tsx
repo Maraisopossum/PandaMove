@@ -94,7 +94,7 @@ export default function JourJHyroxScreen() {
           resultatS: total, repartitionJson: objectif.repartitionJson ?? ecrireRepartition(h.repartition),
         })
       }
-      navigate(`/hyrox/bilan/${id}`)
+      navigate(`/hyrox/bilan/${id}`, { replace: true })
     } catch {
       setErreur('L’enregistrement a échoué.')
     }

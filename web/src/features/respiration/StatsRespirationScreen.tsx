@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
 import { ecart } from '../../core/common/ecart'
 import { getDb } from '../../core/db/client'
@@ -57,11 +56,6 @@ export default function StatsRespirationScreen({ db, maintenant = MAINTENANT }: 
   return (
     <div className="respiration respiration-stats">
       <header>
-        <p className="respiration__retour">
-          <Link to="/breathing" className="respiration__lien">
-            ← Respiration
-          </Link>
-        </p>
         <h1 className="respiration__titre-page">Statistiques</h1>
       </header>
 

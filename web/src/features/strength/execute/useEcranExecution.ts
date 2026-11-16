@@ -110,7 +110,7 @@ export function useEcranExecution(instanceId: string, { correction = false }: { 
     setFinOuverte(false)
     if (await terminer()) {
       contourner()
-      void navigate(`/strength/instance/${instanceId}/report`)
+      void navigate(`/strength/instance/${instanceId}/report`, { replace: true })
     }
   }, [contourner, instanceId, navigate, terminer])
 

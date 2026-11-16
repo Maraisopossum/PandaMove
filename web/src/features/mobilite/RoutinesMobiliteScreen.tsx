@@ -22,11 +22,6 @@ export default function RoutinesMobiliteScreen() {
   return (
     <div className="mobilite">
       <header>
-        <p className="mobilite__retour">
-          <Link to="/mobility" className="mobilite__lien">
-            ← Mobilité
-          </Link>
-        </p>
         <h1 className="titre-ecran">Routines</h1>
       </header>
 

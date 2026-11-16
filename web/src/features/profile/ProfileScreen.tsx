@@ -12,7 +12,6 @@ import { ObjectifsSection } from './ObjectifsSection'
 import { PoidsSection } from './PoidsSection'
 import { SecuriteSection } from './SecuriteSection'
 import { ReglagesAppareilSection } from './ReglagesAppareilSection'
-import { useExport } from './useExport'
 import { useProfile } from './useProfile'
 
 // Pastille décorative (images générées, style des pandas) : le libellé suffit au nom accessible
@@ -23,19 +22,19 @@ function Puce({ icone }: { icone: string }) {
 // Liens du profil : icône décorative (le nom accessible reste le libellé)
 const LIENS = [
   { to: '/profile/equipment', libelle: 'Mon matériel', icone: 'materiel' },
+  { to: '/profile/modules', libelle: 'Organiser les modules', icone: 'accueil' },
   { to: '/strength/catalog', libelle: "Catalogue d’exercices", icone: 'catalogue' },
   { to: '/import', libelle: 'Importer des données', icone: 'import' },
 ]
 
 // Profil : variante du panda, mode sombre, accès au matériel, au catalogue et à l'import, et
-// sauvegarde (export JSON). La logique vit dans useProfile et useExport.
+// renvoi vers la sauvegarde (Outils, Mes données). La logique vit dans useProfile.
 export default function ProfileScreen() {
   const { session } = useAuth()
   const p = useProfile({ userId: session?.user.id })
   const panda = useImagePanda('joy', { userId: session?.user.id, taille: 'sm' })
   const { rpeActif, changerRpe } = useReglageRpe()
   const { semaines: semainesDecharge, changerSemaines } = useReglageDecharge()
-  const sauvegarde = useExport({ userId: session?.user.id })
 
   return (
     <>
@@ -160,35 +159,16 @@ export default function ProfileScreen() {
         <p>
           Vos séances, vos poids, vos sorties et vos traces ne sont lisibles que par vous : l’administrateur de l’application ne voit que des informations
           techniques, jamais votre contenu. À l’ouverture, l’application envoie seulement sa version et l’heure de votre dernière connexion ou synchronisation
-          (aucune donnée d’entraînement). Vous pouvez exporter toutes vos données ci-dessous.
+          (aucune donnée d’entraînement). Vous pouvez exporter toutes vos données depuis Outils, Mes données.
         </p>
       </section>
 
-      <section aria-labelledby="profil-sauvegarde" className="profil__sauvegarde">
-        <h2 id="profil-sauvegarde">Sauvegarde</h2>
-        <p id="profil-sauvegarde-aide">
-          Téléchargez toutes vos données dans un fichier JSON : le renforcement (séances, séries, exercices, objectifs, matériel) au
-          format de l’application Android, puis les sorties, la respiration, la mobilité, les séances planifiées, les plans et
-          Hyrox dans un complément propre à la WebApp. Votre poids, vos objectifs personnels et les réglages de cet appareil
-          n’y figurent pas. C’est une sauvegarde locale : gardez-la
-          sur votre appareil ou votre propre support, hors des services tiers. Pour restaurer, importez-la avec ce
-          compte depuis « Importer des données » : les éléments existants reprennent l’état du fichier, sans doublon,
-          et ceux supprimés depuis reviennent.
-        </p>
-        <button
-          type="button"
-          className="bouton"
-          aria-describedby="profil-sauvegarde-aide"
-          aria-busy={sauvegarde.enCours}
-          disabled={sauvegarde.enCours}
-          onClick={() => void sauvegarde.exporter()}
-        >
-          Exporter mes données
-        </button>
-        <p role="status" className="profil__retour">
-          {sauvegarde.message}
-        </p>
-        {sauvegarde.erreur && <p role="alert">{sauvegarde.erreur}</p>}
+      <section aria-labelledby="profil-donnees" className="profil__sauvegarde">
+        <h2 id="profil-donnees">Sauvegarde et export</h2>
+        <p>La sauvegarde de toutes vos données, l’export d’une partie et l’import se trouvent au même endroit : Outils, puis Mes données.</p>
+        <Link className="bouton profil__lien" to="/outils/donnees">
+          Ouvrir Mes données
+        </Link>
       </section>
     </>
   )

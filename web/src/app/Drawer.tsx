@@ -1,6 +1,7 @@
-import { Fragment, type CSSProperties, type Ref } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import { NavLink } from 'react-router'
 import { MODULES, urlIcone } from './modules'
+import { modulesDuMenu, usePreferencesModules } from './ordreModules'
 import type { Deconnexion } from './useDeconnexion'
 
 interface Props {
@@ -11,8 +12,10 @@ interface Props {
   sombre: { dark: boolean; setDark: (valeur: boolean) => void }
 }
 
-// Drawer de navigation : permanent au-dessus de 1024 px, rétractable en dessous (voir app.css).
+// Drawer de navigation : les modules seulement (pas de sous-menus), dans l'ordre choisi par l'utilisateur (Profil, Organiser les modules).
+// Permanent au-dessus de 1024 px, rétractable en dessous (voir app.css).
 export function Drawer({ refNav, ouvert, onNavigation, deconnexion, sombre }: Props) {
+  const { preferences } = usePreferencesModules()
   return (
     <nav ref={refNav} id="drawer" className={`drawer${ouvert ? ' drawer--ouvert' : ''}`} aria-label="Navigation principale">
       <div className="drawer__entete">
@@ -25,35 +28,20 @@ export function Drawer({ refNav, ouvert, onNavigation, deconnexion, sombre }: Pr
         </div>
       </div>
       <div className="drawer__liens">
-      {Object.values(MODULES).map(({ path, label, color, icone, sousLiens }) => {
-        const style = { '--couleur-module': color } as CSSProperties
+      {modulesDuMenu(preferences).map((id) => {
+        const { path, label, color, icone } = MODULES[id]
         return (
-          <Fragment key={path}>
-            {/* Module à sous-menus : section courante (aria-current="true"), la page courante étant le sous-lien */}
-            <NavLink
-              to={path}
-              end={path === '/'}
-              aria-current={sousLiens ? 'true' : 'page'}
-              className="drawer__lien"
-              style={style}
-              onClick={onNavigation}
-            >
-              <img className="drawer__puce" src={urlIcone(icone)} alt="" width={30} height={30} decoding="async" />
-              {label}
-            </NavLink>
-            {sousLiens && (
-              <ul className="drawer__sousliens" aria-label={label}>
-                {sousLiens.map((s) => (
-                  <li key={s.path}>
-                    {/* `end` sur le chemin du module : /strength n'est pas actif sur /strength/planned */}
-                    <NavLink to={s.path} end={s.path === path} className="drawer__lien drawer__souslien" style={style} onClick={onNavigation}>
-                      {s.label}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Fragment>
+          <NavLink
+            key={id}
+            to={path}
+            end={path === '/'}
+            className="drawer__lien"
+            style={{ '--couleur-module': color } as CSSProperties}
+            onClick={onNavigation}
+          >
+            <img className="drawer__puce" src={urlIcone(icone)} alt="" width={30} height={30} decoding="async" />
+            {label}
+          </NavLink>
         )
       })}
       </div>

@@ -118,9 +118,6 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
       {erreur && <p role="alert">{erreur}</p>}
 
       <div className="sorties__actions-bas">
-        <Link to={chemin} className="sorties__retour">
-          Retour
-        </Link>
         <button type="button" className="bouton bouton--alerte" onClick={() => setConfirmer(true)}>
           Supprimer
         </button>
@@ -137,7 +134,7 @@ export default function SortieDetailScreen({ sport }: { sport: Sport }) {
           onAnnuler={() => setConfirmer(false)}
           onConfirmer={() => {
             setConfirmer(false)
-            void supprimer().then((ok) => ok && navigate(chemin))
+            void supprimer().then((ok) => ok && navigate(chemin, { replace: true }))
           }}
         >
           <p>« {s.titre} » du {formaterDate(s.date)} sera supprimée.</p>

@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
 import { executerAction, type DemandeAdmin } from '../../core/admin/admin'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { getSupabase } from '../../core/db/client'
@@ -108,7 +107,6 @@ export default function AdminComptesScreen() {
           </ul>
         </>
       )}
-      <Link className="plans__lien" to="/admin">Retour à l’administration</Link>
     </div>
   )
 }

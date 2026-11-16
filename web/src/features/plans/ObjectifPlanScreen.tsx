@@ -64,7 +64,7 @@ export default function ObjectifPlanScreen() {
       const saisie = { nom, discipline, date, priorite, cibleS, statut }
       if (id) await modifierObjectifPlan(getDb(), id, saisie)
       else await creerObjectifPlan(getDb(), saisie)
-      navigate('/plans')
+      navigate('/plans', { replace: true })
     } catch (err) {
       setErreur(err instanceof ErreurObjectif ? err.message : 'L’enregistrement a échoué.')
     }
@@ -74,7 +74,7 @@ export default function ObjectifPlanScreen() {
     if (!id) return
     try {
       await supprimerObjectifPlan(getDb(), id)
-      navigate('/plans')
+      navigate('/plans', { replace: true })
     } catch {
       setErreur('La suppression a échoué.')
     }
@@ -137,7 +137,7 @@ export default function ObjectifPlanScreen() {
 
           {erreur && <p role="alert">{erreur}</p>}
           <button type="submit" className="bouton bouton--principal">{conflits.length > 0 ? 'Enregistrer quand même' : 'Enregistrer'}</button>
-          <Link className="plans__lien" to="/plans">Annuler</Link>
+          <Link className="plans__lien" to="/plans" replace>Annuler</Link>
           {id && <button type="button" className="bouton bouton--alerte" onClick={() => void supprimer()}>Supprimer l’objectif</button>}
         </form>
       )}

@@ -114,12 +114,6 @@ export default function SeanceDetailScreen() {
 
   return (
     <>
-      <nav aria-label="Fil d’Ariane">
-        <Link to="/strength" className="detail__retour">
-          <span aria-hidden="true">← </span>Séances types
-        </Link>
-      </nav>
-
       <header className="detail__hero">
         <h1>{d.nom}</h1>
         <p className="detail__sous-titre">

@@ -99,7 +99,7 @@ export default function SimulationHyroxScreen() {
         </p>
         {s.erreur && <p role="alert">{s.erreur}</p>}
         <button type="submit" className="bouton bouton--principal">Démarrer</button>
-        <Link className="plans__lien" to="/hyrox">Annuler</Link>
+        <Link className="plans__lien" to="/hyrox" replace>Annuler</Link>
       </form>
     </div>
   )

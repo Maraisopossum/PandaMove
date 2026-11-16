@@ -1,18 +1,11 @@
 export type ModuleId = 'home' | 'strength' | 'running' | 'cycling' | 'calendar' | 'plans' | 'hyrox' | 'nutrition' | 'stats' | 'breathing' | 'mobility' | 'tools' | 'profile' | 'import'
 
-export interface SousLien {
-  path: string
-  label: string
-}
-
 export interface ModuleInfo {
   path: string
   label: string
   color: string
   /** Pastille illustrée du menu (public/icons/menu/<icone>.webp, style des pandas) */
   icone: string
-  /** Sous-menus affichés en permanence sous le module dans le drawer */
-  sousLiens?: SousLien[]
 }
 
 // Couleurs de la barre du haut selon le design system Stitch « PandaMove System » (web/DESIGN.md §2).
@@ -26,12 +19,6 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
     label: 'Renforcement',
     color: '#5B3D9E',
     icone: 'halteres',
-    sousLiens: [
-      { path: '/strength', label: 'Séances types' },
-      { path: '/strength/planned', label: 'Séances programmées' },
-      { path: '/strength/done', label: 'Séances terminées' },
-      { path: '/strength/catalog', label: 'Catalogue d’exercices' },
-    ],
   },
   // Vert (course) et bleu (vélo) : texte blanc >= 4,5:1 (contraste.test.ts)
   running: { path: '/running', label: 'Course', color: '#2E7D32', icone: 'course' },
@@ -48,17 +35,12 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
   // Nutrition : vert émeraude foncé (le #059669 du design ne donne que 3,8:1 avec du texte blanc ; #059669 reste l'accent non textuel)
   nutrition: { path: '/nutrition', label: 'Nutrition', color: '#047857', icone: 'nutrition' },
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C', icone: 'stats' },
-  // Menu à part des modules sportifs : sauvegarde, rappels, progression. Gris-bleu : texte blanc >= 4,5:1 (contraste.test.ts)
+  // Menu à part des modules sportifs : sauvegarde et rappels. Gris-bleu : texte blanc >= 4,5:1 (contraste.test.ts)
   tools: {
     path: '/outils',
     label: 'Outils',
     color: '#455A64',
     icone: 'materiel',
-    sousLiens: [
-      { path: '/outils/donnees', label: 'Mes données' },
-      { path: '/outils/rappels', label: 'Rappels' },
-      { path: '/outils/progression', label: 'Progression' },
-    ],
   },
   profile: { path: '/profile', label: 'Profil', color: '#576746', icone: 'profil' },
   import: { path: '/import', label: 'Import', color: '#1565C0', icone: 'import' },

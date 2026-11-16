@@ -5,13 +5,16 @@ import type { DbLecture } from '../../core/db/Db'
 // reste sur l'appareil. L'export complet réimportable reste celui de useExport (format Android v3.2) : celui-ci sert à
 // partager ou à analyser une partie des données, il n'est pas réimportable.
 
-export type ModuleExport = 'renforcement' | 'sorties' | 'mobilite' | 'respiration' | 'calendrier'
+export type ModuleExport = 'renforcement' | 'sorties' | 'hyrox' | 'plans' | 'nutrition' | 'mobilite' | 'respiration' | 'calendrier'
 export type PeriodeExport = 'tout' | 'mois' | 'trimestre' | 'annee'
 export type FormatExport = 'json' | 'csv'
 
 export const MODULES_EXPORT: { id: ModuleExport; nom: string }[] = [
   { id: 'renforcement', nom: 'Renforcement' },
   { id: 'sorties', nom: 'Course et vélo' },
+  { id: 'hyrox', nom: 'Hyrox' },
+  { id: 'plans', nom: 'Plans' },
+  { id: 'nutrition', nom: 'Nutrition' },
   { id: 'mobilite', nom: 'Mobilité' },
   { id: 'respiration', nom: 'Respiration' },
   { id: 'calendrier', nom: 'Calendrier' },
@@ -33,7 +36,8 @@ export function debutPeriode(periode: PeriodeExport, maintenant: Date): string |
 }
 
 type Ligne = Record<string, string | number | null>
-export type DonneesCiblees = Partial<Record<ModuleExport, Ligne[]>>
+// `hyrox_segments` accompagne `hyrox` dans l'export JSON (temps de chaque segment) ; il n'a pas de case à cocher et reste hors du CSV.
+export type DonneesCiblees = Partial<Record<ModuleExport | 'hyrox_segments', Ligne[]>>
 
 // Les traces GPS et séries d'échantillons des sorties ne sont pas exportées ici (volumineuses) : elles restent dans la base.
 const REQUETES: Record<ModuleExport, (filtreDate: string) => string> = {
@@ -47,6 +51,16 @@ const REQUETES: Record<ModuleExport, (filtreDate: string) => string> = {
     FROM seances_mobilite WHERE deleted_at IS NULL ${f.replaceAll('{d}', 'date')} ORDER BY date`,
   respiration: (f) => `SELECT id, date, methode_nom, cycles, duree_sec AS duree_s
     FROM seances_respiration WHERE deleted_at IS NULL ${f.replaceAll('{d}', 'date')} ORDER BY date`,
+  // Simulations terminées (le jour est celui du départ, en UTC) ; les segments sont lus à part, avec la même période
+  hyrox: (f) => `SELECT id, substr(debut_at, 1, 10) AS date, 'Simulation Hyrox · ' || forme AS titre, 'hyrox' AS sport, total_s AS duree_s, categorie, genre, reference, notes
+    FROM hyrox_simulations WHERE deleted_at IS NULL AND statut = 'terminee' ${f.replaceAll('{d}', 'substr(debut_at, 1, 10)')} ORDER BY debut_at`,
+  // Objectifs de plan d'endurance (courses visées et résultats) ; la période ne s'applique pas à un objectif futur, comme pour le calendrier
+  plans: () => `SELECT id, date, nom AS titre, discipline AS sport, cible_s AS duree_s, distance_m, priorite, statut, resultat_s, notes
+    FROM objectifs_plan WHERE deleted_at IS NULL ORDER BY date`,
+  // Journal alimentaire, eau comprise (repas = eau, quantité en ml) ; les valeurs sont celles de la quantité mangée
+  nutrition: (f) => `SELECT id, date, nom AS titre, repas, quantite_g, kcal, proteines, glucides, lipides, fibres, source,
+      repas || ' · ' || CAST(ROUND(quantite_g) AS INTEGER) || (CASE WHEN repas = 'eau' THEN ' ml' ELSE ' g · ' || CAST(ROUND(kcal) AS INTEGER) || ' kcal' END) AS detail
+    FROM repas_entrees WHERE deleted_at IS NULL ${f.replaceAll('{d}', 'date')} ORDER BY date, created_at`,
   // Séances de cardio planifiées à venir (non validées) ; la période ne s'applique pas à un futur
   calendrier: () => `SELECT id, date, 'course' AS sport, titre, detail FROM seances_course WHERE deleted_at IS NULL AND is_validated = 0 AND date >= ?
     UNION ALL SELECT id, date, 'velo' AS sport, titre, detail FROM seances_velo WHERE deleted_at IS NULL AND is_validated = 0 AND date >= ? ORDER BY date`,
@@ -58,8 +72,15 @@ export async function lireDonneesCiblees(db: DbLecture, modules: readonly Module
   const aujourdhui = dateIsoLocale(maintenant)
   const resultat: DonneesCiblees = {}
   for (const m of MODULES_EXPORT.map((x) => x.id).filter((id) => modules.includes(id))) {
-    const params = m === 'calendrier' ? [aujourdhui, aujourdhui] : depuis ? [depuis] : []
+    const params = m === 'calendrier' ? [aujourdhui, aujourdhui] : m === 'plans' ? [] : depuis ? [depuis] : []
     resultat[m] = await db.getAll<Ligne>(REQUETES[m](filtre), params)
+    if (m === 'hyrox') {
+      resultat.hyrox_segments = await db.getAll<Ligne>(
+        `SELECT g.id, g.simulation_id, g.rang, g.type, g.station, g.cible_s, g.reel_s FROM hyrox_segments g JOIN hyrox_simulations s ON s.id = g.simulation_id
+         WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.statut = 'terminee' ${filtre.replaceAll('{d}', 'substr(s.debut_at, 1, 10)')} ORDER BY s.debut_at, g.rang`,
+        params,
+      )
+    }
   }
   return resultat
 }
@@ -67,6 +88,9 @@ export async function lireDonneesCiblees(db: DbLecture, modules: readonly Module
 const LIBELLE_UNITE: Record<ModuleExport, [string, string]> = {
   renforcement: ['séance de renforcement', 'séances de renforcement'],
   sorties: ['sortie', 'sorties'],
+  hyrox: ['simulation Hyrox', 'simulations Hyrox'],
+  plans: ['objectif de plan', 'objectifs de plan'],
+  nutrition: ['ligne du journal alimentaire', 'lignes du journal alimentaire'],
   mobilite: ['séance de mobilité', 'séances de mobilité'],
   respiration: ['séance de respiration', 'séances de respiration'],
   calendrier: ['séance prévue', 'séances prévues'],
@@ -103,7 +127,7 @@ export function versCsv(donnees: DonneesCiblees): string {
   const lignes = MODULES_EXPORT.flatMap(({ id }) =>
     (donnees[id] ?? []).map((l) => {
       const titre = l.titre ?? l.nom ?? l.methode_nom ?? ''
-      const detail = l.detail ?? (id === 'renforcement' ? `${l.series ?? 0} séries` : id === 'mobilite' ? `${l.exercices ?? 0} exercices` : id === 'respiration' ? `${l.cycles ?? 0} cycles` : '')
+      const detail = l.detail ?? (id === 'renforcement' ? `${l.series ?? 0} séries` : id === 'mobilite' ? `${l.exercices ?? 0} exercices` : id === 'respiration' ? `${l.cycles ?? 0} cycles` : id === 'plans' ? `${l.statut ?? ''}` : '')
       return { module: id, date: l.date, titre, sport: l.sport ?? '', duree_s: l.duree_s ?? '', distance_m: l.distance_m ?? '', detail }
     }),
   )

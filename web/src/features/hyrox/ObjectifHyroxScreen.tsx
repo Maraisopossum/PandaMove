@@ -48,7 +48,7 @@ function FormulaireObjectif({ h }: { h: ReturnType<typeof useHyrox> }) {
       const saisie = { nom, lieu, date: date || null, categorie, genre, objectifS: cibleS, resultatS, repartitionJson: ecrireRepartition({ partCoursesPct: part }, objectif?.repartitionJson) }
       if (objectif) await modifierCourseHyrox(getDb(), objectif.id, saisie)
       else await creerCourseHyrox(getDb(), saisie)
-      navigate('/hyrox')
+      navigate('/hyrox', { replace: true })
     } catch (err) {
       setErreur(err instanceof ErreurHyrox ? err.message : 'L’enregistrement a échoué.')
     }
@@ -58,7 +58,7 @@ function FormulaireObjectif({ h }: { h: ReturnType<typeof useHyrox> }) {
     if (!objectif) return
     try {
       await supprimerCourseHyrox(getDb(), objectif.id)
-      navigate('/hyrox')
+      navigate('/hyrox', { replace: true })
     } catch {
       setErreur('La suppression a échoué.')
     }
@@ -130,7 +130,7 @@ function FormulaireObjectif({ h }: { h: ReturnType<typeof useHyrox> }) {
 
           {erreur && <p role="alert">{erreur}</p>}
           <button type="submit" className="bouton bouton--principal">Enregistrer</button>
-          <Link className="plans__lien" to="/hyrox">Annuler</Link>
+          <Link className="plans__lien" to="/hyrox" replace>Annuler</Link>
           {objectif && <button type="button" className="bouton bouton--alerte" onClick={() => void supprimer()}>Supprimer l’objectif</button>}
         </form>
       )}

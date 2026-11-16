@@ -27,22 +27,29 @@ function monter(chemin = '/stats', surcharge: Partial<Parameters<typeof Drawer>[
 }
 
 describe('Drawer', () => {
-  it('est un repère de navigation avec un lien par module et les sous-menus du renforcement', () => {
+  it('est un repère de navigation avec un lien par module, sans sous-menus', () => {
     monter()
     const nav = screen.getByRole('navigation', { name: 'Navigation principale' })
     for (const { label } of Object.values(MODULES)) {
       expect(nav.textContent).toContain(label)
     }
-    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length + 4 + 3)
-    // Sous-menus toujours visibles, en liste sémantique, même hors du module
-    const sousMenus = screen.getByRole('list', { name: 'Renforcement' })
-    expect(within(sousMenus).getAllByRole('link').map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
-      ['Séances types', '/strength'],
-      ['Séances programmées', '/strength/planned'],
-      ['Séances terminées', '/strength/done'],
-      ['Catalogue d’exercices', '/strength/catalog'],
-    ])
+    // Un lien par module + le lien d'évitement + logo non lié : pas un lien de plus (ni sous-menu, ni liste imbriquée)
+    expect(screen.getAllByRole('link')).toHaveLength(Object.keys(MODULES).length)
+    expect(screen.queryAllByRole('list')).toHaveLength(0)
+    expect(screen.queryByRole('link', { name: 'Séances programmées' })).toBeNull()
     expect(screen.getByRole('link', { name: MODULES.strength.label }).getAttribute('href')).toBe('/strength')
+  })
+
+  it('suit l’ordre choisi par l’utilisateur, l’Accueil restant en premier', () => {
+    localStorage.setItem('pandamove.modules.ordre', JSON.stringify({ ordre: ['nutrition', 'hyrox'], tuiles: [] }))
+    try {
+      monter()
+      const libelles = screen.getAllByRole('link').map((l) => l.textContent)
+      expect(libelles.slice(0, 4)).toEqual([MODULES.home.label, MODULES.nutrition.label, MODULES.hyrox.label, MODULES.strength.label])
+      expect(libelles).toHaveLength(Object.keys(MODULES).length)
+    } finally {
+      localStorage.removeItem('pandamove.modules.ordre')
+    }
   })
 
   it('marque uniquement le lien actif avec aria-current', () => {
@@ -51,22 +58,10 @@ describe('Drawer', () => {
     expect(actifs.map((l) => l.textContent)).toEqual([MODULES.stats.label])
   })
 
-  it.each([
-    ['/strength', 'Séances types'],
-    ['/strength/planned', 'Séances programmées'],
-    ['/strength/done', 'Séances terminées'],
-  ])('%s : seul le sous-lien %s est la page courante ; le module est marqué comme section courante', (chemin, sousLien) => {
+  it.each(['/strength', '/strength/planned', '/strength/done', '/strength/new'])('%s : le module Renforcement est la page courante, lui seul', (chemin) => {
     monter(chemin)
     const pages = screen.getAllByRole('link').filter((l) => l.getAttribute('aria-current') === 'page')
-    expect(pages.map((l) => l.textContent)).toEqual([sousLien])
-    expect(screen.getByRole('link', { name: MODULES.strength.label }).getAttribute('aria-current')).toBe('true')
-  })
-
-  it('sous-route sans sous-menu (édition) : le module reste marqué, aucun sous-lien courant', () => {
-    monter('/strength/new')
-    const pages = screen.getAllByRole('link').filter((l) => l.getAttribute('aria-current') === 'page')
-    expect(pages).toEqual([])
-    expect(screen.getByRole('link', { name: MODULES.strength.label }).getAttribute('aria-current')).toBe('true')
+    expect(pages.map((l) => l.textContent)).toEqual([MODULES.strength.label])
   })
 
   it("affiche l'avertissement de déconnexion renvoyé par la synchro", () => {

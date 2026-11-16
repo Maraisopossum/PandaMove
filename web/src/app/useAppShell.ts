@@ -9,6 +9,7 @@ import { useDeconnexion } from './useDeconnexion'
 import { useDrawer } from './useDrawer'
 import { useRappelsActifs } from '../features/outils/useRappels'
 import { useInstallationCatalogue } from './useInstallationCatalogue'
+import { useRetour } from './useRetour'
 
 const CONFIRMATION_ABANDON =
   'Les modifications non synchronisées de l’autre compte seront définitivement perdues. Continuer ?'
@@ -27,10 +28,11 @@ export function useAppShell() {
   const { refBascule, refDrawer, ...drawer } = useDrawer()
   const sombre = useDarkMode({ userId: session?.user.id })
   const deconnexion = useDeconnexion(signOutSafely)
+  const retour = useRetour()
 
   const demanderAbandon = useCallback(() => {
     if (window.confirm(CONFIRMATION_ABANDON)) void abandonnerDonneesLocales()
   }, [abandonnerDonneesLocales])
 
-  return { module: infoModule(pathname), drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon }
+  return { module: infoModule(pathname), drawer, refBascule, refDrawer, sombre, deconnexion, messageAutreCompte, demanderAbandon, retour }
 }

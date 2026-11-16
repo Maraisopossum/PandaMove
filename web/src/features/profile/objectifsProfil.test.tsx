@@ -16,7 +16,7 @@ import { ecrireObjectifQuotidien, ecrireFavorite, lireFavorite, lireObjectifQuot
 import { ecrireExerciceDefaut, lireExerciceDefaut } from '../stats/exerciceDefaut'
 import { ObjectifsSection } from './ObjectifsSection'
 import { CLE_OBJECTIFS, ecrireObjectifsPerso, lireObjectifsPerso, lireProgressionObjectifs } from './objectifs'
-import { ajouterPesee, bilanPoids, CLE_POIDS, definirObjectifPoids, lireSuiviPoids, retirerPesee } from './poids'
+import { ajouterPesee, bilanPoids, CLE_POIDS, CLE_TAILLE, definirObjectifPoids, definirTailleCm, lireMensurations, lireSuiviPoids, lireTailleCm, retirerPesee } from './poids'
 import { PoidsSection } from './PoidsSection'
 import { lireLignesReglages, reinitialiserReglages } from './reglagesAppareil'
 import { ReglagesAppareilSection } from './ReglagesAppareilSection'
@@ -193,7 +193,7 @@ describe('suivi du poids', () => {
     fireEvent.click(within(carte).getByText(/Mes pesées/))
     fireEvent.click(within(carte).getByRole('button', { name: /Supprimer la pesée du 12 nov/ }))
     expect(lireSuiviPoids().pesees.map((p) => p.kg)).toEqual([81.6])
-    expect(texte(carte)).toContain('reste sur cet appareil')
+    expect(texte(carte)).toContain('restent sur cet appareil')
   })
 })
 
@@ -237,5 +237,39 @@ describe('réglages de cet appareil', () => {
     expect(reinitialiserReglages()).toBe(2)
     expect(reinitialiserReglages()).toBe(0)
     ecrireObjectifQuotidien(5)
+  })
+})
+
+describe('taille du profil', () => {
+  it('se règle de 120 à 230 cm, s’efface, et se lit avec la dernière pesée (source unique pour Nutrition)', () => {
+    expect(lireTailleCm()).toBeNull()
+    expect(definirTailleCm(50)).toBe(false)
+    expect(definirTailleCm(300)).toBe(false)
+    expect(lireTailleCm()).toBeNull()
+    expect(definirTailleCm(181.6)).toBe(true)
+    expect(lireTailleCm()).toBe(182)
+    ajouterPesee(lireSuiviPoids(), '2026-11-12', 79.2)
+    expect(lireMensurations()).toEqual({ poids: { date: '2026-11-12', kg: 79.2 }, tailleCm: 182 })
+    expect(definirTailleCm(null)).toBe(true)
+    expect(lireMensurations().tailleCm).toBeNull()
+    localStorage.setItem(CLE_TAILLE, 'abc')
+    expect(lireTailleCm()).toBeNull()
+  })
+
+  it('écran : renseigner, refuser une valeur hors limites, modifier puis effacer', () => {
+    monter(<PoidsSection maintenant={() => MAINT} />)
+    const carte = screen.getByRole('region', { name: 'Poids' })
+    expect(texte(carte)).toContain('non renseignée')
+    fireEvent.click(within(carte).getByRole('button', { name: 'Renseigner ma taille' }))
+    fireEvent.change(within(carte).getByLabelText('Taille (cm)'), { target: { value: '90' } })
+    expect(within(carte).getByRole('alert').textContent).toContain('Entre 120 et 230 cm')
+    fireEvent.change(within(carte).getByLabelText('Taille (cm)'), { target: { value: '178' } })
+    fireEvent.click(within(carte).getByRole('button', { name: 'Enregistrer' }))
+    expect(texte(carte)).toContain('178 cm')
+    expect(lireTailleCm()).toBe(178)
+    fireEvent.click(within(carte).getByRole('button', { name: 'Modifier ma taille' }))
+    fireEvent.change(within(carte).getByLabelText('Taille (cm)'), { target: { value: '' } })
+    fireEvent.click(within(carte).getByRole('button', { name: 'Enregistrer' }))
+    expect(lireTailleCm()).toBeNull()
   })
 })
