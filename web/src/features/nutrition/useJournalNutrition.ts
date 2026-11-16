@@ -61,6 +61,17 @@ export function useJournalNutrition(date: string, { db }: { db?: Db } = {}) {
     ...etat,
     recharger,
     ajouterEau: (ml: number) => executer((b) => ajouterEau(b, date, ml), 'L’eau n’a pas pu être ajoutée.'),
+    /** Ajoute de l'eau et rend l'identifiant de la ligne créée (pour l'annuler à coup sûr), ou null si l'ajout a échoué. */
+    ajouterEauAnnulable: async (ml: number): Promise<string | null> => {
+      try {
+        const id = await ajouterEau(db ?? getDb(), date, ml)
+        recharger()
+        return id
+      } catch {
+        setEtat((e) => ({ ...e, erreur: 'L’eau n’a pas pu être ajoutée.' }))
+        return null
+      }
+    },
     annulerDerniereEau: () => {
       const derniere = [...etat.entrees].reverse().find((e) => e.repas === 'eau')
       return derniere ? executer((b) => supprimerEntree(b, derniere.id), 'L’ajout n’a pas pu être annulé.') : Promise.resolve()

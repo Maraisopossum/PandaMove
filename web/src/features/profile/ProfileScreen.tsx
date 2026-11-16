@@ -11,6 +11,7 @@ import { MotDePasseSection } from './MotDePasseSection'
 import { ObjectifsSection } from './ObjectifsSection'
 import { PoidsSection } from './PoidsSection'
 import { SecuriteSection } from './SecuriteSection'
+import { WidgetAndroid } from './WidgetAndroid'
 import { ReglagesAppareilSection } from './ReglagesAppareilSection'
 import { useProfile } from './useProfile'
 
@@ -153,6 +154,8 @@ export default function ProfileScreen() {
       <MotDePasseSection />
 
       <SecuriteSection />
+
+      <WidgetAndroid />
 
       <section aria-labelledby="profil-confidentialite" className="profil__sauvegarde">
         <h2 id="profil-confidentialite">Confidentialité</h2>

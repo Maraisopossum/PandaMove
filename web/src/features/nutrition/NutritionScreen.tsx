@@ -19,13 +19,13 @@ export default function NutritionScreen({ aujourdhui = dateIsoLocale(new Date())
   const versJour = (d: string) => setParams(d === aujourdhui ? {} : { date: d }, { replace: true })
   // Raccourci « Ajouter 250 ml d'eau » (appui long sur l'icône, boutons du widget) : `?action=eau` ajoute l'eau UNE fois puis retire le
   // paramètre de l'adresse (un rechargement ne réajoute rien) ; l'annulation reste à un toucher.
-  const [eauAjoutee, setEauAjoutee] = useState(false)
+  const [eauAjoutee, setEauAjoutee] = useState<string | null>(null)
   const actionTraitee = useRef(false)
   const demandeEau = params.get('action') === 'eau'
   useEffect(() => {
     if (!demandeEau || actionTraitee.current) return
     actionTraitee.current = true
-    void j.ajouterEau(PAS_EAU[0]).then(() => setEauAjoutee(true))
+    void j.ajouterEauAnnulable(PAS_EAU[0]).then(setEauAjoutee)
     setParams({}, { replace: true })
     // Une seule fois par arrivée sur l'écran
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -36,10 +36,10 @@ export default function NutritionScreen({ aujourdhui = dateIsoLocale(new Date())
     <div className="plans nutri">
       <h1 className="titre-ecran">Nutrition</h1>
       {j.erreur && <p role="alert">{j.erreur}</p>}
-      {eauAjoutee && (
+      {eauAjoutee !== null && (
         <p role="status" className="nutri__eau-ajoutee">
           {PAS_EAU[0]} ml ajoutés ·{' '}
-          <button type="button" className="plans__lien nutri__lien-bouton" onClick={() => void j.annulerDerniereEau().then(() => setEauAjoutee(false))}>
+          <button type="button" className="plans__lien nutri__lien-bouton" onClick={() => void j.supprimer(eauAjoutee).then(() => setEauAjoutee(null))}>
             Annuler
           </button>
         </p>
