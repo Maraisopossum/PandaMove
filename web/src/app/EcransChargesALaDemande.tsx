@@ -30,7 +30,6 @@ export const RoutinesMobiliteScreen = lazy(() => import('../features/mobilite/Ro
 export const OutilsScreen = lazy(() => import('../features/outils/OutilsScreen'))
 export const DonneesScreen = lazy(() => import('../features/outils/DonneesScreen'))
 export const RappelsScreen = lazy(() => import('../features/outils/RappelsScreen'))
-export const ProgressionScreen = lazy(() => import('../features/outils/ProgressionScreen'))
 export const PlansScreen = lazy(() => import('../features/plans/PlansScreen'))
 export const ReglagesPlansScreen = lazy(() => import('../features/plans/ReglagesPlansScreen'))
 export const SemainePlanScreen = lazy(() => import('../features/plans/SemainePlanScreen'))

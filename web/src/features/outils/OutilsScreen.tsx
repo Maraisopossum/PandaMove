@@ -4,10 +4,9 @@ import { urlIcone } from '../../app/modules'
 const OUTILS = [
   { vers: '/outils/donnees', titre: 'Mes données', texte: 'Sauvegarde, export et import de vos données.', icone: 'import' },
   { vers: '/outils/rappels', titre: 'Rappels', texte: 'Une notification la veille et le jour de vos séances.', icone: 'calendrier' },
-  { vers: '/outils/progression', titre: 'Progression', texte: 'La courbe de charge, le record et l’évolution par exercice.', icone: 'stats' },
 ] as const
 
-// Menu Outils : trois entrées vers des écrans séparés des modules sportifs.
+// Menu Outils : deux entrées vers des écrans séparés des modules sportifs (la progression par exercice est dans Statistiques).
 export default function OutilsScreen() {
   return (
     <div className="outils">

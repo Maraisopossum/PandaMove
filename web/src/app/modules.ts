@@ -48,7 +48,7 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
   // Nutrition : vert émeraude foncé (le #059669 du design ne donne que 3,8:1 avec du texte blanc ; #059669 reste l'accent non textuel)
   nutrition: { path: '/nutrition', label: 'Nutrition', color: '#047857', icone: 'nutrition' },
   stats: { path: '/stats', label: 'Statistiques', color: '#BF360C', icone: 'stats' },
-  // Menu à part des modules sportifs : sauvegarde, rappels, progression. Gris-bleu : texte blanc >= 4,5:1 (contraste.test.ts)
+  // Menu à part des modules sportifs : sauvegarde et rappels. Gris-bleu : texte blanc >= 4,5:1 (contraste.test.ts)
   tools: {
     path: '/outils',
     label: 'Outils',
@@ -57,7 +57,6 @@ export const MODULES: Record<ModuleId, ModuleInfo> = {
     sousLiens: [
       { path: '/outils/donnees', label: 'Mes données' },
       { path: '/outils/rappels', label: 'Rappels' },
-      { path: '/outils/progression', label: 'Progression' },
     ],
   },
   profile: { path: '/profile', label: 'Profil', color: '#576746', icone: 'profil' },

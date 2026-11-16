@@ -5,8 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { inserer } from '../../test/fixtures'
 import { createTestDb } from '../../test/sqliteDb'
 import type { EvenementAgenda } from '../calendar/types'
-import type { PointHistorique } from '../stats/statsQueries'
-import { pointsDeLaPeriode, resumerProgression } from './progression'
 import { getSettings, lireRappelsJson, saveRappelsJson } from '../../core/db/repos/settings'
 import { fusionnerSynchro, lireReglages, purgerEnvoyes, rappelsDus, REGLAGES_PAR_DEFAUT, versJsonSynchro, type ReglagesRappels } from './rappels'
 import { compterDonnees, formaterDerniereSauvegarde } from './useDonnees'
@@ -64,24 +62,6 @@ describe('réglages et purge', () => {
   })
 })
 
-describe('progression', () => {
-  const pt = (dateIso: string, maxChargeKg: number): PointHistorique => ({ dateIso, maxChargeKg, reps: 5, enSecondes: false, volumeKg: 0, rmEstimeKg: 0 })
-  const points = [pt('2026-01-10', 60), pt('2026-09-01', 70), pt('2026-10-15', 80), pt('2026-11-05', 77.5)]
-  it('filtre par période et calcule record et évolution', () => {
-    const dans3Mois = pointsDeLaPeriode(points, '3m', new Date(2026, 10, 11))
-    expect(dans3Mois.map((p) => p.dateIso)).toEqual(['2026-09-01', '2026-10-15', '2026-11-05'])
-    const r = resumerProgression(dans3Mois)
-    expect(r.record).toEqual({ valeur: 80, dateIso: '2026-10-15' })
-    expect(r.evolution).toBe(7.5)
-    expect(r.seances).toBe(3)
-    expect(pointsDeLaPeriode(points, 'tout', new Date(2026, 10, 11))).toHaveLength(4)
-  })
-  it('sans point : pas de record ; une seule séance : pas d\'évolution', () => {
-    expect(resumerProgression([])).toMatchObject({ record: null, evolution: null, seances: 0 })
-    expect(resumerProgression([pt('2026-11-05', 80)]).evolution).toBeNull()
-  })
-})
-
 describe('compterDonnees', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -104,13 +84,13 @@ describe('compterDonnees', () => {
 })
 
 describe('écrans', () => {
-  it('le menu Outils propose les trois écrans', () => {
+  it('le menu Outils propose ses deux écrans', () => {
     render(
       <MemoryRouter>
         <OutilsScreen />
       </MemoryRouter>,
     )
-    expect(screen.getAllByRole('link').map((l) => l.getAttribute('href'))).toEqual(['/outils/donnees', '/outils/rappels', '/outils/progression'])
+    expect(screen.getAllByRole('link').map((l) => l.getAttribute('href'))).toEqual(['/outils/donnees', '/outils/rappels'])
   })
 
   it('Mes données : effectifs, aucune sauvegarde au départ, liens export et import', async () => {
