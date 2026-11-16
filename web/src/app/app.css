@@ -9066,3 +9066,11 @@ time,
 /* Plan Hyrox : espace entre les cartes de semaine, pastille de phase visible dans le titre */
 .hyrox__semaines { display: grid; gap: 0.875rem; }
 .plans__pastille { display: inline-block; vertical-align: middle; }
+
+/* Profil : codes de secours de la double authentification */
+.profil__secours { display: grid; gap: 0.5rem; margin-top: 1rem; padding-top: 0.875rem; border-top: 1px solid var(--bord); }
+.profil__secours h3 { margin: 0; font-size: 1rem; }
+.profil__secours p { margin: 0; }
+.profil__codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.profil__codes li { padding: 0.5rem 0.625rem; border: 1px solid var(--bord); border-radius: var(--radius-bouton); background: var(--surface); text-align: center; }
+.profil__codes code { font-size: 1rem; letter-spacing: 0.06em; }
