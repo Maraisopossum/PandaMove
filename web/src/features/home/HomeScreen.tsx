@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { MODULES, urlIcone } from '../../app/modules'
+import { tuilesAccueil, usePreferencesModules } from '../../app/ordreModules'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { CarteDemarrage } from '../demarrage/CarteDemarrage'
 import { ObjectifsAccueil, PropositionsDuJour } from './CartesAccueil'
@@ -18,9 +19,8 @@ function actionProchaine(e: EvenementAgenda): { vers: string; libelle: string } 
 
 // Modules proposés en accès rapide, dans l'ordre d'affichage (libellé, chemin, couleur et pastille viennent de MODULES).
 // Statistiques n'y figure pas : les cartes « Cette semaine » et « Forme du jour » y mènent.
-// Trois rangées de trois : le sport (renforcement, course, vélo), la préparation (Hyrox, plans, calendrier) et le quotidien (nutrition,
-// mobilité, respiration).
-const TUILES = ['strength', 'running', 'cycling', 'hyrox', 'plans', 'calendar', 'nutrition', 'mobility', 'breathing'] as const
+// Les accès rapides (modules affichés et ordre) se règlent dans Profil, Organiser les modules ; par défaut trois rangées de trois : le sport
+// (renforcement, course, vélo), la préparation (Hyrox, plans, calendrier) et le quotidien (nutrition, mobilité, respiration).
 
 const DATE_COURTE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' })
 const dateCourte = (iso: string) => DATE_COURTE.format(new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))))
@@ -46,6 +46,8 @@ function CourbeForme({ serie }: { serie: number[] }) {
 // activité locale » : aucune donnée de dernière séance n'est exposée à l'accueil, il n'est donc pas affiché
 // (la reprise d'une séance en cours se fait par le bandeau « Séance en cours » de la coque).
 export default function HomeScreen() {
+  const { preferences } = usePreferencesModules()
+  const tuiles = tuilesAccueil(preferences)
   const { panda, prochaine, semaine, date, indicateurs, forme, derniere, propositions, objectifs } = useEcranAccueil()
   return (
     <div className="accueil">
@@ -177,7 +179,7 @@ export default function HomeScreen() {
       <CarteDemarrage />
       <h2 className="accueil__libelle accueil__libelle--section">Accès rapides</h2>
       <nav aria-label="Accès rapides" className="accueil__tuiles">
-        {TUILES.map((id) => {
+        {tuiles.map((id) => {
           const { path, label, color, icone } = MODULES[id]
           return (
             <Link key={id} to={path} className="accueil__tuile" aria-label={label} style={{ '--couleur-module': color } as CSSProperties}>
@@ -187,6 +189,10 @@ export default function HomeScreen() {
           )
         })}
       </nav>
+      {tuiles.length === 0 && <p className="aide">Aucun accès rapide : le menu donne accès à tous les modules.</p>}
+      <Link className="accueil__organiser" to="/profile/modules">
+        Organiser les modules
+      </Link>
     </div>
   )
 }

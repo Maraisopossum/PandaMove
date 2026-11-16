@@ -22,6 +22,7 @@ function Puce({ icone }: { icone: string }) {
 // Liens du profil : icône décorative (le nom accessible reste le libellé)
 const LIENS = [
   { to: '/profile/equipment', libelle: 'Mon matériel', icone: 'materiel' },
+  { to: '/profile/modules', libelle: 'Organiser les modules', icone: 'accueil' },
   { to: '/strength/catalog', libelle: "Catalogue d’exercices", icone: 'catalogue' },
   { to: '/import', libelle: 'Importer des données', icone: 'import' },
 ]

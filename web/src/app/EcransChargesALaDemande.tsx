@@ -5,6 +5,7 @@ import { lazy } from 'react'
 export const HomeScreen = lazy(() => import('../features/home/HomeScreen'))
 export const CalendarScreen = lazy(() => import('../features/calendar/CalendarScreen'))
 export const ImportScreen = lazy(() => import('../features/import/ImportScreen'))
+export const OrganiserModulesScreen = lazy(() => import('../features/profile/OrganiserModulesScreen'))
 export const ProfileScreen = lazy(() => import('../features/profile/ProfileScreen'))
 export const EquipmentScreen = lazy(() => import('../features/profile/EquipmentScreen'))
 export const CatalogScreen = lazy(() => import('../features/strength/catalog/CatalogScreen'))
