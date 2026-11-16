@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { DbLecture } from '../../core/db/Db'
 import { dateIsoLocale } from '../../core/common/dates'
-import { lireSorties, type Sortie } from '../../core/db/repos/sorties'
+import type { Sortie } from '../../core/db/repos/sorties'
+import { lireSortiesPourCharge } from '../hyrox/chargeHyrox'
 import {
   ajouterJours,
   calculerSerieCharge,
@@ -47,7 +48,7 @@ function ecrireReglagesCharge(r: ReglagesCharge): void {
   }
 }
 
-// Charge d'entraînement (course et vélo ensemble) : sorties lues une fois, paramètres estimés ou réglés, série quotidienne
+// Charge d'entraînement (course, vélo et simulations Hyrox ensemble) : sorties lues une fois, paramètres estimés ou réglés, série quotidienne
 // forme / fatigue / fraîcheur sur la fenêtre choisie. Calculs dans calculCharge.ts.
 export function useChargeEntrainement({ db, maintenant = MAINTENANT }: DepsCharge = {}) {
   const [sorties, setSorties] = useState<Sortie[] | null>(null)
@@ -57,7 +58,7 @@ export function useChargeEntrainement({ db, maintenant = MAINTENANT }: DepsCharg
 
   useEffect(() => {
     let annule = false
-    lireSorties(db ?? getDb())
+    lireSortiesPourCharge(db ?? getDb())
       .then((l) => !annule && setSorties(l))
       .catch((e: unknown) => {
         console.error('Lecture des sorties impossible', e)

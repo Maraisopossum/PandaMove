@@ -2,12 +2,13 @@ import { ecart, type Ecart } from '../../core/common/ecart'
 import type { DbLecture } from '../../core/db/Db'
 import { ajouterJours } from '../endurance/calculCharge'
 import { lireEvenementsPlage } from '../calendar/calendrier'
+import { lireApportHyrox } from '../hyrox/chargeHyrox'
 import { formaterTonnage } from '../stats/presentation'
 import { tonnagePeriode } from '../stats/statsQueries'
 import { lundiDe } from './semaine'
 
-// Bilan chiffré de la semaine à l'accueil : séances terminées, temps de sport, distance (course et vélo) et tonnage de
-// renforcement. Comparé au MÊME point de la semaine précédente (du lundi à ce même jour) : comparer trois jours de
+// Bilan chiffré de la semaine à l'accueil : séances terminées, temps de sport (sorties, renforcement et simulations Hyrox), distance
+// (course et vélo) et tonnage de renforcement. Comparé au MÊME point de la semaine précédente (du lundi à ce même jour) : comparer trois jours de
 // semaine à sept jours pleins afficherait une baisse permanente en début de semaine.
 
 export interface Bilan {
@@ -31,7 +32,7 @@ export function fenetresBilan(aujourdhuiIso: string): { courante: FenetreBilan; 
 }
 
 export async function lireBilan(db: DbLecture, { debut, fin }: FenetreBilan): Promise<Bilan> {
-  const [evenements, sorties, renfo, tonnageKg] = await Promise.all([
+  const [evenements, sorties, renfo, tonnageKg, hyrox] = await Promise.all([
     lireEvenementsPlage(db, debut, fin),
     db.get<{ duree: number | null; distance: number | null }>(
       'SELECT SUM(duree_s) AS duree, SUM(distance_m) AS distance FROM sorties WHERE deleted_at IS NULL AND date BETWEEN ? AND ?',
@@ -42,10 +43,12 @@ export async function lireBilan(db: DbLecture, { debut, fin }: FenetreBilan): Pr
       [debut, fin],
     ),
     tonnagePeriode(db, debut, fin),
+    lireApportHyrox(db, debut, fin),
   ])
   return {
-    terminees: evenements.filter((e) => e.etat === 'terminee').length,
-    dureeS: (sorties.duree ?? 0) + (renfo.duree ?? 0),
+    // Une simulation Hyrox terminée n'est pas un événement de l'agenda : elle s'ajoute aux séances terminées et au temps de sport
+    terminees: evenements.filter((e) => e.etat === 'terminee').length + hyrox.nombre,
+    dureeS: (sorties.duree ?? 0) + (renfo.duree ?? 0) + hyrox.dureeS,
     distanceM: sorties.distance ?? 0,
     tonnageKg,
   }

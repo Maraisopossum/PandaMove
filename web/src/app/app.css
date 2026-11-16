@@ -8496,6 +8496,13 @@ time,
 
 .stats-endurance { --couleur-sport: #2e7d32; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.875rem; }
 .stats-endurance--velo { --couleur-sport: #0277bd; }
+.stats-endurance--hyrox { --couleur-sport: #26262b; }
+:root[data-theme='dark'] .stats-endurance--hyrox { --couleur-sport: #ffd60a; }
+:root[data-theme='dark'] .stats-endurance--hyrox .stats-endurance__periode[aria-pressed='true'] { color: #26262b; }
+.stats-endurance__liste { display: grid; margin: 0; padding: 0; list-style: none; }
+.stats-endurance__liste li { border-bottom: 1px solid var(--bord); }
+.stats-endurance__liste li:last-child { border-bottom: 0; }
+.stats-endurance__liste a { display: flex; align-items: center; min-height: 2.75rem; color: inherit; text-decoration: none; }
 .stats-endurance__periodes { display: flex; gap: 0.375rem; overflow-x: auto; }
 .stats-endurance__periode { flex: 1 0 auto; min-height: 2.5rem; padding: 0 0.875rem; border: 1px solid var(--bord); border-radius: var(--radius-pilule); background: var(--surface); color: var(--texte); font: inherit; font-size: 0.8125rem; }
 .stats-endurance__periode[aria-pressed='true'] { border-color: var(--couleur-sport); background: var(--couleur-sport); color: #fff; font-weight: 700; }

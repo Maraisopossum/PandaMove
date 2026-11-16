@@ -6,7 +6,7 @@ import type { DbLecture } from '../../core/db/Db'
 import { useImagePanda } from '../../core/images/usePandaVariante'
 import { lireEvenementsPlage, lireEvenementsProchains } from '../calendar/calendrier'
 import type { EvenementAgenda } from '../calendar/types'
-import { lireSorties } from '../../core/db/repos/sorties'
+import { lireSortiesPourCharge } from '../hyrox/chargeHyrox'
 import { lireReglagesCharge } from '../endurance/useChargeEntrainement'
 import { lireProgressionObjectifs, type ProgressionObjectif } from '../profile/objectifs'
 import { fenetresBilan, indicateursBilan, lireBilan, type Indicateur } from './bilanSemaine'
@@ -78,7 +78,7 @@ export function useEcranAccueil({ db, maintenant = () => new Date() }: DepsAccue
         if (!annule) setIndicateurs(indicateursBilan(c, p, evenements.length))
       })
       .catch((e: unknown) => console.error('Bilan de la semaine impossible', e))
-    void lireSorties(base)
+    void lireSortiesPourCharge(base)
       .then((sorties) => {
         if (!annule) setForme(calculerFormeJour(sorties, lireReglagesCharge(), aujourdhui))
       })
