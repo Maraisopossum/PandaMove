@@ -22,6 +22,7 @@ export const TABLES_UTILISATEUR = [
   'exercises', 'seances', 'blocs_seance', 'exercices_seance', 'instances_seance', 'series_realisees', 'objectifs_progression', 'user_settings',
   'seances_course', 'seances_velo', 'methodes_respiration', 'seances_respiration', 'sorties', 'seances_mobilite', 'objectifs_plan',
   'hyrox_courses', 'hyrox_simulations', 'hyrox_segments', 'push_abonnements', 'rappels_push_envoyes', 'profils', 'mfa_codes_secours',
+  'jetons_widget',
 ] as const
 
 export interface CompteCible {

@@ -1253,3 +1253,86 @@ describe('0020 : nutrition (aliments, journal, objectifs, quota des analyses)', 
   })
 })
 
+describe('0021 : jetons du widget Android de nutrition', () => {
+  const U1 = '00000000-0000-4000-8000-0000000000c1'
+  const U2 = '00000000-0000-4000-8000-0000000000c2'
+  const creer = (uid: string, nom: string, eau = false) => commeUtilisateur(uid, async () => (await db.query<{ j: string }>('select creer_jeton_widget($1, $2) as j', [nom, eau])).rows[0].j)
+
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users (id, email) values ('${U1}', 'c1@exemple.fr'), ('${U2}', 'c2@exemple.fr') on conflict do nothing;`)
+    await db.exec(migration('0021_jetons_widget.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0021_jetons_widget.sql'))
+  })
+
+  it('crée un jeton « pmw_ » + 64 hexadécimaux, montré une fois : seule son empreinte SHA-256 est stockée', async () => {
+    const jeton = await creer(U1, 'Téléphone de test', true)
+    expect(jeton).toMatch(/^pmw_[0-9a-f]{64}$/)
+    const ligne = (await db.query<{ hash: string; ecriture_eau: boolean; user_id: string; revoque_at: string | null }>('select hash, ecriture_eau, user_id, revoque_at from jetons_widget where nom = $1', ['Téléphone de test'])).rows[0]
+    expect(ligne).toMatchObject({ ecriture_eau: true, user_id: U1, revoque_at: null })
+    const attendu = (await db.query<{ h: string }>(`select encode(sha256(convert_to($1, 'UTF8')), 'hex') as h`, [jeton])).rows[0].h
+    expect(ligne.hash).toBe(attendu)
+    expect(JSON.stringify(ligne)).not.toContain(jeton)
+    // Deux jetons ne sont jamais identiques
+    expect(await creer(U1, 'Autre')).not.toBe(jeton)
+  })
+
+  it('les clients lisent la liste de leurs widgets (sans l’empreinte) et ne voient pas ceux des autres', async () => {
+    await creer(U2, 'Widget de U2')
+    const r1 = await commeUtilisateur(U1, () => db.query<{ nom: string }>('select nom from jetons_widget order by nom'))
+    expect(r1.rows.map((l) => l.nom)).toEqual(expect.arrayContaining(['Téléphone de test', 'Autre']))
+    expect(r1.rows.map((l) => l.nom)).not.toContain('Widget de U2')
+    await expect(commeUtilisateur(U1, () => db.query('select hash from jetons_widget'))).rejects.toThrow(/permission denied/)
+    await expect(commeUtilisateur(U1, () => db.query('select * from jetons_widget'))).rejects.toThrow(/permission denied/)
+    await expect(commeAnonyme(() => db.query('select nom from jetons_widget'))).rejects.toThrow(/permission denied/)
+  })
+
+  it('aucune écriture directe par les clients : tout passe par les fonctions', async () => {
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into jetons_widget (user_id, nom, hash) values ('${U1}', 'Direct', '${'a'.repeat(64)}')`))).rejects.toThrow(/permission denied/)
+    await expect(commeUtilisateur(U1, () => db.exec(`update jetons_widget set revoque_at = null where user_id = '${U1}'`))).rejects.toThrow(/permission denied/)
+    await expect(commeUtilisateur(U1, () => db.exec(`delete from jetons_widget where user_id = '${U1}'`))).rejects.toThrow(/permission denied/)
+    await expect(commeAnonyme(() => db.query(`select creer_jeton_widget('Anonyme', false)`))).rejects.toThrow(/permission denied/)
+  })
+
+  it('refuse un nom vide ou trop long', async () => {
+    await expect(creer(U1, '   ')).rejects.toThrow(/Donnez un nom/)
+    await expect(creer(U1, 'x'.repeat(61))).rejects.toThrow(/Donnez un nom/)
+  })
+
+  it('révoque ses propres jetons seulement ; la révocation est datée et définitive', async () => {
+    const id = (await db.query<{ id: string }>(`select id from jetons_widget where nom = 'Widget de U2'`)).rows[0].id
+    // U1 ne peut pas révoquer le jeton de U2 : sans effet
+    await commeUtilisateur(U1, () => db.query('select revoquer_jeton_widget($1)', [id]))
+    expect((await db.query<{ revoque_at: string | null }>('select revoque_at from jetons_widget where id = $1', [id])).rows[0].revoque_at).toBeNull()
+    await commeUtilisateur(U2, () => db.query('select revoquer_jeton_widget($1)', [id]))
+    const apres = (await db.query<{ revoque_at: string | null }>('select revoque_at from jetons_widget where id = $1', [id])).rows[0].revoque_at
+    expect(apres).not.toBeNull()
+    // Rejouer ne change pas la date
+    await commeUtilisateur(U2, () => db.query('select revoquer_jeton_widget($1)', [id]))
+    expect((await db.query<{ revoque_at: string | null }>('select revoque_at from jetons_widget where id = $1', [id])).rows[0].revoque_at).toEqual(apres)
+  })
+
+  it('règle l’option « eau » de ses jetons actifs', async () => {
+    const id = (await db.query<{ id: string }>(`select id from jetons_widget where nom = 'Autre'`)).rows[0].id
+    await commeUtilisateur(U1, () => db.query('select regler_eau_jeton_widget($1, true)', [id]))
+    expect((await db.query<{ ecriture_eau: boolean }>('select ecriture_eau from jetons_widget where id = $1', [id])).rows[0].ecriture_eau).toBe(true)
+    await commeUtilisateur(U1, () => db.query('select regler_eau_jeton_widget($1, false)', [id]))
+    expect((await db.query<{ ecriture_eau: boolean }>('select ecriture_eau from jetons_widget where id = $1', [id])).rows[0].ecriture_eau).toBe(false)
+  })
+
+  it('cinq widgets actifs au plus : un sixième est refusé tant qu’aucun n’est révoqué', async () => {
+    await db.exec(`delete from jetons_widget where user_id = '${U2}'`)
+    for (let i = 1; i <= 5; i++) await creer(U2, `W${i}`)
+    await expect(creer(U2, 'W6')).rejects.toThrow(/Cinq widgets/)
+    const id = (await db.query<{ id: string }>(`select id from jetons_widget where nom = 'W1' and user_id = $1`, [U2])).rows[0].id
+    await commeUtilisateur(U2, () => db.query('select revoquer_jeton_widget($1)', [id]))
+    await expect(creer(U2, 'W6')).resolves.toMatch(/^pmw_/)
+  })
+
+  it('cette table n’est pas synchronisée : absente des règles PowerSync et du schéma local', () => {
+    const regles = readFileSync(resolve(import.meta.dirname, '../../powersync/sync-rules.yaml'), 'utf8')
+    const schema = readFileSync(resolve(import.meta.dirname, '../../src/core/db/schema.ts'), 'utf8')
+    expect(regles).not.toContain('jetons_widget')
+    expect(schema).not.toContain('jetons_widget')
+  })
+})
