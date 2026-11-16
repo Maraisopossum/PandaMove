@@ -1,6 +1,6 @@
 # Proposition : widget Android pour la nutrition (2026-11-15)
 
-Statut : **proposition à valider**, rien n'est codé. Maquettes : canvas Claude Design « Widget Android Nutrition PandaMove »
+Statut (2026-11-16) : **décisions prises, étapes 1 et 2 codées** (PWA et serveur), **étape 3 (application Android) à faire**. Voir « Décisions prises » et « Écarts avec la proposition ». Maquettes : canvas Claude Design « Widget Android Nutrition PandaMove »
 (https://claude.ai/artifact/X88oA9WL8x3Sip3X231uCZ) : vue d'ensemble, écran d'accueil, widget 4×2 clair et sombre, six états, architecture,
 écran du Profil, raccourcis et partage.
 
@@ -86,11 +86,23 @@ case « Ajouter de l'eau depuis le widget ».
 | 3 | application Android : widget 3 tailles, configuration, WorkManager, tests | 3 à 4 jours |
 Déploiement manuel par Benoît, dans l'ordre : migration, fonctions (`--no-verify-jwt` pour `resume-nutrition`), client web, puis APK.
 
-## Décisions à prendre
-1. Lancer l'étape 1 seule, ou 1 et 2 d'un bloc ?
-2. « +250 ml » depuis le widget : écrire directement (option « eau », étape 2 plus longue d'une demi-journée) ou ouvrir PandaMove ?
-3. APK installé à la main, ou test interne Google Play (compte développeur payant, mises à jour automatiques) ?
-4. Faut-il un 4×3 avec la liste des quatre repas ? Les données (`repas`) sont déjà dans le contrat.
+## Décisions prises (Benoît, 2026-11-16)
+1. **Étapes 1 et 2 d'un bloc** (PWA, puis serveur et Profil), l'application Android ensuite.
+2. **« +250 ml » écrit directement** depuis le widget (jeton avec l'option « eau », case dans le Profil) ; la ligne redescend vers la PWA par la synchro.
+3. **APK installé à la main** (pas de Google Play).
+4. **Pas de 4×3 pour l'instant** (« plus tard ») ; les données `repas` restent dans le contrat.
+
+## Écarts avec la proposition (réalisation des étapes 1 et 2)
+- **Une seule fonction** `widget-nutrition` au lieu de deux : `GET ?date=` rend les totaux, `POST { date, ml, cle }` ajoute de l'eau (une seule commande de déploiement, `--no-verify-jwt`). Contrat, erreurs et sécurité : `web/supabase/functions/widget-nutrition/README.md`.
+- **Jeton** : `pmw_` + 64 caractères hexadécimaux (deux UUID aléatoires du serveur), empreinte SHA-256 calculée par la base à la création ; les clients lisent la liste des widgets par colonnes, sans l'empreinte.
+- **Pas de code QR** dans le Profil (aucune bibliothèque ajoutée) : le jeton et l'adresse du serveur se copient. L'application Android propose de les coller ; un QR reste possible plus tard.
+- **Codes d'erreur** pour le widget : `jeton_invalide`, `jeton_revoque` (efface le cache et propose de relier), `ecriture_refusee`, `plafond_eau`, `trop_vite` (`Retry-After: 20`), `date_invalide`.
+- **Date** : la fonction n'accepte que hier, aujourd'hui et demain (date du serveur en UTC), pour couvrir tous les fuseaux sans permettre de fouiller le passé.
+- **Eau** : 50 à 1 500 ml par appel, 5 000 ml par jour ; la clé d'appel (`cle`, 8 à 64 caractères) rend le geste idempotent : le widget la génère à chaque appui et la renvoie telle quelle en cas de nouvel essai.
+
+## Reste à faire : étape 3, application Android
+Dossier `widget-android/` (jamais `app/`) : Kotlin, Jetpack Glance, widget 2×2, 4×1 et 4×2, configuration (coller l'adresse et le jeton), WorkManager, jeton chiffré, cache hors ligne,
+bouton « + 250 ml » qui appelle `POST` avec une clé d'appel neuve à chaque appui, autres boutons vers les liens profonds de l'étape 1. Détail dans « Application Android » ci-dessus.
 
 ## Risques
 - Le lien profond ouvre Chrome au lieu de la PWA installée sur certains lanceurs : repli acceptable (la PWA reste utilisable), à tester sur le téléphone cible.
