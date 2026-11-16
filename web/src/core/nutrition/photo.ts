@@ -59,11 +59,66 @@ export async function reduireImage(fichier: Blob): Promise<ImageReduite> {
   }
 }
 
+/** Service d'IA proposé par le serveur (un par clé configurée dans les secrets de la fonction). */
+export interface FournisseurIa {
+  id: string
+  libelle: string
+  modele: string
+}
+
+export interface FournisseursIa {
+  defaut: string | null
+  fournisseurs: FournisseurIa[]
+}
+
+/** Services d'IA disponibles pour l'analyse. Toute erreur (hors ligne, fonction absente, non configurée) donne une liste vide : le choix est alors masqué. */
+export async function listerFournisseursIa(supabase: ClientSupabase): Promise<FournisseursIa> {
+  try {
+    const reponse = await supabase.appelerFonction('analyser-assiette', { action: 'fournisseurs' })
+    if (!reponse.ok) return { defaut: null, fournisseurs: [] }
+    const json = (await reponse.json().catch(() => ({}))) as { defaut?: unknown; fournisseurs?: unknown }
+    const fournisseurs = (Array.isArray(json.fournisseurs) ? json.fournisseurs : []).filter(
+      (f): f is FournisseurIa => typeof f === 'object' && f !== null && typeof (f as FournisseurIa).id === 'string' && typeof (f as FournisseurIa).libelle === 'string',
+    )
+    return { defaut: typeof json.defaut === 'string' ? json.defaut : null, fournisseurs }
+  } catch {
+    return { defaut: null, fournisseurs: [] }
+  }
+}
+
+// Le service choisi est un réglage de l'appareil (localStorage, non synchronisé), comme les autres préférences `pandamove.*`.
+const CLE_FOURNISSEUR = 'pandamove.nutrition.ia'
+const local = () => (typeof localStorage === 'undefined' ? undefined : localStorage)
+
+export function lireFournisseurChoisi(): string | null {
+  try {
+    return local()?.getItem(CLE_FOURNISSEUR) || null
+  } catch {
+    return null
+  }
+}
+
+export function enregistrerFournisseurChoisi(id: string): void {
+  try {
+    local()?.setItem(CLE_FOURNISSEUR, id)
+  } catch {
+    /* stockage indisponible : le choix vaut pour cette analyse seulement */
+  }
+}
+
+/** Service à présélectionner : le dernier choix s'il est encore proposé, sinon le défaut du serveur, sinon le premier. */
+export function fournisseurInitial(liste: FournisseursIa, memorise: string | null): string | null {
+  const ids = liste.fournisseurs.map((f) => f.id)
+  if (memorise && ids.includes(memorise)) return memorise
+  if (liste.defaut && ids.includes(liste.defaut)) return liste.defaut
+  return ids[0] ?? null
+}
+
 /** Envoie la photo à la fonction et rend les estimations. Les erreurs du serveur (quota, non configuré…) sont rendues telles quelles. */
-export async function analyserAssiette(supabase: ClientSupabase, image: ImageReduite, indication?: string): Promise<AnalysePhoto> {
+export async function analyserAssiette(supabase: ClientSupabase, image: ImageReduite, indication?: string, fournisseur?: string | null): Promise<AnalysePhoto> {
   let reponse: Response
   try {
-    reponse = await supabase.appelerFonction('analyser-assiette', { image: image.base64, mediaType: image.mediaType, indication: indication?.trim() || undefined })
+    reponse = await supabase.appelerFonction('analyser-assiette', { image: image.base64, mediaType: image.mediaType, indication: indication?.trim() || undefined, fournisseur: fournisseur || undefined })
   } catch {
     throw new Error('Connexion impossible : l’analyse d’une photo demande du réseau.')
   }

@@ -22,7 +22,7 @@ Journal alimentaire (énergie, protéines, glucides, lipides, eau), aliments per
 
 ## Photo de l'assiette
 1. `reduireImage` (canvas) ramène la photo à 1 280 px, JPEG 80 % (≈ 200 Ko) **sur l'appareil**.
-2. La fonction Supabase `analyser-assiette` (`supabase/functions/analyser-assiette/`) l'envoie à l'API Anthropic (outil forcé `enregistrer_repas`) et renvoie des aliments avec quantité et valeurs pour 100 g, plus un niveau de confiance.
+2. La fonction Supabase `analyser-assiette` (`supabase/functions/analyser-assiette/`) l'envoie au service d'IA choisi par l'utilisateur (Claude, Gemini ou ChatGPT, parmi les clés configurées ; le choix est mémorisé sur l'appareil, `pandamove.nutrition.ia`) avec un appel d'outil forcé `enregistrer_repas` et renvoie des aliments avec quantité et valeurs pour 100 g, plus un niveau de confiance.
 3. L'écran montre les lignes **modifiables** (nom, quantité par pas de 10/50 g, retrait) : rien n'est écrit au journal avant « Ajouter ». Les lignes à confiance faible sont marquées « À vérifier » ; la matière grasse de cuisson est signalée comme incertaine.
 4. La photo n'est ni conservée ni journalisée. Plafond de 30 analyses par compte et par jour (`ANALYSES_PAR_JOUR`).
 Sans la fonction ou sans clé, l'écran explique que la photo n'est pas configurée et renvoie vers la saisie manuelle.

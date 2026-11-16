@@ -39,6 +39,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  localStorage.removeItem('pandamove.nutrition.ia')
   vi.useRealTimers()
 })
 
@@ -215,6 +216,10 @@ describe('modification d’une ligne', () => {
 describe('photo de l’assiette', () => {
   const fichier = () => new File([new Uint8Array([1, 2, 3])], 'assiette.jpg', { type: 'image/jpeg' })
   const reponse = (corps: unknown, statut = 200) => new Response(JSON.stringify(corps), { status: statut })
+  // L'écran demande d'abord la liste des services d'IA (action « fournisseurs »), puis envoie la photo : une réponse neuve par appel.
+  const repondre = (corps: unknown, statut = 200) => async (_nom: string, demande: { action?: string }) =>
+    demande.action === 'fournisseurs' ? reponse({ defaut: null, fournisseurs: [] }) : reponse(corps, statut)
+  const appelsAnalyse = () => (client.appelerFonction as ReturnType<typeof vi.fn>).mock.calls.filter((c) => (c[1] as { image?: string }).image)
   const riz = { nom: 'Riz blanc', quantiteG: 150, kcal100: 130, proteines100: 2.7, glucides100: 28, lipides100: 0.3, fibres100: null, confiance: 'haute' }
   const sauce = { nom: 'Sauce', quantiteG: 30, kcal100: 200, proteines100: 1, glucides100: 10, lipides100: 18, fibres100: null, confiance: 'faible' }
 
@@ -224,7 +229,7 @@ describe('photo de l’assiette', () => {
   })
 
   it('analyse la photo, montre les aliments corrigeables puis les ajoute au journal en source « ia »', async () => {
-    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockResolvedValue(reponse({ estUnRepas: true, aliments: [riz, sauce], remarque: 'Huile probable.' }))
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(repondre({ estUnRepas: true, aliments: [riz, sauce], remarque: 'Huile probable.' }))
     monter('/nutrition/photo?repas=dejeuner')
     const entree = (await screen.findByText('Prendre une photo')).querySelector('input')!
     fireEvent.change(entree, { target: { files: [fichier()] } })
@@ -238,11 +243,11 @@ describe('photo de l’assiette', () => {
     await waitFor(() => expect(screen.getByTestId('lieu').textContent).toBe('/nutrition'))
     const jour = await lireJour(base, AUJOURDHUI)
     expect(jour.map((e) => [e.nom, e.quantiteG, e.source, e.repas])).toEqual([['Riz blanc', 150, 'ia', 'dejeuner'], ['Sauce', 10, 'ia', 'dejeuner']])
-    expect((client.appelerFonction as ReturnType<typeof vi.fn>).mock.calls[0][1]).toMatchObject({ image: 'AAAA', mediaType: 'image/jpeg' })
+    expect(appelsAnalyse()[0][1]).toMatchObject({ image: 'AAAA', mediaType: 'image/jpeg' })
   })
 
   it('retire une ligne reconnue à tort', async () => {
-    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockResolvedValue(reponse({ estUnRepas: true, aliments: [riz, sauce], remarque: null }))
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(repondre({ estUnRepas: true, aliments: [riz, sauce], remarque: null }))
     monter('/nutrition/photo')
     fireEvent.change((await screen.findByText('Prendre une photo')).querySelector('input')!, { target: { files: [fichier()] } })
     fireEvent.click(await screen.findByRole('button', { name: 'Retirer Sauce' }))
@@ -251,7 +256,7 @@ describe('photo de l’assiette', () => {
   })
 
   it('une photo sans nourriture propose de recommencer ou de saisir à la main', async () => {
-    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockResolvedValue(reponse({ estUnRepas: false, aliments: [], remarque: 'C’est un paysage.' }))
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(repondre({ estUnRepas: false, aliments: [], remarque: 'C’est un paysage.' }))
     monter('/nutrition/photo')
     fireEvent.change((await screen.findByText('Prendre une photo')).querySelector('input')!, { target: { files: [fichier()] } })
     expect(await screen.findByText('Rien d’identifiable')).toBeTruthy()
@@ -260,7 +265,7 @@ describe('photo de l’assiette', () => {
   })
 
   it('affiche l’erreur du serveur (quota, non configuré) et revient au choix de la photo', async () => {
-    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockResolvedValue(reponse({ erreur: 'Limite atteinte : 30 analyses de photo par jour.' }, 429))
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(repondre({ erreur: 'Limite atteinte : 30 analyses de photo par jour.' }, 429))
     monter('/nutrition/photo')
     fireEvent.change((await screen.findByText('Prendre une photo')).querySelector('input')!, { target: { files: [fichier()] } })
     expect((await screen.findByRole('alert')).textContent).toContain('Limite atteinte')
@@ -273,7 +278,34 @@ describe('photo de l’assiette', () => {
     monter('/nutrition/photo')
     fireEvent.change((await screen.findByText('Prendre une photo')).querySelector('input')!, { target: { files: [fichier()] } })
     expect((await screen.findByRole('alert')).textContent).toMatch(/préparer la photo/)
-    expect(client.appelerFonction).not.toHaveBeenCalled()
+    expect(appelsAnalyse()).toHaveLength(0)
+  })
+
+  it('propose le choix du service d’IA quand plusieurs sont configurés, le mémorise et l’envoie avec la photo', async () => {
+    const services = { defaut: 'anthropic', fournisseurs: [{ id: 'anthropic', libelle: 'Claude (Anthropic)', modele: 'm1' }, { id: 'gemini', libelle: 'Gemini (Google)', modele: 'm2' }] }
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(async (_nom: string, demande: { action?: string }) =>
+      demande.action === 'fournisseurs' ? reponse(services) : reponse({ estUnRepas: true, aliments: [riz], remarque: null }))
+    monter('/nutrition/photo')
+    const choix = (await screen.findByLabelText('Analyser avec')) as HTMLSelectElement
+    expect(choix.value).toBe('anthropic')
+    fireEvent.change(choix, { target: { value: 'gemini' } })
+    expect(localStorage.getItem('pandamove.nutrition.ia')).toBe('gemini')
+    fireEvent.change(screen.getByText('Prendre une photo').querySelector('input')!, { target: { files: [fichier()] } })
+    expect(await screen.findByText(/Ce que j’ai reconnu/)).toBeTruthy()
+    expect(appelsAnalyse()[0][1]).toMatchObject({ fournisseur: 'gemini' })
+  })
+
+  it('reprend le dernier service choisi sur l’appareil, et masque le choix quand un seul est configuré', async () => {
+    localStorage.setItem('pandamove.nutrition.ia', 'openai')
+    const deux = { defaut: 'anthropic', fournisseurs: [{ id: 'anthropic', libelle: 'Claude (Anthropic)', modele: 'm1' }, { id: 'openai', libelle: 'ChatGPT (OpenAI)', modele: 'm3' }] }
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(async () => reponse(deux))
+    const { unmount } = monter('/nutrition/photo')
+    expect(((await screen.findByLabelText('Analyser avec')) as HTMLSelectElement).value).toBe('openai')
+    unmount()
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(async () => reponse({ defaut: 'gemini', fournisseurs: [{ id: 'gemini', libelle: 'Gemini (Google)', modele: 'm2' }] }))
+    monter('/nutrition/photo')
+    expect(await screen.findByText(/Service d’analyse : Gemini \(Google\)/)).toBeTruthy()
+    expect(screen.queryByLabelText('Analyser avec')).toBeNull()
   })
 })
 

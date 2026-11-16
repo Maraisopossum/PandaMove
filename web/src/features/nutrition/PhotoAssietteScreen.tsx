@@ -5,7 +5,7 @@ import { getDb, getSupabase } from '../../core/db/client'
 import type { ClientSupabase } from '../../core/db/clientSupabase'
 import { ajouterEntrees } from '../../core/db/repos/nutrition'
 import { estRepas, LIBELLE_REPAS, REPAS, sommer } from '../../core/nutrition/calculs'
-import { analyserAssiette, apportEstime, reduireImage, type AlimentEstime, type AnalysePhoto } from '../../core/nutrition/photo'
+import { analyserAssiette, apportEstime, enregistrerFournisseurChoisi, fournisseurInitial, lireFournisseurChoisi, listerFournisseursIa, reduireImage, type AlimentEstime, type AnalysePhoto, type FournisseursIa } from '../../core/nutrition/photo'
 import { ajusterQuantite, decimal, entier, jourDemande, libelleJour, repasDemande } from './outils'
 
 type Etape = { nom: 'choix' } | { nom: 'analyse' } | { nom: 'revue'; analyse: AnalysePhoto }
@@ -110,6 +110,19 @@ export default function PhotoAssietteScreen({ aujourdhui = dateIsoLocale(new Dat
   const [apercu, setApercu] = useState<string | null>(null)
   const [indication, setIndication] = useState('')
   const [erreur, setErreur] = useState('')
+  const [services, setServices] = useState<FournisseursIa>({ defaut: null, fournisseurs: [] })
+  const [service, setService] = useState<string | null>(null)
+
+  // Services d'IA configurés côté serveur : le choix n'apparaît que s'il y en a plusieurs ; le dernier choix de l'appareil est repris.
+  useEffect(() => {
+    let actif = true
+    void listerFournisseursIa(client ?? getSupabase()).then((liste) => {
+      if (!actif) return
+      setServices(liste)
+      setService(fournisseurInitial(liste, lireFournisseurChoisi()))
+    })
+    return () => { actif = false }
+  }, [client])
 
   useEffect(() => () => { if (apercu) URL.revokeObjectURL(apercu) }, [apercu])
 
@@ -120,7 +133,7 @@ export default function PhotoAssietteScreen({ aujourdhui = dateIsoLocale(new Dat
     setEtape({ nom: 'analyse' })
     try {
       const image = await reduireImage(fichier)
-      setEtape({ nom: 'revue', analyse: await analyserAssiette(client ?? getSupabase(), image, indication) })
+      setEtape({ nom: 'revue', analyse: await analyserAssiette(client ?? getSupabase(), image, indication, service) })
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'L’analyse a échoué.')
       setEtape({ nom: 'choix' })
@@ -151,7 +164,16 @@ export default function PhotoAssietteScreen({ aujourdhui = dateIsoLocale(new Dat
             <p role="status">Je regarde l’assiette, cela prend quelques secondes.</p>
           ) : (
             <>
-              <p className="aide">Vue de dessus, bien éclairée, avec tout le repas dans le cadre. La photo est envoyée pour l’analyse puis supprimée : elle n’est pas conservée.</p>
+              <p className="aide">Vue de dessus, bien éclairée, avec tout le repas dans le cadre. La photo est envoyée au service d’IA pour l’analyse, puis supprimée : PandaMove ne la conserve pas.</p>
+              {services.fournisseurs.length > 1 && (
+                <label className="formulaire__champ">
+                  Analyser avec
+                  <select value={service ?? ''} onChange={(e) => { setService(e.target.value); enregistrerFournisseurChoisi(e.target.value) }}>
+                    {services.fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.libelle}</option>)}
+                  </select>
+                </label>
+              )}
+              {services.fournisseurs.length === 1 && <p className="aide">Service d’analyse : {services.fournisseurs[0].libelle}.</p>}
               <label className="formulaire__champ">
                 Précision (facultatif)
                 <input value={indication} maxLength={200} onChange={(e) => setIndication(e.target.value)} placeholder="2 œufs au plat, sans sauce…" />
