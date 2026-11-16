@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { getDb } from '../../core/db/client'
-import { definirReference, modifierNotesSimulation, supprimerSimulation } from '../../core/db/repos/hyrox'
 import { bilanSimulation, deriveCourse, formaterChrono, formaterEcart, LIBELLE_FORME, NOM_COURSE_COURT } from './simulation'
 import { STATION_PAR_CLE } from './stations'
+import { useEcrituresHyrox } from './useAccesHyrox'
 import { useBilanHyrox, versMesure } from './useHyrox'
 
 const nomSegment = (s: { type: 'course' | 'station'; station: string | null }) => (s.type === 'course' ? NOM_COURSE_COURT : STATION_PAR_CLE[s.station as keyof typeof STATION_PAR_CLE]?.nom ?? 'Station')
@@ -14,6 +13,7 @@ export default function BilanHyroxScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
   const b = useBilanHyrox(id)
+  const ecriture = useEcrituresHyrox()
   const [notes, setNotes] = useState<string | null>(null)
   const [erreur, setErreur] = useState('')
 
@@ -90,14 +90,14 @@ export default function BilanHyroxScreen() {
           Notes
           <textarea rows={3} maxLength={2000} value={notesAffichees} onChange={(e) => setNotes(e.target.value)} />
         </label>
-        <button type="button" className="bouton" onClick={() => void agir(() => modifierNotesSimulation(getDb(), sim.id, notesAffichees), () => { setNotes(null); b.recharger() })}>Enregistrer les notes</button>
+        <button type="button" className="bouton" onClick={() => void agir(() => ecriture.modifierNotes(sim.id, notesAffichees), () => { setNotes(null); b.recharger() })}>Enregistrer les notes</button>
         {sim.forme === 'complete' && sim.statut === 'terminee' && (
-          <button type="button" className="bouton" onClick={() => void agir(() => definirReference(getDb(), sim.id, !sim.reference))}>
+          <button type="button" className="bouton" onClick={() => void agir(() => ecriture.definirReference(sim.id, !sim.reference))}>
             {sim.reference ? 'Retirer des références' : 'Définir comme référence'}
           </button>
         )}
         {erreur && <p role="alert">{erreur}</p>}
-        <button type="button" className="bouton bouton--alerte" onClick={() => void agir(() => supprimerSimulation(getDb(), sim.id), () => navigate('/hyrox', { replace: true }))}>Supprimer la simulation</button>
+        <button type="button" className="bouton bouton--alerte" onClick={() => void agir(() => ecriture.supprimerSimulation(sim.id), () => navigate('/hyrox', { replace: true }))}>Supprimer la simulation</button>
       </section>
     </div>
   )

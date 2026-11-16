@@ -1,17 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { matchPath, useLocation } from 'react-router'
-import { getDb } from '../../../core/db/client'
+import { estSeanceEnCours } from './seanceEnCours'
 
 const ExecuteScreen = lazy(() => import('./ExecuteScreen'))
-
-// Séance démarrée et non terminée (et non supprimée) : seule une séance dans cet état continue en arrière-plan.
-async function estEnCours(id: string): Promise<boolean> {
-  const lignes = await getDb().getAll<{ n: number }>(
-    'SELECT COUNT(*) AS n FROM instances_seance WHERE id = ? AND started_at IS NOT NULL AND is_completed = 0 AND deleted_at IS NULL',
-    [id],
-  )
-  return (lignes[0]?.n ?? 0) > 0
-}
 
 // Écran d'exécution gardé en vie : monté à l'ouverture d'une séance (/strength/instance/:id), il reste monté mais
 // masqué quand on navigue ailleurs tant que la séance est en cours, pour que le circuit, le repos, les bips et le
@@ -29,7 +20,7 @@ export function ExecutionEnFond() {
     let annule = false
     const verifier = async () => {
       try {
-        if (!(await estEnCours(garde)) && !annule) setGarde(null)
+        if (!(await estSeanceEnCours(garde)) && !annule) setGarde(null)
       } catch {
         if (!annule) setGarde(null)
       }

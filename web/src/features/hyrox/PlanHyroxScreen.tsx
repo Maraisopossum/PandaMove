@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
-import { getDb } from '../../core/db/client'
-import { creerCourseHyrox, modifierCourseHyrox } from '../../core/db/repos/hyrox'
-import { apercuAgendaHyrox, appliquerPlanAgenda, retirerPlanAgenda, type ApercuAgendaHyrox } from './agendaHyrox'
 import { formaterMinutes } from '../calendar/chargeCalendrier'
 import {
   AFFUTAGE_MAX, dureeSemaine, ecrireReglagesPlanHyrox, genererPlanHyrox, LIBELLE_PHASE_HYROX, LIBELLE_TYPE_HYROX, lireReglagesPlanHyrox, REGLAGES_PLAN_HYROX_DEFAUT,
   SEANCES_MAX, SEANCES_MIN, SEMAINES_MAX, SEMAINES_MIN, type PhaseHyrox, type ReglagesPlanHyrox,
 } from './planHyrox'
+import { useApercuAgendaHyrox, useEcrituresHyrox } from './useAccesHyrox'
 import { useHyrox } from './useHyrox'
 
 const jourCourt = (iso: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8), 12))
@@ -37,29 +35,22 @@ function PlanReglable({ h }: { h: ReturnType<typeof useHyrox> }) {
   }
   const nombre = (v: string, min: number, max: number, defaut: number) => (v === '' ? defaut : Math.min(max, Math.max(min, Math.round(Number(v)) || defaut)))
   const total = plan.reduce((t, s) => t + dureeSemaine(s), 0)
-  const [apercu, setApercu] = useState<ApercuAgendaHyrox | null>(null)
   const [messageAgenda, setMessageAgenda] = useState('')
   const [versionAgenda, setVersionAgenda] = useState(0)
-  useEffect(() => {
-    let annule = false
-    apercuAgendaHyrox(getDb(), plan, aujourdhui).then((a) => !annule && setApercu(a)).catch(() => !annule && setApercu(null))
-    return () => {
-      annule = true
-    }
-  }, [plan, aujourdhui, versionAgenda])
+  const apercu = useApercuAgendaHyrox(plan, aujourdhui, versionAgenda)
+  const ecriture = useEcrituresHyrox()
   const finSurCourseActive = r.finSurCourse && dateCourse !== null
 
   async function enregistrer() {
     setErreur('')
     try {
-      const base = getDb()
       if (objectif) {
-        await modifierCourseHyrox(base, objectif.id, {
+        await ecriture.modifierObjectif(objectif.id, {
           nom: objectif.nom, lieu: objectif.lieu, date: objectif.date, categorie: objectif.categorie, genre: objectif.genre, objectifS: objectif.objectifS, resultatS: objectif.resultatS,
           repartitionJson: ecrireReglagesPlanHyrox(objectif.repartitionJson, r),
         })
       } else {
-        await creerCourseHyrox(base, { nom: 'Préparation Hyrox', categorie: 'open', genre: 'homme', repartitionJson: ecrireReglagesPlanHyrox(null, r) })
+        await ecriture.creerObjectif({ nom: 'Préparation Hyrox', categorie: 'open', genre: 'homme', repartitionJson: ecrireReglagesPlanHyrox(null, r) })
       }
       setEnregistre(true)
       h.recharger()
@@ -71,7 +62,7 @@ function PlanReglable({ h }: { h: ReturnType<typeof useHyrox> }) {
   async function appliquerAgenda() {
     setErreur('')
     try {
-      const n = await appliquerPlanAgenda(getDb(), plan, aujourdhui)
+      const n = await ecriture.appliquerPlanAgenda(plan, aujourdhui)
       setMessageAgenda(`${n} séance${n > 1 ? 's' : ''} ajoutée${n > 1 ? 's' : ''} à l’agenda.`)
       setVersionAgenda((v) => v + 1)
     } catch {
@@ -82,7 +73,7 @@ function PlanReglable({ h }: { h: ReturnType<typeof useHyrox> }) {
   async function retirerAgenda() {
     setErreur('')
     try {
-      const n = await retirerPlanAgenda(getDb(), aujourdhui)
+      const n = await ecriture.retirerPlanAgenda(aujourdhui)
       setMessageAgenda(`${n} séance${n > 1 ? 's' : ''} retirée${n > 1 ? 's' : ''} de l’agenda.`)
       setVersionAgenda((v) => v + 1)
     } catch {

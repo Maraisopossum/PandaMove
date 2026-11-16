@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
-import { getDb } from '../../core/db/client'
 import {
-  creerObjectifPlan, ErreurObjectif, lireObjectifPlan, modifierObjectifPlan, supprimerObjectifPlan, DISCIPLINES, PRIORITES, type DisciplineObjectif, type PrioriteObjectif,
+  ErreurObjectif, DISCIPLINES, PRIORITES, type DisciplineObjectif, type PrioriteObjectif,
 } from '../../core/db/repos/objectifsPlan'
 import { conflitsAvec, formaterTemps, lireTemps, SEUIL_CONFLIT_JOURS } from './echeances'
+import { useAccesPlans } from './useAccesPlans'
 import { usePlans } from './usePlans'
 
 const LIBELLE_DISCIPLINE: Record<DisciplineObjectif, string> = { course: 'Course', velo: 'Vélo', hyrox: 'Hyrox' }
@@ -18,6 +18,7 @@ export default function ObjectifPlanScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
   const p = usePlans()
+  const acces = useAccesPlans()
   const [nom, setNom] = useState('')
   const [discipline, setDiscipline] = useState<DisciplineObjectif>('course')
   const [date, setDate] = useState(dateIsoLocale(new Date()))
@@ -31,7 +32,7 @@ export default function ObjectifPlanScreen() {
   useEffect(() => {
     if (!id) return
     let annule = false
-    lireObjectifPlan(getDb(), id).then((o) => {
+    acces.lireObjectif(id).then((o) => {
       if (annule) return
       if (!o) {
         setIntrouvable(true)
@@ -48,7 +49,7 @@ export default function ObjectifPlanScreen() {
     return () => {
       annule = true
     }
-  }, [id])
+  }, [id, acces])
 
   const conflits = p.reglages.alerteJalons ? conflitsAvec(date, p.echeances, id ? `o-${id}` : undefined) : []
 
@@ -62,8 +63,8 @@ export default function ObjectifPlanScreen() {
     }
     try {
       const saisie = { nom, discipline, date, priorite, cibleS, statut }
-      if (id) await modifierObjectifPlan(getDb(), id, saisie)
-      else await creerObjectifPlan(getDb(), saisie)
+      if (id) await acces.modifierObjectif(id, saisie)
+      else await acces.creerObjectif(saisie)
       navigate('/plans', { replace: true })
     } catch (err) {
       setErreur(err instanceof ErreurObjectif ? err.message : 'L’enregistrement a échoué.')
@@ -73,7 +74,7 @@ export default function ObjectifPlanScreen() {
   async function supprimer() {
     if (!id) return
     try {
-      await supprimerObjectifPlan(getDb(), id)
+      await acces.supprimerObjectif(id)
       navigate('/plans', { replace: true })
     } catch {
       setErreur('La suppression a échoué.')

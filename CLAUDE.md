@@ -54,8 +54,10 @@ READMEs de module (`src/features/calendar|respiration/README.md`), specs dans `d
   `navigate(..., { replace: true })` ou `<Link replace>` pour ne pas laisser l'écran quitté dans l'historique.
 - **Poids et taille** : saisis une seule fois dans le Profil (`profile/poids.ts`, `lireMensurations()`) ; les autres modules (Nutrition) les
   lisent et renvoient vers le Profil pour les modifier, ils ne les redemandent pas.
-- **Écran = composant de présentation + hook** (`useEcranAccueil`, `useSorties`, `useSeanceMobilite`…) : le hook lit/écrit
-  via les `repos/`, le composant ne fait qu'afficher et appeler. Pas de SQL ni de règle métier dans un composant.
+- **Écran = composant de présentation + hook** (`useEcranAccueil`, `useSorties`, `useSeanceMobilite`, `useAccesNutrition`…) : le hook lit/écrit
+  via les `repos/`, le composant ne fait qu'afficher et appeler. Pas de SQL ni de règle métier dans un composant, et **aucun `getDb()` dans
+  un `.tsx`** (test `architectureEcrans.test.ts`, sans exception). `core/db/lierALaBase.ts` (`lier(depot)`) lie un dépôt à la base pour un hook d'accès.
+- **Boutons** : `.bouton--principal` prend la couleur du module courant (`--couleur-module`, posée par la coque) ; ne pas la surcharger par module.
 - **Accès aux données** : toujours par `src/core/db/repos/*`, qui prennent un `Db` en paramètre (tests sur SQLite en
   mémoire via `src/test/sqliteDb.ts`, `vi.mock('../../core/db/client')`). Pas d'observation réactive : relire après chaque action.
 - **Identifiants UUID**, **suppression logique** (`deleted_at`, jamais de DELETE physique : refusé par la RLS),

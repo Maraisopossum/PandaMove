@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { urlIcone } from '../../../app/modules'
 import { ecart, type Ecart } from '../../../core/common/ecart'
-import { getDb } from '../../../core/db/client'
 import type { DbLecture } from '../../../core/db/Db'
 import { duree } from '../../home/bilanSemaine'
 import { preparerAudio } from '../../respiration/audio'
 import { formaterDate, formaterTonnage, formaterValeur } from '../../stats/presentation'
-import { bilanInstance, type BilanInstance } from '../../stats/statsQueries'
+import { useBilanInstance } from './useBilanInstance'
 
 const SYMBOLE = { hausse: '↑ ', baisse: '↓ ', stable: '' } as const
 
@@ -32,17 +30,7 @@ function Ligne({ libelle, valeur, e }: { libelle: string; valeur: string; e: Eca
 // échoue masque ces blocs sans gêner le rapport. Calculs dans statsQueries.ts (bilanInstance).
 export function BilanPlus({ instanceId, db }: { instanceId: string; db?: DbLecture }) {
   const navigate = useNavigate()
-  const [bilan, setBilan] = useState<BilanInstance | null>(null)
-
-  useEffect(() => {
-    let annule = false
-    bilanInstance(db ?? getDb(), instanceId)
-      .then((b) => !annule && setBilan(b))
-      .catch((e: unknown) => console.error('Bilan de séance impossible', e))
-    return () => {
-      annule = true
-    }
-  }, [instanceId, db])
+  const bilan = useBilanInstance(instanceId, db)
 
   const c = bilan?.courante
   const p = bilan?.precedente ?? null

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
-import { getDb } from '../../core/db/client'
-import { apercuDecalage, appliquerDeplacements, proposerAjustements, type Deplacement } from './ajustements'
+import { apercuDecalage, proposerAjustements, type Deplacement } from './ajustements'
+import { useAccesPlans } from './useAccesPlans'
 import { usePlans } from './usePlans'
 
 const jourCourt = (iso: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8), 12))
@@ -12,6 +12,7 @@ const jourCourt = (iso: string) => new Intl.DateTimeFormat('fr-FR', { weekday: '
 export default function AjusterPlanScreen() {
   const aujourdhui = dateIsoLocale(new Date())
   const p = usePlans({ aujourdhui })
+  const acces = useAccesPlans()
   const [depuis, setDepuis] = useState(aujourdhui)
   const [apercu, setApercu] = useState(false)
   const [ignorees, setIgnorees] = useState<string[]>([])
@@ -26,7 +27,7 @@ export default function AjusterPlanScreen() {
     setErreur('')
     setEnCours(true)
     try {
-      await appliquerDeplacements(getDb(), liste, sens)
+      await acces.appliquerDeplacements(liste, sens)
       setFait(sens === 1 ? [...liste] : null)
       setApercu(false)
       p.recharger()
