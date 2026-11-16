@@ -18,7 +18,9 @@ function actionProchaine(e: EvenementAgenda): { vers: string; libelle: string } 
 
 // Modules proposés en accès rapide, dans l'ordre d'affichage (libellé, chemin, couleur et pastille viennent de MODULES).
 // Statistiques n'y figure pas : les cartes « Cette semaine » et « Forme du jour » y mènent.
-const TUILES = ['strength', 'running', 'cycling', 'mobility', 'breathing', 'calendar'] as const
+// Trois rangées de trois : le sport (renforcement, course, vélo), la préparation (Hyrox, plans, calendrier) et le quotidien (nutrition,
+// mobilité, respiration).
+const TUILES = ['strength', 'running', 'cycling', 'hyrox', 'plans', 'calendar', 'nutrition', 'mobility', 'breathing'] as const
 
 const DATE_COURTE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' })
 const dateCourte = (iso: string) => DATE_COURTE.format(new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))))
@@ -39,7 +41,7 @@ function CourbeForme({ serie }: { serie: number[] }) {
   )
 }
 
-// Accueil : panda sur halo, accroche, accès directs aux six modules (pastilles illustrées). Le titre de page « Accueil »
+// Accueil : panda sur halo, accroche, accès directs aux neuf modules (pastilles illustrées). Le titre de page « Accueil »
 // reste dans l'arbre d'accessibilité (la barre du haut l'affiche déjà). La maquette montre aussi un widget « Dernière
 // activité locale » : aucune donnée de dernière séance n'est exposée à l'accueil, il n'est donc pas affiché
 // (la reprise d'une séance en cours se fait par le bandeau « Séance en cours » de la coque).

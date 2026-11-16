@@ -29,11 +29,12 @@ describe('HomeScreen', () => {
     expect(panda.getAttribute('loading')).toBe('lazy')
     expect([panda.getAttribute('width'), panda.getAttribute('height')]).toEqual(['320', '480'])
     expect(screen.getByRole('link', { name: 'Renforcement' }).getAttribute('href')).toBe('/strength')
-    // Six accès rapides, chacun avec sa pastille décorative ; Statistiques passe par les cartes « Cette semaine » et « Forme »
+    // Neuf accès rapides, chacun avec sa pastille décorative ; Statistiques passe par les cartes « Cette semaine » et « Forme »
     const acces = screen.getByRole('navigation', { name: 'Accès rapides' })
     expect(within(acces).getAllByRole('link').map((l) => [l.getAttribute('aria-label'), l.getAttribute('href')])).toEqual([
       ['Renforcement', '/strength'], ['Course', '/running'], ['Vélo', '/cycling'],
-      ['Mobilité', '/mobility'], ['Respiration', '/breathing'], ['Calendrier', '/calendar'],
+      ['Hyrox', '/hyrox'], ['Plans', '/plans'], ['Calendrier', '/calendar'],
+      ['Nutrition', '/nutrition'], ['Mobilité', '/mobility'], ['Respiration', '/breathing'],
     ])
     for (const img of acces.querySelectorAll('img')) expect(img.getAttribute('alt')).toBe('')
   })
