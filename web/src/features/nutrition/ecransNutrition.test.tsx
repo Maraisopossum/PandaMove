@@ -456,7 +456,7 @@ describe('raccourcis et partage (appui long sur l’icône, widget)', () => {
   it('?partage=1 analyse la photo partagée, une seule fois', async () => {
     const magasin = new Map<string, Response>()
     vi.stubGlobal('caches', { open: async () => ({ match: async (k: string) => magasin.get(k), delete: async (k: string) => magasin.delete(k), put: async () => {} }) })
-    magasin.set('/partage/image', new Response(new File([new Uint8Array([1, 2, 3])], 'p.jpg', { type: 'image/jpeg' }), { headers: { 'Content-Type': 'image/jpeg' } }))
+    magasin.set('/partage/image', new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/jpeg' } }))
     reduireImage.mockResolvedValue({ base64: 'AAAA', mediaType: 'image/jpeg' })
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:test', revokeObjectURL: () => {} }))
     ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(async (_n: string, d: { action?: string }) =>
