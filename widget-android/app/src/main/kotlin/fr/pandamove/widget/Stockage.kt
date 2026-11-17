@@ -26,9 +26,9 @@ class Stockage(context: Context) {
     // Réglage d'apparence (pas un secret, conservé quand on délie le widget)
     private val reglages: SharedPreferences by lazy { app.getSharedPreferences("pandamove_reglages", Context.MODE_PRIVATE) }
 
-    /** Variante du panda affichée : « female » (défaut) ou « male ». */
+    /** Variante du panda affichée : « male » (défaut) ou « female ». */
     var pandaVariante: String
-        get() = if (reglages.getString("panda", "female") == "male") "male" else "female"
+        get() = if (reglages.getString("panda", "male") == "female") "female" else "male"
         set(v) = reglages.edit().putString("panda", if (v == "male") "male" else "female").apply()
 
     private val etat: SharedPreferences by lazy { app.getSharedPreferences("pandamove_etat", Context.MODE_PRIVATE) }
