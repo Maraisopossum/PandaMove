@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Widget PandaMove</string>
+    <string name="widget_nom">Nutrition PandaMove</string>
+    <string name="widget_description">Énergie restante, macros et eau du jour, avec un bouton + 250 ml.</string>
+    <string name="widget_chargement">Chargement…</string>
+</resources>
