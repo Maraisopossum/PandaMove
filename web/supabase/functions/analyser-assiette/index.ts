@@ -29,8 +29,17 @@ async function appelerModele(fournisseur: FournisseurConfigure, demande: Demande
   const requete = construireRequete(fournisseur, demande)
   const r = await fetch(requete.url, { method: 'POST', headers: requete.headers, body: requete.body, signal: AbortSignal.timeout(45_000) })
   if (!r.ok) {
-    console.error('analyser-assiette : API', fournisseur.id, r.status, (await r.text()).slice(0, 300))
-    throw new ErreurAnalyse(502, `Le service d’analyse (${fournisseur.libelle}) est indisponible pour le moment.`)
+    const corps = (await r.text()).slice(0, 300)
+    console.error('analyser-assiette : API', fournisseur.id, fournisseur.modele, r.status, corps)
+    // Le statut HTTP et le message du fournisseur (jamais la clé) sont renvoyés pour que la cause soit lisible dans l'application.
+    let message = ''
+    try {
+      const j = JSON.parse(corps)
+      message = String(j?.error?.message ?? j?.[0]?.error?.message ?? '').slice(0, 160)
+    } catch { /* corps non JSON */ }
+    const cause =
+      r.status === 401 || r.status === 403 ? 'clé refusée' : r.status === 404 ? `modèle « ${fournisseur.modele} » introuvable` : r.status === 429 ? 'quota ou limite atteinte' : r.status === 400 ? 'requête refusée' : 'service en panne'
+    throw new ErreurAnalyse(502, `Le service d’analyse (${fournisseur.libelle}) a répondu ${r.status} : ${cause}${message ? ` — ${message}` : ''}.`)
   }
   return extraireSortie(fournisseur.id, await r.json().catch(() => null))
 }
