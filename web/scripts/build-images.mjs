@@ -33,6 +33,7 @@ const UI = '09_UI_Formats'
 const FONDS = '10_Backgrounds'
 const HEAT = '11_Heatmaps'
 const NUTRI = '13_Nutrition'
+const MODULES = '14_Modules'
 
 // nom logique -> { alt, sources par variante (chemin relatif à assets/), heatmap = taille unique }
 const IMAGES = {
@@ -70,6 +71,16 @@ const IMAGES = {
   nutri_eau: { alt: 'Panda qui boit à sa gourde, éclaboussures d’eau', male: `${NUTRI}/male_nutrition_eau_v1.png`, female: `${NUTRI}/female_nutrition_eau_v1.png` },
   nutri_photo: { alt: 'Panda qui photographie son assiette de pâtes avec un téléphone', male: `${NUTRI}/male_nutrition_photo_v1.png`, female: `${NUTRI}/female_nutrition_photo_v1.png` },
   nutri_objectif: { alt: 'Panda aux bras levés, une fourchette et une cuillère à la main, fier de son objectif atteint', male: `${NUTRI}/male_nutrition_objectif_v1.png`, female: `${NUTRI}/female_nutrition_objectif_v1.png` },
+  // Autres modules (illustrées avec Gemini, détourées : assets/14_Modules)
+  module_aliments: { alt: 'Panda qui porte un panier de courses : pain, pommes, lait et carottes', male: `${MODULES}/male_module_aliments_v1.png`, female: `${MODULES}/female_module_aliments_v1.png` },
+  module_bilan: { alt: 'Panda qui montre un tableau de barres colorées avec une baguette', male: `${MODULES}/male_module_bilan_v1.png`, female: `${MODULES}/female_module_bilan_v1.png` },
+  module_scan: { alt: 'Panda qui scanne le code-barres d’un pot de yaourt avec son téléphone', male: `${MODULES}/male_module_scan_v1.png`, female: `${MODULES}/female_module_scan_v1.png` },
+  module_objectifs: { alt: 'Panda au mètre ruban, une balance de cuisine à ses pieds', male: `${MODULES}/male_module_objectifs_v1.png`, female: `${MODULES}/female_module_objectifs_v1.png` },
+  module_stats: { alt: 'Panda qui tient une tablette affichant une courbe qui monte', male: `${MODULES}/male_module_stats_v1.png`, female: `${MODULES}/female_module_stats_v1.png` },
+  module_outils: { alt: 'Panda avec une clé à molette et une boîte à outils rouge', male: `${MODULES}/male_module_outils_v1.png`, female: `${MODULES}/female_module_outils_v1.png` },
+  module_hyrox: { alt: 'Panda qui pousse un traîneau lesté, en sueur et déterminé', male: `${MODULES}/male_module_hyrox_v1.png`, female: `${MODULES}/female_module_hyrox_v1.png` },
+  module_finisher: { alt: 'Panda aux bras levés, une médaille de finisher autour du cou', male: `${MODULES}/male_module_finisher_v1.png`, female: `${MODULES}/female_module_finisher_v1.png` },
+  module_calendrier: { alt: 'Panda qui coche un jour sur un grand calendrier, un stylo à la main', male: `${MODULES}/male_module_calendrier_v1.png`, female: `${MODULES}/female_module_calendrier_v1.png` },
   // Fonds (communs)
   bg_gym: { alt: 'Salle de sport futuriste', commun: `${FONDS}/bg_gym_futuristic_v1.png` },
   bg_reward: { alt: 'Podium illuminé sous des confettis dorés', commun: `${FONDS}/bg_reward_ceremony_v1.png` },

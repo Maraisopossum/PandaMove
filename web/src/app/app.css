@@ -9276,3 +9276,61 @@ time,
 .nutri__salut--titre { font-size: 1.375rem; }
 .nutri__revue-tete { padding-bottom: 0.25rem; }
 .nutri__hero-panda--photo, .nutri__revue-tete .panda-illustration--attente { width: 7.5rem; height: 7.5rem; }
+
+/* ── Blocs d'accueil des modules (HeroPanda) : titre, phrase et panda du sujet sur un fond teinté, d'après les maquettes Claude Design ── */
+.hero-module {
+  --hero-0: #dcf4e8;
+  --hero-1: #fff4de;
+  --hero-bord: #e8e2d6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  padding: 1rem;
+  border: 1px solid var(--hero-bord);
+  border-radius: var(--radius-grande);
+  background: linear-gradient(160deg, var(--hero-0) 0%, var(--hero-1) 100%);
+  box-shadow: 0 8px 20px -8px rgb(0 0 0 / 0.18), 0 2px 6px rgb(0 0 0 / 0.05);
+}
+.hero-module--stats { --hero-0: #ffe6d6; --hero-1: #fff4e3; --hero-bord: #ecd9cc; }
+.hero-module--outils { --hero-0: #e3ecf0; --hero-1: #fff4e3; --hero-bord: #dde3e6; }
+.hero-module--hyrox { --hero-0: #e8e8ee; --hero-1: #fff0dc; --hero-bord: #e1e1e8; }
+.hero-module--calendrier { --hero-0: #ffe7d2; --hero-1: #fff6e4; --hero-bord: #efdccb; }
+:root[data-theme='dark'] .hero-module { --hero-0: #123026; --hero-1: #232620; --hero-bord: var(--bord); }
+:root[data-theme='dark'] .hero-module--stats { --hero-0: #3a2218; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--outils { --hero-0: #1f2a30; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--hyrox { --hero-0: #2a2a31; --hero-1: #2a2622; }
+:root[data-theme='dark'] .hero-module--calendrier { --hero-0: #3a2616; --hero-1: #262320; }
+.hero-module__texte { display: grid; flex: 1; gap: 0.375rem; align-content: center; min-width: 0; }
+.hero-module__titre { margin: 0; font-family: var(--police-titres); font-size: 1.375rem; font-weight: 800; line-height: 1.15; text-wrap: balance; }
+.hero-module__phrase { margin: 0; color: var(--texte-secondaire); font-size: 0.9375rem; line-height: 1.45; }
+.hero-module__panda, .hero-module .panda-illustration--attente { flex: none; width: 7.75rem; height: 7.75rem; margin: -0.5rem -0.25rem -0.625rem 0; object-fit: contain; }
+.hero-module__panda { filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.14)); }
+@media (prefers-reduced-motion: no-preference) { .hero-module__panda { animation: nutri-panda-entree 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; } }
+@media (max-width: 22rem) { .hero-module__panda, .hero-module .panda-illustration--attente { width: 6rem; height: 6rem; } }
+
+/* Cartes douces des écrans de module refaits (statistiques, outils, hyrox, calendrier, nutrition) */
+.carte-douce { display: grid; gap: 0.625rem; min-width: 0; padding: 0.875rem 1rem 1rem; border: 1px solid var(--bord); border-radius: 1.25rem; background: var(--surface); box-shadow: var(--ombre-carte, 0 8px 20px -8px rgb(0 0 0 / 0.16)); }
+.carte-douce > h2 { margin: 0; font-family: var(--police-titres); font-size: 1.125rem; font-weight: 800; }
+
+/* ── Refonte illustrée des modules (Claude Design, 2026-11-17) : Hyrox, Calendrier, états vides, Outils ── */
+.hyrox .plans__entete.hyrox__entete { position: relative; overflow: hidden; min-height: 11.5rem; border: 1px solid #e1e1e8; border-radius: var(--radius-grande); background: linear-gradient(160deg, #e8e8ee 0%, #fff0dc 100%); color: var(--texte); box-shadow: 0 8px 20px -8px rgb(30 30 40 / 0.25), 0 2px 6px rgb(0 0 0 / 0.05); }
+:root[data-theme='dark'] .hyrox .plans__entete.hyrox__entete { border-color: var(--bord); background: linear-gradient(160deg, #2a2a31 0%, #2a2622 100%); }
+.hyrox__entete .plans__grand { font-family: var(--police-titres); font-size: 2.875rem; line-height: 1; }
+.hyrox__entete > .plans__grand, .hyrox__entete > p:not(.hyrox__etiquette) { padding-right: 8.5rem; }
+.hyrox__etiquette { justify-self: start; padding: 0.25rem 0.75rem; border-radius: 999px; background: #26262b; color: #fff; font-size: 0.8125rem; font-weight: 700; }
+:root[data-theme='dark'] .hyrox__etiquette { background: #3f3f46; }
+.hyrox__entete .outils__chiffre-libelle, .hyrox__entete .outils__chiffre-detail { color: var(--texte-secondaire); }
+.hyrox__entete .outils__chiffre { background: rgb(255 255 255 / 0.7); }
+:root[data-theme='dark'] .hyrox__entete .outils__chiffre { background: rgb(255 255 255 / 0.08); }
+.hyrox__entete .outils__chiffre strong { color: var(--texte); }
+.hyrox__panda { position: absolute; top: 0.25rem; right: 0.125rem; width: 8.5rem; height: 8.5rem; object-fit: contain; filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.16)); pointer-events: none; }
+.hyrox__simulation { position: relative; padding-right: 7.75rem; }
+.hyrox__finisher { position: absolute; right: 0.5rem; bottom: 0.25rem; width: 6.75rem; height: 6.75rem; object-fit: contain; pointer-events: none; }
+@media (max-width: 22rem) { .hyrox__panda { width: 6.5rem; height: 6.5rem; } .hyrox__entete > .plans__grand, .hyrox__entete > p:not(.hyrox__etiquette) { padding-right: 6.5rem; } }
+
+.calendrier__vide-panda { display: block; width: 5.5rem; height: 5.5rem; margin-inline: auto; object-fit: contain; }
+.nutri__vide-carte { justify-items: center; text-align: center; }
+.nutri__vide-panda { width: 6rem; height: 6rem; object-fit: contain; }
+.nutri__vide-titre { margin: 0; font-weight: 700; }
+.outils__carte { border-radius: 1.25rem; min-height: 5.5rem; }

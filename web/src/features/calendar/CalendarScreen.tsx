@@ -1,3 +1,5 @@
+import { HeroPanda } from '../../app/HeroPanda'
+import { usePandaImages } from '../../core/images/usePandaImages'
 import { Fragment } from 'react'
 import { Link } from 'react-router'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
@@ -129,10 +131,12 @@ function ChargeSemaineCellule({ charge }: { charge: ChargeSemaine }) {
 // Calendrier : grille du mois, filtre, séances du jour choisi et prochaines séances.
 export default function CalendarScreen() {
   const c = useEcranCalendrier()
+  const imagePanda = usePandaImages()
 
   return (
     <>
       <h1 className="titre-ecran">Calendrier</h1>
+      <HeroPanda module="calendrier" image="module_calendrier" titre="Votre agenda" texte={c.prochaines.length > 0 ? `${c.prochaines.length} séance${c.prochaines.length > 1 ? 's' : ''} à venir. Touchez un jour pour voir le détail.` : 'Rien de prévu pour le moment. Programmez une séance depuis vos séances.'} />
 
       <div className="calendrier__entete">
         <button type="button" className="bouton calendrier__nav" aria-label={c.vue === 'mois' ? 'Mois précédent' : 'Semaine précédente'} onClick={c.vue === 'mois' ? c.precedent : c.semainePrecedente}>
@@ -262,6 +266,7 @@ export default function CalendarScreen() {
               <h2 id="calendrier-detail">{c.titreDetail}</h2>
               {c.detail.evenements.length === 0 ? (
                 <div className="calendrier__jour-vide">
+                  <PandaIllustration image={imagePanda('module_calendrier', 'sm')} sizes="88px" decoratif className="calendrier__vide-panda" />
                   <p>Aucune séance ce jour-là.</p>
                   <p className="aide">Programmez-en une depuis vos séances (icône calendrier).</p>
                   <Link to="/strength" className="bouton lien-bouton">

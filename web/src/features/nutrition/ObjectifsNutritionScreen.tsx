@@ -1,3 +1,4 @@
+import { HeroPanda } from '../../app/HeroPanda'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import {
@@ -93,6 +94,7 @@ export default function ObjectifsNutritionScreen() {
   return (
     <div className="plans nutri">
       <h1 className="titre-ecran">Objectifs nutrition</h1>
+      <HeroPanda module="nutrition" image="module_objectifs" titre="Vos objectifs, sur mesure" texte="Calculés avec votre taille, votre poids et votre rythme. Vous pouvez les ajuster." />
 
       <details className="plans__carte charge__reglages" open>
         <summary>Calculer une proposition</summary>
