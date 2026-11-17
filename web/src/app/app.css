@@ -8607,10 +8607,10 @@ time,
 .mobilite__son { min-height: 44px; padding: 0 0.875rem; border-radius: var(--radius-pilule); font-size: 0.8125rem; }
 .mobilite__progression { height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--couleur-mobilite) 14%, var(--surface)); overflow: hidden; }
 .mobilite__progression span { display: block; height: 100%; background: var(--couleur-mobilite); transition: width 300ms linear; }
-.mobilite__illustration { display: block; width: auto; max-width: 100%; height: clamp(9rem, 36dvh, 17rem); margin: 0 auto; object-fit: contain; }
-.mobilite__cadran { display: grid; place-items: center; width: clamp(6.5rem, 17dvh, 9rem); aspect-ratio: 1; margin: 0.25rem auto; border: 8px solid var(--couleur-mobilite); border-radius: 50%; background: color-mix(in srgb, var(--couleur-mobilite) 6%, var(--surface)); }
+.mobilite__illustration { display: block; flex: 1 1 0; width: 100%; min-height: 8rem; max-height: 26rem; margin: 0 auto; object-fit: contain; }
+.mobilite__cadran { display: grid; place-items: center; flex: none; width: 7rem; aspect-ratio: 1; margin: 0.25rem auto; border: 8px solid var(--couleur-mobilite); border-radius: 50%; background: color-mix(in srgb, var(--couleur-mobilite) 6%, var(--surface)); }
 .mobilite__cadran--pause { border-color: color-mix(in srgb, var(--couleur-mobilite) 35%, var(--surface)); }
-.mobilite__chrono { font-family: var(--police-titres); font-size: clamp(2rem, 6dvh, 2.75rem); font-weight: 800; font-variant-numeric: tabular-nums; }
+.mobilite__chrono { font-family: var(--police-titres); font-size: 2.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .mobilite__consigne { display: grid; gap: 0.25rem; text-align: center; justify-items: center; }
 .mobilite__consigne p { margin: 0; }
 .mobilite__phase { padding: 0.125rem 0.75rem; border-radius: var(--radius-pilule); background: color-mix(in srgb, var(--couleur-mobilite) 14%, var(--surface)); color: var(--couleur-mobilite); font-weight: 800; }
@@ -9367,5 +9367,5 @@ time,
 .outils__carte { border-radius: 1.25rem; min-height: 5.5rem; }
 
 /* Séance de mobilité : tout tient sur un écran de téléphone, sans défilement */
-.mobilite__seance { display: grid; gap: 0.5rem; align-content: start; }
-@media (max-height: 41rem) { .mobilite__illustration { height: clamp(7rem, 30dvh, 12rem); } .mobilite__texte { -webkit-line-clamp: 2; line-clamp: 2; } }
+.mobilite__seance { display: flex; flex-direction: column; gap: 0.5rem; min-height: calc(100dvh - 5.5rem); }
+@media (max-height: 41rem) { .mobilite__illustration { min-height: 6rem; } .mobilite__texte { -webkit-line-clamp: 2; line-clamp: 2; } }
