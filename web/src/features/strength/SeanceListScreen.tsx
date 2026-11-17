@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { HeroPanda } from '../../app/HeroPanda'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { DateDialog } from '../calendar/DateDialog'
 import { SupprimerInstanceDialog } from '../calendar/SupprimerInstanceDialog'
@@ -56,11 +57,9 @@ export default function SeanceListScreen() {
 
   return (
     <>
-      <div className="liste-tete">
-        <h1>Mes séances</h1>
+      <HeroPanda module="renforcement" image="musculation" titre="Mes séances" texte="Vos séances types, prêtes à lancer ou à planifier." h1>
         <span className="liste-tete__chip">Modèles</span>
-        <PandaIllustration image={l.pandaEntete} sizes="64px" decoratif className="liste-tete__panda" />
-      </div>
+      </HeroPanda>
       <OngletsSeances actif="types" comptes={{ types: l.nbTypes, programmees: prog.lignes.length, terminees: fin.lignes.length }} />
       <p className="ecran__aide">
         Vos séances types (des modèles réutilisables : « Lancer », 📅 pour les planifier), puis vos séances programmées et terminées.

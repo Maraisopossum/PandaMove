@@ -1,9 +1,8 @@
 import { Link } from 'react-router'
+import { HeroPanda } from '../../app/HeroPanda'
 import { urlIcone } from '../../app/modules'
 import { estAdmin } from '../../core/admin/admin'
 import { useAuth } from '../../core/auth/AuthProvider'
-import { PandaIllustration } from '../../core/images/PandaIllustration'
-import { useImagePanda } from '../../core/images/usePandaVariante'
 import { ReglagesRetours } from '../strength/execute/circuit/ReglagesRetours'
 import { useReglageRpe } from '../strength/execute/reglageRpe'
 import { SEMAINES_DECHARGE_MAX, useReglageDecharge } from '../strength/progression/reglageDecharge'
@@ -33,19 +32,12 @@ const LIENS = [
 export default function ProfileScreen() {
   const { session } = useAuth()
   const p = useProfile({ userId: session?.user.id })
-  const panda = useImagePanda('joy', { userId: session?.user.id, taille: 'sm' })
   const { rpeActif, changerRpe } = useReglageRpe()
   const { semaines: semainesDecharge, changerSemaines } = useReglageDecharge()
 
   return (
     <>
-      <div className="profil__identite">
-        <PandaIllustration image={panda} sizes="64px" decoratif className="profil__identite-panda" />
-        <div>
-          <h1 className="titre-ecran">Profil</h1>
-          {session?.user.email && <p className="profil__identite-mail">{session.user.email}</p>}
-        </div>
-      </div>
+      <HeroPanda module="profil" image="joy" titre="Profil" texte={session?.user.email ?? undefined} h1 />
 
       <ObjectifsSection />
       <PoidsSection />
