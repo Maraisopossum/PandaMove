@@ -23,7 +23,7 @@ Les valeurs sont **bornées et nettoyées** côté serveur (`analyse.ts`) ; l'ap
    ```bash
    npx supabase@latest secrets set ANTHROPIC_API_KEY=<clé> GEMINI_API_KEY=<clé> OPENAI_API_KEY=<clé>
    ```
-   Facultatifs : `ANALYSE_MODELE_ANTHROPIC` (défaut `claude-sonnet-5-5`), `ANALYSE_MODELE_GEMINI` (défaut `gemini-2.5-flash`), `ANALYSE_MODELE_OPENAI` (défaut `gpt-4o`), `ANALYSE_FOURNISSEUR_DEFAUT`, `ANALYSES_PAR_JOUR`. Les modèles se changent par secret, sans redéployer.
+   Facultatifs : `ANALYSE_MODELE_ANTHROPIC` (défaut `claude-sonnet-5-5`), `ANALYSE_MODELE_GEMINI` (défaut `gemini-3.8-flash`), `ANALYSE_MODELE_OPENAI` (défaut `gpt-4o`), `ANALYSE_FOURNISSEUR_DEFAUT`, `ANALYSES_PAR_JOUR`. Les modèles se changent par secret, sans redéployer.
 3. `npx supabase@latest functions deploy analyser-assiette --use-api`
 4. Fusionner le client.
 Sans aucune clé, la fonction répond 503 « pas encore configurée » et l'application propose la saisie manuelle : rien d'autre n'est bloqué.

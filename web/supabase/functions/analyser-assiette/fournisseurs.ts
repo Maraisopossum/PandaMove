@@ -20,7 +20,7 @@ interface Definition {
 // Ordre = ordre de repli quand ni l'utilisateur ni ANALYSE_FOURNISSEUR_DEFAUT n'en désignent un.
 export const DEFINITIONS: readonly Definition[] = [
   { id: 'anthropic', libelle: 'Claude (Anthropic)', secretCle: 'ANTHROPIC_API_KEY', secretModele: 'ANALYSE_MODELE_ANTHROPIC', modeleDefaut: 'claude-sonnet-5-5' },
-  { id: 'gemini', libelle: 'Gemini (Google)', secretCle: 'GEMINI_API_KEY', secretModele: 'ANALYSE_MODELE_GEMINI', modeleDefaut: 'gemini-2.5-flash' },
+  { id: 'gemini', libelle: 'Gemini (Google)', secretCle: 'GEMINI_API_KEY', secretModele: 'ANALYSE_MODELE_GEMINI', modeleDefaut: 'gemini-3.8-flash' },
   { id: 'openai', libelle: 'ChatGPT (OpenAI)', secretCle: 'OPENAI_API_KEY', secretModele: 'ANALYSE_MODELE_OPENAI', modeleDefaut: 'gpt-4o' },
 ]
 
