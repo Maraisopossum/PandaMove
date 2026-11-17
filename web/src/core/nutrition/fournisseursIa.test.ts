@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ErreurAnalyse, NOM_OUTIL } from '../../../supabase/functions/analyser-assiette/analyse'
-import { choisirFournisseur, construireRequete, extraireSortie, fournisseursConfigures, lireFournisseur, listePublique } from '../../../supabase/functions/analyser-assiette/fournisseurs'
+import { choisirFournisseur, construireRequete, extraireSortie, fournisseursConfigures, lireFournisseur, listePublique, choisirModeleRecent, requeteListeModeles } from '../../../supabase/functions/analyser-assiette/fournisseurs'
 import { fournisseurInitial, listerFournisseursIa } from './photo'
 import type { ClientSupabase } from '../db/clientSupabase'
 
@@ -51,12 +51,13 @@ describe('fournisseurs d’IA configurés', () => {
 describe('requêtes envoyées à chaque fournisseur', () => {
   const f = (cles: Record<string, string>, id: string) => fournisseursConfigures(env(cles)).find((x) => x.id === id)!
 
-  it('Anthropic : outil forcé, image en base64, clé dans x-api-key', () => {
+  it('Anthropic : outil disponible (non forcé, refusé par les modèles récents), image en base64, clé dans x-api-key', () => {
     const r = construireRequete(f({ ANTHROPIC_API_KEY: 'cle-a' }, 'anthropic'), demande)
     const corps = JSON.parse(r.body)
     expect(r.url).toBe('https://api.anthropic.com/v1/messages')
     expect(r.headers['x-api-key']).toBe('cle-a')
-    expect(corps.tool_choice).toEqual({ type: 'tool', name: NOM_OUTIL })
+    expect(corps.tool_choice).toEqual({ type: 'auto' })
+    expect(corps.tools[0].name).toBe(NOM_OUTIL)
     expect(corps.messages[0].content[0]).toMatchObject({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg' } })
     expect(corps.messages[0].content[1].text).toContain('sans sauce')
   })
@@ -118,5 +119,34 @@ describe('côté application : liste et choix', () => {
     expect(fournisseurInitial(liste, 'openai')).toBe('gemini')
     expect(fournisseurInitial({ ...liste, defaut: null }, null)).toBe('anthropic')
     expect(fournisseurInitial({ defaut: null, fournisseurs: [] }, 'gemini')).toBeNull()
+  })
+})
+
+describe('retrouver un modèle retiré (404)', () => {
+  it('Gemini : le Flash le plus récent qui sait générer', () => {
+    const json = {
+      models: [
+        { name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] },
+        { name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] },
+        { name: 'models/gemini-3.10-flash', supportedGenerationMethods: ['generateContent'] },
+        { name: 'models/gemini-3.9-flash-lite', supportedGenerationMethods: ['generateContent'] },
+        { name: 'models/gemini-4-flash', supportedGenerationMethods: ['embedContent'] },
+      ],
+    }
+    expect(choisirModeleRecent('gemini', json)).toBe('gemini-3.10-flash')
+  })
+
+  it('Anthropic : le Sonnet le plus récent ; OpenAI : le GPT numéroté le plus récent', () => {
+    expect(choisirModeleRecent('anthropic', { data: [{ id: 'claude-opus-5-5' }, { id: 'claude-sonnet-4-5' }, { id: 'claude-sonnet-5-5' }] })).toBe('claude-sonnet-5-5')
+    expect(choisirModeleRecent('openai', { data: [{ id: 'gpt-4o' }, { id: 'gpt-5' }, { id: 'gpt-5-mini' }, { id: 'gpt-4.1' }] })).toBe('gpt-5')
+  })
+
+  it('liste vide ou illisible : null ; la requête de liste porte la clé dans un en-tête', () => {
+    expect(choisirModeleRecent('gemini', null)).toBeNull()
+    expect(choisirModeleRecent('openai', { data: [] })).toBeNull()
+    const f = fournisseursConfigures(env({ GEMINI_API_KEY: 'cle-g' }))[0]
+    const l = requeteListeModeles(f)
+    expect(l.url).not.toContain('cle-g')
+    expect(l.headers['x-goog-api-key']).toBe('cle-g')
   })
 })
