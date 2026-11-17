@@ -47,7 +47,7 @@ Astuce : sur un seul téléphone, le plus simple est d'envoyer l'adresse et le j
 3. Un écran **« Widget Nutrition PandaMove »** s'ouvre :
    - **Adresse du serveur** : touchez **Coller l'adresse** (ou collez à la main). Elle commence par `https://` et finit par `widget-nutrition`.
    - **Jeton** : touchez **Coller le jeton**. Il commence par `pmw_`.
-   - **Panda du widget** : choisissez « Panda fille » ou « Panda garçon » (modifiable plus tard depuis l'icône de l'application).
+   - **Panda du widget** : choisissez « Panda garçon » (par défaut) ou « Panda fille » (modifiable plus tard depuis l'icône de l'application).
    - **Adresse de PandaMove** : l'adresse du site PandaMove que vous ouvrez dans le navigateur (par exemple `https://…`). Elle sert aux boutons Photo, Aliment et au journal.
 4. Touchez **Relier**. Le widget vérifie le jeton avec une vraie lecture :
    - tout va bien : l'écran se ferme et le widget affiche vos chiffres ;
