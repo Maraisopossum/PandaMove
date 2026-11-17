@@ -100,9 +100,10 @@ Déploiement manuel par Benoît, dans l'ordre : migration, fonctions (`--no-veri
 - **Date** : la fonction n'accepte que hier, aujourd'hui et demain (date du serveur en UTC), pour couvrir tous les fuseaux sans permettre de fouiller le passé.
 - **Eau** : 50 à 1 500 ml par appel, 5 000 ml par jour ; la clé d'appel (`cle`, 8 à 64 caractères) rend le geste idempotent : le widget la génère à chaque appui et la renvoie telle quelle en cas de nouvel essai.
 
-## Reste à faire : étape 3, application Android
-Dossier `widget-android/` (jamais `app/`) : Kotlin, Jetpack Glance, widget 2×2, 4×1 et 4×2, configuration (coller l'adresse et le jeton), WorkManager, jeton chiffré, cache hors ligne,
-bouton « + 250 ml » qui appelle `POST` avec une clé d'appel neuve à chaque appui, autres boutons vers les liens profonds de l'étape 1. Détail dans « Application Android » ci-dessus.
+## Étape 3, application Android (2026-11-17) : codée dans `widget-android/`
+Projet Gradle indépendant (jamais `app/`) : Kotlin, Glance, 2×2 / 4×1 / 4×2, écran de configuration (adresse du serveur, jeton, adresse de PandaMove), WorkManager 30 min, jeton chiffré, cache hors ligne, « + 250 ml » direct avec clé d'appel conservée tant que le serveur n'a pas confirmé. Mode d'emploi, signature de l'APK et limites : `widget-android/README.md`.
+Écarts : le cache est en SharedPreferences (pas DataStore) ; une quatrième saisie, l'adresse de PandaMove, sert aux liens des boutons (le serveur du widget est celui de Supabase, pas celui de la PWA).
+**Non vérifié sur un appareil** : tests JUnit (25), compilation debug et release (R8) et lint passent, mais le rendu du widget n'a pas été vu (émulateur trop lent).
 
 ## Risques
 - Le lien profond ouvre Chrome au lieu de la PWA installée sur certains lanceurs : repli acceptable (la PWA reste utilisable), à tester sur le téléphone cible.

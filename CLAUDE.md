@@ -90,6 +90,9 @@ READMEs de module (`src/features/calendar|respiration/README.md`), specs dans `d
 - Supprimer des branches distantes.
 - Toucher `google-services.json`, `app/keystore/`, `gradle/libs.versions.toml`, ou committer `web/.env.local`.
 
+## Widget Android (`widget-android/`)
+Projet Gradle indépendant du code Kotlin archivé : widget de nutrition (Glance) qui lit `widget-nutrition`. Commandes et signature dans `widget-android/README.md` ; `JAVA_HOME` = JBR d'Android Studio, `ANDROID_HOME` = SDK 35. Ne touche jamais `app/`.
+
 ## Archive Android
 Code Kotlin (`app/`, `core/`, `feature/`, `build-logic/`), Room schéma v27, documentation `docs/ai/` et `DESIGN.md` racine :
 **obsolètes**, conservés pour l'historique. `docs/ai/` décrit l'app Android, pas la WebApp. `AGENTS.md` pointe ici.
