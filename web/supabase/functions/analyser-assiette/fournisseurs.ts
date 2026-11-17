@@ -94,7 +94,8 @@ export function construireRequete(f: FournisseurConfigure, demande: DemandeAnaly
         max_tokens: 1500,
         system: CONSIGNE_SYSTEME,
         tools: [{ name: NOM_OUTIL, description: DESCRIPTION_OUTIL, input_schema: SCHEMA_OUTIL }],
-        tool_choice: { type: 'tool', name: NOM_OUTIL },
+        // Pas d'appel forcé : les modèles récents (réflexion adaptative) refusent tool_choice « tool » (400). La consigne impose l'outil.
+        tool_choice: { type: 'auto' },
         messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: demande.mediaType, data: demande.image } }, { type: 'text', text: texteUtilisateur(demande) }] }],
       }),
     }
@@ -126,6 +127,37 @@ export function construireRequete(f: FournisseurConfigure, demande: DemandeAnaly
       tool_choice: { type: 'function', function: { name: NOM_OUTIL } },
     }),
   }
+}
+
+/** Requête de la liste des modèles du fournisseur (pour retrouver un modèle quand celui configuré n'existe plus : HTTP 404). */
+export function requeteListeModeles(f: FournisseurConfigure): { url: string; headers: Record<string, string> } {
+  if (f.id === 'anthropic') return { url: 'https://api.anthropic.com/v1/models?limit=100', headers: { 'x-api-key': f.cle, 'anthropic-version': '2023-06-01' } }
+  if (f.id === 'gemini') return { url: 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', headers: { 'x-goog-api-key': f.cle } }
+  return { url: 'https://api.openai.com/v1/models', headers: { authorization: `Bearer ${f.cle}` } }
+}
+
+/** Version numérique d'un nom de modèle (« gemini-3.8-flash » → [3, 8], « claude-sonnet-5-5 » → [5, 5]) pour comparer. */
+const versionDe = (nom: string): number[] => (nom.match(/\d+/g) ?? []).slice(0, 3).map(Number)
+const plusRecent = (a: string, b: string): number => {
+  const [va, vb] = [versionDe(a), versionDe(b)]
+  for (let i = 0; i < 3; i++) if ((va[i] ?? 0) !== (vb[i] ?? 0)) return (vb[i] ?? 0) - (va[i] ?? 0)
+  return 0
+}
+
+/** Modèle de vision le plus récent de la même famille que celui par défaut (Gemini « flash », Claude « sonnet », GPT numéroté), ou null. */
+export function choisirModeleRecent(id: IdFournisseur, json: unknown): string | null {
+  const o = (typeof json === 'object' && json !== null ? json : {}) as Record<string, unknown>
+  let noms: string[]
+  if (id === 'gemini') {
+    noms = (Array.isArray(o.models) ? o.models : [])
+      .filter((m: { supportedGenerationMethods?: string[] }) => m?.supportedGenerationMethods?.includes('generateContent'))
+      .map((m: { name?: string }) => String(m?.name ?? '').replace(/^models\//, ''))
+      .filter((n: string) => /^gemini-\d+(\.\d+)?-flash$/.test(n))
+  } else {
+    const ids = (Array.isArray(o.data) ? o.data : []).map((m: { id?: string }) => String(m?.id ?? ''))
+    noms = ids.filter((n: string) => (id === 'anthropic' ? /^claude-sonnet-\d+(-\d+)?$/ : /^gpt-\d+(\.\d+)?$/).test(n))
+  }
+  return noms.sort(plusRecent)[0] ?? null
 }
 
 /** Entrée de l'outil `enregistrer_repas` dans la réponse du fournisseur ; ErreurAnalyse 502 si elle est absente ou illisible. */

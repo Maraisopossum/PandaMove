@@ -23,7 +23,7 @@ Les valeurs sont **bornées et nettoyées** côté serveur (`analyse.ts`) ; l'ap
    ```bash
    npx supabase@latest secrets set ANTHROPIC_API_KEY=<clé> GEMINI_API_KEY=<clé> OPENAI_API_KEY=<clé>
    ```
-   Facultatifs : `ANALYSE_MODELE_ANTHROPIC` (défaut `claude-sonnet-5-5`), `ANALYSE_MODELE_GEMINI` (défaut `gemini-3.8-flash`), `ANALYSE_MODELE_OPENAI` (défaut `gpt-4o`), `ANALYSE_FOURNISSEUR_DEFAUT`, `ANALYSES_PAR_JOUR`. Les modèles se changent par secret, sans redéployer.
+   Facultatifs : `ANALYSE_MODELE_ANTHROPIC` (défaut `claude-sonnet-5-5`), `ANALYSE_MODELE_GEMINI` (défaut `gemini-3.8-flash`), `ANALYSE_MODELE_OPENAI` (défaut `gpt-4o`), `ANALYSE_FOURNISSEUR_DEFAUT`, `ANALYSES_PAR_JOUR`. Les modèles se changent par secret, sans redéployer. Si le fournisseur répond 404 (modèle retiré), la fonction interroge sa liste de modèles, prend le plus récent de la même famille (Gemini « flash », Claude « sonnet », GPT numéroté), réessaie une fois et le garde jusqu'au redémarrage ; mettez ensuite le secret à jour. Anthropic : l'outil n'est pas forcé (`tool_choice` « auto »), car les modèles récents refusent l'appel forcé.
 3. `npx supabase@latest functions deploy analyser-assiette --use-api`
 4. Fusionner le client.
 Sans aucune clé, la fonction répond 503 « pas encore configurée » et l'application propose la saisie manuelle : rien d'autre n'est bloqué.

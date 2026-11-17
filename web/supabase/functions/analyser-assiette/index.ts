@@ -14,7 +14,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { ErreurAnalyse, executer, lireDemande, PLAFOND_PAR_JOUR_DEFAUT, type DemandeAnalyse, type PortsAnalyse } from './analyse.ts'
-import { choisirFournisseur, construireRequete, extraireSortie, fournisseursConfigures, lireFournisseur, listePublique, type FournisseurConfigure } from './fournisseurs.ts'
+import { choisirFournisseur, choisirModeleRecent, construireRequete, extraireSortie, fournisseursConfigures, lireFournisseur, listePublique, requeteListeModeles, type FournisseurConfigure } from './fournisseurs.ts'
 
 const env = (nom: string): string => {
   const v = Deno.env.get(nom)
@@ -25,9 +25,31 @@ const env = (nom: string): string => {
 const entetes = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const reponse = (statut: number, corps: unknown) => new Response(JSON.stringify(corps), { status: statut, headers: entetes })
 
-async function appelerModele(fournisseur: FournisseurConfigure, demande: DemandeAnalyse): Promise<unknown> {
+// Modèle retrouvé automatiquement quand celui configuré a été retiré (HTTP 404) ; gardé tant que l'instance de la fonction vit.
+const modelesRetrouves = new Map<string, string>()
+
+async function retrouverModele(fournisseur: FournisseurConfigure): Promise<string | null> {
+  try {
+    const l = requeteListeModeles(fournisseur)
+    const r = await fetch(l.url, { headers: l.headers, signal: AbortSignal.timeout(10_000) })
+    return r.ok ? choisirModeleRecent(fournisseur.id, await r.json().catch(() => null)) : null
+  } catch {
+    return null
+  }
+}
+
+async function appelerModele(configure: FournisseurConfigure, demande: DemandeAnalyse, dejaRetrouve = false): Promise<unknown> {
+  const fournisseur = { ...configure, modele: modelesRetrouves.get(configure.id) ?? configure.modele }
   const requete = construireRequete(fournisseur, demande)
   const r = await fetch(requete.url, { method: 'POST', headers: requete.headers, body: requete.body, signal: AbortSignal.timeout(45_000) })
+  if (r.status === 404 && !dejaRetrouve) {
+    const nouveau = await retrouverModele(fournisseur)
+    if (nouveau && nouveau !== fournisseur.modele) {
+      console.error('analyser-assiette : modèle', fournisseur.modele, 'introuvable, essai avec', nouveau)
+      modelesRetrouves.set(configure.id, nouveau)
+      return appelerModele(configure, demande, true)
+    }
+  }
   if (!r.ok) {
     const corps = (await r.text()).slice(0, 300)
     console.error('analyser-assiette : API', fournisseur.id, fournisseur.modele, r.status, corps)
