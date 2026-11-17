@@ -1,3 +1,5 @@
+import { PandaIllustration } from '../../core/images/PandaIllustration'
+import { usePandaImages } from '../../core/images/usePandaImages'
 import { Link } from 'react-router'
 import { formaterTemps } from '../plans/echeances'
 import { ecartObjectifPct, formaterChrono, LIBELLE_FORME, SEUIL_ECART_OBJECTIF_PCT, ciblesCourseComplete } from './simulation'
@@ -10,6 +12,7 @@ const dateSimulation = (iso: string) => new Intl.DateTimeFormat('fr-FR', { day: 
 // Accueil Hyrox : objectif (la date de course est facultative), estimation actuelle, simulation en cours ou à lancer, points faibles.
 export default function HyroxScreen() {
   const h = useHyrox()
+  const image = usePandaImages()
   const { objectif, estimation, records } = h
   const ecart = objectif?.objectifS && estimation ? ecartObjectifPct(objectif.objectifS, estimation.totalS) : null
   const decrochees = STATIONS.filter((s) => records.parStation[s.cle] === undefined).length
@@ -20,8 +23,9 @@ export default function HyroxScreen() {
       <h1 className="titre-ecran">Hyrox</h1>
       {h.erreur && <p role="alert">{h.erreur}</p>}
 
-      <section className="plans__entete" aria-labelledby="hy-titre">
-        <p className="plans__sur-titre">{objectif ? `${LIBELLE_CATEGORIE[objectif.categorie]} · ${LIBELLE_GENRE[objectif.genre]}`.toUpperCase() : 'PRÉPARATION GÉNÉRALE'}</p>
+      <section className="plans__entete hyrox__entete" aria-labelledby="hy-titre">
+        <PandaIllustration image={image('module_hyrox', 'lg')} sizes="136px" decoratif className="hyrox__panda" />
+        <p className="hyrox__etiquette">{objectif ? `${LIBELLE_CATEGORIE[objectif.categorie]} · ${LIBELLE_GENRE[objectif.genre]}` : 'Préparation générale'}</p>
         <h2 id="hy-titre" className="plans__grand">
           {h.joursAvantCourse !== null && h.joursAvantCourse >= 0 ? `J-${h.joursAvantCourse}` : objectif?.resultatS ? formaterChrono(objectif.resultatS) : 'Sans date de course'}
         </h2>
@@ -48,7 +52,8 @@ export default function HyroxScreen() {
         </p>
       )}
 
-      <section className="plans__carte" aria-labelledby="hy-sim">
+      <section className="plans__carte hyrox__simulation" aria-labelledby="hy-sim">
+        <PandaIllustration image={image('module_finisher', 'sm')} sizes="110px" decoratif className="hyrox__finisher" />
         <h2 id="hy-sim" className="plans__titre">Simulation</h2>
         {h.enCours ? (
           <>

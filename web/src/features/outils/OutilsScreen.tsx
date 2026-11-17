@@ -1,3 +1,4 @@
+import { HeroPanda } from '../../app/HeroPanda'
 import { Link } from 'react-router'
 import { urlIcone } from '../../app/modules'
 
@@ -11,6 +12,7 @@ export default function OutilsScreen() {
   return (
     <div className="outils">
       <h1 className="titre-ecran">Outils</h1>
+      <HeroPanda module="outils" image="module_outils" titre="Votre boîte à outils" texte="Sauvegardez vos données et réglez vos rappels : tout reste sur votre appareil." />
       <ul className="outils__cartes">
         {OUTILS.map((o) => (
           <li key={o.vers}>

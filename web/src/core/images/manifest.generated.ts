@@ -353,6 +353,123 @@ export const PANDA_MANIFEST = {
       },
     },
   },
+  module_aliments: {
+    alt: 'Panda qui porte un panier de courses : pain, pommes, lait et carottes',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-aliments-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-aliments-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-aliments-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-aliments-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_bilan: {
+    alt: 'Panda qui montre un tableau de barres colorées avec une baguette',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-bilan-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-bilan-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-bilan-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-bilan-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_scan: {
+    alt: 'Panda qui scanne le code-barres d’un pot de yaourt avec son téléphone',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-scan-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-scan-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-scan-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-scan-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_objectifs: {
+    alt: 'Panda au mètre ruban, une balance de cuisine à ses pieds',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-objectifs-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-objectifs-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-objectifs-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-objectifs-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_stats: {
+    alt: 'Panda qui tient une tablette affichant une courbe qui monte',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-stats-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-stats-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-stats-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-stats-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_outils: {
+    alt: 'Panda avec une clé à molette et une boîte à outils rouge',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-outils-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-outils-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-outils-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-outils-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_hyrox: {
+    alt: 'Panda qui pousse un traîneau lesté, en sueur et déterminé',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-hyrox-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-hyrox-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-hyrox-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-hyrox-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_finisher: {
+    alt: 'Panda aux bras levés, une médaille de finisher autour du cou',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-finisher-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-finisher-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-finisher-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-finisher-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  module_calendrier: {
+    alt: 'Panda qui coche un jour sur un grand calendrier, un stylo à la main',
+    variantes: {
+      male: {
+        sm: { src: '/panda/module-calendrier-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-calendrier-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/module-calendrier-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/module-calendrier-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
   bg_gym: {
     alt: 'Salle de sport futuriste',
     variantes: {

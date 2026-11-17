@@ -146,6 +146,25 @@ describe('refonte du journal : accueil du panda, suppression visible avec annula
   })
 })
 
+describe('mes aliments illustrés', () => {
+  it('« Supprimer » est écrit en toutes lettres, la confirmation propose « Garder », l’état vide est illustré', async () => {
+    monter('/nutrition/aliments')
+    expect(await screen.findByText('Le garde-manger est vide')).toBeTruthy()
+    cleanup()
+    await creerAliment(base, { nom: 'Test', kcal100: 100, proteines100: 1, glucides100: 1, lipides100: 1 })
+    monter('/nutrition/aliments')
+    const bouton = await screen.findByRole('button', { name: 'Supprimer Test' })
+    expect(bouton.textContent).toBe('Supprimer')
+    fireEvent.click(bouton)
+    fireEvent.click(screen.getByRole('button', { name: 'Garder' }))
+    expect(screen.getByRole('button', { name: 'Supprimer Test' })).toBeTruthy()
+    expect((await listerAliments(base)).map((a) => a.nom)).toEqual(['Test'])
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer Test' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }))
+    await waitFor(async () => expect(await listerAliments(base)).toHaveLength(0))
+  })
+})
+
 describe('ajout d’un aliment', () => {
   it('cherche dans la base intégrée, ajuste la quantité et ajoute au repas demandé', async () => {
     monter('/nutrition/ajouter?repas=diner')

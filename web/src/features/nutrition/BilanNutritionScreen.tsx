@@ -1,3 +1,4 @@
+import { HeroPanda } from '../../app/HeroPanda'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
@@ -35,6 +36,7 @@ export default function BilanNutritionScreen({ aujourdhui = dateIsoLocale(new Da
   return (
     <div className="plans nutri">
       <h1 className="titre-ecran">Bilan nutrition</h1>
+      <HeroPanda module="nutrition" image="module_bilan" titre="Votre semaine en un coup d’œil" texte="Moyennes, eau et énergie jour par jour : un ton neutre, jamais un reproche." />
       {donnees.erreur && <p role="alert">{donnees.erreur}</p>}
       <div className="outils__periodes" role="group" aria-label="Période">
         {([7, 30] as Periode[]).map((p) => <button key={p} type="button" className="outils__periode" aria-pressed={periode === p} onClick={() => setPeriode(p)}>{p} jours</button>)}

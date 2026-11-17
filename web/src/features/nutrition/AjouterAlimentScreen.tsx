@@ -1,3 +1,4 @@
+import { HeroPanda } from '../../app/HeroPanda'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
@@ -217,6 +218,7 @@ export default function AjouterAlimentScreen({ aujourdhui = dateIsoLocale(new Da
   return (
     <div className="plans nutri">
       <h1 className="titre-ecran">Ajouter un aliment</h1>
+      <HeroPanda module="nutrition" image="module_scan" titre="Un produit en main ?" texte="Scannez son code-barres : les valeurs se remplissent toutes seules." etiquette="Scanner un produit" />
       <p className="aide">{LIBELLE_REPAS[repas]} · {libelleJour(date, aujourdhui)}</p>
 
       <div className="nutri__recherche">

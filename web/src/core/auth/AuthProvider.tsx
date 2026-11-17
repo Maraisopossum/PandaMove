@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- le contexte et son hook vivent ensemble */
 import type { Session } from '@supabase/auth-js'
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AuthContext } from './AuthContext'
 import { getSupabase } from '../db/client'
 
 export interface AuthContextValue {
@@ -20,8 +21,6 @@ export async function deconnecterSupabaseBrut(): Promise<void> {
   const { error } = await getSupabase().auth.signOut()
   if (error) throw error
 }
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -61,11 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-/** Session courante, ou null sans AuthProvider (écrans testés seuls) : pour les usages facultatifs comme choisir la variante du panda. */
-export function useSessionOptionnelle(): Session | null {
-  return useContext(AuthContext)?.session ?? null
 }
 
 export function useAuth(): AuthContextValue {

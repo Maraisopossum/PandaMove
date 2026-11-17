@@ -1,3 +1,4 @@
+import { HeroPanda } from '../../app/HeroPanda'
 import { useState, type CSSProperties } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { ecart, type Ecart } from '../../core/common/ecart'
@@ -70,8 +71,17 @@ const VUES_STATS = [
 // Écran Statistiques : cinq vues, renforcement (séances jouées), course et vélo (sorties), Hyrox (simulations) et forme (charge
 // d'entraînement des sorties et des simulations). Chaque vue garde ses propres calculs : les sorties n'entrent jamais dans les
 // statistiques de renforcement.
+const ACCUEIL_VUE: Record<string, { titre: string; texte: string }> = {
+  renfo: { titre: 'Votre progression', texte: 'Tonnage, séries, répétitions et muscles travaillés sur la période.' },
+  course: { titre: 'Vos sorties de course', texte: 'Distance, durée et dénivelé de la période.' },
+  velo: { titre: 'Vos sorties à vélo', texte: 'Distance, durée et dénivelé de la période.' },
+  hyrox: { titre: 'Vos simulations Hyrox', texte: 'Temps, stations et progression de vos simulations.' },
+  charge: { titre: 'Votre forme', texte: 'La charge d’entraînement de vos sorties et de vos simulations.' },
+}
+
 export default function StatsScreen() {
   const [vue, setVue] = useState<(typeof VUES_STATS)[number]['id']>('renfo')
+  const accueil = ACCUEIL_VUE[vue] ?? ACCUEIL_VUE.renfo
   return (
     <>
       <h1 className="titre-ecran">Statistiques</h1>
@@ -82,6 +92,7 @@ export default function StatsScreen() {
           </button>
         ))}
       </div>
+      <HeroPanda module="stats" image={vue === 'hyrox' ? 'module_hyrox' : 'module_stats'} titre={accueil.titre} texte={accueil.texte} />
       {vue === 'renfo' ? <StatsRenforcement /> : vue === 'charge' ? <ChargeEntrainement /> : vue === 'hyrox' ? <StatsHyrox /> : <StatsEndurance key={vue} sport={vue} />}
     </>
   )
