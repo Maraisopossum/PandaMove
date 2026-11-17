@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { getDb } from '../../core/db/client'
 import type { Db } from '../../core/db/Db'
 import {
-  ajouterEau, copierRepas, lireJour, lireObjectifsNutrition, supprimerEntree, type EntreeJournal, type ObjectifNutrition,
+  ajouterEau, copierRepas, lireJour, lireObjectifsNutrition, restaurerEntree, supprimerEntree, type EntreeJournal, type ObjectifNutrition,
 } from '../../core/db/repos/nutrition'
 import { REPAS, sommer, type Apport, type Repas } from '../../core/nutrition/calculs'
 import { decalerJour } from './outils'
@@ -78,5 +78,7 @@ export function useJournalNutrition(date: string, { db }: { db?: Db } = {}) {
     },
     copierDepuisHier: (repas: Repas) => executer((b) => copierRepas(b, decalerJour(date, -1), repas, date), 'Le repas n’a pas pu être copié.'),
     supprimer: (id: string) => executer((b) => supprimerEntree(b, id), 'La ligne n’a pas pu être supprimée.'),
+    /** Annule une suppression : la ligne revient dans le journal. */
+    restaurer: (id: string) => executer((b) => restaurerEntree(b, id), 'La ligne n’a pas pu être rétablie.'),
   }
 }

@@ -262,6 +262,97 @@ export const PANDA_MANIFEST = {
       },
     },
   },
+  nutri_petitdej: {
+    alt: 'Panda qui prend son petit-déjeuner : croissant, jus d’orange et céréales',
+    variantes: {
+      male: {
+        sm: { src: '/panda/nutri-petitdej-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-petitdej-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/nutri-petitdej-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-petitdej-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  nutri_dejeuner: {
+    alt: 'Panda qui présente une assiette de poulet, riz et légumes',
+    variantes: {
+      male: {
+        sm: { src: '/panda/nutri-dejeuner-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-dejeuner-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/nutri-dejeuner-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-dejeuner-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  nutri_collation: {
+    alt: 'Panda qui croque une pomme, une banane à la main',
+    variantes: {
+      male: {
+        sm: { src: '/panda/nutri-collation-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-collation-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/nutri-collation-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-collation-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  nutri_diner: {
+    alt: 'Panda qui savoure une soupe fumante à la lueur d’une bougie',
+    variantes: {
+      male: {
+        sm: { src: '/panda/nutri-diner-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-diner-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/nutri-diner-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-diner-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  nutri_eau: {
+    alt: 'Panda qui boit à sa gourde, éclaboussures d’eau',
+    variantes: {
+      male: {
+        sm: { src: '/panda/nutri-eau-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-eau-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/nutri-eau-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-eau-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  nutri_photo: {
+    alt: 'Panda qui photographie son assiette de pâtes avec un téléphone',
+    variantes: {
+      male: {
+        sm: { src: '/panda/nutri-photo-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-photo-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/nutri-photo-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-photo-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
+  nutri_objectif: {
+    alt: 'Panda aux bras levés, une fourchette et une cuillère à la main, fier de son objectif atteint',
+    variantes: {
+      male: {
+        sm: { src: '/panda/nutri-objectif-male-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-objectif-male-lg.webp', width: 640, height: 640 },
+      },
+      female: {
+        sm: { src: '/panda/nutri-objectif-female-sm.webp', width: 320, height: 320 },
+        lg: { src: '/panda/nutri-objectif-female-lg.webp', width: 640, height: 640 },
+      },
+    },
+  },
   bg_gym: {
     alt: 'Salle de sport futuriste',
     variantes: {
