@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { HeroPanda } from '../../app/HeroPanda'
 import { formaterMinutes } from '../calendar/chargeCalendrier'
 import { COULEUR_PHASE } from './couleursPhases'
 import { LIBELLE_PHASE, regrouperPhases } from './phases'
@@ -60,7 +61,7 @@ export default function PlansScreen() {
   const conflits = reglages.alerteJalons ? conflitsEntreEcheances(p.echeances) : []
   return (
     <div className="plans">
-      <h1 className="titre-ecran">Plans</h1>
+      <HeroPanda module="plans" image="motivation" titre="Plans" texte="La frise de votre préparation, phase après phase." h1 />
       {p.erreur && <p role="alert">{p.erreur}</p>}
       {p.pret && !plan && !p.erreur && (
         <p>

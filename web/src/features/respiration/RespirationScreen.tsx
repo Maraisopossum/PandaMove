@@ -1,9 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
-import { useAuth } from '../../core/auth/AuthProvider'
-import { PandaIllustration } from '../../core/images/PandaIllustration'
-import { useImagePanda } from '../../core/images/usePandaVariante'
+import { HeroPanda } from '../../app/HeroPanda'
 import { usePiegeFocus } from '../../core/ui/usePiegeFocus'
 import { preparerAudio } from './audio'
 import { CarteRegularite } from './CarteRegularite'
@@ -132,11 +130,9 @@ function CarteMethode({ methode, ouverte, onBasculer, onSupprimer, choix, onDema
 
 // Écran de choix : méthodes intégrées et personnalisées (dépliables pour régler la durée), puis historique repliable.
 export default function RespirationScreen() {
-  const { session } = useAuth()
   const navigate = useNavigate()
   const data = useRespiration()
   const choix = useChoixDuree()
-  const panda = useImagePanda('pose_meditation', { userId: session?.user.id, taille: 'lg' })
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false)
   const [aSupprimer, setASupprimer] = useState<Suppression | null>(null)
   const [suppressionEnCours, setSuppressionEnCours] = useState(false)
@@ -167,13 +163,7 @@ export default function RespirationScreen() {
 
   return (
     <div className="respiration">
-      <div className="respiration__haut">
-        <div className="respiration__accroche">
-          <h1 className="respiration__titre-page">Un souffle, une pause</h1>
-          <p className="respiration__aide">Choisissez une méthode, réglez la durée, laissez le cercle vous guider.</p>
-        </div>
-        <PandaIllustration image={panda} sizes="120px" decoratif className="respiration__panda" />
-      </div>
+      <HeroPanda module="respiration" image="pose_meditation" titre="Un souffle, une pause" texte="Choisissez une méthode, réglez la durée, laissez le cercle vous guider." h1 />
 
       {data.erreur && (
         <p role="alert" className="formulaire__erreur">

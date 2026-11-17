@@ -2,6 +2,7 @@ import { useEffect, useRef, type ChangeEvent } from 'react'
 import { useAuth } from '../../core/auth/AuthProvider'
 import { TABLES_COMPLEMENT } from '../../core/export/complementWeb'
 import { libelleComplement } from '../../core/import/complementWeb'
+import { HeroPanda } from '../../app/HeroPanda'
 import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { useImagePanda } from '../../core/images/usePandaVariante'
 import ImportIaPanel from './ImportIaPanel'
@@ -55,7 +56,7 @@ export default function ImportScreen() {
 
   return (
     <>
-      <h1 className="titre-ecran">Import</h1>
+      <HeroPanda module="import" image="module_scan" titre="Import" texte="Ajoutez vos données depuis un export, une IA ou un programme." h1 />
       <div role="tablist" aria-label="Type d’import" className="import__onglets" onKeyDown={surTouche}>
         {ONGLETS.map((o) => (
           <button

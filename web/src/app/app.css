@@ -9296,17 +9296,33 @@ time,
 .hero-module--outils { --hero-0: #e3ecf0; --hero-1: #fff4e3; --hero-bord: #dde3e6; }
 .hero-module--hyrox { --hero-0: #e8e8ee; --hero-1: #fff0dc; --hero-bord: #e1e1e8; }
 .hero-module--calendrier { --hero-0: #ffe7d2; --hero-1: #fff6e4; --hero-bord: #efdccb; }
+.hero-module--renforcement { --hero-0: #e9e1f7; --hero-1: #fff4de; --hero-bord: #ddd3ee; }
+.hero-module--course { --hero-0: #dcefdc; --hero-1: #fff4de; --hero-bord: #cfe3cf; }
+.hero-module--velo { --hero-0: #d9ecf8; --hero-1: #fff4de; --hero-bord: #c9dfec; }
+.hero-module--plans { --hero-0: #d9ecd9; --hero-1: #fff1d6; --hero-bord: #cde0cd; }
+.hero-module--respiration { --hero-0: #d3efea; --hero-1: #fff4e3; --hero-bord: #c3e2dc; }
+.hero-module--mobilite { --hero-0: #fbdde8; --hero-1: #fff4e3; --hero-bord: #efcfdb; }
+.hero-module--profil { --hero-0: #e4ebd8; --hero-1: #fff4e3; --hero-bord: #d9e1cc; }
+.hero-module--import { --hero-0: #dbe8f8; --hero-1: #fff4e3; --hero-bord: #cddbec; }
 :root[data-theme='dark'] .hero-module { --hero-0: #123026; --hero-1: #232620; --hero-bord: var(--bord); }
 :root[data-theme='dark'] .hero-module--stats { --hero-0: #3a2218; --hero-1: #262320; }
 :root[data-theme='dark'] .hero-module--outils { --hero-0: #1f2a30; --hero-1: #262320; }
 :root[data-theme='dark'] .hero-module--hyrox { --hero-0: #2a2a31; --hero-1: #2a2622; }
 :root[data-theme='dark'] .hero-module--calendrier { --hero-0: #3a2616; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--renforcement { --hero-0: #2b2340; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--course { --hero-0: #1c3320; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--velo { --hero-0: #1a2e3c; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--plans { --hero-0: #1c3320; --hero-1: #2a2622; }
+:root[data-theme='dark'] .hero-module--respiration { --hero-0: #15312d; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--mobilite { --hero-0: #3b2030; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--profil { --hero-0: #28301f; --hero-1: #262320; }
+:root[data-theme='dark'] .hero-module--import { --hero-0: #1d2b3f; --hero-1: #262320; }
 .hero-module__texte { display: grid; flex: 1; gap: 0.375rem; align-content: center; min-width: 0; }
 .hero-module__titre { margin: 0; font-family: var(--police-titres); font-size: 1.375rem; font-weight: 800; line-height: 1.15; text-wrap: balance; }
 .hero-module__phrase { margin: 0; color: var(--texte-secondaire); font-size: 0.9375rem; line-height: 1.45; }
 .hero-module__panda, .hero-module .panda-illustration--attente { flex: none; width: 7.75rem; height: 7.75rem; margin: -0.5rem -0.25rem -0.625rem 0; object-fit: contain; }
 .hero-module__panda { filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.14)); }
-@media (prefers-reduced-motion: no-preference) { .hero-module__panda { animation: nutri-panda-entree 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; } }
+@media (prefers-reduced-motion: no-preference) { .hero-module__panda, .accueil__panda { animation: nutri-panda-entree 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; } }
 @media (max-width: 22rem) { .hero-module__panda, .hero-module .panda-illustration--attente { width: 6rem; height: 6rem; } }
 
 /* Cartes douces des écrans de module refaits (statistiques, outils, hyrox, calendrier, nutrition) */

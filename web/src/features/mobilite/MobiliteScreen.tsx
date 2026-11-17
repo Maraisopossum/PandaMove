@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { BarreActionsFlottante } from '../../app/BarreActionsFlottante'
 import { urlIcone } from '../../app/modules'
-import { useAuth } from '../../core/auth/AuthProvider'
-import { PandaIllustration } from '../../core/images/PandaIllustration'
-import { useImagePanda } from '../../core/images/usePandaVariante'
+import { HeroPanda } from '../../app/HeroPanda'
 import { formaterDate } from '../endurance/presentation'
 import { DUREES_MIN, EXERCICES, LIBELLE_TYPE, MOMENTS, SEANCES_TYPES, TOUS_TYPES, ZONES } from './donnees'
 import { detailRoutine } from './routines'
@@ -21,8 +19,6 @@ const NOMBRE_PAR_TYPE = Object.fromEntries(TOUS_TYPES.map((t) => [t, EXERCICES.f
 // Mobilité : routines enregistrées, temps disponible, séance type, types d'exercices, zones à cibler et moment ; « Générer »
 // prépare la séance annoncée sous « Au programme » et ouvre l'aperçu. La logique est dans useChoixMobilite et generer.ts.
 export default function MobiliteScreen() {
-  const { session } = useAuth()
-  const panda = useImagePanda('yoga', { userId: session?.user.id, taille: 'lg' })
   const navigate = useNavigate()
   const m = useChoixMobilite()
   const { choix } = m
@@ -32,13 +28,7 @@ export default function MobiliteScreen() {
 
   return (
     <div className="mobilite">
-      <header className="mobilite__hero">
-        <div>
-          <h1 className="titre-ecran">Mobilité</h1>
-          <p className="mobilite__accroche">Une séance sur mesure, selon le temps que vous avez et les zones à relâcher.</p>
-        </div>
-        <PandaIllustration image={panda} sizes="96px" decoratif className="mobilite__panda" />
-      </header>
+      <HeroPanda module="mobilite" image="yoga" titre="Mobilité" texte="Une séance sur mesure, selon le temps que vous avez et les zones à relâcher." h1 />
 
       {m.bilan.seances > 0 && (
         <p className="mobilite__bilan">

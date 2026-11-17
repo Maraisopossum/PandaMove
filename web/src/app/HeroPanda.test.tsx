@@ -27,6 +27,26 @@ describe('bloc d’accueil des modules (HeroPanda)', () => {
     expect(document.querySelector('img.hero-module__panda')).not.toBeNull()
   })
 
+  it.each<[TeinteModule, string]>([
+    ['renforcement', 'musculation'],
+    ['course', 'course'],
+    ['velo', 'velo'],
+    ['plans', 'motivation'],
+    ['respiration', 'pose_meditation'],
+    ['mobilite', 'yoga'],
+    ['profil', 'joy'],
+    ['import', 'module_scan'],
+  ])('%s : bloc d’accueil avec son panda', (module, image) => {
+    render(<HeroPanda module={module} image={image as 'joy'} titre="Titre" />)
+    expect(document.querySelector(`.hero-module--${module}`)).not.toBeNull()
+    expect(document.querySelector('img.hero-module__panda')).not.toBeNull()
+  })
+
+  it('le titre devient le titre de page (h1) à la demande', () => {
+    render(<HeroPanda module="profil" image="joy" titre="Profil" h1 />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Profil' })).toBeTruthy()
+  })
+
   it('l’étiquette accessible peut différer du titre', () => {
     render(<HeroPanda module="nutrition" image="module_scan" titre="Un produit en main ?" etiquette="Scanner un produit" />)
     expect(screen.getByRole('region', { name: 'Scanner un produit' })).toBeTruthy()
