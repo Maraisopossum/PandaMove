@@ -16,6 +16,8 @@ Projet Gradle **indépendant** (il ne touche ni `app/` ni les modules Kotlin de 
 3. Pour changer de jeton ou délier : ouvrir l'application « Widget PandaMove » depuis son icône.
 
 ## Commandes
+Installation sur un téléphone, pas à pas : voir `INSTALLATION.md`.
+
 Prérequis : JDK 17+ (celui d'Android Studio convient : `JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"`) et le SDK Android 35 (`ANDROID_HOME`).
 ```bash
 ./gradlew :app:testDebugUnitTest   # tests JUnit : états, formats français, client (200/401/429/réseau/contrat), clé d'appel
