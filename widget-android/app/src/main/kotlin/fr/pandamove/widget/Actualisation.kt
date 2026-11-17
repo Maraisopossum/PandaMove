@@ -50,10 +50,10 @@ object Planification {
     private const val PONCTUEL = "pandamove-widget-ponctuel"
     private val reseau = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
-    /** Toutes les 30 minutes (minimum d'Android), avec réseau. */
+    /** Toutes les 15 minutes (minimum d'Android pour WorkManager), avec réseau ; le système peut les espacer pour économiser la batterie. */
     fun periodique(context: Context) {
-        val travail = PeriodicWorkRequestBuilder<ActualisationWorker>(30, TimeUnit.MINUTES).setConstraints(reseau).build()
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIQUE, ExistingPeriodicWorkPolicy.KEEP, travail)
+        val travail = PeriodicWorkRequestBuilder<ActualisationWorker>(15, TimeUnit.MINUTES).setConstraints(reseau).build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIQUE, ExistingPeriodicWorkPolicy.UPDATE, travail)
     }
 
     /** Une actualisation unique : à l'ajout du widget, à la mise à jour système, ou quelques minutes après un geste sur un bouton. */
