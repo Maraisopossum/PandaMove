@@ -110,8 +110,8 @@ export default function SortiesScreen({ sport, maintenant = MAINTENANT }: { spor
           <p className="sorties__vide-titre">Aucune sortie pour l’instant</p>
           <p className="aide">
             {sport === 'course'
-              ? 'Enregistre ta première course : distance, durée et fréquence cardiaque suffisent pour commencer.'
-              : 'Enregistre ta première sortie : distance et durée suffisent pour commencer.'}
+              ? 'Enregistrez votre première course : distance, durée et fréquence cardiaque suffisent pour commencer.'
+              : 'Enregistrez votre première sortie : distance et durée suffisent pour commencer.'}
           </p>
         </div>
       )}
