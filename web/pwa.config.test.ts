@@ -52,7 +52,7 @@ describe('configuration PWA', () => {
   })
 
   it('charge public/push-sw.js dans le service worker : gestionnaires push et clic sur la notification', () => {
-    expect(pwaOptions.workbox?.importScripts).toEqual(['push-sw.js'])
+    expect(pwaOptions.workbox?.importScripts).toEqual(['push-sw.js', 'partage-sw.js'])
     const code = readFileSync(join(__dirname, 'public', 'push-sw.js'), 'utf8')
     expect(code).toContain("addEventListener('push'")
     expect(code).toContain("addEventListener('notificationclick'")

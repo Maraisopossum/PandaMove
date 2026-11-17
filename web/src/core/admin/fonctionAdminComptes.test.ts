@@ -119,7 +119,7 @@ describe('tables vidées à la suppression', () => {
   it('couvre toutes les tables du schéma local et les tables propres au serveur', () => {
     const attendues = AppSchema.tables.map((t) => t.name)
     for (const t of attendues) expect(TABLES_UTILISATEUR, `table manquante : ${t}`).toContain(t)
-    for (const t of ['push_abonnements', 'rappels_push_envoyes', 'profils']) expect(TABLES_UTILISATEUR).toContain(t)
+    for (const t of ['push_abonnements', 'rappels_push_envoyes', 'profils', 'jetons_widget']) expect(TABLES_UTILISATEUR).toContain(t)
   })
 
   it('ne contient aucun doublon', () => {

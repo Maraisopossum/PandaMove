@@ -422,3 +422,56 @@ describe('bilan', () => {
     expect(await screen.findByText(/2 jours sur 30/)).toBeTruthy()
   })
 })
+
+describe('raccourcis et partage (appui long sur l’icône, widget)', () => {
+  const eauDuJourEnBase = async () => (await lireJour(base, AUJOURDHUI)).filter((e) => e.repas === 'eau').reduce((s, e) => s + e.quantiteG, 0)
+
+  it('?action=eau ajoute 250 ml une fois, retire le paramètre de l’adresse et propose d’annuler', async () => {
+    monter('/nutrition?action=eau')
+    expect(await screen.findByText(/250 ml ajoutés/)).toBeTruthy()
+    expect(screen.getByTestId('lieu').textContent).toBe('/nutrition')
+    expect(await eauDuJourEnBase()).toBe(250)
+    // Un rechargement de l'adresse nettoyée ne réajoute rien
+    cleanup()
+    monter('/nutrition')
+    await screen.findByText('Nutrition')
+    expect(await eauDuJourEnBase()).toBe(250)
+    expect(screen.queryByText(/250 ml ajoutés/)).toBeNull()
+  })
+
+  it('Annuler retire l’eau qui vient d’être ajoutée', async () => {
+    monter('/nutrition?action=eau')
+    const annuler = within(await screen.findByRole('status')).getByRole('button', { name: 'Annuler' })
+    fireEvent.click(annuler)
+    await waitFor(() => expect(screen.queryByText(/250 ml ajoutés/)).toBeNull())
+    expect(await eauDuJourEnBase()).toBe(0)
+  })
+
+  it('une autre valeur de ?action est ignorée', async () => {
+    monter('/nutrition?action=autre')
+    await screen.findByText('Nutrition')
+    expect(await eauDuJourEnBase()).toBe(0)
+  })
+
+  it('?partage=1 analyse la photo partagée, une seule fois', async () => {
+    const magasin = new Map<string, Response>()
+    vi.stubGlobal('caches', { open: async () => ({ match: async (k: string) => magasin.get(k), delete: async (k: string) => magasin.delete(k), put: async () => {} }) })
+    magasin.set('/partage/image', new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/jpeg' } }))
+    reduireImage.mockResolvedValue({ base64: 'AAAA', mediaType: 'image/jpeg' })
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:test', revokeObjectURL: () => {} }))
+    ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(async (_n: string, d: { action?: string }) =>
+      new Response(JSON.stringify(d.action === 'fournisseurs' ? { defaut: null, fournisseurs: [] } : { estUnRepas: true, aliments: [{ nom: 'Riz', quantiteG: 150, kcal100: 130, proteines100: 2.7, glucides100: 28, lipides100: 0.3, fibres100: null, confiance: 'haute' }], remarque: null })))
+    monter('/nutrition/photo?partage=1')
+    expect(await screen.findByText(/Ce que j’ai reconnu/)).toBeTruthy()
+    expect(magasin.size).toBe(0)
+    vi.unstubAllGlobals()
+  })
+
+  it('?partage=1 sans photo en attente : message clair, retour au choix de la photo', async () => {
+    vi.stubGlobal('caches', { open: async () => ({ match: async () => undefined, delete: async () => true, put: async () => {} }) })
+    monter('/nutrition/photo?partage=1')
+    expect((await screen.findByRole('alert')).textContent).toMatch(/photo partagée n’a pas pu être lue/)
+    expect(screen.getByText('Prendre une photo')).toBeTruthy()
+    vi.unstubAllGlobals()
+  })
+})

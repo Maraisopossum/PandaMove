@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
 import { getSupabase } from '../../core/db/client'
 import type { ClientSupabase } from '../../core/db/clientSupabase'
 import { estRepas, LIBELLE_REPAS, REPAS, sommer } from '../../core/nutrition/calculs'
+import { lirePartage } from '../../core/nutrition/partage'
 import { analyserAssiette, apportEstime, enregistrerFournisseurChoisi, fournisseurInitial, lireFournisseurChoisi, listerFournisseursIa, reduireImage, type AlimentEstime, type AnalysePhoto, type FournisseursIa } from '../../core/nutrition/photo'
 import { ajusterQuantite, decimal, entier, jourDemande, libelleJour, repasDemande } from './outils'
 import { useAccesNutrition } from './useAccesNutrition'
@@ -140,6 +141,16 @@ export default function PhotoAssietteScreen({ aujourdhui = dateIsoLocale(new Dat
       setEtape({ nom: 'choix' })
     }
   }
+
+  // Photo partagée vers l'application (`?partage=1`, voir public/partage-sw.js) : lue une seule fois, puis analysée comme une photo prise ici
+  const partageLu = useRef(false)
+  useEffect(() => {
+    if (params.get('partage') !== '1' || partageLu.current) return
+    partageLu.current = true
+    void lirePartage().then((fichier) => (fichier ? analyser(fichier) : setErreur('La photo partagée n’a pas pu être lue : choisissez-la dans la galerie.')))
+    // Lecture unique au montage ; `analyser` ne dépend que de l'état du composant
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const recommencer = () => {
     setApercu(null)

@@ -36,8 +36,8 @@ src/core/       → auth, catalogue (exercices de base), progression (moteur), i
 src/features/   → home, strength, endurance (course + vélo : sorties, import FIT, cartes), calendar (+ séances cardio
                   planifiées), stats, respiration, mobilite, nutrition (journal, photo de l'assiette, Open Food Facts), hyrox, plans,
                   admin, outils, profile, import, onboarding, demarrage
-supabase/migrations/ → 0001 à 0020 (SQL idempotent, appliqué à la main par Benoît)
-supabase/functions/ → `envoyer-rappels` (push), `admin-comptes`, `codes-secours` (MFA), `analyser-assiette` (photo, 3 fournisseurs d'IA) :
+supabase/migrations/ → 0001 à 0021 (SQL idempotent, appliqué à la main par Benoît)
+supabase/functions/ → `envoyer-rappels` (push), `admin-comptes`, `codes-secours` (MFA), `analyser-assiette` (photo, 3 fournisseurs d'IA), `widget-nutrition` (widget Android, `--no-verify-jwt`) :
                        Deno, déployées à la main (voir leur README)
 supabase/tests/      → schema-rls.test.ts (PGlite), rls.test.sql (pgTAP, manuel)
 powersync/sync-rules.yaml → Sync Streams (chaque utilisateur ne reçoit que ses lignes)
