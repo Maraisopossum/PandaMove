@@ -58,6 +58,7 @@ import java.time.LocalDate
 // Les trois tailles : 2×2 (anneau et panda), 4×1 (énergie, barre, boutons), 4×2 (anneau, macros, eau, trois boutons).
 // Glance choisit la plus grande qui tient dans le widget. Maquettes validées sur Claude Design (2026-11-17).
 private val PETIT = DpSize(110.dp, 110.dp)
+private val PETIT_HAUT = DpSize(110.dp, 140.dp)
 private val BARRE = DpSize(250.dp, 40.dp)
 private val GRAND = DpSize(250.dp, 140.dp)
 
@@ -85,7 +86,7 @@ private object Couleurs {
 }
 
 class PandaMoveWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(PETIT, BARRE, GRAND))
+    override val sizeMode = SizeMode.Responsive(setOf(PETIT, PETIT_HAUT, BARRE, GRAND))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val stockage = Stockage(context)
@@ -171,6 +172,7 @@ private fun Contenu(etat: Etat, site: String?, variante: String) {
     val fond = GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_fond_degrade)).cornerRadius(24.dp)
     when {
         !etat.aDesDonnees -> Message(etat, variante, fond, context)
+        taille.width < 200.dp && taille.height >= 130.dp -> PetitHaut(etat, site, variante, context, fond)
         taille.width < 200.dp -> Petit(etat, site, variante, context, fond)
         taille.height < 110.dp -> Large(etat, site, context, fond)
         else -> Grand(etat, site, variante, context, fond)
@@ -269,7 +271,7 @@ private fun Petit(etat: Etat, site: String?, variante: String, context: Context,
     Box(modifier = fond.clickable(ouvrir(context, site, "/nutrition")), contentAlignment = Alignment.Center) {
         Anneau(etat, 96, 22, context)
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
-            Image(provider = ImageProvider(pandaRes(variante, etat.panda)), contentDescription = null, modifier = GlanceModifier.size(50.dp))
+            Image(provider = ImageProvider(pandaRes(variante, etat.panda)), contentDescription = null, modifier = GlanceModifier.size(56.dp))
         }
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) { BoutonActualiser() }
         if (etat.statut == Statut.ANCIEN && etat.age != null) {
@@ -277,6 +279,29 @@ private fun Petit(etat: Etat, site: String?, variante: String, context: Context,
                 Texte(etat.age, 10, couleur = Couleurs.secondaire)
             }
         }
+    }
+}
+
+// 2×2 en hauteur (la plupart des lanceurs) : l'anneau en haut, le panda bien visible en bas avec l'eau du jour et l'heure de mise à jour.
+@Composable
+private fun PetitHaut(etat: Etat, site: String?, variante: String, context: Context, fond: GlanceModifier) {
+    Box(modifier = fond.clickable(ouvrir(context, site, "/nutrition"))) {
+        Column(modifier = GlanceModifier.fillMaxSize().padding(start = 6.dp, end = 8.dp, top = 8.dp, bottom = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Anneau(etat, 76, 20, context)
+            Spacer(modifier = GlanceModifier.defaultWeight())
+            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                Image(provider = ImageProvider(pandaRes(variante, etat.panda)), contentDescription = null, modifier = GlanceModifier.size(62.dp))
+                Spacer(modifier = GlanceModifier.defaultWeight())
+                Column(horizontalAlignment = Alignment.End) {
+                    etat.eau?.let {
+                        Texte("Eau", 10, couleur = Couleurs.secondaire)
+                        Texte("${formaterEntier(it.valeur)} ml", 13, gras = true)
+                    }
+                    libelleMaj(etat)?.let { Texte(if (etat.statut == Statut.ANCIEN) etat.age ?: it else it.removePrefix("mis à jour "), 9, couleur = Couleurs.secondaire) }
+                }
+            }
+        }
+        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) { BoutonActualiser() }
     }
 }
 
