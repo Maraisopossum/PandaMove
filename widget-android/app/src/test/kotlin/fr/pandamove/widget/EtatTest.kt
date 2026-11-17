@@ -134,4 +134,10 @@ class EtatTest {
         assertFalse(garderLaCle(Resultat.Echec(ErreurWidget.EcritureRefusee)))
         assertFalse(garderLaCle(Resultat.Echec(ErreurWidget.Serveur(400))))
     }
+
+    @Test fun `heure de mise a jour affichee dans le fuseau local`() {
+        val e = construireEtat(true, false, resume(genereLe = "2026-11-15T12:30:00Z"), maintenant, aujourdhui, java.time.ZoneId.of("Europe/Paris"))
+        assertEquals("13:30", e.misAJour)
+        assertNull(construireEtat(true, false, resume(genereLe = "illisible"), maintenant, aujourdhui).misAJour)
+    }
 }

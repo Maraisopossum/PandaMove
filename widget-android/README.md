@@ -7,7 +7,7 @@ Projet Gradle **indépendant** (il ne touche ni `app/` ni les modules Kotlin de 
 - **Trois tailles** (Glance, `SizeMode.Responsive`) : 2×2 (anneau d'énergie), 4×1 (énergie, barre, boutons Photo et + 250 ml), 4×2 (anneau, protéines, glucides, lipides, eau, boutons Photo, + 250 ml, Aliment). Clair et sombre ; couleurs dynamiques dès Android 12, vert PandaMove sinon.
 - **États** : à jour ; objectif dépassé (ambre, « kcal en trop ») ; données de plus de 2 h ou d'un autre jour (anneau vide, âge affiché) ; non relié ; jeton révoqué (le cache est effacé, toucher ouvre la liaison) ; sans objectif (total consommé, barres sans plafond) ; chargement.
 - **Boutons** : Photo → `/nutrition/photo`, Aliment → `/nutrition/ajouter`, toucher le reste → `/nutrition` (liens ouverts dans PandaMove installé, sinon Chrome). **+ 250 ml écrit directement** via la fonction `widget-nutrition` (clé d'appel conservée tant que le serveur n'a pas confirmé : un nouvel appui après une coupure réseau ne compte l'eau qu'une fois).
-- **Actualisation** : WorkManager toutes les 30 min avec réseau, à l'ajout du widget, à chaque mise à jour système, et 2 minutes après un appui sur « + 250 ml ». Hors ligne, le dernier résumé reste affiché.
+- **Actualisation** : WorkManager toutes les 15 min avec réseau (le système peut les espacer), bouton ↻ pour actualiser tout de suite, à l'ajout du widget, à chaque mise à jour système, et 2 minutes après un appui sur « + 250 ml ». Hors ligne, le dernier résumé reste affiché.
 - **Vie privée** : le jeton (`pmw_…`) vit dans des SharedPreferences chiffrées (Android Keystore) ; seuls des totaux sont lus ou gardés, jamais un nom d'aliment ; adresse du serveur en https obligatoire.
 
 ## Relier le widget

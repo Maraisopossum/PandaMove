@@ -3,6 +3,8 @@ package fr.pandamove.widget
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /** Au-delà de cet âge (côté serveur), les données sont estompées et leur âge affiché. */
 val AGE_DONNEES_ANCIENNES: Duration = Duration.ofHours(2)
@@ -31,6 +33,8 @@ data class Etat(
     val eau: Barre? = null,
     /** « il y a 3 h », présent seulement pour des données anciennes. */
     val age: String? = null,
+    /** Heure (locale) de la dernière lecture réussie du serveur, « 14:32 » : le doute sur la fraîcheur se lève d'un coup d'œil. */
+    val misAJour: String? = null,
     /** Message à la place des données (non relié, jeton révoqué, chargement). */
     val message: String? = null,
 ) {
@@ -57,7 +61,7 @@ fun formaterAge(d: Duration): String {
 
 private fun arrondi(x: Double?): Int? = x?.let { Math.round(it).toInt() }
 
-fun construireEtat(relie: Boolean, revoque: Boolean, resume: Resume?, maintenant: Instant, aujourdhui: LocalDate): Etat {
+fun construireEtat(relie: Boolean, revoque: Boolean, resume: Resume?, maintenant: Instant, aujourdhui: LocalDate, zone: ZoneId = ZoneId.systemDefault()): Etat {
     if (!relie) return Etat(Statut.NON_RELIE, message = "Relier le widget")
     if (revoque) return Etat(Statut.REVOQUE, message = "Jeton révoqué : relier de nouveau")
     if (resume == null) return Etat(Statut.EN_ATTENTE, message = "Chargement…")
@@ -99,6 +103,7 @@ fun construireEtat(relie: Boolean, revoque: Boolean, resume: Resume?, maintenant
             Barre("Lipides", arrondi(c.lipides) ?: 0, arrondi(o?.lipidesG)?.takeIf { it > 0 }, "g"),
         ),
         eau = Barre("Eau", arrondi(c.eauMl) ?: 0, arrondi(o?.eauMl)?.takeIf { it > 0 }, "ml"),
+        misAJour = genere?.let { DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(it) },
         age = if (ancien) (if (resume.date != aujourdhui.toString()) "données d’un autre jour" else ageReel?.let(::formaterAge)) else null,
     )
 }

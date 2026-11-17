@@ -48,6 +48,8 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.material3.ColorProviders
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -176,6 +178,16 @@ private fun accent(etat: Etat, depasse: Boolean = etat.depasse): ColorProvider =
 private fun Texte(texte: String, taille: Int, gras: Boolean = false, couleur: ColorProvider = GlanceTheme.colors.onSurface) =
     Text(texte, style = TextStyle(color = couleur, fontSize = taille.sp, fontWeight = if (gras) FontWeight.Bold else FontWeight.Normal))
 
+/** Relit les totaux tout de suite (les ajouts faits dans PandaMove n'arrivent sinon qu'à la prochaine actualisation, 15 à 30 min). */
+@Composable
+private fun BoutonActualiser() {
+    Text(
+        "↻",
+        modifier = GlanceModifier.clickable(actionRunCallback<RafraichirAction>()).padding(horizontal = 10.dp, vertical = 2.dp).semantics { contentDescription = "Actualiser" },
+        style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 18.sp, fontWeight = FontWeight.Bold),
+    )
+}
+
 @Composable
 private fun Age(etat: Etat) {
     etat.age?.let { Texte(it, 10, couleur = GlanceTheme.colors.onSurfaceVariant) }
@@ -233,6 +245,7 @@ private fun Petit(etat: Etat, site: String?, context: Context, fond: GlanceModif
             Anneau(etat, 84, context)
             Age(etat)
         }
+        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) { BoutonActualiser() }
     }
 }
 
@@ -250,7 +263,8 @@ private fun Large(etat: Etat, site: String?, context: Context, fond: GlanceModif
             LigneBarreSeule(etat, context)
             Age(etat)
         }
-        Spacer(modifier = GlanceModifier.width(8.dp))
+        BoutonActualiser()
+        Spacer(modifier = GlanceModifier.width(4.dp))
         BoutonAction("Photo", ouvrir(context, site, "/nutrition/photo"))
         Spacer(modifier = GlanceModifier.width(6.dp))
         BoutonAction("+ 250 ml", actionRunCallback<AjouterEauAction>())
@@ -282,8 +296,13 @@ private fun Grand(etat: Etat, site: String?, context: Context, fond: GlanceModif
                 etat.eau?.let { LigneBarre(it, context, ancien) }
             }
         }
-        Age(etat)
-        Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Age(etat)
+            Spacer(modifier = GlanceModifier.defaultWeight())
+            etat.misAJour?.let { Texte("mis à jour $it", 10, couleur = GlanceTheme.colors.onSurfaceVariant) }
+            BoutonActualiser()
+        }
+        Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             BoutonAction("Photo", ouvrir(context, site, "/nutrition/photo"), GlanceModifier.defaultWeight())
             Spacer(modifier = GlanceModifier.width(6.dp))
             BoutonAction("+ 250 ml", actionRunCallback<AjouterEauAction>(), GlanceModifier.defaultWeight())

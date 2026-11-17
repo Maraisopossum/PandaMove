@@ -60,9 +60,10 @@ C'est fini. Pour agrandir ou réduire le widget : appui long dessus, puis tirez 
 - **Toucher le widget** : ouvre le journal du jour dans PandaMove.
 - **Photo** : ouvre l'analyse d'une photo de repas.
 - **Aliment** : ouvre l'ajout d'un aliment (taille 4×2).
+- **↻** : actualise les chiffres tout de suite (au plus une fois toutes les 20 secondes).
 - **+ 250 ml** : ajoute un verre d'eau tout de suite, sans ouvrir PandaMove. Si le téléphone n'a pas de réseau, un nouvel appui ne compte l'eau qu'une fois.
 
-Le widget se met à jour tout seul environ toutes les 30 minutes. Au-delà de 2 heures sans mise à jour (pas de réseau), il se grise et indique son âge.
+**Ce que vous ajoutez dans PandaMove n'apparaît pas tout de suite** : touchez le bouton **↻** du widget pour l'actualiser (il affiche l'heure de la dernière mise à jour). Sinon il se met à jour tout seul toutes les 15 à 30 minutes environ. Au-delà de 2 heures sans mise à jour (pas de réseau), il se grise et indique son âge.
 
 ---
 
