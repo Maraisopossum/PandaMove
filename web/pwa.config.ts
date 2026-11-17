@@ -57,12 +57,14 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     navigateFallback: '/index.html',
     // Images du panda et illustrations de mobilité : mises en cache à la première vue (non précachées),
     // pour qu'une séance déjà ouverte s'affiche avec ses images hors ligne.
+    // CacheFirst ne revérifie jamais un fichier : quand une image EXISTANTE est remplacée (même nom de fichier), incrémenter le suffixe
+    // du cache ci-dessous, sinon les appareils déjà passés gardent l'ancien dessin jusqu'à 180 jours.
     runtimeCaching: [
       {
         urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/(panda|mobilite)\/.*\.webp$/.test(url.pathname),
         handler: 'CacheFirst',
         options: {
-          cacheName: 'images-panda',
+          cacheName: 'images-panda-v2',
           expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 180 },
         },
       },

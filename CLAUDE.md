@@ -73,6 +73,8 @@ READMEs de module (`src/features/calendar|respiration/README.md`), specs dans `d
   (interrupteur des rappels, dernier choix de mobilité, réglages de circuit/RPE…). Tout ce qui est un historique va en base.
 - **Images du panda** : `useImagePanda(nom, { userId, taille })` + `PandaIllustration` ; variante male/female du profil
   (`usePandaVariante`), repli sur l'autre variante. Ajouter une image = l'entrée dans `scripts/build-images.mjs` puis `npm run images`.
+  **Remplacer une image existante** (même nom de fichier) : incrémenter le suffixe de `cacheName` (`images-panda-vN`) dans
+  `web/pwa.config.ts`, sinon le cache `CacheFirst` des appareils garde l'ancien dessin.
 
 ## Règles
 - Code, commentaires, messages et textes d'interface en **français** ; réponses à Benoît en français.
