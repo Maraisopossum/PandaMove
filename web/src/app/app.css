@@ -8487,8 +8487,8 @@ time,
 .sorties__actions-bas > :last-child { white-space: nowrap; }
 
 /* Statistiques : sélecteur de vue et vues Course / Vélo */
-.stats__vues { display: flex; gap: 0.25rem; margin: 0.5rem 0 0.75rem; padding: 3px; border-radius: 14px; background: color-mix(in srgb, var(--texte) 7%, var(--surface)); }
-.stats__vue { flex: 1; min-height: 2.75rem; border: 0; border-radius: 11px; background: transparent; color: var(--texte-secondaire); font: inherit; font-size: 0.875rem; font-weight: 600; }
+.stats__vues { display: flex; gap: 0.125rem; overflow-x: auto; scrollbar-width: none; margin: 0.5rem 0 0.75rem; padding: 3px; border-radius: 14px; background: color-mix(in srgb, var(--texte) 7%, var(--surface)); }
+.stats__vue { flex: 1 1 auto; min-width: 0; min-height: 2.75rem; padding: 0 0.375rem; border: 0; border-radius: 11px; background: transparent; color: var(--texte-secondaire); font: inherit; font-size: 0.8125rem; font-weight: 600; white-space: nowrap; }
 .stats__vue[aria-pressed='true'] { background: var(--surface); box-shadow: var(--ombre-carte); color: var(--texte); font-weight: 800; }
 
 .stats-endurance { --couleur-sport: #2e7d32; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.875rem; }
