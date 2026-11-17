@@ -84,7 +84,7 @@ export default function StatsScreen() {
   const accueil = ACCUEIL_VUE[vue] ?? ACCUEIL_VUE.renfo
   return (
     <>
-      <h1 className="titre-ecran">Statistiques</h1>
+      <h1 className="visuellement-cache">Statistiques</h1>
       <div role="group" aria-label="Type de statistiques" className="stats__vues">
         {VUES_STATS.map((v) => (
           <button key={v.id} type="button" className="stats__vue" aria-pressed={vue === v.id} onClick={() => setVue(v.id)}>
