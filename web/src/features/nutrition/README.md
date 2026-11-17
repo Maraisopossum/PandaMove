@@ -37,3 +37,9 @@ Recherche texte et code-barres directement depuis le navigateur (`core/nutrition
 
 ## Pas encore fait
 Rappels de saisie, repas types (enregistrer un repas complet), lien avec l'accueil, suivi du poids.
+
+## Illustrations du panda (refonte 2026-11-17)
+Le journal est accompagné de dessins du panda faits avec Gemini (`gemini-3-pro-image`, master du personnage en référence, fond magenta détouré) : `nutri_petitdej`, `nutri_dejeuner`, `nutri_collation`, `nutri_diner` (un par repas), `nutri_eau` (hydratation), `nutri_photo` (analyse d'une photo), `nutri_objectif` (objectif atteint à 10 % près). Sources dans `assets/13_Nutrition/`, déclarées dans `scripts/build-images.mjs` (`npm run images`). `usePandaNutrition()` donne l'image de la variante du profil ; les images sont décoratives (`alt=""`).
+- Suppression : un bouton « Supprimer » sur chaque ligne du journal, immédiat, avec « Annuler » pendant 8 s (`restaurerEntree` rétablit la ligne supprimée logiquement).
+- Bilan : `bilanDuJour` (objectif atteint entre 90 % et 110 %, ton bienveillant au-dessus), `salutDuJour`, `messageEau` dans `outils.ts`.
+- Les pictogrammes dessinés sont volontairement absents (seules les flèches du sélecteur de jour restent) : l'illustration porte le décor.

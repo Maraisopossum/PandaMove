@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createTestDb } from '../../../test/sqliteDb'
 import {
   ajouterEau, ajouterEntree, ajouterEntrees, alimentsFrequents, basculerFavori, copierRepas, creerAliment, enregistrerObjectifsNutrition, ErreurNutrition, lireAliment, lireAlimentParCodeBarres,
-  lireEntree, lireJour, lireObjectifsNutrition, lireTotauxParJour, listerAliments, modifierAliment, modifierEntree, supprimerAliment, supprimerEntree,
+  lireEntree, lireJour, lireObjectifsNutrition, lireTotauxParJour, listerAliments, modifierAliment, modifierEntree, restaurerEntree, supprimerAliment, supprimerEntree,
 } from './nutrition'
 
 const apport = (kcal: number) => ({ kcal, proteines: kcal / 20, glucides: kcal / 10, lipides: kcal / 40, fibres: 1 })
@@ -62,6 +62,17 @@ describe('journal', () => {
     expect((await lireJour(db, '2026-11-15')).map((e) => e.nom)).toEqual(['Riz'])
     expect(await lireEntree(db, a)).toMatchObject({ repas: 'dejeuner', quantiteG: 150, apport: { kcal: 195 }, source: 'manuel', alimentId: null })
     expect(await lireEntree(db, b)).toBeNull()
+  })
+
+  it('une suppression s’annule : la ligne revient, une ligne jamais supprimée ou inconnue est refusée', async () => {
+    const db = createTestDb()
+    const a = await ajouterEntree(db, entree({ nom: 'Riz' }))
+    await supprimerEntree(db, a)
+    expect(await lireEntree(db, a)).toBeNull()
+    await restaurerEntree(db, a)
+    expect(await lireEntree(db, a)).toMatchObject({ nom: 'Riz' })
+    await expect(restaurerEntree(db, a)).rejects.toBeInstanceOf(ErreurNutrition)
+    await expect(restaurerEntree(db, 'inconnue')).rejects.toBeInstanceOf(ErreurNutrition)
   })
 
   it('l’eau est une ligne à part, qui ne compte pas dans les apports', async () => {

@@ -103,6 +103,49 @@ describe('journal', () => {
   })
 })
 
+describe('refonte du journal : accueil du panda, suppression visible avec annulation', () => {
+  it('accueille selon l’heure, montre le bilan et le panda de chaque repas (décoratif)', async () => {
+    await enregistrerObjectifsNutrition(base, { kcal: 2400, proteinesG: 150, glucidesG: 280, lipidesG: 75, eauMl: 2500 })
+    await ajouterEntree(base, { date: AUJOURDHUI, repas: 'dejeuner', nom: 'Riz', quantiteG: 150, apport: apport(988) })
+    monter('/nutrition')
+    expect(await screen.findByText('Bon appétit')).toBeTruthy()
+    expect(screen.getByText(/Il reste 1\s412 kcal pour aujourd’hui/)).toBeTruthy()
+    // 1 image pour le bilan, 1 pour l'eau, 4 pour les repas : toutes décoratives (alt vide)
+    const pandas = document.querySelectorAll('img.panda-illustration')
+    expect(pandas.length).toBe(6)
+    pandas.forEach((p) => expect(p.getAttribute('alt')).toBe(''))
+  })
+
+  it('objectif atteint : le titre change et le panda fête', async () => {
+    await enregistrerObjectifsNutrition(base, { kcal: 2400, proteinesG: 150, glucidesG: 280, lipidesG: 75, eauMl: 2500 })
+    await ajouterEntree(base, { date: AUJOURDHUI, repas: 'dejeuner', nom: 'Gros repas', quantiteG: 800, apport: apport(2386) })
+    monter('/nutrition')
+    expect(await screen.findByText('Objectif atteint, bravo !')).toBeTruthy()
+    expect(document.querySelector('img.panda-illustration[src*="nutri-objectif"]')).not.toBeNull()
+  })
+
+  it('« Supprimer » est visible sur chaque ligne ; la suppression est immédiate et s’annule', async () => {
+    await ajouterEntree(base, { date: AUJOURDHUI, repas: 'dejeuner', nom: 'Riz basmati', quantiteG: 180, apport: apport(234) })
+    await ajouterEntree(base, { date: AUJOURDHUI, repas: 'dejeuner', nom: 'Poulet', quantiteG: 150, apport: apport(248) })
+    monter('/nutrition')
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer Riz basmati' }))
+    // Pas de confirmation bloquante : la ligne disparaît et « Annuler » est proposé
+    expect(await screen.findByText('« Riz basmati » supprimé')).toBeTruthy()
+    await waitFor(() => expect(screen.queryByText('Riz basmati')).toBeNull())
+    expect((await lireJour(base, AUJOURDHUI)).map((e) => e.nom)).toEqual(['Poulet'])
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+    expect(await screen.findByText('Riz basmati')).toBeTruthy()
+    expect((await lireJour(base, AUJOURDHUI)).map((e) => e.nom).sort()).toEqual(['Poulet', 'Riz basmati'])
+    expect(screen.queryByText('« Riz basmati » supprimé')).toBeNull()
+  })
+
+  it('un repas vide invite à ajouter, avec une phrase par repas', async () => {
+    monter('/nutrition')
+    expect(await screen.findByText('Rien pour l’instant. Une pomme, des amandes ?')).toBeTruthy()
+    expect(screen.getByText('Le dîner n’est pas encore noté.')).toBeTruthy()
+  })
+})
+
 describe('ajout d’un aliment', () => {
   it('cherche dans la base intégrée, ajuste la quantité et ajoute au repas demandé', async () => {
     monter('/nutrition/ajouter?repas=diner')
@@ -233,7 +276,7 @@ describe('photo de l’assiette', () => {
     monter('/nutrition/photo?repas=dejeuner')
     const entree = (await screen.findByText('Prendre une photo')).querySelector('input')!
     fireEvent.change(entree, { target: { files: [fichier()] } })
-    expect(await screen.findByText(/Ce que j’ai reconnu/)).toBeTruthy()
+    expect(await screen.findByText(/ce que j’ai reconnu/i)).toBeTruthy()
     expect(screen.getByText('Huile probable.')).toBeTruthy()
     expect(screen.getByText('À vérifier')).toBeTruthy()
     // corrige la quantité de la sauce (30 g → 10 g) et retire rien d'autre
@@ -291,7 +334,7 @@ describe('photo de l’assiette', () => {
     fireEvent.change(choix, { target: { value: 'gemini' } })
     expect(localStorage.getItem('pandamove.nutrition.ia')).toBe('gemini')
     fireEvent.change(screen.getByText('Prendre une photo').querySelector('input')!, { target: { files: [fichier()] } })
-    expect(await screen.findByText(/Ce que j’ai reconnu/)).toBeTruthy()
+    expect(await screen.findByText(/ce que j’ai reconnu/i)).toBeTruthy()
     expect(appelsAnalyse()[0][1]).toMatchObject({ fournisseur: 'gemini' })
   })
 
@@ -462,7 +505,7 @@ describe('raccourcis et partage (appui long sur l’icône, widget)', () => {
     ;(client.appelerFonction as ReturnType<typeof vi.fn>).mockImplementation(async (_n: string, d: { action?: string }) =>
       new Response(JSON.stringify(d.action === 'fournisseurs' ? { defaut: null, fournisseurs: [] } : { estUnRepas: true, aliments: [{ nom: 'Riz', quantiteG: 150, kcal100: 130, proteines100: 2.7, glucides100: 28, lipides100: 0.3, fibres100: null, confiance: 'haute' }], remarque: null })))
     monter('/nutrition/photo?partage=1')
-    expect(await screen.findByText(/Ce que j’ai reconnu/)).toBeTruthy()
+    expect(await screen.findByText(/ce que j’ai reconnu/i)).toBeTruthy()
     expect(magasin.size).toBe(0)
     vi.unstubAllGlobals()
   })

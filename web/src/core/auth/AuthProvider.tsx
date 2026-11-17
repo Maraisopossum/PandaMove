@@ -63,6 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+/** Session courante, ou null sans AuthProvider (écrans testés seuls) : pour les usages facultatifs comme choisir la variante du panda. */
+export function useSessionOptionnelle(): Session | null {
+  return useContext(AuthContext)?.session ?? null
+}
+
 export function useAuth(): AuthContextValue {
   const contexte = useContext(AuthContext)
   if (!contexte) throw new Error('useAuth doit être utilisé dans un <AuthProvider>.')

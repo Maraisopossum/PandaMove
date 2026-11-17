@@ -3,11 +3,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { dateIsoLocale } from '../../core/common/dates'
 import { getSupabase } from '../../core/db/client'
 import type { ClientSupabase } from '../../core/db/clientSupabase'
+import { PandaIllustration } from '../../core/images/PandaIllustration'
 import { estRepas, LIBELLE_REPAS, REPAS, sommer } from '../../core/nutrition/calculs'
 import { lirePartage } from '../../core/nutrition/partage'
 import { analyserAssiette, apportEstime, enregistrerFournisseurChoisi, fournisseurInitial, lireFournisseurChoisi, listerFournisseursIa, reduireImage, type AlimentEstime, type AnalysePhoto, type FournisseursIa } from '../../core/nutrition/photo'
 import { ajusterQuantite, decimal, entier, jourDemande, libelleJour, repasDemande } from './outils'
 import { useAccesNutrition } from './useAccesNutrition'
+import { usePandaNutrition } from './usePandaNutrition'
 
 type Etape = { nom: 'choix' } | { nom: 'analyse' } | { nom: 'revue'; analyse: AnalysePhoto }
 
@@ -38,6 +40,7 @@ function Ligne({ a, changer, retirer }: { a: AlimentEstime; changer: (a: Aliment
 function Revue({ analyse, repasInitial, date, aujourdhui, recommencer }: { analyse: AnalysePhoto; repasInitial: (typeof REPAS)[number]; date: string; aujourdhui: string; recommencer: () => void }) {
   const acces = useAccesNutrition()
   const navigate = useNavigate()
+  const image = usePandaNutrition()
   const [aliments, setAliments] = useState(analyse.aliments)
   const [repas, setRepas] = useState(repasInitial)
   const [erreur, setErreur] = useState('')
@@ -72,7 +75,13 @@ function Revue({ analyse, repasInitial, date, aujourdhui, recommencer }: { analy
 
   return (
     <section className="plans__carte" aria-labelledby="ph-revue">
-      <h2 id="ph-revue" className="plans__titre">Ce que j’ai reconnu <span className="plans__sous">{entier(total.kcal)} kcal</span></h2>
+      <div className="nutri__hero-tete nutri__revue-tete">
+        <div className="nutri__hero-texte">
+          <h2 id="ph-revue" className="nutri__salut nutri__salut--titre">Voilà ce que j’ai reconnu</h2>
+          <p className="nutri__phrase">{entier(total.kcal)} kcal · ajustez les quantités, tout se recalcule.</p>
+        </div>
+        <PandaIllustration image={image('nutri_photo', 'lg')} sizes="120px" decoratif className="nutri__hero-panda nutri__hero-panda--photo" />
+      </div>
       <p className="aide" role="note">Estimation à vérifier : corrigez les quantités avant d’ajouter. Les sauces et les matières grasses se voient mal sur une photo.</p>
       {analyse.remarque && <p className="aide">{analyse.remarque}</p>}
       {aliments.length === 0 && <p>Plus aucune ligne : reprenez une photo ou saisissez le repas à la main.</p>}

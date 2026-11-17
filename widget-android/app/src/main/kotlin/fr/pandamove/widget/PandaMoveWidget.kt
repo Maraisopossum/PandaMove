@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -12,12 +11,11 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.glance.Button
 import androidx.glance.ButtonDefaults
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
@@ -34,7 +32,7 @@ import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.Button
+import androidx.glance.color.ColorProvider as CouleurJourNuit
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -47,43 +45,52 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.material3.ColorProviders
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.color.ColorProvider as CouleurJourNuit
 import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
-// Les trois tailles : 2×2 (anneau), 4×1 (barre + boutons), 4×2 (anneau, barres, boutons). Glance choisit la plus grande qui tient dans le widget.
+// Les trois tailles : 2×2 (anneau et panda), 4×1 (énergie, barre, boutons), 4×2 (anneau, macros, eau, trois boutons).
+// Glance choisit la plus grande qui tient dans le widget. Maquettes validées sur Claude Design (2026-11-17).
 private val PETIT = DpSize(110.dp, 110.dp)
 private val BARRE = DpSize(250.dp, 40.dp)
 private val GRAND = DpSize(250.dp, 140.dp)
 
-// Vert PandaMove (module Nutrition) pour Android 11 et moins ; dès Android 12 le widget suit les couleurs dynamiques du fond d'écran.
-private val CouleursPanda = ColorProviders(
-    light = lightColorScheme(primary = Color(0xFF047857), onPrimary = Color.White, surface = Color(0xFFF6F6F8), onSurface = Color(0xFF1B1B1F), background = Color(0xFFF6F6F8)),
-    dark = darkColorScheme(primary = Color(0xFF34D399), onPrimary = Color(0xFF00382A), surface = Color(0xFF1E1E22), onSurface = Color(0xFFE6E6EA), background = Color(0xFF1E1E22)),
-)
+// Palette fixe (maquette) : vert PandaMove et touches menthe / crème ; l'ambre signale un dépassement, jamais un reproche.
+private object Couleurs {
+    val texte = CouleurJourNuit(day = Color(0xFF1E1E22), night = Color(0xFFF2F2F5))
+    val secondaire = CouleurJourNuit(day = Color(0xFF505059), night = Color(0xFFB9B9C3))
+    val vert = CouleurJourNuit(day = Color(0xFF047857), night = Color(0xFF34D399))
+    val surVert = CouleurJourNuit(day = Color(0xFFFFFFFF), night = Color(0xFF00382A))
+    val ambre = CouleurJourNuit(day = Color(0xFFA64B06), night = Color(0xFFFBBF24))
+    val bouton2 = CouleurJourNuit(day = Color(0xC7FFFFFF), night = Color(0x1FFFFFFF))
+    val piste = CouleurJourNuit(day = Color(0x1F1E1E22), night = Color(0x29F2F2F5))
+    val proteines = CouleurJourNuit(day = Color(0xFF7C5CBF), night = Color(0xFFB8A1F0))
+    val glucides = CouleurJourNuit(day = Color(0xFFB45309), night = Color(0xFFFBBF24))
+    val lipides = CouleurJourNuit(day = Color(0xFF0277BD), night = Color(0xFF7CC4F0))
+    val eau = CouleurJourNuit(day = Color(0xFF0369A1), night = Color(0xFF38BDF8))
 
-// Ambre : objectif d'énergie dépassé (même teinte dans les deux thèmes pour rester lisible).
-private val Ambre = CouleurJourNuit(day = Color(0xFFB45309), night = Color(0xFFFBBF24))
+    fun pour(role: Role): ColorProvider = when (role) {
+        Role.PROTEINES -> proteines
+        Role.GLUCIDES -> glucides
+        Role.LIPIDES -> lipides
+        Role.EAU -> eau
+        Role.AUCUN -> vert
+    }
+}
 
 class PandaMoveWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Responsive(setOf(PETIT, BARRE, GRAND))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val stockage = Stockage(context)
-        val (etat, site) = withContext(Dispatchers.IO) { stockage.etatAffichage() to stockage.site }
-        provideContent {
-            GlanceTheme(colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceTheme.colors else CouleursPanda) {
-                Contenu(etat, site)
-            }
-        }
+        val (etat, site, variante) = withContext(Dispatchers.IO) { Triple(stockage.etatAffichage(), stockage.site, stockage.pandaVariante) }
+        provideContent { Contenu(etat, site, variante) }
     }
 }
 
@@ -132,7 +139,7 @@ class AjouterEauAction : ActionCallback {
     }
 }
 
-/** Toucher le message « Chargement… » relit les totaux. */
+/** Bouton d'actualisation : relit les totaux tout de suite. */
 class RafraichirAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         actualiser(context)
@@ -146,79 +153,98 @@ private fun ouvrir(context: Context, site: String?, chemin: String): Action =
 private fun ouvrirConfig(context: Context): Action =
     actionStartActivity(Intent(context, ConfigActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 
+/** Dessin du panda pour la variante choisie (res/drawable-nodpi/panda_{f|m}_*, faits avec Gemini). */
+private fun pandaRes(variante: String, p: Panda): Int {
+    val femme = variante != "male"
+    return when (p) {
+        Panda.DEJEUNER -> if (femme) R.drawable.panda_f_dejeuner else R.drawable.panda_m_dejeuner
+        Panda.OBJECTIF -> if (femme) R.drawable.panda_f_objectif else R.drawable.panda_m_objectif
+        Panda.COLLATION -> if (femme) R.drawable.panda_f_collation else R.drawable.panda_m_collation
+        Panda.PHOTO -> if (femme) R.drawable.panda_f_photo else R.drawable.panda_m_photo
+    }
+}
+
 @Composable
-private fun Contenu(etat: Etat, site: String?) {
+private fun Contenu(etat: Etat, site: String?, variante: String) {
     val context = LocalContext.current
     val taille = LocalSize.current
-    val fond = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.widgetBackground).cornerRadius(20.dp).padding(10.dp)
+    val fond = GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_fond_degrade)).cornerRadius(24.dp)
     when {
-        !etat.aDesDonnees -> Message(etat, fond, context)
-        taille.width < 200.dp -> Petit(etat, site, context, fond)
+        !etat.aDesDonnees -> Message(etat, variante, fond, context)
+        taille.width < 200.dp -> Petit(etat, site, variante, context, fond)
         taille.height < 110.dp -> Large(etat, site, context, fond)
-        else -> Grand(etat, site, context, fond)
+        else -> Grand(etat, site, variante, context, fond)
     }
 }
 
 @Composable
-private fun Message(etat: Etat, fond: GlanceModifier, context: Context) {
-    val action = when (etat.statut) {
-        Statut.EN_ATTENTE -> actionRunCallback<RafraichirAction>()
-        else -> ouvrirConfig(context)
-    }
+private fun Message(etat: Etat, variante: String, fond: GlanceModifier, context: Context) {
+    val action = if (etat.statut == Statut.EN_ATTENTE) actionRunCallback<RafraichirAction>() else ouvrirConfig(context)
     Box(modifier = fond.clickable(action), contentAlignment = Alignment.Center) {
-        Text(etat.message ?: "", style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(provider = ImageProvider(pandaRes(variante, etat.panda)), contentDescription = null, modifier = GlanceModifier.size(72.dp))
+            Texte(etat.message ?: "", 13, gras = true)
+            if (etat.statut != Statut.EN_ATTENTE) Texte("Touchez pour commencer", 11, couleur = Couleurs.secondaire)
+        }
     }
 }
 
-/** Couleur de l'anneau et des barres : accent du thème, ambre si l'objectif d'énergie est dépassé. */
 @Composable
-private fun accent(etat: Etat, depasse: Boolean = etat.depasse): ColorProvider = if (depasse) Ambre else GlanceTheme.colors.primary
-
-@Composable
-private fun Texte(texte: String, taille: Int, gras: Boolean = false, couleur: ColorProvider = GlanceTheme.colors.onSurface) =
+private fun Texte(texte: String, taille: Int, gras: Boolean = false, couleur: ColorProvider = Couleurs.texte) =
     Text(texte, style = TextStyle(color = couleur, fontSize = taille.sp, fontWeight = if (gras) FontWeight.Bold else FontWeight.Normal))
 
-/** Relit les totaux tout de suite (les ajouts faits dans PandaMove n'arrivent sinon qu'à la prochaine actualisation, 15 à 30 min). */
+private fun accent(etat: Etat): ColorProvider = if (etat.depasse) Couleurs.ambre else Couleurs.vert
+
+/** Date de mise à jour (« mis à jour 14:32 ») ou, pour des données anciennes, leur âge et l'invitation à actualiser. */
+private fun libelleMaj(etat: Etat): String? = when {
+    etat.statut == Statut.ANCIEN && etat.age != null -> "${etat.age} : actualisez"
+    etat.misAJour != null -> "mis à jour ${etat.misAJour}"
+    else -> null
+}
+
+/** Bouton d'actualisation : pictogramme dessiné (res/drawable/ic_actualiser), zone tactile de 44 dp. */
 @Composable
-private fun BoutonActualiser() {
-    Text(
-        "↻",
-        modifier = GlanceModifier.clickable(actionRunCallback<RafraichirAction>()).padding(horizontal = 10.dp, vertical = 2.dp).semantics { contentDescription = "Actualiser" },
-        style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 18.sp, fontWeight = FontWeight.Bold),
-    )
+private fun BoutonActualiser(hauteur: Int = 44) {
+    Box(
+        modifier = GlanceModifier.width(44.dp).height(hauteur.dp).clickable(actionRunCallback<RafraichirAction>()).semantics { contentDescription = "Actualiser" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(provider = ImageProvider(R.drawable.ic_actualiser), contentDescription = null, colorFilter = ColorFilter.tint(Couleurs.secondaire), modifier = GlanceModifier.size(18.dp))
+    }
 }
 
 @Composable
-private fun Age(etat: Etat) {
-    etat.age?.let { Texte(it, 10, couleur = GlanceTheme.colors.onSurfaceVariant) }
-}
-
-@Composable
-private fun Anneau(etat: Etat, dp: Int, context: Context) {
+private fun Anneau(etat: Etat, dp: Int, tailleNombre: Int, context: Context) {
     val taillePx = (dp * context.resources.displayMetrics.density).toInt().coerceAtLeast(64)
     val couleur = accent(etat).getColor(context).toArgb()
-    val fond = GlanceTheme.colors.onSurface.getColor(context).copy(alpha = 0.14f).toArgb()
+    val fond = Couleurs.piste.getColor(context).toArgb()
+    val ancien = etat.statut == Statut.ANCIEN
     Box(modifier = GlanceModifier.size(dp.dp), contentAlignment = Alignment.Center) {
-        Image(provider = ImageProvider(Dessin.anneau(taillePx, if (etat.statut == Statut.ANCIEN) 0f else etat.ratio, couleur, fond)), contentDescription = "Énergie du jour : ${etat.grandNombre} ${etat.legende}", modifier = GlanceModifier.fillMaxSize())
+        Image(
+            provider = ImageProvider(Dessin.anneau(taillePx, if (ancien) 0f else etat.ratio, couleur, fond)),
+            contentDescription = "Énergie du jour : ${etat.grandNombre} ${etat.legende}",
+            modifier = GlanceModifier.fillMaxSize(),
+        )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Texte(etat.grandNombre, if (dp >= 90) 20 else 17, gras = true, couleur = if (etat.depasse) Ambre else GlanceTheme.colors.onSurface)
-            Texte(etat.legende, 9, couleur = GlanceTheme.colors.onSurfaceVariant)
+            Texte(etat.grandNombre, tailleNombre, gras = true, couleur = if (etat.depasse) Couleurs.ambre else Couleurs.texte)
+            Texte(etat.legende, 9, couleur = Couleurs.secondaire)
         }
     }
 }
 
 @Composable
-private fun LigneBarre(b: Barre, context: Context, etatAncien: Boolean) {
-    val couleur = (if (b.depasse) Ambre else GlanceTheme.colors.primary).getColor(context).toArgb()
-    val fond = GlanceTheme.colors.onSurface.getColor(context).copy(alpha = 0.14f).toArgb()
-    Column(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 3.dp)) {
+private fun LigneBarre(b: Barre, context: Context, ancien: Boolean) {
+    val role = Couleurs.pour(b.role)
+    val couleur = (if (b.depasse && b.role != Role.EAU) Couleurs.ambre else role).getColor(context).toArgb()
+    val fond = Couleurs.piste.getColor(context).toArgb()
+    Column(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 2.dp)) {
         Row(modifier = GlanceModifier.fillMaxWidth()) {
-            Texte(b.libelle, 10, couleur = GlanceTheme.colors.onSurfaceVariant)
+            Texte(b.libelle, 10, couleur = Couleurs.secondaire)
             Spacer(modifier = GlanceModifier.defaultWeight())
-            Texte(b.texte, 10, gras = true, couleur = if (b.depasse) Ambre else GlanceTheme.colors.onSurface)
+            Texte(b.texte, 10, gras = true)
         }
         Image(
-            provider = ImageProvider(Dessin.barre(if (etatAncien) 0f else b.ratio, couleur, fond)),
+            provider = ImageProvider(Dessin.barre(if (ancien) 0f else b.ratio, couleur, fond)),
             contentDescription = "${b.libelle} : ${b.texte}",
             contentScale = ContentScale.FillBounds,
             modifier = GlanceModifier.fillMaxWidth().height(5.dp),
@@ -227,87 +253,88 @@ private fun LigneBarre(b: Barre, context: Context, etatAncien: Boolean) {
 }
 
 @Composable
-private fun BoutonAction(texte: String, action: Action, modifier: GlanceModifier = GlanceModifier) {
+private fun BoutonAction(texte: String, action: Action, principal: Boolean, modifier: GlanceModifier = GlanceModifier) {
     Button(
         text = texte,
         onClick = action,
         modifier = modifier,
-        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = GlanceTheme.colors.onPrimary),
-        colors = ButtonDefaults.buttonColors(backgroundColor = GlanceTheme.colors.primary, contentColor = GlanceTheme.colors.onPrimary),
+        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (principal) Couleurs.surVert else Couleurs.texte),
+        colors = ButtonDefaults.buttonColors(backgroundColor = if (principal) Couleurs.vert else Couleurs.bouton2, contentColor = if (principal) Couleurs.surVert else Couleurs.texte),
     )
 }
 
-// 2×2 : l'anneau seul ; toucher ouvre le journal.
+// 2×2 : l'anneau et le panda ; toucher ouvre le journal.
 @Composable
-private fun Petit(etat: Etat, site: String?, context: Context, fond: GlanceModifier) {
+private fun Petit(etat: Etat, site: String?, variante: String, context: Context, fond: GlanceModifier) {
     Box(modifier = fond.clickable(ouvrir(context, site, "/nutrition")), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Anneau(etat, 84, context)
-            Age(etat)
+        Anneau(etat, 96, 22, context)
+        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
+            Image(provider = ImageProvider(pandaRes(variante, etat.panda)), contentDescription = null, modifier = GlanceModifier.size(50.dp))
         }
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) { BoutonActualiser() }
+        if (etat.statut == Statut.ANCIEN && etat.age != null) {
+            Box(modifier = GlanceModifier.fillMaxSize().padding(end = 10.dp, bottom = 6.dp), contentAlignment = Alignment.BottomEnd) {
+                Texte(etat.age, 10, couleur = Couleurs.secondaire)
+            }
+        }
     }
 }
 
-// 4×1 : énergie à gauche, deux boutons à droite.
+// 4×1 : énergie et barre à gauche, actualisation et deux boutons à droite.
 @Composable
 private fun Large(etat: Etat, site: String?, context: Context, fond: GlanceModifier) {
-    Row(modifier = fond.clickable(ouvrir(context, site, "/nutrition")), verticalAlignment = Alignment.CenterVertically) {
+    val ancien = etat.statut == Statut.ANCIEN
+    val couleur = accent(etat).getColor(context).toArgb()
+    val piste = Couleurs.piste.getColor(context).toArgb()
+    Row(modifier = fond.clickable(ouvrir(context, site, "/nutrition")).padding(start = 14.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = GlanceModifier.defaultWeight()) {
             Row(verticalAlignment = Alignment.Bottom) {
-                Texte(etat.grandNombre, 20, gras = true, couleur = if (etat.depasse) Ambre else GlanceTheme.colors.onSurface)
-                Spacer(modifier = GlanceModifier.width(4.dp))
-                Texte(etat.legende, 11, couleur = GlanceTheme.colors.onSurfaceVariant)
+                Texte(etat.grandNombre, 22, gras = true, couleur = if (etat.depasse) Couleurs.ambre else Couleurs.texte)
+                Spacer(modifier = GlanceModifier.width(6.dp))
+                Texte(etat.legende, 11, couleur = Couleurs.secondaire)
             }
-            Spacer(modifier = GlanceModifier.height(3.dp))
-            LigneBarreSeule(etat, context)
-            Age(etat)
+            Spacer(modifier = GlanceModifier.height(4.dp))
+            Image(
+                provider = ImageProvider(Dessin.barre(if (ancien) 0f else etat.ratio, couleur, piste)),
+                contentDescription = "Énergie du jour",
+                contentScale = ContentScale.FillBounds,
+                modifier = GlanceModifier.fillMaxWidth().height(6.dp),
+            )
+            libelleMaj(etat)?.let { Texte(it, 10, couleur = Couleurs.secondaire) }
         }
         BoutonActualiser()
-        Spacer(modifier = GlanceModifier.width(4.dp))
-        BoutonAction("Photo", ouvrir(context, site, "/nutrition/photo"))
+        BoutonAction("Photo", ouvrir(context, site, "/nutrition/photo"), principal = false)
         Spacer(modifier = GlanceModifier.width(6.dp))
-        BoutonAction("+ 250 ml", actionRunCallback<AjouterEauAction>())
+        BoutonAction("+ 250 ml", actionRunCallback<AjouterEauAction>(), principal = true)
     }
 }
 
+// 4×2 : anneau, trois macros et l'eau, le panda, la mise à jour et trois boutons.
 @Composable
-private fun LigneBarreSeule(etat: Etat, context: Context) {
-    val couleur = accent(etat).getColor(context).toArgb()
-    val fond = GlanceTheme.colors.onSurface.getColor(context).copy(alpha = 0.14f).toArgb()
-    Image(
-        provider = ImageProvider(Dessin.barre(if (etat.statut == Statut.ANCIEN) 0f else etat.ratio, couleur, fond)),
-        contentDescription = "Énergie du jour",
-        contentScale = ContentScale.FillBounds,
-        modifier = GlanceModifier.fillMaxWidth().height(6.dp),
-    )
-}
-
-// 4×2 : anneau, trois macros et l'eau, trois boutons.
-@Composable
-private fun Grand(etat: Etat, site: String?, context: Context, fond: GlanceModifier) {
+private fun Grand(etat: Etat, site: String?, variante: String, context: Context, fond: GlanceModifier) {
     val ancien = etat.statut == Statut.ANCIEN
-    Column(modifier = fond.clickable(ouvrir(context, site, "/nutrition"))) {
+    Column(modifier = fond.clickable(ouvrir(context, site, "/nutrition")).padding(horizontal = 12.dp, vertical = 8.dp)) {
         Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
-            Anneau(etat, 76, context)
+            Anneau(etat, 86, 21, context)
             Spacer(modifier = GlanceModifier.width(10.dp))
             Column(modifier = GlanceModifier.defaultWeight()) {
                 etat.macros.forEach { LigneBarre(it, context, ancien) }
                 etat.eau?.let { LigneBarre(it, context, ancien) }
             }
+            Spacer(modifier = GlanceModifier.width(6.dp))
+            Image(provider = ImageProvider(pandaRes(variante, etat.panda)), contentDescription = null, modifier = GlanceModifier.size(56.dp))
         }
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Age(etat)
+            libelleMaj(etat)?.let { Texte(it, 10, couleur = Couleurs.secondaire) }
             Spacer(modifier = GlanceModifier.defaultWeight())
-            etat.misAJour?.let { Texte("mis à jour $it", 10, couleur = GlanceTheme.colors.onSurfaceVariant) }
-            BoutonActualiser()
+            BoutonActualiser(hauteur = 32)
         }
-        Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            BoutonAction("Photo", ouvrir(context, site, "/nutrition/photo"), GlanceModifier.defaultWeight())
+        Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            BoutonAction("Photo", ouvrir(context, site, "/nutrition/photo"), principal = false, modifier = GlanceModifier.defaultWeight())
             Spacer(modifier = GlanceModifier.width(6.dp))
-            BoutonAction("+ 250 ml", actionRunCallback<AjouterEauAction>(), GlanceModifier.defaultWeight())
+            BoutonAction("+ 250 ml", actionRunCallback<AjouterEauAction>(), principal = true, modifier = GlanceModifier.defaultWeight())
             Spacer(modifier = GlanceModifier.width(6.dp))
-            BoutonAction("Aliment", ouvrir(context, site, "/nutrition/ajouter"), GlanceModifier.defaultWeight())
+            BoutonAction("Aliment", ouvrir(context, site, "/nutrition/ajouter"), principal = false, modifier = GlanceModifier.defaultWeight())
         }
     }
 }

@@ -32,6 +32,7 @@ const POSES = '07A_Poses'
 const UI = '09_UI_Formats'
 const FONDS = '10_Backgrounds'
 const HEAT = '11_Heatmaps'
+const NUTRI = '13_Nutrition'
 
 // nom logique -> { alt, sources par variante (chemin relatif à assets/), heatmap = taille unique }
 const IMAGES = {
@@ -61,6 +62,14 @@ const IMAGES = {
   pose_warrior: { alt: 'Panda en posture du guerrier', female: `${POSES}/female_pose_warrior_v1.png` },
   pose_sprint: { alt: 'Panda en plein sprint', female: `${POSES}/female_pose_sprint_v1.png` },
   pose_walk: { alt: 'Panda qui marche tranquillement', male: `${POSES}/male_pose_walk_quiety_v1.png`, female: `${POSES}/female_pose_walk_quiety_v1.png` },
+  // Nutrition (illustrées avec Gemini à partir des masters du personnage, détourées : assets/13_Nutrition)
+  nutri_petitdej: { alt: 'Panda qui prend son petit-déjeuner : croissant, jus d’orange et céréales', male: `${NUTRI}/male_nutrition_petitdej_v1.png`, female: `${NUTRI}/female_nutrition_petitdej_v1.png` },
+  nutri_dejeuner: { alt: 'Panda qui présente une assiette de poulet, riz et légumes', male: `${NUTRI}/male_nutrition_dejeuner_v1.png`, female: `${NUTRI}/female_nutrition_dejeuner_v1.png` },
+  nutri_collation: { alt: 'Panda qui croque une pomme, une banane à la main', male: `${NUTRI}/male_nutrition_collation_v1.png`, female: `${NUTRI}/female_nutrition_collation_v1.png` },
+  nutri_diner: { alt: 'Panda qui savoure une soupe fumante à la lueur d’une bougie', male: `${NUTRI}/male_nutrition_diner_v1.png`, female: `${NUTRI}/female_nutrition_diner_v1.png` },
+  nutri_eau: { alt: 'Panda qui boit à sa gourde, éclaboussures d’eau', male: `${NUTRI}/male_nutrition_eau_v1.png`, female: `${NUTRI}/female_nutrition_eau_v1.png` },
+  nutri_photo: { alt: 'Panda qui photographie son assiette de pâtes avec un téléphone', male: `${NUTRI}/male_nutrition_photo_v1.png`, female: `${NUTRI}/female_nutrition_photo_v1.png` },
+  nutri_objectif: { alt: 'Panda aux bras levés, une fourchette et une cuillère à la main, fier de son objectif atteint', male: `${NUTRI}/male_nutrition_objectif_v1.png`, female: `${NUTRI}/female_nutrition_objectif_v1.png` },
   // Fonds (communs)
   bg_gym: { alt: 'Salle de sport futuriste', commun: `${FONDS}/bg_gym_futuristic_v1.png` },
   bg_reward: { alt: 'Podium illuminé sous des confettis dorés', commun: `${FONDS}/bg_reward_ceremony_v1.png` },

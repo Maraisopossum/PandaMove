@@ -35,6 +35,47 @@ export const QUANTITE_MAX = 5000
 
 export const ajusterQuantite = (q: number, delta: number) => Math.min(QUANTITE_MAX, Math.max(0, Math.round((q + delta) * 10) / 10))
 
+/** Mot d'accueil du journal : selon l'heure pour aujourd'hui, « Bilan de la journée » pour un autre jour (le jour est déjà dans le sélecteur). */
+export function salutDuJour(date: string, aujourdhui: string, heure: number): string {
+  if (date !== aujourdhui) return 'Bilan de la journée'
+  if (heure < 11) return 'Bon matin'
+  if (heure < 14) return 'Bon appétit'
+  if (heure < 18) return 'Bon après-midi'
+  return 'Bonne soirée'
+}
+
+export interface BilanJour {
+  /** Titre de l'encart quand l'objectif est atteint (sinon l'encart garde le mot d'accueil). */
+  titre: string
+  texte: string
+  /** Énergie à 10 % près de l'objectif : le panda fête. */
+  atteint: boolean
+}
+
+/**
+ * Phrase du bilan d'énergie : informer sans jamais reprocher. Atteint = entre 90 % et 110 % de l'objectif ;
+ * au-delà, un ton neutre et bienveillant ; en dessous, ce qu'il reste (aujourd'hui) ou le total (autre jour).
+ */
+export function bilanDuJour(consomme: number, objectif: number | null, estAujourdhui: boolean): BilanJour {
+  if (!objectif || objectif <= 0) {
+    return { titre: '', texte: estAujourdhui ? 'Ajoutez vos repas pour suivre votre journée.' : `${entier(consomme)} kcal ce jour-là.`, atteint: false }
+  }
+  if (consomme >= objectif * 0.9 && consomme <= objectif * 1.1) {
+    return { titre: 'Objectif atteint, bravo !', texte: `${entier(consomme)} kcal sur ${entier(objectif)}.`, atteint: true }
+  }
+  if (consomme > objectif * 1.1) {
+    return { titre: '', texte: estAujourdhui ? 'Au-dessus de l’objectif aujourd’hui : rien de grave, on reprend demain.' : 'Au-dessus de l’objectif ce jour-là.', atteint: false }
+  }
+  return { titre: '', texte: estAujourdhui ? `Il reste ${entier(objectif - consomme)} kcal pour aujourd’hui.` : `${entier(consomme)} kcal sur ${entier(objectif)}.`, atteint: false }
+}
+
+/** Petit mot sous la barre d'hydratation. */
+export function messageEau(eauMl: number, objectifMl: number): string {
+  if (objectifMl <= 0) return ''
+  if (eauMl >= objectifMl) return 'Objectif d’eau atteint.'
+  return eauMl >= objectifMl / 2 ? `Plus que ${entier(objectifMl - eauMl)} ml.` : 'Un verre de plus ?'
+}
+
 /** 1 234 : séparateur de milliers français insécable. */
 export const entier = (v: number) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(v))
 export const decimal = (v: number) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(v)

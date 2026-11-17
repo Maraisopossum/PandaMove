@@ -11,8 +11,14 @@ val AGE_DONNEES_ANCIENNES: Duration = Duration.ofHours(2)
 
 enum class Statut { NON_RELIE, REVOQUE, EN_ATTENTE, A_JOUR, ANCIEN }
 
+/** Ce que mesure une barre : sa couleur dans le widget. */
+enum class Role { PROTEINES, GLUCIDES, LIPIDES, EAU, AUCUN }
+
+/** Le dessin du panda affiché : déjeuner (par défaut), fête (objectif atteint), collation (au-dessus de l'objectif, ton doux), photo (widget non relié). */
+enum class Panda { DEJEUNER, OBJECTIF, COLLATION, PHOTO }
+
 /** Une barre de progression : valeur du jour face à l'objectif (s'il existe). */
-data class Barre(val libelle: String, val valeur: Int, val objectif: Int?, val unite: String) {
+data class Barre(val libelle: String, val valeur: Int, val objectif: Int?, val unite: String, val role: Role = Role.AUCUN) {
     val ratio: Float get() = if (objectif == null || objectif <= 0) 0f else (valeur.toFloat() / objectif).coerceIn(0f, 1f)
     val depasse: Boolean get() = objectif != null && objectif > 0 && valeur > objectif
     val texte: String get() = if (objectif != null) "${formaterEntier(valeur)} / ${formaterEntier(objectif)} $unite" else "${formaterEntier(valeur)} $unite"
@@ -37,6 +43,7 @@ data class Etat(
     val misAJour: String? = null,
     /** Message à la place des données (non relié, jeton révoqué, chargement). */
     val message: String? = null,
+    val panda: Panda = Panda.DEJEUNER,
 ) {
     val aDesDonnees: Boolean get() = statut == Statut.A_JOUR || statut == Statut.ANCIEN
 }
@@ -62,8 +69,8 @@ fun formaterAge(d: Duration): String {
 private fun arrondi(x: Double?): Int? = x?.let { Math.round(it).toInt() }
 
 fun construireEtat(relie: Boolean, revoque: Boolean, resume: Resume?, maintenant: Instant, aujourdhui: LocalDate, zone: ZoneId = ZoneId.systemDefault()): Etat {
-    if (!relie) return Etat(Statut.NON_RELIE, message = "Relier le widget")
-    if (revoque) return Etat(Statut.REVOQUE, message = "Jeton révoqué : relier de nouveau")
+    if (!relie) return Etat(Statut.NON_RELIE, message = "Relier le widget", panda = Panda.PHOTO)
+    if (revoque) return Etat(Statut.REVOQUE, message = "Jeton révoqué : relier de nouveau", panda = Panda.PHOTO)
     if (resume == null) return Etat(Statut.EN_ATTENTE, message = "Chargement…")
 
     val c = resume.consomme
@@ -98,11 +105,17 @@ fun construireEtat(relie: Boolean, revoque: Boolean, resume: Resume?, maintenant
         ratio = ratio,
         depasse = depasse,
         macros = listOf(
-            Barre("Protéines", arrondi(c.proteines) ?: 0, arrondi(o?.proteinesG)?.takeIf { it > 0 }, "g"),
-            Barre("Glucides", arrondi(c.glucides) ?: 0, arrondi(o?.glucidesG)?.takeIf { it > 0 }, "g"),
-            Barre("Lipides", arrondi(c.lipides) ?: 0, arrondi(o?.lipidesG)?.takeIf { it > 0 }, "g"),
+            Barre("Protéines", arrondi(c.proteines) ?: 0, arrondi(o?.proteinesG)?.takeIf { it > 0 }, "g", Role.PROTEINES),
+            Barre("Glucides", arrondi(c.glucides) ?: 0, arrondi(o?.glucidesG)?.takeIf { it > 0 }, "g", Role.GLUCIDES),
+            Barre("Lipides", arrondi(c.lipides) ?: 0, arrondi(o?.lipidesG)?.takeIf { it > 0 }, "g", Role.LIPIDES),
         ),
-        eau = Barre("Eau", arrondi(c.eauMl) ?: 0, arrondi(o?.eauMl)?.takeIf { it > 0 }, "ml"),
+        eau = Barre("Eau", arrondi(c.eauMl) ?: 0, arrondi(o?.eauMl)?.takeIf { it > 0 }, "ml", Role.EAU),
+        panda = when {
+            objectifKcal == null -> Panda.DEJEUNER
+            kcal > objectifKcal * 1.1 -> Panda.COLLATION
+            kcal >= objectifKcal * 0.9 -> Panda.OBJECTIF
+            else -> Panda.DEJEUNER
+        },
         misAJour = genere?.let { DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(it) },
         age = if (ancien) (if (resume.date != aujourdhui.toString()) "données d’un autre jour" else ageReel?.let(::formaterAge)) else null,
     )

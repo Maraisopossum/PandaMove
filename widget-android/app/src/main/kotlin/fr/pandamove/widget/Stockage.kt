@@ -23,6 +23,14 @@ class Stockage(context: Context) {
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
     }
+    // Réglage d'apparence (pas un secret, conservé quand on délie le widget)
+    private val reglages: SharedPreferences by lazy { app.getSharedPreferences("pandamove_reglages", Context.MODE_PRIVATE) }
+
+    /** Variante du panda affichée : « female » (défaut) ou « male ». */
+    var pandaVariante: String
+        get() = if (reglages.getString("panda", "female") == "male") "male" else "female"
+        set(v) = reglages.edit().putString("panda", if (v == "male") "male" else "female").apply()
+
     private val etat: SharedPreferences by lazy { app.getSharedPreferences("pandamove_etat", Context.MODE_PRIVATE) }
 
     /** Adresse de la fonction `widget-nutrition` (https://<projet>.supabase.co/functions/v1/widget-nutrition). */

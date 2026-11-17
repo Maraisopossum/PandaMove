@@ -323,6 +323,15 @@ export async function supprimerEntree(db: Db, id: string): Promise<void> {
   })
 }
 
+/** Annule une suppression (le bouton « Annuler » après « supprimé ») : la ligne supprimée logiquement redevient visible. */
+export async function restaurerEntree(db: Db, id: string): Promise<void> {
+  await db.writeTransaction(async (tx) => {
+    const l = await tx.getOptional<Ligne>('SELECT id FROM repas_entrees WHERE id = ? AND deleted_at IS NOT NULL', [id])
+    if (!l) throw new ErreurNutrition('introuvable', 'Entrée introuvable.')
+    await tx.execute('UPDATE repas_entrees SET deleted_at = NULL, updated_at = ? WHERE id = ?', [new Date().toISOString(), id])
+  })
+}
+
 /** Copie un repas d'un jour vers un autre (« comme hier »). Renvoie le nombre d'entrées copiées. */
 export async function copierRepas(db: Db, depuis: string, repas: Repas, vers: string): Promise<number> {
   const source = (await lireJour(db, depuis)).filter((e) => e.repas === repas)
