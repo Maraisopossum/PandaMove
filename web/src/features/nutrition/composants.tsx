@@ -15,6 +15,7 @@ export function AnneauKcal({ consomme, objectif }: { consomme: number; objectif:
   return (
     <div className="nutri__anneau" role="img" aria-label={libelle}>
       <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle className="nutri__anneau-centre" cx="60" cy="60" r={rayon} />
         <circle className="nutri__anneau-fond" cx="60" cy="60" r={rayon} />
         <circle className={`nutri__anneau-arc${depasse ? ' nutri__anneau-arc--depasse' : ''}`} cx="60" cy="60" r={rayon} strokeDasharray={`${part * circonference} ${circonference}`} transform="rotate(-90 60 60)" />
       </svg>

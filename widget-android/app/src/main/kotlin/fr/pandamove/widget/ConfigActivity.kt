@@ -103,6 +103,7 @@ private fun Ecran(stockage: Stockage, terminer: () -> Unit) {
     var adresse by remember { mutableStateOf(stockage.adresse.orEmpty()) }
     var jeton by remember { mutableStateOf("") }
     var site by remember { mutableStateOf(stockage.site.orEmpty()) }
+    var panda by remember { mutableStateOf(stockage.pandaVariante) }
     var erreur by remember { mutableStateOf<String?>(null) }
     var occupe by remember { mutableStateOf(false) }
 
@@ -153,6 +154,14 @@ private fun Ecran(stockage: Stockage, terminer: () -> Unit) {
             supportingText = { Text("Pour ouvrir la photo, l’ajout d’aliment et le journal dans l’application installée.") },
             singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
         )
+
+        Text("Panda du widget", style = MaterialTheme.typography.titleSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((valeur, libelle) in listOf("female" to "Panda fille", "male" to "Panda garçon")) {
+                val choisi = panda == valeur
+                (if (choisi) Button(onClick = { panda = valeur; stockage.pandaVariante = valeur }) { Text(libelle) } else OutlinedButton(onClick = { panda = valeur; stockage.pandaVariante = valeur }) { Text(libelle) })
+            }
+        }
 
         erreur?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
 

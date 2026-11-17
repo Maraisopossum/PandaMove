@@ -140,4 +140,22 @@ class EtatTest {
         assertEquals("13:30", e.misAJour)
         assertNull(construireEtat(true, false, resume(genereLe = "illisible"), maintenant, aujourdhui).misAJour)
     }
+
+    @Test fun `le panda suit la journee - fete a l objectif, ton doux au dessus, photo si non relie`() {
+        assertEquals(Panda.DEJEUNER, construireEtat(true, false, resume(kcal = 988.0), maintenant, aujourdhui).panda)
+        assertEquals(Panda.OBJECTIF, construireEtat(true, false, resume(kcal = 2386.0), maintenant, aujourdhui).panda)
+        assertEquals(Panda.OBJECTIF, construireEtat(true, false, resume(kcal = 2160.0), maintenant, aujourdhui).panda)
+        assertEquals(Panda.DEJEUNER, construireEtat(true, false, resume(kcal = 2159.0), maintenant, aujourdhui).panda)
+        assertEquals(Panda.OBJECTIF, construireEtat(true, false, resume(kcal = 2640.0), maintenant, aujourdhui).panda)
+        assertEquals(Panda.COLLATION, construireEtat(true, false, resume(kcal = 2641.0), maintenant, aujourdhui).panda)
+        assertEquals(Panda.DEJEUNER, construireEtat(true, false, resume(objectifKcal = null), maintenant, aujourdhui).panda)
+        assertEquals(Panda.PHOTO, construireEtat(false, false, null, maintenant, aujourdhui).panda)
+        assertEquals(Panda.PHOTO, construireEtat(true, true, resume(), maintenant, aujourdhui).panda)
+    }
+
+    @Test fun `chaque barre porte son role - couleur propre aux proteines, glucides, lipides et eau`() {
+        val e = construireEtat(true, false, resume(), maintenant, aujourdhui)
+        assertEquals(listOf(Role.PROTEINES, Role.GLUCIDES, Role.LIPIDES), e.macros.map { it.role })
+        assertEquals(Role.EAU, e.eau!!.role)
+    }
 }

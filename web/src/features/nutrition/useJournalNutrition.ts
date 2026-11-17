@@ -46,12 +46,14 @@ export function useJournalNutrition(date: string, { db }: { db?: Db } = {}) {
   }, [date, db, version])
 
   const executer = useCallback(
-    async (action: (base: Db) => Promise<unknown>, echec: string) => {
+    async (action: (base: Db) => Promise<unknown>, echec: string): Promise<boolean> => {
       try {
         await action(db ?? getDb())
         recharger()
+        return true
       } catch {
         setEtat((e) => ({ ...e, erreur: echec }))
+        return false
       }
     },
     [db, recharger],
@@ -74,7 +76,7 @@ export function useJournalNutrition(date: string, { db }: { db?: Db } = {}) {
     },
     annulerDerniereEau: () => {
       const derniere = [...etat.entrees].reverse().find((e) => e.repas === 'eau')
-      return derniere ? executer((b) => supprimerEntree(b, derniere.id), 'L’ajout n’a pas pu être annulé.') : Promise.resolve()
+      return derniere ? executer((b) => supprimerEntree(b, derniere.id), 'L’ajout n’a pas pu être annulé.') : Promise.resolve(false)
     },
     copierDepuisHier: (repas: Repas) => executer((b) => copierRepas(b, decalerJour(date, -1), repas, date), 'Le repas n’a pas pu être copié.'),
     supprimer: (id: string) => executer((b) => supprimerEntree(b, id), 'La ligne n’a pas pu être supprimée.'),
