@@ -150,6 +150,8 @@ const hyroxSegment = {
 
 // Module Nutrition (migration 0020). Les valeurs nutritionnelles des aliments sont pour 100 g ; celles d'une entrée du journal sont
 // celles de la quantité mangée (instantané). `date` est le jour (yyyy-MM-dd), `favori` un booléen 0/1.
+// Migration 0022 : `unite_base` ('g' ou 'ml') et `mesures_json` (mesures de l'aliment, voir core/nutrition/mesures.ts) ; sur le journal,
+// `quantite_saisie` et `unite_saisie` gardent ce qui a été saisi (2 « oeuf »), `quantite_g` restant la quantité de base (g ou ml).
 const aliment = {
   ...sync,
   nom: t,
@@ -164,6 +166,8 @@ const aliment = {
   fibres_100: r,
   favori: i,
   source: t,
+  unite_base: t,
+  mesures_json: t,
   created_at: t,
 }
 const repasEntree = {
@@ -179,6 +183,8 @@ const repasEntree = {
   fibres: r,
   aliment_id: t,
   source: t,
+  quantite_saisie: r,
+  unite_saisie: t,
   created_at: t,
 }
 const objectifNutrition = {

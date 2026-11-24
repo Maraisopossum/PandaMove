@@ -19,6 +19,13 @@ Journal alimentaire (énergie, protéines, glucides, lipides, eau), aliments per
 - Table non synchronisée `analyses_assiette` : une ligne par analyse de photo (quota quotidien), accessible à la fonction seule.
 - Export / import : les trois tables font partie du complément web de la sauvegarde.
 - Base intégrée : `core/nutrition/baseAliments.ts` (≈ 85 aliments courants, valeurs moyennes, hors ligne). Règles de calcul : `core/nutrition/calculs.ts`.
+- **Unités** (migration `0022`, `core/nutrition/mesures.ts`) : un aliment a une base, `unite_base` = `g` (valeurs pour 100 g) ou `ml`
+  (pour 100 ml, jamais convertie en grammes), et des mesures dans `mesures_json` (`{ id, libelle, pluriel, base }`, la première par défaut :
+  1 œuf = 60 g, 1 verre = 200 ml). Un liquide reçoit aussi les mesures communes (verre, tasse, bol, canette, cuillères). Le journal garde
+  `quantite_g` (quantité de base, celle des calculs) et ce qui a été saisi : `quantite_saisie` + `unite_saisie` (2 « oeuf ») ; nulles pour
+  une entrée ancienne, affichée en grammes. Un aliment sans mesures reprend son ancienne portion (`portion_g`, `portion_label`), qui reste
+  écrite pour les anciens clients. Open Food Facts donne la portion de l'emballage (« 2 biscuits (25 g) » → biscuit de 12,5 g) et la
+  contenance (paquet, bouteille ; base en ml pour un liquide). Le réglage par unité dans les écrans arrive avec la PR A2.
 
 ## Photo de l'assiette
 1. `reduireImage` (canvas) ramène la photo à 1 280 px, JPEG 80 % (≈ 200 Ko) **sur l'appareil**.

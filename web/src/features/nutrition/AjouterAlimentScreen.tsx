@@ -5,6 +5,7 @@ import { dateIsoLocale } from '../../core/common/dates'
 import type { Aliment, AlimentRecent, SourceEntree } from '../../core/db/repos/nutrition'
 import { chercherDansBase, normaliserTexte, type AlimentBase } from '../../core/nutrition/baseAliments'
 import { apportPourQuantite, ecartEnergie, LIBELLE_REPAS, REPAS, estRepas, type Valeurs100 } from '../../core/nutrition/calculs'
+import type { Mesure, UniteBase } from '../../core/nutrition/mesures'
 import { codeBarresValide, produitParCodeBarres, rechercherProduits, type ProduitOff } from '../../core/nutrition/openFoodFacts'
 import { PanneauQuantite } from './composants'
 import { decalerJour, decimal, entier, jourDemande, libelleJour, repasDemande, scanPossible } from './outils'
@@ -17,6 +18,9 @@ interface Choix {
   valeurs: Valeurs100
   portionG: number | null
   portionLabel: string | null
+  /** Base des valeurs et mesures de l'aliment (gardées dans « Mes aliments ») ; le réglage par unité arrive avec la PR A2. */
+  uniteBase: UniteBase
+  mesures: readonly Mesure[]
   source: SourceEntree
   alimentId: string | null
   codeBarres: string | null
@@ -27,21 +31,21 @@ interface Choix {
 
 const depuisAliment = (a: Aliment): Choix => ({
   nom: a.nom, marque: a.marque, valeurs: { kcal: a.kcal100, proteines: a.proteines100, glucides: a.glucides100, lipides: a.lipides100, fibres: a.fibres100 },
-  portionG: a.portionG, portionLabel: a.portionLabel, source: a.source === 'off' ? 'off' : a.source === 'ia' ? 'ia' : 'manuel', alimentId: a.id, codeBarres: a.codeBarres, quantiteInitiale: a.portionG, gardable: false,
+  portionG: a.portionG, portionLabel: a.portionLabel, uniteBase: a.uniteBase, mesures: a.mesures, source: a.source === 'off' ? 'off' : a.source === 'ia' ? 'ia' : 'manuel', alimentId: a.id, codeBarres: a.codeBarres, quantiteInitiale: a.portionG, gardable: false,
 })
 const depuisBase = (a: AlimentBase): Choix => ({
   nom: a.nom, marque: null, valeurs: { kcal: a.kcal, proteines: a.proteines, glucides: a.glucides, lipides: a.lipides, fibres: a.fibres },
-  portionG: a.portionG, portionLabel: a.portionLabel, source: 'base', alimentId: null, codeBarres: null, quantiteInitiale: a.portionG, gardable: false,
+  portionG: a.portionG, portionLabel: a.portionLabel, uniteBase: a.uniteBase, mesures: a.mesures, source: 'base', alimentId: null, codeBarres: null, quantiteInitiale: a.portionG, gardable: false,
 })
 const depuisProduit = (p: ProduitOff): Choix => ({
   nom: p.nom, marque: p.marque, valeurs: { kcal: p.kcal, proteines: p.proteines, glucides: p.glucides, lipides: p.lipides, fibres: p.fibres },
-  portionG: p.portionG, portionLabel: p.portionLabel, source: 'off', alimentId: null, codeBarres: p.code, quantiteInitiale: p.portionG ?? 100, gardable: true,
+  portionG: p.portionG, portionLabel: p.portionLabel, uniteBase: p.uniteBase, mesures: p.mesures, source: 'off', alimentId: null, codeBarres: p.code, quantiteInitiale: p.portionG ?? 100, gardable: true,
 })
 const depuisFrequent = (f: AlimentRecent): Choix => {
   const base = f.quantiteG > 0 ? 100 / f.quantiteG : 0
   return {
     nom: f.nom, marque: null, valeurs: { kcal: f.apport.kcal * base, proteines: f.apport.proteines * base, glucides: f.apport.glucides * base, lipides: f.apport.lipides * base, fibres: f.apport.fibres * base },
-    portionG: null, portionLabel: null, source: f.source === 'eau' || f.source === 'copie' ? 'manuel' : f.source, alimentId: f.alimentId, codeBarres: null, quantiteInitiale: f.quantiteG || 100, gardable: false,
+    portionG: null, portionLabel: null, uniteBase: 'g', mesures: [], source: f.source === 'eau' || f.source === 'copie' ? 'manuel' : f.source, alimentId: f.alimentId, codeBarres: null, quantiteInitiale: f.quantiteG || 100, gardable: false,
   }
 }
 
@@ -65,6 +69,7 @@ function Panneau({ choix, repas, date, retour, annuler }: { choix: Choix; repas:
         alimentId = existant?.id ?? (await acces.creerAliment({
           nom: choix.nom, marque: choix.marque, codeBarres: choix.codeBarres, portionG: choix.portionG ?? 100, portionLabel: choix.portionLabel,
           kcal100: choix.valeurs.kcal, proteines100: choix.valeurs.proteines, glucides100: choix.valeurs.glucides, lipides100: choix.valeurs.lipides, fibres100: choix.valeurs.fibres, source: 'off',
+          uniteBase: choix.uniteBase, mesures: choix.mesures,
         }))
       }
       await acces.ajouterEntree({ date, repas: repasChoisi, nom: choix.nom, quantiteG: quantite, apport: apportPourQuantite(choix.valeurs, quantite), alimentId, source: choix.source })

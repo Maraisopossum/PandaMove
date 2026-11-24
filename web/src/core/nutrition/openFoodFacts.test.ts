@@ -15,7 +15,33 @@ describe('lecture d’un produit Open Food Facts', () => {
   it('normalise un produit complet', () => {
     expect(lireProduit(brut)).toEqual({
       code: '3017620422003', nom: 'Pâte à tartiner', marque: 'Nutella', kcal: 539, proteines: 6.3, glucides: 57.5, lipides: 30.9, fibres: 3.4, portionG: 15, portionLabel: '15 g',
+      uniteBase: 'g', mesures: [{ id: 'portion', libelle: 'portion', pluriel: 'portions', base: 15, detail: '15 g' }],
     })
+  })
+
+  it('nomme la portion de l’emballage et ajoute le paquet entier', () => {
+    const p = lireProduit({ ...brut, serving_quantity: 25, serving_size: '2 biscuits (25 g)', product_quantity: '300', product_quantity_unit: 'g' })!
+    expect(p.uniteBase).toBe('g')
+    expect(p.mesures).toEqual([
+      { id: 'biscuit', libelle: 'biscuit', pluriel: 'biscuits', base: 12.5, detail: '2 biscuits (25 g)' },
+      { id: 'paquet', libelle: 'paquet', pluriel: 'paquets', base: 300 },
+    ])
+  })
+
+  it('un liquide (contenance en cl ou L) a ses valeurs pour 100 ml, mesuré à la bouteille', () => {
+    const p = lireProduit({ ...brut, serving_quantity: null, serving_size: null, quantity: '1,5 L' })!
+    expect(p.uniteBase).toBe('ml')
+    expect(p.mesures).toEqual([{ id: 'bouteille', libelle: 'bouteille', pluriel: 'bouteilles', base: 1500 }])
+    const canette = lireProduit({ ...brut, serving_quantity: '330', serving_size: '1 canette (330 ml)', quantity: '33 cl' })!
+    expect(canette.uniteBase).toBe('ml')
+    // La canette entière vaut la portion : pas de doublon « bouteille »
+    expect(canette.mesures).toEqual([{ id: 'canette', libelle: 'canette', pluriel: 'canettes', base: 330, detail: '1 canette (330 ml)' }])
+  })
+
+  it('sans contenance lisible : base en grammes et portion seule', () => {
+    const p = lireProduit({ ...brut, quantity: 'grand format' })!
+    expect(p.uniteBase).toBe('g')
+    expect(p.mesures.map((m) => m.id)).toEqual(['portion'])
   })
 
   it('déduit l’énergie des kilojoules et borne les valeurs absurdes', () => {
