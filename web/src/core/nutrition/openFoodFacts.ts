@@ -2,8 +2,10 @@
 // Seul le texte recherché ou le code-barres quitte l'appareil. Hors ligne ou en cas d'erreur, la recherche échoue proprement : la base
 // intégrée et les aliments personnels restent utilisables.
 
+import { identifiantMesure, type Mesure, type UniteBase } from './mesures'
+
 export const URL_OFF = 'https://world.openfoodfacts.org'
-const CHAMPS = 'code,product_name,product_name_fr,brands,nutriments,serving_quantity,serving_size'
+const CHAMPS = 'code,product_name,product_name_fr,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity,product_quantity_unit'
 const DELAI_MS = 8000
 
 export interface ProduitOff {
@@ -19,6 +21,10 @@ export interface ProduitOff {
   /** Portion indiquée par le fabricant (g), si connue. */
   portionG: number | null
   portionLabel: string | null
+  /** 'ml' pour un liquide (contenance en ml, cl ou L) : les valeurs sont alors pour 100 ml. */
+  uniteBase: UniteBase
+  /** Portion de l'emballage (« 1 biscuit (12,5 g) » → biscuit de 12,5 g) puis contenance (paquet, bouteille). */
+  mesures: Mesure[]
 }
 
 export class ErreurOff extends Error {
@@ -35,6 +41,44 @@ const nombre = (v: unknown): number | null => {
   return typeof n === 'number' && Number.isFinite(n) ? n : null
 }
 const borne = (v: number | null, max: number) => (v === null ? null : Math.min(max, Math.max(0, v)))
+
+/** Contenance du produit dans sa base : `product_quantity` + `product_quantity_unit`, sinon le texte `quantity` (« 1,5 L », « 33 cl »). */
+export function lireContenance(p: Record<string, unknown>): { valeur: number; unite: UniteBase } | null {
+  const unite = String(p.product_quantity_unit ?? '').trim().toLowerCase()
+  const valeur = nombre(p.product_quantity)
+  if (valeur !== null && valeur > 0 && (unite === 'g' || unite === 'ml')) return { valeur, unite }
+  const texte = String(p.quantity ?? '').toLowerCase().replace(',', '.')
+  const m = /(\d+(?:\.\d+)?)\s*(kg|g|ml|cl|l)\b/.exec(texte)
+  if (!m) return null
+  const n = Number(m[1])
+  const facteurs: Record<string, [number, UniteBase]> = { kg: [1000, 'g'], g: [1, 'g'], ml: [1, 'ml'], cl: [10, 'ml'], l: [1000, 'ml'] }
+  const [f, u] = facteurs[m[2]]
+  return n > 0 ? { valeur: n * f, unite: u } : null
+}
+
+/**
+ * Mesures d'un produit : la portion de l'emballage, nommée quand le libellé le permet (« 2 biscuits (25 g) » → biscuit de 12,5 g),
+ * sinon « portion » ; puis l'emballage entier (paquet, ou bouteille pour un liquide). Limites de la migration 0022 respectées.
+ */
+export function mesuresProduit(portion: number | null, libellePortion: string | null, contenance: { valeur: number; unite: UniteBase } | null, uniteBase: UniteBase): Mesure[] {
+  const mesures: Mesure[] = []
+  if (portion !== null && portion > 0 && portion <= 5000) {
+    const m = libellePortion ? /^\s*(\d+(?:[.,]\d+)?)\s+([^()\d]+?)\s*\(/.exec(libellePortion) : null
+    const nb = m ? Number(m[1].replace(',', '.')) : 1
+    const nom = m ? m[2].trim().toLowerCase().slice(0, 40) : ''
+    if (m && nb > 0 && nom && !/^(g|ml|cl|l|portion|portions)$/.test(nom)) {
+      const singulier = nb > 1 && nom.endsWith('s') ? nom.slice(0, -1) : nom
+      mesures.push({ id: identifiantMesure(singulier), libelle: singulier, pluriel: nb > 1 ? nom : `${nom}s`, base: Math.round((portion / nb) * 10) / 10, ...(libellePortion ? { detail: libellePortion.slice(0, 100) } : {}) })
+    } else {
+      mesures.push({ id: 'portion', libelle: 'portion', pluriel: 'portions', base: portion, ...(libellePortion ? { detail: libellePortion.slice(0, 100) } : {}) })
+    }
+  }
+  if (contenance && contenance.unite === uniteBase && contenance.valeur <= 5000 && !mesures.some((x) => Math.abs(x.base - contenance.valeur) < 0.5)) {
+    const liquide = uniteBase === 'ml'
+    mesures.push({ id: liquide ? 'bouteille' : 'paquet', libelle: liquide ? 'bouteille' : 'paquet', pluriel: liquide ? 'bouteilles' : 'paquets', base: contenance.valeur })
+  }
+  return mesures
+}
 
 /** Produit lisible, ou null si les valeurs nutritionnelles manquent (énergie impossible à établir). */
 export function lireProduit(brut: unknown): ProduitOff | null {
@@ -53,6 +97,9 @@ export function lireProduit(brut: unknown): ProduitOff | null {
   if (!nom || kcal === null || (proteines === null && glucides === null && lipides === null)) return null
   const portion = nombre(p.serving_quantity)
   const marque = String(p.brands ?? '').split(',')[0].trim().slice(0, 200)
+  const libellePortion = typeof p.serving_size === 'string' && p.serving_size.trim() ? p.serving_size.trim().slice(0, 100) : null
+  const contenance = lireContenance(p)
+  const uniteBase: UniteBase = contenance?.unite === 'ml' ? 'ml' : 'g'
   return {
     code: String(p.code ?? '').slice(0, 32),
     nom,
@@ -63,7 +110,9 @@ export function lireProduit(brut: unknown): ProduitOff | null {
     lipides: lipides ?? 0,
     fibres: borne(nombre(n.fiber_100g), 100),
     portionG: portion !== null && portion > 0 && portion <= 5000 ? portion : null,
-    portionLabel: typeof p.serving_size === 'string' && p.serving_size.trim() ? p.serving_size.trim().slice(0, 100) : null,
+    portionLabel: libellePortion,
+    uniteBase,
+    mesures: mesuresProduit(portion, libellePortion, contenance, uniteBase),
   }
 }
 

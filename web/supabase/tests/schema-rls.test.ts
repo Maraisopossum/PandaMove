@@ -1336,3 +1336,49 @@ describe('0021 : jetons du widget Android de nutrition', () => {
     expect(schema).not.toContain('jetons_widget')
   })
 })
+
+describe('0022 : unités de mesure des aliments et quantité saisie du journal', () => {
+  const U1 = '00000000-0000-4000-8000-0000000000d1'
+  const ID = (n: number) => `00000000-0000-4000-8000-00000000d${String(n).padStart(3, '0')}`
+  const mesures = async (id: string) => (await db.query<{ m: string | null; u: string }>('select mesures_json as m, unite_base as u from aliments where id = $1', [id])).rows[0]
+
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users (id, email) values ('${U1}', 'd1@exemple.fr') on conflict do nothing;`)
+    // Aliments créés avant la migration : l'un déclare une portion, l'autre non
+    await commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, portion_g, portion_label, created_at) values ('${ID(1)}', 'Yaourt', 55, 125, '1 pot', '2026-11-24T08:00:00Z')`))
+    await commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, created_at) values ('${ID(2)}', 'Riz', 130, '2026-11-24T08:00:00Z')`))
+    await db.exec(migration('0022_nutrition_unites.sql'))
+    // Rejouable sans erreur
+    await db.exec(migration('0022_nutrition_unites.sql'))
+  })
+
+  it('reprend la portion déclarée en mesure « portion », base en grammes par défaut', async () => {
+    const a = await mesures(ID(1))
+    expect(a.u).toBe('g')
+    expect(JSON.parse(a.m!)).toEqual([{ id: 'portion', libelle: 'portion', pluriel: 'portions', base: 125, detail: '1 pot' }])
+    expect(await mesures(ID(2))).toEqual({ m: null, u: 'g' })
+  })
+
+  it('rejouer la migration ne remplace pas des mesures déjà définies', async () => {
+    const propres = '[{"id":"pot","libelle":"pot","pluriel":"pots","base":125}]'
+    await commeUtilisateur(U1, () => db.query('update aliments set mesures_json = $1 where id = $2', [propres, ID(1)]))
+    await db.exec(migration('0022_nutrition_unites.sql'))
+    expect((await mesures(ID(1))).m).toBe(propres)
+  })
+
+  it('accepte une base en ml et refuse une autre unité de base', async () => {
+    await commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, unite_base, created_at) values ('${ID(3)}', 'Lait', 46, 'ml', '2026-11-24T08:00:00Z')`))
+    expect((await mesures(ID(3))).u).toBe('ml')
+    await expect(commeUtilisateur(U1, () => db.exec(`insert into aliments (id, nom, kcal_100, unite_base, created_at) values ('${ID(4)}', 'X', 1, 'l', '2026-11-24T08:00:00Z')`))).rejects.toThrow(/check constraint/)
+  })
+
+  it('le journal garde la quantité saisie et son unité, bornées', async () => {
+    const entree = (id: number, q: string, u: string) => `insert into repas_entrees (id, date, repas, nom, quantite_g, kcal, source, created_at, quantite_saisie, unite_saisie) values ('${ID(id)}', '2026-11-24', 'petit_dejeuner', 'Œuf', 120, 172, 'base', '2026-11-24T08:00:00Z', ${q}, ${u})`
+    await commeUtilisateur(U1, () => db.exec(entree(10, '2', "'oeuf'")))
+    expect((await db.query('select quantite_saisie, unite_saisie from repas_entrees where id = $1', [ID(10)])).rows).toEqual([{ quantite_saisie: 2, unite_saisie: 'oeuf' }])
+    // Entrée sans saisie (ancien client) : colonnes nulles
+    await commeUtilisateur(U1, () => db.exec(entree(11, 'null', 'null')))
+    await expect(commeUtilisateur(U1, () => db.exec(entree(12, '-1', "'oeuf'")))).rejects.toThrow(/check constraint/)
+    await expect(commeUtilisateur(U1, () => db.exec(entree(13, '1', "''")))).rejects.toThrow(/check constraint/)
+  })
+})

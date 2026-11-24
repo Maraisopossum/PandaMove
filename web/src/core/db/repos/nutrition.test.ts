@@ -159,3 +159,67 @@ describe('objectifs', () => {
     await expect(enregistrerObjectifsNutrition(createTestDb(), { kcal: 2000, proteinesG: 100, glucidesG: 200, lipidesG: 60, eauMl: 2000, ...surcharge })).rejects.toThrow(message)
   })
 })
+
+describe('unités de mesure (migration 0022)', () => {
+  const oeuf = { id: 'oeuf', libelle: 'œuf', pluriel: 'œufs', base: 60 }
+
+  it('un aliment garde sa base et ses mesures ; la portion unique suit la première mesure', async () => {
+    const db = createTestDb()
+    const id = await creerAliment(db, { ...aliment, nom: 'Œuf', uniteBase: 'g', mesures: [oeuf] })
+    expect(await lireAliment(db, id)).toMatchObject({ uniteBase: 'g', mesures: [oeuf], portionG: 60, portionLabel: '1 œuf' })
+    const lait = await creerAliment(db, { ...aliment, nom: 'Lait', uniteBase: 'ml' })
+    expect(await lireAliment(db, lait)).toMatchObject({ uniteBase: 'ml', mesures: [] })
+  })
+
+  it('modifier sans base ni mesures (formulaire actuel) garde celles enregistrées', async () => {
+    const db = createTestDb()
+    const id = await creerAliment(db, { ...aliment, nom: 'Lait', uniteBase: 'ml', mesures: [{ id: 'brique', libelle: 'brique', pluriel: 'briques', base: 1000 }] })
+    await modifierAliment(db, id, { ...aliment, nom: 'Lait demi-écrémé', portionG: 250, portionLabel: '1 verre' })
+    expect(await lireAliment(db, id)).toMatchObject({ nom: 'Lait demi-écrémé', uniteBase: 'ml', mesures: [{ id: 'brique', base: 1000 }], portionG: 250, portionLabel: '1 verre' })
+    await modifierAliment(db, id, { ...aliment, uniteBase: 'g', mesures: [] })
+    expect(await lireAliment(db, id)).toMatchObject({ uniteBase: 'g', mesures: [] })
+  })
+
+  it('un aliment sans mesures enregistrées reprend son ancienne portion', async () => {
+    const db = createTestDb()
+    const id = await creerAliment(db, { ...aliment, portionG: 125, portionLabel: '1 pot' })
+    expect((await lireAliment(db, id))?.mesures).toEqual([{ id: 'portion', libelle: 'portion', pluriel: 'portions', base: 125, detail: '1 pot' }])
+    const sans = await creerAliment(db, aliment)
+    expect((await lireAliment(db, sans))?.mesures).toEqual([])
+  })
+
+  it('refuse une base inconnue et des mesures invalides', async () => {
+    const db = createTestDb()
+    await expect(creerAliment(db, { ...aliment, uniteBase: 'l' as 'g' })).rejects.toThrow(/Base inconnue/)
+    await expect(creerAliment(db, { ...aliment, mesures: [{ ...oeuf, base: 0 }] })).rejects.toThrow(/entre 0 et 5000/)
+    await expect(creerAliment(db, { ...aliment, mesures: [oeuf, oeuf] })).rejects.toThrow(/même nom/)
+  })
+
+  it('le journal garde la quantité saisie et son unité, jusque dans la copie et les fréquents', async () => {
+    const db = createTestDb()
+    const id = await ajouterEntree(db, entree({ nom: 'Œuf', quantiteG: 120, quantiteSaisie: 2, uniteSaisie: 'oeuf' }))
+    expect(await lireEntree(db, id)).toMatchObject({ quantiteG: 120, quantiteSaisie: 2, uniteSaisie: 'oeuf' })
+    await copierRepas(db, '2026-11-15', 'dejeuner', '2026-11-16')
+    expect((await lireJour(db, '2026-11-16'))[0]).toMatchObject({ quantiteSaisie: 2, uniteSaisie: 'oeuf' })
+    expect((await alimentsFrequents(db, '2026-11-01'))[0]).toMatchObject({ nom: 'Œuf', quantiteSaisie: 2, uniteSaisie: 'oeuf' })
+  })
+
+  it('une quantité sans unité (ou l’inverse) est ignorée, et modifier sans unité repasse en grammes', async () => {
+    const db = createTestDb()
+    const a = await ajouterEntree(db, entree({ quantiteSaisie: 2 }))
+    const b = await ajouterEntree(db, entree({ uniteSaisie: 'oeuf' }))
+    expect(await lireEntree(db, a)).toMatchObject({ quantiteSaisie: null, uniteSaisie: null })
+    expect(await lireEntree(db, b)).toMatchObject({ quantiteSaisie: null, uniteSaisie: null })
+    const c = await ajouterEntree(db, entree({ quantiteG: 120, quantiteSaisie: 2, uniteSaisie: 'oeuf' }))
+    await modifierEntree(db, c, { repas: 'dejeuner', quantiteG: 90, apport: apport(130) })
+    expect(await lireEntree(db, c)).toMatchObject({ quantiteG: 90, quantiteSaisie: null, uniteSaisie: null })
+    await modifierEntree(db, c, { repas: 'dejeuner', quantiteG: 180, quantiteSaisie: 3, uniteSaisie: 'oeuf', apport: apport(260) })
+    expect(await lireEntree(db, c)).toMatchObject({ quantiteG: 180, quantiteSaisie: 3, uniteSaisie: 'oeuf' })
+  })
+
+  it('une entrée d’eau n’a pas de saisie', async () => {
+    const db = createTestDb()
+    const id = await ajouterEau(db, '2026-11-15', 250)
+    expect(await lireEntree(db, id)).toMatchObject({ quantiteG: 250, quantiteSaisie: null, uniteSaisie: null })
+  })
+})

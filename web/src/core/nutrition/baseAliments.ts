@@ -1,6 +1,9 @@
 // Base d'aliments courants fournie avec l'application (valeurs moyennes pour 100 g, d'après les tables usuelles type Ciqual, arrondies).
 // Elle sert à saisir vite hors ligne ; pour un produit précis, scanner le code-barres (Open Food Facts) ou créer un aliment personnel.
 // Les valeurs sont celles de l'aliment tel que mangé (cuit pour les féculents, les viandes et les légumineuses).
+// Chaque aliment a sa base (100 g, ou 100 ml pour les liquides) et ses mesures usuelles (œuf, tranche, pot, assiette…), voir mesures.ts.
+
+import { identifiantMesure, type Mesure, type UniteBase } from './mesures'
 
 export type CategorieAliment = 'feculents' | 'proteines' | 'laitiers' | 'fruits' | 'legumes' | 'matieres-grasses' | 'boissons' | 'plaisirs'
 
@@ -18,6 +21,10 @@ export interface AlimentBase {
   /** Portion habituelle en grammes, et son libellé (« 1 tranche »). */
   portionG: number
   portionLabel: string
+  /** 'ml' pour les liquides (valeurs pour 100 ml). */
+  uniteBase: UniteBase
+  /** Mesures usuelles, la plus courante d'abord ; un liquide reçoit en plus les mesures communes (verre, bol…). */
+  mesures: Mesure[]
 }
 
 export const LIBELLE_CATEGORIE: Record<CategorieAliment, string> = {
@@ -33,9 +40,53 @@ export const LIBELLE_CATEGORIE: Record<CategorieAliment, string> = {
 
 type Ligne = [id: string, nom: string, kcal: number, p: number, g: number, l: number, fibres: number | null, portionG: number, portionLabel: string]
 
+// Liquides : valeurs pour 100 ml
+const LIQUIDES = new Set(['lait', 'lait-soja', 'cafe', 'jus-orange', 'soda', 'biere', 'vin'])
+
+type M = [libelle: string, pluriel: string, base: number]
+const m = (libelle: string, pluriel: string, base: number): M => [libelle, pluriel, base]
+const ASSIETTE = (base: number) => m('assiette', 'assiettes', base)
+const CS = (base: number) => m('c. à soupe', 'c. à soupe', base)
+const CC = (base: number) => m('c. à café', 'c. à café', base)
+const PORTION = (base: number) => m('portion', 'portions', base)
+
+// Mesures usuelles par aliment (quantité de base d'une unité, en g ou en ml). Un liquide sans mesure propre prend les mesures communes.
+const MESURES: Record<string, M[]> = {
+  'riz-blanc': [ASSIETTE(150), CS(20)], 'riz-complet': [ASSIETTE(150), CS(20)], pates: [ASSIETTE(180)], 'pates-completes': [ASSIETTE(180)],
+  'pomme-de-terre': [m('pomme de terre', 'pommes de terre', 100)], 'patate-douce': [m('patate douce', 'patates douces', 200)],
+  semoule: [ASSIETTE(150), CS(20)], quinoa: [ASSIETTE(150), CS(20)], lentilles: [ASSIETTE(150), CS(25)],
+  'pois-chiches': [m('boîte égouttée', 'boîtes égouttées', 240), CS(20)], 'haricots-rouges': [m('boîte égouttée', 'boîtes égouttées', 240), CS(20)],
+  'pain-blanc': [m('quart de baguette', 'quarts de baguette', 60), m('baguette', 'baguettes', 250)], 'pain-complet': [m('tranche', 'tranches', 40)],
+  'flocons-avoine': [CS(10), m('bol', 'bols', 50)], muesli: [m('bol', 'bols', 50), CS(10)], biscottes: [m('biscotte', 'biscottes', 10)],
+  poulet: [m('filet', 'filets', 120)], dinde: [m('escalope', 'escalopes', 120)], 'boeuf-5': [m('steak', 'steaks', 125)], 'boeuf-15': [m('steak', 'steaks', 125)],
+  boeuf: [m('pièce', 'pièces', 120)], porc: [m('pièce', 'pièces', 120)], 'jambon-blanc': [m('tranche', 'tranches', 45)], saumon: [m('pavé', 'pavés', 120)],
+  thon: [m('boîte égouttée', 'boîtes égouttées', 110)], cabillaud: [m('filet', 'filets', 130)], crevettes: [PORTION(100), m('crevette', 'crevettes', 10)],
+  oeuf: [m('œuf', 'œufs', 60)], tofu: [PORTION(100), m('bloc', 'blocs', 300)], whey: [m('dose', 'doses', 30)],
+  yaourt: [m('pot', 'pots', 125)], 'yaourt-grec': [m('pot', 'pots', 125)], skyr: [m('pot', 'pots', 150)], 'fromage-blanc': [m('pot', 'pots', 100), CS(30)],
+  emmental: [PORTION(30)], mozzarella: [m('boule', 'boules', 125)], camembert: [m('part', 'parts', 30)], creme: [CS(15)],
+  banane: [m('banane', 'bananes', 120)], pomme: [m('pomme', 'pommes', 150)], orange: [m('orange', 'oranges', 130)], poire: [m('poire', 'poires', 150)],
+  kiwi: [m('kiwi', 'kiwis', 75)], fraises: [m('barquette', 'barquettes', 250), m('fraise', 'fraises', 12)], myrtilles: [m('poignée', 'poignées', 100)],
+  raisin: [m('grappe', 'grappes', 100)], avocat: [m('avocat', 'avocats', 200)], dattes: [m('datte', 'dattes', 8)],
+  amandes: [m('poignée', 'poignées', 20), m('amande', 'amandes', 1.2)], noix: [m('noix', 'noix', 4), m('poignée', 'poignées', 20)],
+  cacahuetes: [m('poignée', 'poignées', 20)], 'beurre-cacahuete': [CS(15), CC(5)],
+  brocoli: [PORTION(150)], carottes: [m('carotte', 'carottes', 100)], tomate: [m('tomate', 'tomates', 120)], salade: [m('poignée', 'poignées', 50)],
+  courgette: [PORTION(150)], 'haricots-verts': [PORTION(150)], epinards: [PORTION(150)], champignons: [PORTION(100), m('champignon', 'champignons', 20)],
+  poivron: [m('poivron', 'poivrons', 120)], concombre: [m('concombre', 'concombres', 200)], 'petits-pois': [PORTION(100), CS(15)],
+  'huile-olive': [CS(10), CC(4)], beurre: [m('noix', 'noix', 10), CC(5)], mayonnaise: [CS(15)],
+  cafe: [m('tasse', 'tasses', 120)], 'jus-orange': [m('verre', 'verres', 200)], soda: [m('canette', 'canettes', 330)],
+  biere: [m('demi', 'demis', 250), m('pinte', 'pintes', 500)], vin: [m('verre', 'verres', 125)],
+  'chocolat-noir': [m('carré', 'carrés', 10)], 'chocolat-lait': [m('carré', 'carrés', 10)], croissant: [m('croissant', 'croissants', 60)],
+  'pain-chocolat': [m('pain au chocolat', 'pains au chocolat', 70)], 'barre-cereales': [m('barre', 'barres', 25)], chips: [m('petit sachet', 'petits sachets', 30)],
+  frites: [PORTION(150)], pizza: [m('pizza', 'pizzas', 300), m('part', 'parts', 75)], glace: [m('boule', 'boules', 30)],
+  miel: [CS(20), CC(7)], confiture: [CS(20), CC(7)], sucre: [m('morceau', 'morceaux', 5), CC(5)], compote: [m('pot', 'pots', 100)], houmous: [CS(15)],
+}
+
+const mesuresDe = (id: string): Mesure[] => (MESURES[id] ?? []).map(([libelle, pluriel, base]) => ({ id: identifiantMesure(libelle), libelle, pluriel, base }))
+
 const lignes = (categorie: CategorieAliment, items: Ligne[]): AlimentBase[] =>
   items.map(([id, nom, kcal, proteines, glucides, lipides, fibres, portionG, portionLabel]) => ({
     id: `base-${id}`, nom, categorie, kcal, proteines, glucides, lipides, fibres, portionG, portionLabel,
+    uniteBase: LIQUIDES.has(id) ? 'ml' : 'g', mesures: mesuresDe(id),
   }))
 
 export const BASE_ALIMENTS: readonly AlimentBase[] = [

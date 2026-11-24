@@ -1,10 +1,12 @@
 import { dateIsoValide } from '../../common/dates'
 import { estRepas, sommer, type Apport, type Repas } from '../../nutrition/calculs'
+import { ecrireMesures, LIMITES_MESURES, lireMesures, mesureDepuisPortion, verifierMesures, type Mesure, type UniteBase } from '../../nutrition/mesures'
 import type { Db, DbLecture } from '../Db'
 import { newId } from '../ids'
 import type { Ligne } from './mappers'
 
 // Module Nutrition (migration 0020) : aliments personnels, journal alimentaire (dont l'eau) et objectifs.
+// Migration 0022 : base des valeurs ('g' ou 'ml') et mesures des aliments ; quantité saisie et son unité dans le journal.
 // Les entrées du journal sont des instantanés : les valeurs sont celles de la quantité mangée au moment de la saisie.
 
 export const TABLE_ALIMENTS = 'aliments'
@@ -35,6 +37,10 @@ export interface Aliment {
   fibres100: number | null
   favori: boolean
   source: SourceAliment
+  /** Valeurs pour 100 g ou pour 100 ml. */
+  uniteBase: UniteBase
+  /** Mesures de l'aliment (la première est proposée par défaut) ; reprise de l'ancienne portion si aucune n'est enregistrée. */
+  mesures: Mesure[]
   createdAt: string
 }
 
@@ -51,6 +57,8 @@ export interface SaisieAliment {
   fibres100?: number | null
   favori?: boolean
   source?: SourceAliment
+  uniteBase?: UniteBase
+  mesures?: readonly Mesure[]
 }
 
 export interface EntreeJournal {
@@ -58,7 +66,11 @@ export interface EntreeJournal {
   date: string
   repas: RepasEntree
   nom: string
+  /** Quantité de base (g, ou ml pour un liquide) : celle des calculs. */
   quantiteG: number
+  /** Ce qui a été saisi (2 et « oeuf ») ; null pour une entrée sans unité (affichée en grammes). */
+  quantiteSaisie: number | null
+  uniteSaisie: string | null
   apport: Apport
   alimentId: string | null
   source: SourceEntree
@@ -70,6 +82,8 @@ export interface SaisieEntree {
   repas: Repas
   nom: string
   quantiteG: number
+  quantiteSaisie?: number | null
+  uniteSaisie?: string | null
   apport: Apport
   alimentId?: string | null
   source?: SourceEntree
@@ -133,9 +147,18 @@ function validerAliment(s: SaisieAliment) {
   const portionLabel = nettoyer(s.portionLabel)
   if (portionLabel !== null && longueur(portionLabel) > LIMITES_NUTRITION.portionLabel) return invalide('Le libellé de la portion est trop long.')
   const macro = (libelle: string, v: number) => nombreEntre(libelle, v, 0, LIMITES_NUTRITION.macro100)
+  if (s.uniteBase !== undefined && s.uniteBase !== 'g' && s.uniteBase !== 'ml') return invalide('Base inconnue : 100 g ou 100 ml.')
+  const mesures = s.mesures ?? []
+  const erreurMesures = verifierMesures(mesures)
+  if (erreurMesures) return invalide(erreurMesures)
+  // Portion unique gardée pour les anciens clients : la première mesure, sinon la portion fournie
+  const premiere = mesures[0]
   return {
-    nom: nomValide(s.nom), marque, codeBarres, portionLabel,
-    portionG: nombreEntre('La portion', s.portionG ?? 100, 1, LIMITES_NUTRITION.portionG),
+    nom: nomValide(s.nom), marque, codeBarres,
+    portionLabel: s.portionG === undefined && premiere ? `1 ${premiere.libelle}`.slice(0, LIMITES_NUTRITION.portionLabel) : portionLabel,
+    portionG: nombreEntre('La portion', s.portionG ?? Math.min(LIMITES_NUTRITION.portionG, Math.max(1, premiere?.base ?? 100)), 1, LIMITES_NUTRITION.portionG),
+    uniteBase: s.uniteBase ?? 'g',
+    mesuresJson: ecrireMesures(mesures),
     kcal100: nombreEntre('L’énergie', s.kcal100, 0, LIMITES_NUTRITION.kcal100),
     proteines100: macro('Les protéines', s.proteines100), glucides100: macro('Les glucides', s.glucides100), lipides100: macro('Les lipides', s.lipides100),
     fibres100: s.fibres100 == null ? null : macro('Les fibres', s.fibres100),
@@ -158,11 +181,21 @@ const mapAliment = (l: Ligne): Aliment => ({
   fibres100: num(l.fibres_100),
   favori: Number(l.favori) === 1,
   source: l.source === 'off' || l.source === 'ia' ? l.source : 'manuel',
+  uniteBase: l.unite_base === 'ml' ? 'ml' : 'g',
+  mesures: mesuresLues(l),
   createdAt: String(l.created_at ?? ''),
 })
 
-const COLONNES_ALIMENT = ['nom', 'marque', 'code_barres', 'portion_g', 'portion_label', 'kcal_100', 'proteines_100', 'glucides_100', 'lipides_100', 'fibres_100', 'favori', 'source'] as const
-const valeursAliment = (v: ReturnType<typeof validerAliment>) => [v.nom, v.marque, v.codeBarres, v.portionG, v.portionLabel, v.kcal100, v.proteines100, v.glucides100, v.lipides100, v.fibres100, v.favori, v.source]
+// Mesures enregistrées ; à défaut (aliment créé avant 0022 sur cet appareil), reprise de l'ancienne portion.
+function mesuresLues(l: Ligne): Mesure[] {
+  const lues = lireMesures(l.mesures_json)
+  if (lues.length > 0) return lues
+  const portion = mesureDepuisPortion(num(l.portion_g), txt(l.portion_label))
+  return portion ? [portion] : []
+}
+
+const COLONNES_ALIMENT = ['nom', 'marque', 'code_barres', 'portion_g', 'portion_label', 'kcal_100', 'proteines_100', 'glucides_100', 'lipides_100', 'fibres_100', 'favori', 'source', 'unite_base', 'mesures_json'] as const
+const valeursAliment = (v: ReturnType<typeof validerAliment>) => [v.nom, v.marque, v.codeBarres, v.portionG, v.portionLabel, v.kcal100, v.proteines100, v.glucides100, v.lipides100, v.fibres100, v.favori, v.source, v.uniteBase, v.mesuresJson]
 
 /** Aliments personnels : favoris d'abord, puis par nom. */
 export async function listerAliments(db: DbLecture): Promise<Aliment[]> {
@@ -193,10 +226,13 @@ export async function creerAliment(db: Db, saisie: SaisieAliment): Promise<strin
   return id
 }
 
+/** Modifie un aliment. Base et mesures absentes de la saisie (formulaire qui ne les connaît pas) : celles enregistrées sont gardées. */
 export async function modifierAliment(db: Db, id: string, saisie: SaisieAliment): Promise<void> {
-  const v = validerAliment(saisie)
+  validerAliment(saisie)
   await db.writeTransaction(async (tx) => {
-    if (!(await lireAliment(tx, id))) throw new ErreurNutrition('introuvable', 'Aliment introuvable.')
+    const ligne = await tx.getOptional<Ligne>('SELECT unite_base, mesures_json FROM aliments WHERE id = ? AND deleted_at IS NULL', [id])
+    if (!ligne) throw new ErreurNutrition('introuvable', 'Aliment introuvable.')
+    const v = validerAliment({ ...saisie, uniteBase: saisie.uniteBase ?? (ligne.unite_base === 'ml' ? 'ml' : 'g'), mesures: saisie.mesures ?? lireMesures(ligne.mesures_json) })
     await tx.execute(`UPDATE aliments SET ${COLONNES_ALIMENT.map((c) => `${c} = ?`).join(', ')}, updated_at = ? WHERE id = ? AND deleted_at IS NULL`, [...valeursAliment(v), new Date().toISOString(), id])
   })
 }
@@ -225,6 +261,8 @@ const mapEntree = (l: Ligne): EntreeJournal => ({
   repas: l.repas === 'eau' ? 'eau' : estRepas(l.repas) ? l.repas : 'collation',
   nom: String(l.nom ?? ''),
   quantiteG: Number(l.quantite_g ?? 0),
+  quantiteSaisie: num(l.quantite_saisie),
+  uniteSaisie: txt(l.unite_saisie),
   apport: { kcal: Number(l.kcal ?? 0), proteines: Number(l.proteines ?? 0), glucides: Number(l.glucides ?? 0), lipides: Number(l.lipides ?? 0), fibres: Number(l.fibres ?? 0) },
   alimentId: txt(l.aliment_id),
   source: (['base', 'off', 'manuel', 'ia', 'copie', 'eau'] as const).find((s) => s === l.source) ?? 'manuel',
@@ -235,9 +273,15 @@ function validerEntree(s: SaisieEntree) {
   if (!dateIsoValide(s.date)) return invalide('Date invalide.')
   if (!estRepas(s.repas)) return invalide('Repas inconnu.')
   const a = s.apport
+  // Quantité saisie et unité vont ensemble : l'une sans l'autre ne veut rien dire
+  const unite = nettoyer(s.uniteSaisie)
+  const avecSaisie = s.quantiteSaisie != null && unite !== null
+  if (unite !== null && longueur(unite) > LIMITES_MESURES.libelle) return invalide('Unité trop longue.')
   return {
     nom: nomValide(s.nom),
     quantiteG: nombreEntre('La quantité', s.quantiteG, 0, LIMITES_NUTRITION.quantiteG),
+    quantiteSaisie: avecSaisie ? nombreEntre('La quantité saisie', s.quantiteSaisie, 0, LIMITES_NUTRITION.quantiteG) : null,
+    uniteSaisie: avecSaisie ? unite : null,
     kcal: nombreEntre('L’énergie', a.kcal, 0, LIMITES_NUTRITION.kcalEntree),
     proteines: nombreEntre('Les protéines', a.proteines, 0, LIMITES_NUTRITION.macroEntree),
     glucides: nombreEntre('Les glucides', a.glucides, 0, LIMITES_NUTRITION.macroEntree),
@@ -262,8 +306,8 @@ export async function ajouterEntree(db: Db, saisie: SaisieEntree): Promise<strin
   const id = newId()
   const maintenant = new Date().toISOString()
   await db.execute(
-    'INSERT INTO repas_entrees (id, date, repas, nom, quantite_g, kcal, proteines, glucides, lipides, fibres, aliment_id, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, saisie.date, saisie.repas, v.nom, v.quantiteG, v.kcal, v.proteines, v.glucides, v.lipides, v.fibres, saisie.alimentId ?? null, saisie.source ?? 'manuel', maintenant, maintenant],
+    'INSERT INTO repas_entrees (id, date, repas, nom, quantite_g, quantite_saisie, unite_saisie, kcal, proteines, glucides, lipides, fibres, aliment_id, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, saisie.date, saisie.repas, v.nom, v.quantiteG, v.quantiteSaisie, v.uniteSaisie, v.kcal, v.proteines, v.glucides, v.lipides, v.fibres, saisie.alimentId ?? null, saisie.source ?? 'manuel', maintenant, maintenant],
   )
   return id
 }
@@ -281,8 +325,8 @@ export async function ajouterEntrees(db: Db, saisies: readonly SaisieEntree[]): 
       // created_at croissant d'une milliseconde par ligne : le journal garde l'ordre de saisie (lecture triée sur created_at)
       const cree = new Date(debut + i).toISOString()
       await tx.execute(
-        'INSERT INTO repas_entrees (id, date, repas, nom, quantite_g, kcal, proteines, glucides, lipides, fibres, aliment_id, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, s.date, s.repas, v.nom, v.quantiteG, v.kcal, v.proteines, v.glucides, v.lipides, v.fibres, s.alimentId ?? null, s.source ?? 'manuel', cree, maintenant],
+        'INSERT INTO repas_entrees (id, date, repas, nom, quantite_g, quantite_saisie, unite_saisie, kcal, proteines, glucides, lipides, fibres, aliment_id, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, s.date, s.repas, v.nom, v.quantiteG, v.quantiteSaisie, v.uniteSaisie, v.kcal, v.proteines, v.glucides, v.lipides, v.fibres, s.alimentId ?? null, s.source ?? 'manuel', cree, maintenant],
       )
     }
   })
@@ -302,15 +346,15 @@ export async function ajouterEau(db: Db, date: string, ml: number): Promise<stri
   return id
 }
 
-/** Modifie la quantité (apport recalculé par l'appelant) et le repas d'une entrée. */
-export async function modifierEntree(db: Db, id: string, saisie: Pick<SaisieEntree, 'repas' | 'quantiteG' | 'apport'> & { nom?: string }): Promise<void> {
+/** Modifie la quantité (apport recalculé par l'appelant) et le repas d'une entrée. Sans quantité saisie, l'entrée repasse en grammes. */
+export async function modifierEntree(db: Db, id: string, saisie: Pick<SaisieEntree, 'repas' | 'quantiteG' | 'apport' | 'quantiteSaisie' | 'uniteSaisie'> & { nom?: string }): Promise<void> {
   await db.writeTransaction(async (tx) => {
     const actuelle = await lireEntree(tx, id)
     if (!actuelle) throw new ErreurNutrition('introuvable', 'Entrée introuvable.')
-    const v = validerEntree({ date: actuelle.date, repas: saisie.repas, nom: saisie.nom ?? actuelle.nom, quantiteG: saisie.quantiteG, apport: saisie.apport })
+    const v = validerEntree({ date: actuelle.date, repas: saisie.repas, nom: saisie.nom ?? actuelle.nom, quantiteG: saisie.quantiteG, quantiteSaisie: saisie.quantiteSaisie, uniteSaisie: saisie.uniteSaisie, apport: saisie.apport })
     await tx.execute(
-      'UPDATE repas_entrees SET repas = ?, nom = ?, quantite_g = ?, kcal = ?, proteines = ?, glucides = ?, lipides = ?, fibres = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
-      [saisie.repas, v.nom, v.quantiteG, v.kcal, v.proteines, v.glucides, v.lipides, v.fibres, new Date().toISOString(), id],
+      'UPDATE repas_entrees SET repas = ?, nom = ?, quantite_g = ?, quantite_saisie = ?, unite_saisie = ?, kcal = ?, proteines = ?, glucides = ?, lipides = ?, fibres = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+      [saisie.repas, v.nom, v.quantiteG, v.quantiteSaisie, v.uniteSaisie, v.kcal, v.proteines, v.glucides, v.lipides, v.fibres, new Date().toISOString(), id],
     )
   })
 }
@@ -336,13 +380,16 @@ export async function restaurerEntree(db: Db, id: string): Promise<void> {
 export async function copierRepas(db: Db, depuis: string, repas: Repas, vers: string): Promise<number> {
   const source = (await lireJour(db, depuis)).filter((e) => e.repas === repas)
   if (source.length === 0) return 0
-  await ajouterEntrees(db, source.map((e) => ({ date: vers, repas, nom: e.nom, quantiteG: e.quantiteG, apport: e.apport, alimentId: e.alimentId, source: 'copie' as const })))
+  await ajouterEntrees(db, source.map((e) => ({ date: vers, repas, nom: e.nom, quantiteG: e.quantiteG, quantiteSaisie: e.quantiteSaisie, uniteSaisie: e.uniteSaisie, apport: e.apport, alimentId: e.alimentId, source: 'copie' as const })))
   return source.length
 }
 
 export interface AlimentRecent {
   nom: string
   quantiteG: number
+  /** Dernière quantité saisie et son unité (« Refaire en un geste » dans la même unité), ou null. */
+  quantiteSaisie: number | null
+  uniteSaisie: string | null
   apport: Apport
   alimentId: string | null
   source: SourceEntree
@@ -362,7 +409,7 @@ export async function alimentsFrequents(db: DbLecture, depuis: string, limite = 
     const cle = e.nom.toLowerCase()
     const deja = parNom.get(cle)
     if (deja) deja.fois++
-    else parNom.set(cle, { nom: e.nom, quantiteG: e.quantiteG, apport: e.apport, alimentId: e.alimentId, source: e.source, fois: 1 })
+    else parNom.set(cle, { nom: e.nom, quantiteG: e.quantiteG, quantiteSaisie: e.quantiteSaisie, uniteSaisie: e.uniteSaisie, apport: e.apport, alimentId: e.alimentId, source: e.source, fois: 1 })
   }
   return [...parNom.values()].sort((a, b) => b.fois - a.fois).slice(0, limite)
 }
